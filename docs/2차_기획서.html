@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ebook_html 2차 기획서 — 토글·예시영상·Agentic-PM 이식</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--purple:#7a3ff2;--red:#c23b48;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.65;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:48px 24px 120px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:29px;margin:10px 0 10px;letter-spacing:-.02em}
+  .lede{font-size:16px;color:var(--muted);max-width:820px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 28px;margin:18px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:20px;margin:0 0 4px}h2 .n{display:inline-flex;width:27px;height:27px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:10px}
+  h2 .tag{font-family:var(--mono);font-size:11px;font-weight:800;color:#fff;background:var(--purple);border-radius:6px;padding:3px 8px;margin-left:8px;vertical-align:middle}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 16px}
+  h3{font-size:15.5px;margin:20px 0 7px}
+  p{margin:9px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fafbfd}
+  td.mono,code.p{font-family:var(--mono);font-size:11.5px}
+  .decis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:6px 0}
+  .decis .c{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fcfdff}
+  .decis .c .t{font-size:11px;font-weight:800;letter-spacing:.03em;color:var(--blue);text-transform:uppercase}
+  .decis .c .v{font-size:14.5px;font-weight:700;margin:6px 0 3px}
+  .decis .c .d{font-size:12px;color:var(--muted);line-height:1.5}
+  .note{background:#fff7ec;border:1px solid #f0dcae;border-radius:11px;padding:13px 16px;font-size:13.5px;margin:12px 0}
+  .warn{background:#fdf4f5;border:1px solid #f0d3d7;border-radius:11px;padding:13px 16px;font-size:13.5px;margin:12px 0}
+  .ok-box{background:#eef8f2;border:1px solid #c4e6d2;border-radius:11px;padding:13px 16px;font-size:13.5px;margin:12px 0}
+  .q{background:#f0f4ff;border:1px solid #d9e2fb;border-radius:11px;padding:14px 18px;color:#33447a;font-size:14px;margin:14px 0}
+  .flow{font-family:var(--mono);font-size:12px;background:#12141b;color:#e8ebf2;border-radius:10px;padding:16px 18px;line-height:1.7;overflow:auto;white-space:pre}
+  .mile{border:1px solid var(--line);border-radius:11px;padding:0;overflow:hidden;margin:10px 0}
+  .mile .h{display:flex;align-items:center;gap:10px;padding:11px 15px;background:#fafbfd;border-bottom:1px solid var(--line)}
+  .mile .id{font-family:var(--mono);font-size:12px;font-weight:800;background:var(--ink);color:#fff;border-radius:6px;padding:3px 9px}
+  .mile .h b{font-size:14.5px}
+  .mile .b{padding:11px 15px;font-size:13.5px}
+  .mile .b .gate{color:var(--green);font-size:12.5px;margin-top:6px;display:block}
+  .pill{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px}
+  .p-core{background:#e6f5ee;color:var(--green)}.p-adapt{background:#fbf1e0;color:var(--amber)}.p-new{background:#efe7fb;color:var(--purple)}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:36px}
+  @media print{body{background:#fff}section{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">ebook_html · 2차 기획서 · 이사 회의(2026-07-27) 반영 · 코드 착수 전 계획</div>
+<h1>2차 기획 — 토글·예시영상·Agentic-PM 이식</h1>
+<p class="lede">1차에서 카드 빌더·자유 캔버스·발표·단축키를 완성했습니다. 2차는 오늘 회의 결과를 반영해 세 축을 추가합니다 — <b>①빈 화면에서 틀을 짜는 노션식 토글 + 발표 서식</b>, <b>②상단 '예시영상' 인앱 가이드</b>, <b>③Agentic-PM의 환경설정·채팅(백엔드 엔진 포함) 이식</b>. 이번에도 코드는 아직 짜지 않고 <b>계획부터</b> 확정합니다.</p>
+
+<section>
+  <h2><span class="n">0</span>회의 결정 요약</h2>
+  <p class="sub">오늘 정해진 방향입니다. 세부 스펙은 각 섹션에서 확정합니다.</p>
+  <div class="decis">
+    <div class="c"><div class="t">채팅 이식범위</div><div class="v">백엔드 엔진까지 전부 동일</div><div class="d">chat_engine + LLM 클라이언트 + 설정 DB를 통째로 이식.</div></div>
+    <div class="c"><div class="t">챗의 역할(2차)</div><div class="v">우선 대화형(“안녕?→대답”)</div><div class="d">틀·이북을 대신 조작하는 건 <b>후속</b> — 브리지 뼈대만 깔아둠(§4-3).</div></div>
+    <div class="c"><div class="t">예시영상</div><div class="v">인앱 가이드 재생</div><div class="d">영상 파일 없이 앱이 컴포넌트로 단계 시연(종이접기 방법영상 느낌).</div></div>
+    <div class="c"><div class="t">토글 + 발표</div><div class="v">슬래시·토글 + 서식</div><div class="d">노션식 <code>/</code>·<code>&gt;</code> 토글 + 볼드·가운데정렬·배경설정.</div></div>
+  </div>
+  <div class="note"><b>불변 원칙(1차에서 계승).</b> <code>uniever_ebook</code>은 계속 <b>무수정</b>. 그리고 <code>Agentic-PM</code>도 <b>원본은 건드리지 않고</b> 필요한 부분을 <b>복제해 ebook_html로 이식</b>합니다(읽기 참조).</div>
+</section>
+
+<section>
+  <h2><span class="n">1</span>축 A — 노션 토글 + 발표 서식으로 '빈 화면에서 틀 만들기' <span class="tag">NEW</span></h2>
+  <p class="sub">지금은 왼쪽 카드에서 골라야 시작됩니다. 2차엔 <b>빈 문서에서 글로 목차·틀부터</b> 짤 수 있게, 노션식 블록 편집을 얹습니다. 그 아웃라인이 곧 페이지/발표 슬라이드가 됩니다.</p>
+
+  <h3>1) 노션식 블록 편집</h3>
+  <table>
+    <thead><tr><th style="width:26%">기능</th><th>동작</th></tr></thead>
+    <tbody>
+      <tr><td><b>슬래시 명령 <code>/</code></b></td><td>빈 줄에서 <code>/</code>를 치면 블록 메뉴(제목·본문·토글·목록·구분선·이미지…)가 떠서 골라 삽입.</td></tr>
+      <tr><td><b>제목 토글 <code>&gt;</code></b></td><td><code>&gt;</code> + 스페이스로 <b>접었다 펼치는 제목 토글</b> 생성. 토글 안에 하위 내용을 넣어 틀을 계층으로 구성.</td></tr>
+      <tr><td><b>글자 서식</b></td><td><b>볼드</b>(<code>⌘/Ctrl+B</code>), <b>가운데 정렬</b>, (확장) 기울임·밑줄·글머리.</td></tr>
+      <tr><td><b>빈 화면 시작</b></td><td>카드를 안 골라도 빈 문서에서 바로 타이핑 → 틀 완성 후 페이지로 확정.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2) 발표(프리젠테이션) 서식</h3>
+  <table>
+    <thead><tr><th style="width:26%">기능</th><th>동작</th></tr></thead>
+    <tbody>
+      <tr><td><b>배경 설정</b></td><td>페이지/슬라이드 배경색(또는 이미지) 지정 — 표지·강조 슬라이드에.</td></tr>
+      <tr><td><b>정렬·강조</b></td><td>제목/본문 가운데 정렬, 볼드 등으로 발표용 강약 조절.</td></tr>
+      <tr><td><b>토글→슬라이드 연결</b></td><td>최상위 제목 토글 하나 = 한 섹션/슬라이드. 아웃라인을 접으면 발표 목차, 펼치면 내용.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note"><b>초보 배려(1차 원칙 유지).</b> <code>/</code>·<code>&gt;</code> 같은 파워 기능은 <b>기본은 숨기고</b> 힌트로만 노출합니다("<code>/</code>를 눌러 블록 추가"). 카드 방식·토글 방식 <b>둘 다</b> 쓸 수 있게 해서, 낯선 임원은 카드로, 익숙한 사람은 토글로.</div>
+
+  <h3>3) 상태모델 영향(설계 메모)</h3>
+  <p>기존 <code>Page</code>는 카드(<code>cardKey</code>+<code>fields</code>)와 자유 캔버스(<code>els/conns/strokes</code>)를 가집니다. 여기에 <b>블록 문서(<code>blocks[]</code>)</b> 표현을 추가합니다: <code>{ id, type: heading|text|toggle|list|divider|image, text, children[], marks(bold/align), collapsed }</code>. 발표·이북 렌더러(PageView)가 이 블록을 읽어 그리도록 확장합니다("보이는 그대로가 산출물" 원칙 유지).</p>
+</section>
+
+<section>
+  <h2><span class="n">2</span>축 B — 상단 '예시영상' 버튼 = 인앱 가이드 <span class="tag">NEW</span></h2>
+  <p class="sub">"간단한 이북 하나를 ebook_html 컴포넌트로 어떻게 만들어 가는가"를, <b>영상 파일 없이 앱이 직접 단계별로 시연</b>합니다(종이접기 방법영상 느낌). 1차의 튜토리얼 스포트라이트(<code>TutorialCoach</code>)를 '자동 재생 데모'로 확장합니다.</p>
+  <table>
+    <thead><tr><th style="width:26%">요소</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><b>진입</b></td><td>상단바에 <code>▶ 예시영상</code> 버튼. 누르면 데모 오버레이 시작(언제든 종료 가능).</td></tr>
+      <tr><td><b>재생 방식</b></td><td>스크립트(단계 목록)를 순서대로 재생 — 대상 버튼 하이라이트 + 자막 설명 + 자동 진행. 실제 클릭을 흉내내며 "이렇게 카드 고르고 → 내용 채우고 → 이북 만들기"까지 보여줌.</td></tr>
+      <tr><td><b>안전 격리</b></td><td>사용자의 실제 작업물과 섞이지 않도록 <b>데모 전용 샘플(간단 이북)</b> 위에서 재생하거나 별도 미리보기에서 시연.</td></tr>
+      <tr><td><b>확장</b></td><td>여러 편(예: '자유 캔버스 편', '발표 편', '토글로 틀짜기 편')으로 늘릴 수 있는 스크립트 포맷.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>인앱 가이드의 장점.</b> 영상 파일 관리·재촬영이 필요 없고, UI가 바뀌면 스크립트만 고치면 됩니다. 1차의 튜토리얼 인프라를 재사용하므로 구현 비용도 낮습니다.</div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>축 C — Agentic-PM 환경설정 · 채팅 이식 <span class="tag">PORT</span></h2>
+  <p class="sub">회의 결정대로 <b>백엔드 엔진까지 전부 동일</b> 이식합니다. 다만 챗 엔진은 PM 화면 전용 로직이 커서, <b>재사용 코어</b>와 <b>PM 도메인 계층</b>을 나눠 이식·중립화합니다.</p>
+
+  <h3>3-1) 무엇을 어디서 가져오나 — 이식 맵</h3>
+  <table>
+    <thead><tr><th style="width:33%">원본 (Agentic-PM)</th><th style="width:12%">성격</th><th>ebook_html 이식 위치 / 메모</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3" style="background:#f7f8fb;font-weight:800;font-size:12px;color:#5b6270">■ 환경설정 (프론트 + 백엔드)</td></tr>
+      <tr><td class="mono">frontend/…/SettingsPage.tsx</td><td><span class="pill p-core">그대로</span></td><td>환경설정 화면 셸(환경 설정 히어로 + 카드 배치).</td></tr>
+      <tr><td class="mono">frontend/…/LlmSettingsCard.tsx</td><td><span class="pill p-core">그대로</span></td><td>provider/base_url/user_id/api_key/model/timeout/enabled + 저장·연결테스트.</td></tr>
+      <tr><td class="mono">frontend/…/FileMetricSettingsCard.tsx</td><td><span class="pill p-adapt">선택</span></td><td>파일지표 설정 — ebook_html에 불필요하면 제외/보류.</td></tr>
+      <tr><td class="mono">backend/pm_agents/llm_settings.py</td><td><span class="pill p-core">그대로</span></td><td><code>App_Settings</code> 테이블 <code>llm.*</code> 로드/저장(App_Settings &gt; env &gt; 기본).</td></tr>
+      <tr><td class="mono">라우트 <code>/settings/llm</code>, <code>/settings/llm/test</code></td><td><span class="pill p-core">그대로</span></td><td>ebook_html 서버에 편입(예: <code>/api/settings/llm</code>).</td></tr>
+      <tr><td colspan="3" style="background:#f7f8fb;font-weight:800;font-size:12px;color:#5b6270">■ 채팅 — 재사용 코어(거의 그대로)</td></tr>
+      <tr><td class="mono">components/ChatPanel.tsx (+MarkdownView)</td><td><span class="pill p-core">그대로</span></td><td>채팅 패널 UI·세션·크기 프리셋·DOCX 내려받기.</td></tr>
+      <tr><td class="mono">chat_engine/ core·session·sse·schema·policy·messages</td><td><span class="pill p-core">그대로</span></td><td>대화 오케스트레이션·세션·SSE 스트리밍·응답 스키마.</td></tr>
+      <tr><td class="mono">pm_agents/ llm_client·base_llm_agent·llm_schema</td><td><span class="pill p-core">그대로</span></td><td>LLM 호출 클라이언트(환경설정을 그대로 사용).</td></tr>
+      <tr><td class="mono">app/core/docx_export.py</td><td><span class="pill p-core">그대로</span></td><td>채팅 답변 DOCX 내보내기.</td></tr>
+      <tr><td colspan="3" style="background:#f7f8fb;font-weight:800;font-size:12px;color:#5b6270">■ 채팅 — PM 도메인 계층(이식하되 중립화 → 후속 재매핑)</td></tr>
+      <tr><td class="mono">chat_engine/ recipes·navigation·commands·ui_actions·ranking·report</td><td><span class="pill p-adapt">중립화</span></td><td>PM 화면(프로젝트·요구사항)에 묶인 액션/문구. 2차엔 <b>일반 대화만 남기고 비활성</b>, ebook 액션은 §4-3에서 후속 연결.</td></tr>
+      <tr><td class="mono">ChatPanel의 화면별 질문 가이드</td><td><span class="pill p-adapt">교체</span></td><td>PM 예시("프로젝트 생성…")를 ebook_html 예시("표지 카드 추가", "이북 만들기…")로 교체.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3-2) 스택 정합(중요)</h3>
+  <p>두 앱의 기반이 다릅니다. Agentic-PM은 <b>Tailwind + lucide-react + react-markdown</b> + 풀 FastAPI(챗엔진·SQLite <code>App_Settings</code>·<code>.env</code>·<code>.auth_secret</code>), ebook_html은 <b>순수 CSS + zustand</b> + 얇은 FastAPI(현재는 <code>generator.py</code> 호출만). 이식하려면:</p>
+  <table>
+    <thead><tr><th style="width:30%">항목</th><th>계획</th></tr></thead>
+    <tbody>
+      <tr><td><b>프론트 의존성</b></td><td><code>lucide-react</code>, <code>react-markdown</code>(+remark-gfm/breaks) 도입. 스타일은 Tailwind 전면 도입 대신 <b>필요한 클래스(<code>settings-*</code>, 채팅)만 순수 CSS로 이식</b>해 ebook_html을 가볍게 유지(권장).</td></tr>
+      <tr><td><b>백엔드 확장</b></td><td>ebook_html 서버(<code>server/app.py</code>)에 <b>챗·설정 라우터 + SQLite(App_Settings) + .env 로더</b>를 추가. 기존 <code>/api/build</code>는 그대로.</td></tr>
+      <tr><td><b>인증</b></td><td>Agentic-PM은 토큰 인증(<code>agentic-pm-token</code>)을 씀. ebook_html은 <b>로컬 단일 사용자</b>이므로 인증을 최소화/제거(로컬 전용).</td></tr>
+      <tr><td><b>실행 스크립트</b></td><td><code>run.command</code>가 이제 파이썬 의존성(챗엔진)까지 설치·기동하도록 갱신.</td></tr>
+      <tr><td><b>보안</b></td><td>api_key는 브라우저에 저장하지 않고 서버 <code>App_Settings</code>에만(원본 원칙 유지). <code>.env</code>/<code>.auth_secret</code> 위치·권한 정리.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3-3) "채팅이 틀·이북을 대신 조작" — 지금 가능한가? (Q2 답)</h3>
+  <div class="ok-box"><b>결론: 기술적으로 가능합니다.</b> 이식하는 챗 엔진에는 이미 <b>ui_action 계약</b>(<code>make_ui_action</code>, 프론트 <code>onUiAction</code>, <code>auto_apply</code>/<code>requires_confirm</code>)이 들어 있습니다. 즉 "말 → 화면 동작"의 배관이 원래부터 있습니다.</div>
+  <p>다만 그 액션들이 지금은 <b>PM 대상</b>(프로젝트·요구사항 생성 등)이라, ebook_html에서 쓰려면 <b>ebook 액션으로 재매핑</b>이 필요합니다 — 예: "표지 카드 추가", "이 카드 제목을 …로", "세로/가로 전환", "이북 만들기", "도형 추가". 이 재매핑은 명확하지만 실제 작업입니다.</p>
+  <div class="q"><b>권장 순서.</b> 2차에서는 회의 결정대로 <b>대화형까지 확실히</b> 올리고(“안녕?→대답”, DOCX 내보내기), 동시에 <b>ebook 액션 브리지의 뼈대</b>(액션 레지스트리 + <code>onUiAction</code>→zustand 스토어 배선)를 깔아 <b>안전한 액션 1~2개(예: 카드 추가)만 시범</b>으로 켭니다. 나머지 "대신 조작"은 <b>3차</b>에서 플래그로 확장. 이렇게 하면 지금 당장 위험 없이 시작하고, 나중에 스위치만 켜면 됩니다.</p></div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>통합 아키텍처(2차 후)</h2>
+  <div class="flow">[ 브라우저 ]  ebook_html 프론트 (React + zustand)
+   ├─ 카드 빌더 · 자유 캔버스 · 발표            (1차)
+   ├─ ★ 블록/토글 에디터 + 발표 서식            (축 A)
+   ├─ ★ 예시영상(인앱 가이드) 오버레이           (축 B)
+   ├─ ★ 환경설정 화면(LLM)                      (축 C)
+   └─ ★ 채팅 패널(SSE·DOCX)                     (축 C)
+          │
+          ▼
+[ 로컬 서버 ]  ebook_html FastAPI (확장)
+   ├─ /api/build ──────────────► uniever_ebook/generator.py   (무수정, 1차)
+   ├─ ★ /api/settings/llm(+test) ─► App_Settings(SQLite) · .env
+   └─ ★ /api/chat (SSE) ─► chat_engine(core.run) ─► llm_client ─► (self/OpenAI/Anthropic)</div>
+  <p class="sub">별표(★)가 2차 신규. 1차 파이프라인과 <code>uniever_ebook</code> 무수정 원칙은 그대로 유지됩니다.</p>
+</section>
+
+<section>
+  <h2><span class="n">5</span>마일스톤 (2차) · 게이트</h2>
+  <p class="sub">1차와 같은 방식: 각 단계마다 <b>스킬 사전 선언 → 게이트 통과(자동검증 포함)</b>. 순서는 리스크가 낮고 독립적인 것부터.</p>
+  <div class="mile"><div class="h"><span class="id">P0</span> <b>착수 · 스택 정합</b></div><div class="b">의존성 결정(lucide-react·react-markdown 도입, Tailwind 부분/전면 여부), 백엔드 확장 골격(라우터·SQLite·.env), Agentic-PM 코드 스냅샷 확보.<span class="gate">✔ 게이트: 확장된 서버가 빈 <code>/api/chat</code>·<code>/api/settings/llm</code> 스텁으로 기동.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P1</span> <b>환경설정 이식</b></div><div class="b">SettingsPage + LlmSettingsCard + <code>/settings/llm</code>(GET/PUT/test) + App_Settings 저장.<span class="gate">✔ 게이트: 설정 저장·재로딩·"연결 테스트" 동작(모의 또는 실 LLM).</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P2</span> <b>채팅 코어 이식(대화형)</b></div><div class="b">재사용 코어(chat_engine core·session·sse·schema) + llm_client + ChatPanel. PM 도메인 계층은 비활성/중립화.<span class="gate">✔ 게이트: "안녕?"에 스트리밍 응답 + 답변 DOCX 내려받기.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P3</span> <b>노션 토글 + 발표 서식</b></div><div class="b">블록 에디터(<code>/</code> 슬래시·<code>&gt;</code> 토글·볼드·가운데정렬), 배경 설정, 아웃라인→페이지/슬라이드 연결.<span class="gate">✔ 게이트: 빈 화면에서 토글로 틀 작성 → 발표·이북에 반영.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P4</span> <b>예시영상(인앱 가이드)</b></div><div class="b">상단 <code>▶ 예시영상</code> 버튼 + 스크립트 재생 엔진(TutorialCoach 확장) + 첫 데모(간단 이북 만들기).<span class="gate">✔ 게이트: 버튼→데모 자동 재생·종료, 실제 작업물과 격리.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P5</span> <b>챗 액션 브리지(스캐폴드)</b></div><div class="b">ebook 액션 레지스트리 + <code>onUiAction</code>→스토어 배선, 안전 액션 1~2개 시범(플래그). 나머지는 3차.<span class="gate">✔ 게이트: "표지 카드 추가해줘" 같은 시범 액션 1건이 실제로 반영(확인 절차 포함).</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P6</span> <b>검증 · 증적 · 핸드오버</b></div><div class="b">Playwright 스모크 확장(설정 저장/테스트 모의·챗 대화·토글·예시영상), 문서화.<span class="gate">✔ 게이트: 전체 스모크 PASS + 2차 핸드오버 문서.</span></div></div>
+</section>
+
+<section>
+  <h2><span class="n">6</span>리스크 & 대응</h2>
+  <table>
+    <thead><tr><th style="width:34%">리스크</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr><td><b>스택 이질성</b> (Tailwind vs 순수 CSS)</td><td>Tailwind 전면 도입 대신 필요한 클래스만 이식. 결정은 P0에서 확정.</td></tr>
+      <tr><td><b>백엔드 비대화</b> (얇은 서버 → 풀 챗엔진)</td><td>설치·기동을 <code>run.command</code>로 자동화. 챗엔진은 계층 분리해 PM 죽은코드 최소화.</td></tr>
+      <tr><td><b>PM 도메인 결합</b> (전부 이식 시 PM 문구 노출)</td><td>도메인 계층 <b>중립화</b>(가이드·명령 교체), 대화형만 노출.</td></tr>
+      <tr><td><b>초보 UX 충돌</b> (슬래시/토글이 어렵게)</td><td>카드·토글 병행, 파워 기능은 기본 숨김 + 힌트. 예시영상으로 학습.</td></tr>
+      <tr><td><b>보안</b> (api_key·비밀)</td><td>서버 저장 원칙 유지, 로컬 파일 권한 정리. 로그에 키 미출력.</td></tr>
+      <tr><td><b>예시영상 오작동</b> (실제 데이터 변경)</td><td>데모 전용 샘플/미리보기에서만 재생하도록 격리.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">7</span>다음 액션</h2>
+  <p>이 계획이 확정되면 <b>P0(스택 정합)</b>부터 착수합니다. 착수 전에 두 가지만 확인해 주시면 바로 시작합니다 — <b>(a)</b> 프론트 스타일을 "필요한 CSS만 이식"으로 갈지 Tailwind 전면 도입으로 갈지, <b>(b)</b> 마일스톤 순서(현재는 환경설정·채팅 → 토글 → 예시영상 → 액션 브리지)를 그대로 갈지. 별도 지시가 없으면 <b>위 권장안(가벼운 CSS 이식 + 제안 순서)</b>으로 진행합니다.</p>
+</section>
+
+<div class="foot">ebook_html 2차 기획서 · 축 A 토글·발표서식 / 축 B 예시영상 인앱가이드 / 축 C Agentic-PM 환경설정·채팅 전부 이식 · uniever_ebook 무수정 유지</div>
+</div>
+</body>
+</html>

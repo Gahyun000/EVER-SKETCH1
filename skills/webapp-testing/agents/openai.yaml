@@ -1,0 +1,4 @@
+interface:
+  display_name: "Webapp Testing"
+  short_description: "Drive and test local web apps with Playwright"
+  default_prompt: "Use $webapp-testing to verify this web app end-to-end (UI, console, screenshots)."

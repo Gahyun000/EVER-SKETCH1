@@ -1,0 +1,4 @@
+{
+  "type": "commonjs",
+  "description": "deck_builder.js 를 CommonJS 로 실행(ebook_html 루트가 type:module 이라 필요)."
+}

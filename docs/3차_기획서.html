@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ebook_html 3차 기획서 — HTML Import: 붙이면 표지·목차·페이지로</title>
+<style>
+  /* 색은 유니에버 design.md 토큰 적용 (dogfooding) */
+  :root{
+    --ink:#0F1B3D; --text:#111318; --muted:#5B6270; --line:#E6E8EE; --bg:#F4F5F7; --card:#FFFFFF;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A;
+    --tint-blue:#EAF1FE; --tint-blue-line:#CFE0FB;
+    --tint-green:#E9F5EF; --tint-green-line:#CDE9DC;
+    --tint-amber:#FBF0E1; --tint-amber-line:#F2DEBE;
+    --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);line-height:1.65;font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:48px 24px 120px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:29px;margin:10px 0 10px;letter-spacing:-.02em;color:var(--ink)}
+  .lede{font-size:16px;color:var(--muted);max-width:840px}
+  .hero{background:var(--ink);color:#fff;border-radius:16px;padding:26px 28px;margin:18px 0 8px}
+  .hero .kicker{color:#8fb4ff}
+  .hero h1{color:#fff;margin-top:8px}
+  .hero .lede{color:rgba(255,255,255,.82)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 28px;margin:18px 0;box-shadow:0 1px 2px rgba(15,27,61,.04)}
+  h2{font-size:20px;margin:0 0 4px;color:var(--ink)}
+  h2 .n{display:inline-flex;width:27px;height:27px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:10px}
+  h2 .tag{font-family:var(--mono);font-size:11px;font-weight:800;color:#fff;background:var(--blue);border-radius:6px;padding:3px 8px;margin-left:8px;vertical-align:middle}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 16px}
+  h3{font-size:15.5px;margin:20px 0 7px;color:var(--ink)}
+  p{margin:9px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fafbfd}
+  td.mono{font-family:var(--mono);font-size:11.5px}
+  .decis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:6px 0}
+  .decis .c{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fcfdff}
+  .decis .c .t{font-size:11px;font-weight:800;letter-spacing:.03em;color:var(--blue);text-transform:uppercase}
+  .decis .c .v{font-size:14.5px;font-weight:700;margin:6px 0 3px;color:var(--ink)}
+  .decis .c .d{font-size:12px;color:var(--muted);line-height:1.5}
+  /* 콜아웃 (design.md §5) */
+  .cal{border-radius:11px;padding:13px 16px 13px 15px;font-size:13.5px;margin:12px 0;border:1px solid;border-left-width:4px}
+  .cal b.h{display:block;margin-bottom:3px}
+  .info{background:var(--tint-blue);border-color:var(--tint-blue-line);border-left-color:var(--blue)}
+  .info b.h{color:var(--blue)}
+  .key{background:var(--tint-green);border-color:var(--tint-green-line);border-left-color:var(--green)}
+  .key b.h{color:var(--green)}
+  .warn{background:var(--tint-amber);border-color:var(--tint-amber-line);border-left-color:var(--amber)}
+  .warn b.h{color:var(--amber)}
+  .flow{font-family:var(--mono);font-size:12px;background:#0F1B3D;color:#e8ebf2;border-radius:10px;padding:16px 18px;line-height:1.7;overflow:auto;white-space:pre}
+  .mile{border:1px solid var(--line);border-radius:11px;padding:0;overflow:hidden;margin:10px 0}
+  .mile .h{display:flex;align-items:center;gap:10px;padding:11px 15px;background:#fafbfd;border-bottom:1px solid var(--line)}
+  .mile .id{font-family:var(--mono);font-size:12px;font-weight:800;background:var(--ink);color:#fff;border-radius:6px;padding:3px 9px}
+  .mile .h b{font-size:14.5px;color:var(--ink)}
+  .mile .b{padding:11px 15px;font-size:13.5px}
+  .mile .b .gate{color:var(--green);font-size:12.5px;margin-top:6px;display:block}
+  .pill{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px}
+  .p-rule{background:var(--tint-green);color:var(--green)}
+  .p-ai{background:var(--tint-blue);color:var(--blue)}
+  .p-next{background:var(--tint-amber);color:var(--amber)}
+  .ex{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:12px 0}
+  .ex .row{display:flex;gap:0;border-bottom:1px solid var(--line);font-size:13px}
+  .ex .row:last-child{border-bottom:none}
+  .ex .row .l{flex:0 0 176px;background:#fafbfd;padding:9px 13px;font-weight:700;color:var(--ink);border-right:1px solid var(--line)}
+  .ex .row .r{padding:9px 13px;color:var(--text)}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:36px}
+  @media print{body{background:#fff}section{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">ebook_html · 3차 기획서 · 코드 착수 전 계획 · 2026-07-28</div>
+  <h1>3차 기획 — HTML Import: 붙이면 표지·목차·페이지로 자동 분해</h1>
+  <p class="lede">이사님이 주시는 <b>HTML 문서 파일을 올리면</b>, 규칙이 이를 <b>표지·목차·페이지 카드</b>로 자동 분해합니다. 원본의 색·서식은 버리고 새 <code>design.md</code>로 정규화하며, 필요하면 <b>‘AI로 정리’</b> 버튼으로 카드타입·문구를 다듬습니다(항상 사람이 확인). 뒷단(내보내기·이북 굽기)은 그대로 — <code>uniever_ebook</code> 무수정. 1·2차와 같이 <b>코드 전 계획부터</b> 확정합니다.</p>
+</div>
+
+<section>
+  <h2><span class="n">0</span>구상 결정 요약</h2>
+  <p class="sub">이번 구상에서 확정한 방향입니다. 세부는 각 섹션에서 확정합니다.</p>
+  <div class="decis">
+    <div class="c"><div class="t">변환 방식</div><div class="v">하이브리드</div><div class="d">규칙 기반이 기본(항상 완성본) + <b>‘AI로 정리’</b> 버튼(제안·다듬기, 사람 확인).</div></div>
+    <div class="c"><div class="t">페이지 분할</div><div class="v">제목(H1/H2)마다 새 페이지</div><div class="d">한 장을 넘치면 <code>제목 (2)</code> <code>(3)</code> 으로 자동 이어붙임.</div></div>
+    <div class="c"><div class="t">요소 범위</div><div class="v">텍스트 위주 먼저</div><div class="d">제목·문단·목록·강조박스까지. 표·이미지·코드는 자리표시 → 다음 차수.</div></div>
+    <div class="c"><div class="t">입력</div><div class="v">HTML 파일 업로드</div><div class="d">상단 <code>📄 HTML 가져오기</code> → 파일 선택.</div></div>
+    <div class="c"><div class="t">서식</div><div class="v">우리 이북 스타일로 정규화</div><div class="d">원본 색·폰트·박스는 버리고 <code>design.md</code> 토큰으로 통일.</div></div>
+  </div>
+  <div class="key cal"><b class="h">확정된 디자인 원천</b>함께 정한 <code>docs/design.md</code>가 색·타이포·콜아웃의 기준입니다 — 파랑 <code>#2462EB</code>, 제목·표지 네이비 <code>#0F1B3D</code>, 본문 근검정 <code>#111318</code>, 핵심 초록 <code>#3E9E6E</code>, 주의 앰버 <code>#D98A2A</code>, 그리고 브랜드 틴트. 이 문서 자체도 그 색을 입혀 만들었습니다.</div>
+</section>
+
+<section>
+  <h2><span class="n">1</span>왜 3차인가 — 문제와 핵심 난제</h2>
+  <p class="sub">1차는 <b>손으로 카드를 조립하는 빌더</b>, 2차는 <b>토글·채팅·환경설정</b>을 더했습니다. 입력은 여전히 <b>사람의 손</b>이었습니다.</p>
+  <p>이사님은 완성된 <b>HTML 문서</b>로 자료를 주십니다. 그걸 이북 형태로 옮기려면 지금은 카드를 하나씩 다시 짜야 해서 번거롭습니다. 3차는 그 <b>앞단을 바꿉니다</b>: HTML을 넣으면 파싱이 카드 묶음을 만들어 주고, 사람은 다듬기만 합니다.</p>
+  <div class="warn cal"><b class="h">핵심 난제 (이 한 줄이 3차의 90%)</b>HTML은 <b>끊김 없이 흐르는데</b>, 이북은 <b>고정 크기 카드 한 장 한 장</b>입니다. 그래서 3차의 대부분은 “HTML의 <b>무엇을, 어디서 잘라, 어떤 카드에</b> 담을까”라는 규칙입니다. 나머지(내보내기·이북 굽기)는 이미 되어 있습니다.</div>
+  <div class="info cal"><b class="h">이미 깔린 레일</b>‘빈 페이지’의 <b>블록 모델</b>(제목·소제목·본문·목록·구분선·토글)과 <b>목차 자동 카드</b>가 이미 있습니다. HTML을 이 블록으로 <b>번역만</b> 하면, 새 렌더러 없이 기존 이북 파이프라인을 그대로 탑니다.</div>
+</section>
+
+<section>
+  <h2><span class="n">2</span>변환 파이프라인 (3단계)</h2>
+  <p class="sub">결정적(규칙) 부분과 AI 부분을 <b>깔끔히 분리</b>합니다. 규칙만으로도 완성된 이북이 나오고, AI는 그 위에 얹는 <b>제안</b>일 뿐이라 LLM이 없거나 틀려도 안전합니다.</p>
+  <div class="flow">[1] 규칙 파싱 (LLM 없이, 항상 동작)
+     HTML 파일 업로드 → DOMParser
+       ├─ 첫 h1 + 리드문        → 표지
+       ├─ section들의 h2 목록    → 목차(자동 카드)
+       └─ 각 section            → ‘빈 페이지’ 하나 (내부 요소를 블록으로)
+       └─ 넘치면 ‘제목 (2)(3)’ 자동 이어붙임
+                    │
+[2] AI로 정리 (선택, 제안만)  │  ← 버튼을 눌러야 실행
+       ├─ 카드타입 제안 (“이 섹션은 KPI 카드가 어울려요”)
+       ├─ 문구 다듬기 (기존 ✨ 재사용)
+       └─ 표지 제목/부제 손질        ── 전부 사람이 ‘수락’ 후 적용
+                    │
+[3] 확인 · 편집 · 굽기          │
+       빌더(필름스트립·에디터)에 그대로 로드 → 손으로 고침
+       → ‘이북 만들기’ → PNG 폴더 → generator.py (무수정)</div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>규칙 파싱 상세 <span class="tag">CORE</span></h2>
+  <h3>1) 요소 매핑 (design.md §7과 동일)</h3>
+  <table>
+    <thead><tr><th style="width:42%">원본 요소 / 스타일</th><th>변환 결과</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">&lt;title&gt; · 첫 &lt;h1&gt;</td><td>표지 제목</td></tr>
+      <tr><td class="mono">첫 리드문 / 부제</td><td>표지 부제</td></tr>
+      <tr><td class="mono">&lt;h1&gt; (이후)</td><td>페이지 제목 / 장 구분</td></tr>
+      <tr><td class="mono">&lt;h2&gt;</td><td>페이지 제목 <b>(분할 경계)</b></td></tr>
+      <tr><td class="mono">&lt;h3&gt;</td><td>소제목 블록</td></tr>
+      <tr><td class="mono">&lt;p&gt;</td><td>본문 블록</td></tr>
+      <tr><td class="mono">&lt;ul&gt;/&lt;ol&gt; &lt;li&gt;</td><td>목록 블록</td></tr>
+      <tr><td class="mono">&lt;hr&gt;</td><td>구분선 블록</td></tr>
+      <tr><td class="mono">색깔 강조박스 (.note 등)</td><td>콜아웃 (색조로 정보/핵심/주의 추정)</td></tr>
+      <tr><td class="mono">color · font-family 등 인라인 서식</td><td>제거 → design.md 토큰으로 대체</td></tr>
+      <tr><td class="mono">&lt;table&gt; · &lt;img&gt; · &lt;pre&gt;</td><td>자리표시 <span class="pill p-next">다음 차수</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>2) 분할 · 넘침 규칙</h3>
+  <p><b>제목(H1/H2)마다 새 페이지</b>를 시작합니다(H1은 표지/장 구분, H2는 페이지 제목). 한 섹션의 블록들을 카드에 채우다 <b>높이를 넘으면</b> 자동으로 <code>제목 (2)</code>, <code>(3)</code> 페이지로 이어붙입니다.</p>
+  <div class="info cal"><b class="h">넘침 판정 (권장)</b>새 계산기를 만들지 말고, <code>PageView</code>가 <b>이미 렌더하는 실제 높이를 재사용</b>합니다. 글자수 추정보다 정확하고, 내보내기(export)도 같은 렌더를 쓰므로 미리보기와 결과가 어긋나지 않습니다.</div>
+
+  <h3>3) 정규화 (서식 버리기)</h3>
+  <p>원본의 색·폰트·박스 테두리 같은 <b>껍데기는 버리고 내용만</b> 가져옵니다. 모든 텍스트는 design.md의 폰트·색 토큰으로 다시 칠해져, 어떤 이사님 문서를 넣어도 <b>한 가지 이북 룩</b>으로 통일됩니다.</p>
+</section>
+
+<section>
+  <h2><span class="n">4</span>‘AI로 정리’ (선택) <span class="tag">AI</span></h2>
+  <p class="sub">규칙 결과가 이미 완성본이므로, AI는 <b>있으면 좋은 다듬기</b>입니다. 전부 <b>제안 → 사람이 수락</b> 구조라 안전합니다.</p>
+  <table>
+    <thead><tr><th style="width:30%">기능</th><th>동작</th></tr></thead>
+    <tbody>
+      <tr><td><b>카드타입 제안</b></td><td>“이 섹션은 성과가 많으니 KPI 카드가 어울려요” 같은 배지 → 수락 시 해당 카드로 전환.</td></tr>
+      <tr><td><b>문구 다듬기</b></td><td>기존 <code>✨ 문구 다듬기</code> 재사용 — 길게 늘어진 문단을 이북용으로 압축.</td></tr>
+      <tr><td><b>표지 문구 손질</b></td><td>표지 제목/부제를 더 또렷하게 제안.</td></tr>
+    </tbody>
+  </table>
+  <div class="info cal"><b class="h">기존 배관 재사용</b>2차의 <b>챗 액션 브리지</b>(<code>ui_action</code> → zustand, 확인 절차)가 이미 있습니다. ‘AI로 정리’는 그 위에 <b>카드타입·문구</b> 액션만 얹으면 되어 구현 비용이 낮습니다. LLM이 꺼져 있으면 이 버튼만 비활성 — 규칙 결과는 그대로 멀쩡합니다.</div>
+</section>
+
+<section>
+  <h2><span class="n">5</span>design.md 연결 — 강조박스 → 콜아웃</h2>
+  <p class="sub">서식은 정규화하지만, 이사님 문서의 <b>색깔 강조박스</b>는 “이건 중요해”라는 신호라 의미가 큽니다. 서브 색(초록·앰버)을 살려 <b>콜아웃 3종</b>으로 받습니다.</p>
+  <div class="info cal"><b class="h">정보 (Info)</b>참고·부연. 배경 <code>#EAF1FE</code> · 좌측 바 파랑 <code>#2462EB</code>. — 원본의 파란 박스에서.</div>
+  <div class="key cal"><b class="h">핵심 (Key)</b>중요·결론·성공. 배경 <code>#E9F5EF</code> · 좌측 바 초록 <code>#3E9E6E</code>. — 원본의 초록 박스에서.</div>
+  <div class="warn cal"><b class="h">주의 (Warning)</b>경고·유의사항. 배경 <code>#FBF0E1</code> · 좌측 바 앰버 <code>#D98A2A</code>. — 원본의 노랑/주황/빨강 박스에서.</div>
+  <p>노트 페이지 배경도 기존 파스텔 5종을 <b>브랜드 틴트(블루·그린·앰버·중립)</b>로 갈아끼워 콜아웃과 한 시스템으로 묶습니다.</p>
+</section>
+
+<section>
+  <h2><span class="n">6</span>워크드 예시 — 2차 핸드오버 문서를 넣으면</h2>
+  <p class="sub">실제로 <code>docs/2차_핸드오버.html</code>을 업로드하면 이렇게 분해됩니다. ‘새 기능 사용법’이 길어 한 장을 넘겨 자동으로 이어지는 게 핵심 규칙의 실제 동작입니다.</p>
+  <div class="ex">
+    <div class="row"><div class="l">표지</div><div class="r">“2차 개발 마무리 — 토글·예시영상·Agentic-PM 이식” <span style="color:var(--muted)">/ 부제 = 리드문</span></div></div>
+    <div class="row"><div class="l">목차 (자동)</div><div class="r">마일스톤 · 새 기능 사용법 · 아키텍처 · 실행법 · 파일 맵 · 변경 로그 · 남은 것</div></div>
+    <div class="row"><div class="l">페이지 1</div><div class="r">마일스톤 (표는 텍스트 위주라 자리표시)</div></div>
+    <div class="row"><div class="l">페이지 2–3</div><div class="r"><b>새 기능 사용법 → 새 기능 사용법 (2)</b> — h3가 많아 한 장을 넘겨 자동 이어짐 ★</div></div>
+    <div class="row"><div class="l">페이지 4</div><div class="r">아키텍처 (플로우는 자리표시)</div></div>
+    <div class="row"><div class="l">페이지 5–7</div><div class="r">실행법 · 파일 맵 · 변경 로그</div></div>
+    <div class="row"><div class="l">페이지 8</div><div class="r">남은 것 · 백로그</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">7</span>아키텍처 (3차 후)</h2>
+  <div class="flow">[ 브라우저 ]  ebook_html 프론트 (React + zustand)
+   ├─ 카드 빌더 · 자유 캔버스 · 발표 · 단축키           (1차)
+   ├─ 블록/토글 · 예시영상 · 환경설정 · 채팅            (2차)
+   ├─ ★ HTML 가져오기 (파일 업로드)                    (3차)
+   ├─ ★ 규칙 파서 (DOMParser → 표지·목차·페이지 블록)   (3차)
+   └─ ★ ‘AI로 정리’ (챗 액션 브리지 재사용)             (3차)
+          │
+          ▼
+[ 로컬 서버 ]  ebook_html FastAPI
+   └─ /api/build ─────────► uniever_ebook/generator.py   (무수정)</div>
+  <p class="sub">별표(★)가 3차 신규. 파싱은 <b>브라우저 안</b>에서 끝나고(서버 왕복 없음), 뒷단·<code>uniever_ebook</code> 무수정 원칙은 그대로입니다.</p>
+</section>
+
+<section>
+  <h2><span class="n">8</span>마일스톤 (3차) · 게이트</h2>
+  <p class="sub">1·2차와 같은 방식: 각 단계 <b>스킬 사전 선언 → 게이트 통과(자동검증)</b>. 리스크 낮은 골격부터.</p>
+  <div class="mile"><div class="h"><span class="id">P0</span> <b>입력 · 파서 골격</b></div><div class="b">상단 <code>📄 HTML 가져오기</code>(파일 업로드) + <code>DOMParser</code> + 결과를 <code>store.pages</code>로 주입하는 배관.<span class="gate">✔ 게이트: 임의 HTML 업로드 → 페이지 N장이 빌더에 로드.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P1</span> <b>표지 · 목차 자동 생성</b></div><div class="b">첫 h1+리드문 → 표지, h2 목록 → 목차(자동 카드) 연결.<span class="gate">✔ 게이트: 표지·목차가 자동으로 생성·정렬.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P2</span> <b>분할 · 넘침 이어짐</b></div><div class="b">H1/H2 경계로 페이지 분할 + 실제 렌더 높이로 넘침 판정 → <code>제목 (2)(3)</code> 이어붙임.<span class="gate">✔ 게이트: 긴 섹션이 여러 장으로 자연스럽게 이어짐.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P3</span> <b>정규화 · 콜아웃 · design.md 반영</b></div><div class="b">원본 서식 제거 + 강조박스→콜아웃 3종 + <code>tokens.ts</code>/<code>index.css</code>에 design.md 토큰 반영(파스텔→틴트).<span class="gate">✔ 게이트: 서로 다른 HTML도 한 가지 이북 룩으로 통일.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P4</span> <b>‘AI로 정리’ 버튼</b></div><div class="b">카드타입 제안·문구 다듬기·표지 손질(제안→수락). 챗 액션 브리지 재사용. LLM 없으면 버튼만 비활성.<span class="gate">✔ 게이트: 제안 수락 시 실제 반영, 규칙 결과는 독립적으로 완성.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P5</span> <b>검증 · 증적</b></div><div class="b">스모크: 샘플 HTML → 예상 페이지 수·제목·표지/목차 존재 확인. 대량 페이지 export 확인.<span class="gate">✔ 게이트: 샘플 문서들에 대해 스모크 PASS.</span></div></div>
+  <div class="mile"><div class="h"><span class="id">P6</span> <b>핸드오버</b></div><div class="b">3차 핸드오버 문서 + 사용법(HTML 가져오기·AI로 정리) 갱신.<span class="gate">✔ 게이트: 전체 스모크 PASS + 핸드오버 문서.</span></div></div>
+</section>
+
+<section>
+  <h2><span class="n">9</span>리스크 &amp; 대응</h2>
+  <table>
+    <thead><tr><th style="width:38%">리스크</th><th>대응</th></tr></thead>
+    <tbody>
+      <tr><td><b>넘침 판정 부정확</b> (글자수 추정 시 어긋남)</td><td><code>PageView</code> 실제 렌더 높이 재사용 — 미리보기=결과 일치.</td></tr>
+      <tr><td><b>지저분한 HTML</b> (인라인 스타일·중첩 표)</td><td>텍스트 위주 + 표/이미지/코드는 자리표시. 복잡한 건 다음 차수.</td></tr>
+      <tr><td><b>페이지 픽셀 규격 불일치</b></td><td>design.md 규격을 <code>generator.py</code> 카드 캔버스와 대조 후 확정(§다음 액션).</td></tr>
+      <tr><td><b>표지·목차 오추정</b> (h1 여러 개 등)</td><td>첫 h1 우선 + 사람이 편집. 규칙은 항상 편집 가능한 결과만 생성.</td></tr>
+      <tr><td><b>AI 오작동</b></td><td>제안만, 사람이 수락해야 적용. 규칙 결과와 분리.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">10</span>다음 액션</h2>
+  <p>모든 항목이 확정됐습니다. 별도 지시가 없으면 <b>P0(입력·파서 골격)</b>부터 마일스톤 순서(P0→P6)대로 착수합니다.</p>
+  <div class="key cal"><b class="h">확정: 카드·페이지 출력 규격</b><code>generator.py</code>는 해상도를 정하지 않고 <b>우리 export PNG 크기를 그대로</b> 사용합니다(비율 3:4 기본, 코드에 <code>BOOK_ASPECT=0.75</code>). 따라서 해상도는 export에서 결정 — <b>세로 1200×1600 / 가로 1600×1200</b>(3:4·4:3), 안쪽 여백 각 변 6~7%로 확정. 현재 <code>864×1152</code>에서 올리려면 <code>pixelRatio</code>를 약 2.78로 올리거나 <code>sizing.ts</code> 카드 크기를 키웁니다(uniform 유지). design.md §4에 반영.</div>
+  <p><b>변환 방식·분할 규칙·요소 범위·입력·서식·콜아웃·해상도</b> — 3차 구상은 모두 확정됐습니다.</p>
+</section>
+
+<div class="foot">ebook_html 3차 기획서 · HTML Import(파일 업로드→규칙 분해→AI 정리) · design.md 정규화 · uniever_ebook 무수정</div>
+</div>
+</body>
+</html>

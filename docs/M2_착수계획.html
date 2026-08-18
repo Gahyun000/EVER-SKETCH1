@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M2 착수 계획 — 카드 카탈로그 + 편집 UI</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:44px 24px 100px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:27px;margin:10px 0 10px;letter-spacing:-.02em}
+  .lede{font-size:15.5px;color:var(--muted);max-width:780px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin:18px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:19px;margin:0 0 4px}h2 .n{display:inline-flex;width:26px;height:26px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:9px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 14px}
+  h3{font-size:15px;margin:18px 0 7px}
+  p{margin:8px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  td.mono{font-family:var(--mono);font-size:12px}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+  .decl{background:#f0f4ff;border:1px solid #d9e2fb;border-radius:10px;padding:12px 15px;font-size:13.5px}
+  .decl b{color:var(--blue)}
+  .step{border:1px solid var(--line);border-radius:11px;padding:0;margin:9px 0;overflow:hidden}
+  .step .h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fafbfd;border-bottom:1px solid var(--line)}
+  .step .id{font-family:var(--mono);font-size:12px;font-weight:800;background:var(--ink);color:#fff;border-radius:6px;padding:3px 8px}
+  .step .b{padding:11px 14px;font-size:13.5px}
+  .step .ex{color:var(--green);font-size:12.5px;margin-top:5px}
+  .note{background:#fff7ec;border:1px solid #f0dcae;border-radius:10px;padding:12px 15px;font-size:13.5px;margin:10px 0}
+  .chk{list-style:none;padding-left:0}.chk li{padding-left:24px;position:relative}.chk li:before{content:"☐";position:absolute;left:2px;color:var(--muted)}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:34px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">M2 착수 계획 · G3</div>
+<h1>카드 카탈로그 13종 + 편집 UI</h1>
+<p class="lede">M1(종단 슬라이스)에서 검증한 파이프라인 위에, 목업 수준의 <b>카드 빌더</b>를 실제 React 컴포넌트로 구현한다. 자유 캔버스는 M3, 발표는 M4에서. 이번 목표는 <b>"카드만으로 다장 이북을 완성"</b>.</p>
+
+<section>
+  <h2><span class="n">0</span>스킬 사전 선언 (AGENTS.md 규약)</h2>
+  <div class="decl"><b>적용:</b> uniever-development-standard(UI 표준·필수) · frontend-design(DESIGN 토큰) · karpathy-guidelines(과잉구현 방지). <b>부분:</b> test-driven-development(export 계약 테스트). <b>미적용:</b> 그 외 확장. 선언한 SKILL.md를 실제로 읽고 적용한 것만 증적으로 인정.</div>
+</section>
+
+<section>
+  <h2><span class="n">1</span>컴포넌트 설계 (목업 → React)</h2>
+  <table>
+    <thead><tr><th>컴포넌트</th><th>역할</th><th class="mono">경로</th></tr></thead>
+    <tbody>
+      <tr><td><b>PageView</b> ★</td><td>페이지 1장을 cardKey로 렌더(표지·목차·본문·KPI·플로우·마인드맵·스티키…). <b>미리보기와 PNG 내보내기가 공유</b>하는 심장.</td><td class="mono">src/cards/PageView.tsx</td></tr>
+      <tr><td>Layout</td><td>3분할 셸 + 좌/우 접이식(기본 펼침), 중앙 미리보기 크게</td><td class="mono">src/builder/Layout.tsx</td></tr>
+      <tr><td>TopBar</td><td>제목·세로/가로·타이포·발표·이북 만들기</td><td class="mono">src/builder/TopBar.tsx</td></tr>
+      <tr><td>Palette</td><td>카드 카탈로그(그룹별) — 클릭 시 페이지 추가</td><td class="mono">src/builder/Palette.tsx</td></tr>
+      <tr><td>Filmstrip</td><td>페이지 목록 — 선택·순서·삭제</td><td class="mono">src/builder/Filmstrip.tsx</td></tr>
+      <tr><td>Editor</td><td>선택 카드의 칸 편집(예시 프리필, 실시간 반영)</td><td class="mono">src/builder/Editor.tsx</td></tr>
+      <tr><td>store</td><td>전역 상태·액션(확장 완료)</td><td class="mono">src/state/store.ts</td></tr>
+      <tr><td>exportBook</td><td>N개 페이지 → PageView 오프스크린 렌더 → PNG → /api/build</td><td class="mono">src/export/exportBook.ts</td></tr>
+      <tr><td>Help(온보딩)</td><td>사용설명서 버튼·코치마크(TEAM A)</td><td class="mono">src/builder/Help.tsx</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>핵심 결정:</b> <code>PageView</code>를 미리보기·내보내기 <b>공용</b>으로 둔다. 화면에 보이는 그대로가 PNG가 되므로 "미리보기 ≠ 산출물" 괴리가 원천 차단된다. M1의 임시 카드 렌더는 이 컴포넌트로 대체된다.</div>
+</section>
+
+<section>
+  <h2><span class="n">2</span>빌드 순서 (수직 → 수평)</h2>
+  <div class="step"><div class="h"><span class="id">M2.1</span> 상태 + PageView</div><div class="b">store 확장(완료) + PageView로 표지·본문·목차·KPI·마무리 렌더. viz(플로우·마인드맵·스티키)는 뼈대 후 채움.<div class="ex">✔ 카드 1종을 store→PageView로 미리보기</div></div></div>
+  <div class="step"><div class="h"><span class="id">M2.2</span> 레이아웃 셸 + TopBar</div><div class="b">3분할 접이식(중앙 크게) + 제목·방향·타이포 컨트롤.<div class="ex">✔ 빈 셸에서 방향/타이포 전환 반영</div></div></div>
+  <div class="step"><div class="h"><span class="id">M2.3</span> Palette + Filmstrip</div><div class="b">카탈로그 클릭→페이지 추가, 필름스트립 선택·순서·삭제.<div class="ex">✔ 여러 카드로 페이지 구성</div></div></div>
+  <div class="step"><div class="h"><span class="id">M2.4</span> Editor</div><div class="b">선택 카드 칸 편집(예시 프리필)→미리보기 실시간.<div class="ex">✔ 글 고치면 즉시 반영</div></div></div>
+  <div class="step"><div class="h"><span class="id">M2.5</span> 내보내기 일반화</div><div class="b">exportBook: 표지+목차+본문N+뒷표지를 PNG 폴더로 → /api/build 다장 이북.<div class="ex">✔ 카드만으로 다장 이북 생성</div></div></div>
+  <div class="step"><div class="h"><span class="id">M2.6</span> 사용설명서(온보딩)</div><div class="b">도움말 버튼 + 첫 실행 코치마크 + 빈칸 안심 문구.<div class="ex">✔ 낯선 경영진 안내 동작</div></div></div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>수용 기준 (M2 나가기)</h2>
+  <ul class="chk">
+    <li>13종 카드 모두 Palette에 노출·추가 가능</li>
+    <li>선택 카드 편집이 미리보기에 실시간 반영</li>
+    <li>세로/가로·타이포 프리셋이 미리보기와 산출물에 일치</li>
+    <li>카드만으로 표지→목차→본문N→마무리 <b>다장 이북</b> 생성 성공</li>
+    <li>Playwright 스모크: 카드추가→편집→이북만들기 200 OK</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">4</span>리스크 · 메모</h2>
+  <ul>
+    <li><b>PNG 폰트 임베드</b> — M1에서 나온 결과를 그대로 계승. 깨지면 폰트 preload 처리.</li>
+    <li><b>다장 내보내기 성능</b> — 페이지 많으면 순차 toPng가 느릴 수 있음 → 진행 표시/병렬 검토.</li>
+    <li><b>목차 자동</b> — 우리 TocCard를 <code>00. 목차.png</code>로 낼지, 생성기 자동 텍스트 목차에 맡길지 M2.5에서 확정.</li>
+  </ul>
+</section>
+
+<div class="foot">M2 착수 계획 · 카드 카탈로그 + 편집 UI · G3 · uniever_ebook 무수정</div>
+</div>
+</body>
+</html>

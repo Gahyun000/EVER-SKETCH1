@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "projects": [
+    {"name": "Agentic-PM", "path": "/Users/uniever1/Uniever_AI/Agentic-PM", "override": {"frontend_ports": [5273], "backend_ports": [18800], "auxiliary_ports": [7878], "note": "run_app 및 Vite 설정 기준; 7878은 FileMetric 연계"}},
+    {"name": "ARIA_AI_Agent", "path": "/Users/uniever1/Uniever_AI/ARIA_AI_Agent", "override": {"frontend_ports": [], "backend_ports": [8910], "auxiliary_ports": [8004, 11434], "note": "단일 FastAPI 서비스; 8004·11434는 외부 추론 연계"}},
+    {"name": "Auto_ML_Agent_Pilot", "path": "/Users/uniever1/Uniever_AI/Auto_ML_Agent_Pilot", "override": {"frontend_ports": [], "backend_ports": [], "auxiliary_ports": [], "note": "문서·압축 소스만 존재하여 실행 포트 미확정"}},
+    {"name": "Business_Plan_ai_Agent", "path": "/Users/uniever1/Uniever_AI/Business_Plan_ai_Agent", "override": {"frontend_ports": [3000], "backend_ports": [], "auxiliary_ports": [], "note": "Vite 단독 프론트엔드"}},
+    {"name": "C_Brain_Agent2", "path": "/Users/uniever1/Uniever_AI/C_Brain_Agent2", "override": {"frontend_ports": [3000], "backend_ports": [4000], "auxiliary_ports": [11434], "note": "Vite 3000 + 백엔드 4000"}},
+    {"name": "cli-ide", "path": "/Users/uniever1/Uniever_AI/cli-ide", "override": {"frontend_ports": [49737], "backend_ports": [], "auxiliary_ports": [], "note": "현재 vite.config 기준; TECHNICAL의 5274는 과거 값"}},
+    {"name": "dashboard-generator", "path": "/Users/uniever1/Uniever_AI/dashboard-generator", "override": {"frontend_ports": [3010], "backend_ports": [8010], "auxiliary_ports": [], "note": "현재 Vite/start 런처 기준; README·env 예시의 3000/8000은 과거 값"}},
+    {"name": "eis_ai_demo", "path": "/Users/uniever1/Uniever_AI/eis_ai_demo", "override": {"frontend_ports": [5177], "backend_ports": [8101], "auxiliary_ports": [], "note": "기본값; Windows 런처는 점유 시 다음 포트 탐색, macOS 런처는 고정"}},
+    {"name": "EIS.SITE", "path": "/Users/uniever1/Uniever_AI/EIS.SITE", "override": {"frontend_ports": [5177], "backend_ports": [8101], "auxiliary_ports": [], "note": "고정 기본값으로 eis_ai_demo와 충돌"}},
+    {"name": "FileFlow_AI_Agent", "path": "/Users/uniever1/Uniever_AI/FileFlow_AI_Agent", "override": {"frontend_ports": [], "backend_ports": [], "auxiliary_ports": [], "note": "데스크톱 GUI/배치 앱으로 네트워크 리스너 없음"}},
+    {"name": "FileMetric_AI_Agent", "path": "/Users/uniever1/Uniever_AI/FileMetric_AI_Agent", "override": {"frontend_ports": [5173], "backend_ports": [7878], "auxiliary_ports": [8001, 8082, 8090], "note": "주 서비스 5173/7878; OCR·VLM 보조 서비스 포트 별도"}},
+    {"name": "GeaLim_AiAgent", "path": "/Users/uniever1/Uniever_AI/GeaLim_AiAgent", "override": {"frontend_ports": [6081], "backend_ports": [6080], "auxiliary_ports": [6082], "note": "run_macos.command 환경변수 기본값"}},
+    {"name": "HARVEST_Agent", "path": "/Users/uniever1/Uniever_AI/HARVEST_Agent", "override": {"frontend_ports": [5173], "backend_ports": [8765], "auxiliary_ports": [6379, 9090], "note": "Docker Compose 및 Vite 설정 기준"}},
+    {"name": "helix_domain_sdk", "path": "/Users/uniever1/Uniever_AI/helix_domain_sdk", "override": {"frontend_ports": [], "backend_ports": [], "auxiliary_ports": [8004, 8767], "note": "SDK 라이브러리로 자체 리스너 없음; HELIX/HARVEST 기본 연계 주소"}},
+    {"name": "helix-domain-template", "path": "/Users/uniever1/Uniever_AI/helix-domain-template", "override": {"frontend_ports": [], "backend_ports": [8770], "auxiliary_ports": [8004, 8765], "note": "cookiecutter 기본 생성값; 자체 프론트 없음"}},
+    {"name": "helix-guideboard-template-full", "path": "/Users/uniever1/Uniever_AI/helix-guideboard-template-full", "override": {"frontend_ports": [3000], "backend_ports": [8765], "auxiliary_ports": [8000, 8004], "note": "cookiecutter 기본값; 런처가 RAG 8000·HELIX 8004도 시작"}},
+    {"name": "helix-guideboard-ui", "path": "/Users/uniever1/Uniever_AI/helix-guideboard-ui", "override": {"frontend_ports": [], "backend_ports": [], "auxiliary_ports": [], "note": "빌드형 React UI 라이브러리로 자체 dev 서버 없음"}},
+    {"name": "HERIX_Agent", "path": "/Users/uniever1/Uniever_AI/HERIX_Agent", "override": {"frontend_ports": [5175, 3246, 3386, 3560], "backend_ports": [8765, 8946, 9086, 9260], "auxiliary_ports": [8004, 11434], "note": "코어 5175/8765 + 저장소 내 3개 도메인 smoke 프로필"}},
+    {"name": "insurance_Analisys_Agentic", "path": "/Users/uniever1/Uniever_AI/insurance_Analisys_Agentic", "override": {"frontend_ports": [5173], "backend_ports": [3000, 8000], "auxiliary_ports": [11434], "note": "Express 3000과 FastAPI 8000 두 백엔드 경로가 공존"}},
+    {"name": "Intelligent_Execution_Dashboard", "path": "/Users/uniever1/Uniever_AI/Intelligent_Execution_Dashboard", "override": {"frontend_ports": [3000], "backend_ports": [8765], "auxiliary_ports": [8004], "note": "가이드보드 3000/8765; HELIX 8004 연계"}},
+    {"name": "LLM", "path": "/Users/uniever1/Uniever_AI/LLM", "override": {"frontend_ports": [8002], "backend_ports": [8004, 8001], "auxiliary_ports": [11434], "note": "Vite 실제 설정은 8002이나 start.bat 문구는 5173으로 불일치; 백엔드 런처 8004와 Docker 8001 병존"}},
+    {"name": "RAG_Server", "path": "/Users/uniever1/Uniever_AI/RAG_Server", "override": {"frontend_ports": [3000], "backend_ports": [8000], "auxiliary_ports": [11434], "note": "Vite/프론트 서버 3000 + FastAPI 8000"}},
+    {"name": "Report_Creator_AI_Agent", "path": "/Users/uniever1/Uniever_AI/Report_Creator_AI_Agent", "override": {"frontend_ports": [5180], "backend_ports": [7879], "auxiliary_ports": [8004], "note": "start-mac/start-windows 및 Vite 설정 기준"}},
+    {"name": "samil_2y_front-main", "path": "/Users/uniever1/Uniever_AI/samil_2y_front-main", "override": {"frontend_ports": [3000], "backend_ports": [], "auxiliary_ports": [], "note": "Vite 단독 프론트엔드"}}
+  ]
+}

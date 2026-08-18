@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ebook_html — 레퍼런스와 만든 과정 (이사 보고용)</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--purple:#7a3ff2;--red:#c23b48;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.65;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:48px 24px 110px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:29px;margin:10px 0 10px;letter-spacing:-.02em}
+  .lede{font-size:16px;color:var(--muted);max-width:800px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 28px;margin:18px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:20px;margin:0 0 4px}h2 .n{display:inline-flex;width:27px;height:27px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:10px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 16px}
+  h3{font-size:15.5px;margin:20px 0 7px}
+  p{margin:9px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fafbfd}
+  .tldr{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:6px 0 2px}
+  .tldr .c{border:1px solid var(--line);border-radius:12px;padding:15px 16px;background:#fcfdff}
+  .tldr .c .t{font-size:11.5px;font-weight:800;letter-spacing:.03em;color:var(--blue);text-transform:uppercase}
+  .tldr .c .b{font-size:14px;margin-top:6px;line-height:1.5}
+  kbd{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:700;color:#31415e;background:#f2f4f8;border:1px solid #d6dbe6;border-bottom-width:2px;border-radius:6px;padding:2px 6px;margin:1px}
+  .ok{color:var(--green);font-weight:800}.adj{color:var(--amber);font-weight:800}
+  .pill{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px}
+  .p-take{background:#e6f5ee;color:var(--green)}.p-adapt{background:#fbf1e0;color:var(--amber)}.p-drop{background:#eef0f4;color:var(--muted)}
+  .note{background:#fff7ec;border:1px solid #f0dcae;border-radius:11px;padding:13px 16px;font-size:13.5px;margin:12px 0}
+  .quote{background:#f0f4ff;border:1px solid #d9e2fb;border-radius:11px;padding:14px 18px;color:#33447a;font-size:14px;margin:14px 0}
+  .arc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0}
+  .arc .box{border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+  .arc .box.bad{background:#fdf4f5;border-color:#f0d3d7}
+  .arc .box.good{background:#eef8f2;border-color:#c4e6d2}
+  .arc .box h4{margin:0 0 6px;font-size:14.5px}
+  .arc .box.bad h4{color:var(--red)}.arc .box.good h4{color:var(--green)}
+  .arc .box p{font-size:13px;margin:5px 0;color:#3a4150}
+  .mile{border:1px solid var(--line);border-radius:11px;padding:0;overflow:hidden;margin:9px 0}
+  .mile .h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fafbfd;border-bottom:1px solid var(--line)}
+  .mile .id{font-family:var(--mono);font-size:12px;font-weight:800;background:var(--ink);color:#fff;border-radius:6px;padding:3px 8px}
+  .mile .b{padding:10px 14px;font-size:13.5px}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:36px}
+  @media print{body{background:#fff}section{break-inside:avoid;box-shadow:none}.arc{grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.arc{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">ebook_html · 기획 → 결과 스토리 · 이사 보고용</div>
+<h1>어떤 레퍼런스로, 어떻게 만들었나</h1>
+<p class="lede">경영진이 직접 사업모델을 한 권의 이북으로 만드는 도구 <b>ebook_html</b>을, 무엇을 참조해 어떻게 계획하고 만들었는지 한 편으로 정리했습니다. 핵심 메시지는 하나입니다 — <b>검증된 레퍼런스 + 내부 개발 표준으로 계획을 먼저 세웠더니, 같은 이북 작업이 하루로 끝났습니다.</b></p>
+
+<section>
+  <div class="tldr">
+    <div class="c"><div class="t">목표</div><div class="b">디지털에 낯선 경영진도 <b>혼자서</b> 사업모델을 이북으로.</div></div>
+    <div class="c"><div class="t">레퍼런스</div><div class="b">Whimsical · Miro · 비즈니스 모델 캔버스 · Figma · 내부 표준(default_skill).</div></div>
+    <div class="c"><div class="t">방법</div><div class="b">표준을 먼저 이식하고 <b>M0~M6 게이트</b>로 계획 주도 개발.</div></div>
+    <div class="c"><div class="t">결과</div><div class="b">전 기능 완성 · 자동검증 <b>25/25 PASS</b> · <b>uniever_ebook 무수정</b> 연결.</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">1</span>출발점 — 무엇을, 왜</h2>
+  <p>기존 <code>uniever_ebook</code>은 이북을 <b>생성</b>하는 엔진은 있지만, 경영진이 내용의 '틀'을 짜는 입구가 없었습니다. 그래서 <b>경영진이 카드를 고르고 내용만 채우면 그것이 곧 이북이 되는</b> 앞단 도구를 새로 만들기로 했습니다. 세 가지를 처음부터 못 박았습니다.</p>
+  <table>
+    <thead><tr><th style="width:26%">전제</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><b>사용자는 완전 초보</b></td><td>"디지털이 낯선 임원도 설명 없이 10분 안에" — 단순함이 최우선 스펙.</td></tr>
+      <tr><td><b>기존 엔진 무수정</b></td><td><code>uniever_ebook</code>은 한 줄도 고치지 않고, 이미지(PNG) 폴더를 넘겨 <code>generator.py</code>만 호출.</td></tr>
+      <tr><td><b>새 앱은 표준 위에</b></td><td>React·TypeScript로 새로 만들되, 사내 <code>default_skill</code> 표준을 이식해 방식부터 통일.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">2</span>벤치마킹 — 무엇을 보고, 무엇을 취했나</h2>
+  <p class="sub">유명한 도구를 그대로 베낀 것이 아니라, <b>어떤 상호작용이 초보에게 통하는지</b>를 관찰해 필요한 것만 골라 우리 방식으로 다시 구현했습니다. 아래 표의 "채택 / 조정 / 제외"가 그 판단의 기록입니다.</p>
+  <table>
+    <thead><tr><th style="width:15%">레퍼런스</th><th style="width:30%">무엇을 관찰했나</th><th>어떻게 반영했나</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Whimsical</b><br><span class="sub">다이어그램·보드</span></td>
+        <td>도형·스티키로 흐름도를 그리는 자유 캔버스, 도형끼리 잇는 연결선, 한 글자 단축키.</td>
+        <td>
+          <span class="pill p-take">채택</span> 자유 캔버스(도형·텍스트·스티키·아이콘), 연결선(도형 클릭→클릭, 자동 직각 라우팅), 펜, 단축키 체계.<br>
+          <span class="pill p-adapt">조정</span> 연결선을 <b>선 아무 데나 잡아 꺾기</b>로 쉽게. 단축키는 입력 중 자동 비활성(초보 오작동 방지).<br>
+          <span class="pill p-drop">제외</span> 다중 꺾임·곡선 연결(백로그), 무한 캔버스 개념.
+        </td>
+      </tr>
+      <tr>
+        <td><b>Miro</b><br><span class="sub">협업 화이트보드</span></td>
+        <td>넓은 캔버스에 자유 배치, 스티키 메모, 슬라이드처럼 넘기는 발표.</td>
+        <td>
+          <span class="pill p-take">채택</span> 자유 배치 캔버스 + <b>전체화면 발표 모드</b>(키/클릭 넘김).<br>
+          <span class="pill p-adapt">조정</span> 무한 캔버스 대신 <b>한 페이지 크기에 고정</b> — 보이는 그대로가 이북 한 장이 되도록.
+        </td>
+      </tr>
+      <tr>
+        <td><b>비즈니스 모델 캔버스</b><br><span class="sub">Osterwalder · Strategyzer</span></td>
+        <td>사업모델을 9개 블록(가치제안·고객군·수익원·채널·핵심자원·활동·파트너·고객관계·비용)으로 나누는 프레임.</td>
+        <td>
+          <span class="pill p-take">채택</span> 카드 카탈로그의 뼈대로 <b>BMC 9블록 전부</b>를 카드화 + 표지·목차·성과·로드맵 등 보고용 카드.<br>
+          <span class="pill p-adapt">조정</span> 빈칸에 <b>예시 문구를 미리 채워</b> 초보가 '고쳐 쓰기'만 하도록.
+        </td>
+      </tr>
+      <tr>
+        <td><b>Figma</b><br><span class="sub">디자인 시스템</span></td>
+        <td>흑백 기반 + 절제된 색, 일관된 타이포·간격 토큰.</td>
+        <td><span class="pill p-take">채택</span> 흑백 + 파스텔 블록의 <b>디자인 토큰</b>화(Inter·JetBrains Mono). 선택 도구 단축키 <kbd>V</kbd>도 이 계열에서.</td>
+      </tr>
+      <tr>
+        <td><b>default_skill</b><br><span class="sub">사내 개발 표준</span></td>
+        <td>작업 전 스킬 사전 선언, 게이트별 검증, 테스트·완료전 검증 규약.</td>
+        <td><span class="pill p-take">채택</span> 표준 스킬 <b>7종을 그대로 이식</b>해 계획·품질의 기준선으로 사용(§4).</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note"><b>중요 — 코드가 아니라 '방식'을 참조했습니다.</b> Whimsical·Miro의 코드나 컴포넌트를 가져오지 않았습니다. 화면과 동작을 관찰해 React로 <b>직접 다시 구현</b>했으므로, 결과물은 우리 자산입니다. 반면 <code>default_skill</code>은 사내 표준이라 파일을 그대로 이식했습니다.</div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>레퍼런스를 실제로 참조한 증거 — 단축키 1:1 대조</h2>
+  <p class="sub">"참조했다"는 말이 구호에 그치지 않도록, Whimsical 공식 단축키와 우리 앱을 직접 맞춰봤습니다. 편집 단축키는 <b>완전히 동일</b>하고, 도형 키도 대부분 일치합니다.</p>
+  <table>
+    <thead><tr><th>기능</th><th>Whimsical</th><th>ebook_html</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>되돌리기 / 다시 실행</td><td><kbd>⌘</kbd>+<kbd>Z</kbd> / <kbd>⌘</kbd>+<kbd>⇧</kbd>+<kbd>Z</kbd></td><td><kbd>⌘/Ctrl</kbd>+<kbd>Z</kbd> / <kbd>⌘/Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>Z</kbd></td><td class="ok">동일</td></tr>
+      <tr><td>복제 / 삭제</td><td><kbd>⌘</kbd>+<kbd>D</kbd> / <kbd>Delete</kbd></td><td><kbd>⌘/Ctrl</kbd>+<kbd>D</kbd> / <kbd>Delete</kbd></td><td class="ok">동일</td></tr>
+      <tr><td>복사 / 붙여넣기</td><td><kbd>⌘</kbd>+<kbd>C</kbd> / <kbd>⌘</kbd>+<kbd>V</kbd></td><td><kbd>⌘/Ctrl</kbd>+<kbd>C</kbd> / <kbd>⌘/Ctrl</kbd>+<kbd>V</kbd></td><td class="ok">동일</td></tr>
+      <tr><td>사각형 · 원 · 마름모 · 텍스트</td><td><kbd>R</kbd> <kbd>O</kbd> <kbd>D</kbd> <kbd>T</kbd></td><td><kbd>R</kbd> <kbd>O</kbd> <kbd>D</kbd> <kbd>T</kbd></td><td class="ok">동일</td></tr>
+      <tr><td>연결선</td><td><kbd>C</kbd> 또는 <kbd>L</kbd></td><td><kbd>C</kbd></td><td class="ok">일치</td></tr>
+      <tr><td>선택 도구</td><td><kbd>S</kbd></td><td><kbd>V</kbd></td><td class="adj">Figma식으로 조정</td></tr>
+      <tr><td>스티키</td><td><kbd>N</kbd></td><td><kbd>S</kbd></td><td class="adj">니모닉 조정</td></tr>
+      <tr><td>펜(자유 선)</td><td><kbd>H</kbd></td><td><kbd>P</kbd></td><td class="adj">'Pen' 니모닉</td></tr>
+    </tbody>
+  </table>
+  <p class="sub">즉, 임원이 이미 다른 도구에서 익힌 <kbd>⌘Z</kbd>·<kbd>⌘C</kbd>·<kbd>⌘V</kbd> 같은 손버릇이 그대로 통합니다. 몇 개 니모닉만 우리 도구 이름에 맞춰 바꿨습니다.</p>
+</section>
+
+<section>
+  <h2><span class="n">4</span>계획 수립 — 이번엔 왜 순탄했나</h2>
+  <p>가장 큰 차이는 '무엇을 만들까'가 아니라 <b>'어떻게 진행할까'를 먼저 정한 것</b>입니다. 착수 전에 사내 표준 <code>default_skill</code> 7종을 이식하고, 모든 작업을 <b>스킬 사전 선언 → 게이트 통과</b> 규약으로 묶었습니다.</p>
+  <table>
+    <thead><tr><th style="width:34%">이식한 표준(요지)</th><th>이번 프로젝트에서 한 일</th></tr></thead>
+    <tbody>
+      <tr><td>개발 표준 · 관제탑</td><td>UI/작업 규약 통일, 단계별 산출물·게이트 정의.</td></tr>
+      <tr><td>프론트엔드 디자인</td><td>디자인 토큰(흑백+파스텔) 확립.</td></tr>
+      <tr><td>Karpathy 가이드</td><td>과잉 구현 억제 — 필요한 것만.</td></tr>
+      <tr><td>테스트 주도 · 완료 전 검증 · 웹앱 테스트</td><td>Playwright 자동 스모크로 매 단계 회귀 방지.</td></tr>
+    </tbody>
+  </table>
+  <h3>진행 게이트 (M0 → M6)</h3>
+  <div class="mile"><div class="h"><span class="id">M0</span> 셋업</div><div class="b">스캐폴드 + 표준 7종 이식 + 디자인토큰·카드·상태·연결계약.</div></div>
+  <div class="mile"><div class="h"><span class="id">M1</span> 종단 슬라이스</div><div class="b">FastAPI + <code>run.command</code> 원클릭 + <code>/api/build</code> → generator.py 실제 연결.</div></div>
+  <div class="mile"><div class="h"><span class="id">M2</span> 카드 빌더</div><div class="b">13종 카드·편집·미리보기·세로/가로·타이포.</div></div>
+  <div class="mile"><div class="h"><span class="id">M3</span> 자유 캔버스</div><div class="b">도형·연결·펜·복제·정렬·되돌리기(+이번에 단축키).</div></div>
+  <div class="mile"><div class="h"><span class="id">M4</span> 발표 모드</div><div class="b">전체화면 슬라이드쇼.</div></div>
+  <div class="mile"><div class="h"><span class="id">M5</span> 검증·증적</div><div class="b">Playwright 스모크 자동화 — 현재 25/25 PASS.</div></div>
+  <div class="mile"><div class="h"><span class="id">M6</span> 파일럿·인수</div><div class="b">실제 경영진 1인 관찰(사람 단계) — 가이드 준비 완료.</div></div>
+</section>
+
+<section>
+  <h2><span class="n">5</span>그래서 나온 굴곡 — 같은 이북, 다른 결과</h2>
+  <div class="arc">
+    <div class="box bad">
+      <h4>이전 · uniever_ebook</h4>
+      <p>계획을 제대로 세우지 않고 착수 → 기획안이 여러 판 뒤집힘 → 방향을 잃고 <b>시간이 오래</b> 걸림.</p>
+    </div>
+    <div class="box good">
+      <h4>이번 · ebook_html</h4>
+      <p>표준 이식 + 계획을 먼저 문서화 → 게이트대로 착착 → <b>하루 만에</b> 순탄하게 완주.</p>
+    </div>
+  </div>
+  <p class="sub">발표자료 3페이지 '성장일지 · 계획수립의 굴곡'이 바로 이 대비를 곡선으로 보여줍니다.</p>
+</section>
+
+<section>
+  <h2><span class="n">6</span>결과 — 무엇이 나왔나</h2>
+  <table>
+    <thead><tr><th style="width:30%">항목</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td>완성 기능</td><td>카드 빌더(13종) · 자유 캔버스 · 발표 모드 · 온보딩(설명서·튜토리얼) · 키보드 단축키.</td></tr>
+      <tr><td>품질 증적</td><td>Playwright headless 자동검증 <b>25/25 PASS</b>, <code>npm run e2e</code> 한 줄로 재검증.</td></tr>
+      <tr><td>연결</td><td>화면을 PNG로 렌더 → <code>generator.py</code> 호출로 실제 이북 생성. <b>uniever_ebook 무수정.</b></td></tr>
+      <tr><td>실행</td><td><code>run.command</code> 더블클릭 하나로 백엔드·프론트 기동 + 브라우저 오픈.</td></tr>
+      <tr><td>산출 문서</td><td>개발계획서 · M2 착수계획 · M5 검증증적 · 체크리스트 · M6 파일럿가이드 · 핸드오버 · 단축키 · (본) 스토리텔링.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">7</span>주요 의사결정과 근거</h2>
+  <table>
+    <thead><tr><th style="width:30%">결정</th><th style="width:34%">대안</th><th>왜 이렇게</th></tr></thead>
+    <tbody>
+      <tr><td>하이브리드(카드+자유캔버스 한 화면)</td><td>모드 분리(초급/고급)</td><td>낯선 임원이 모드를 오가게 하지 않기 위해. 대신 <b>설명서·튜토리얼</b>로 안내.</td></tr>
+      <tr><td>자유 캔버스 항상 켜짐</td><td>스위치로 켜고 끄기</td><td>스위치 존재 자체가 혼란 → 제거하고 기본 '선택' 도구로 안전하게.</td></tr>
+      <tr><td>단일키 단축키 + 입력 중 자동 비활성</td><td>단축키 없음 / 항상 켜짐</td><td>숙련자에겐 빠르게, 초보에겐 오작동 없이. 마우스로도 100% 가능.</td></tr>
+      <tr><td>페이지 크기 고정 캔버스</td><td>무한 캔버스(Miro식)</td><td>"보이는 그대로가 이북 한 장" — 미리보기와 산출물 괴리 원천 차단.</td></tr>
+      <tr><td>네이티브 재구현</td><td>외부 라이브러리/코드 차용</td><td>가벼움·독립성·자산화. 결과물은 온전히 사내 소유.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">8</span>맺음</h2>
+  <p>이 프로젝트의 진짜 성과는 도구 하나가 아니라 <b>재현 가능한 방식</b>입니다. <b>검증된 레퍼런스로 무엇을 만들지</b>를 좁히고, <b>사내 표준으로 어떻게 만들지</b>를 먼저 고정하면, 지난번 이북 작업이 오래 걸렸던 것과 달리 같은 결과가 하루로 압축됩니다. 남은 단계는 실제 경영진 한 분의 파일럿 관찰(M6)이며, 관찰 가이드까지 준비되어 있습니다.</p>
+  <div class="quote">"무엇을 볼지(레퍼런스) × 어떻게 갈지(표준) = 속도와 품질." — 이번 결과를 한 줄로 요약하면 이렇습니다.</div>
+</section>
+
+<div class="foot">ebook_html · 레퍼런스 & 과정 스토리 · Whimsical/Miro/BMC/Figma 벤치마킹 · default_skill 표준 · 자동검증 25/25 PASS</div>
+</div>
+</body>
+</html>

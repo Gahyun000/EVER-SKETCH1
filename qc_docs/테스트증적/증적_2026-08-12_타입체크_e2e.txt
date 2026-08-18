@@ -1,0 +1,71 @@
+# 테스트 증적 — 정적 타입체크 & e2e
+실행시각: 2026-08-12 10:19:24 KST · 소스: commit f4c95d4
+======================================================
+## tsc --noEmit (프론트 타입체크)
+
+>> tsc exit=0
+
+## e2e 구성 확인 (run.mjs 무엇을 하나)
+import { spawn } from 'child_process'
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+const dir = dirname(fileURLToPath(import.meta.url))
+const srv = spawn(process.execPath, [join(dir, 'server_test.mjs')], { stdio: 'inherit' })
+await new Promise((r) => setTimeout(r, 1300))
+const smoke = spawn(process.execPath, [join(dir, 'smoke.mjs')], { stdio: 'inherit' })
+smoke.on('exit', (code) => { srv.kill(); process.exit(code || 0) })
+
+## npm run e2e (node 테스트서버 + 스모크)
+
+> ebook-html@0.1.0 e2e
+> node e2e/run.mjs
+
+serving dist on http://127.0.0.1:8899
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+browserType.launch: Executable doesn't exist at /sessions/rcw-01bl7bxx2tccxfcpmuwcb8i6/.cache/ms-playwright/chromium_headless_shell-1234/chrome-linux/headless_shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     npx playwright install                                 ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+    at /sessions/rcw-01bl7bxx2tccxfcpmuwcb8i6/mnt/ebook_html/e2e/smoke.mjs:5:32 {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v22.22.3
+>> e2e exit=1
+
+## import 스모크 개별
+----- import_smoke : exit=1 -----
+  name: 'Error'
+}
+
+Node.js v22.22.3
+----- import_callout_smoke : exit=1 -----
+  name: 'Error'
+}
+
+Node.js v22.22.3
+----- import_cleanup_smoke : exit=1 -----
+  name: 'Error'
+}
+
+Node.js v22.22.3
+----- import_pagination_smoke : exit=1 -----
+  name: 'Error'
+}
+
+Node.js v22.22.3
+
+## e2e 판정
+- 결과: 미검증(환경)
+- 사유: e2e/smoke·import_* 스모크는 Playwright Chromium 필요. device Cowork VM에 브라우저 미설치 + 네트워크 없음 → `npx playwright install` 불가.
+- 관측: 테스트 서버가 dist를 http://127.0.0.1:8899 로 정상 서빙(빌드 산출물 OK). 실패 지점은 browserType.launch(브라우저 실행 파일 없음)뿐.
+- 재현 조치(개발 PC): `npx playwright install` 후 `npm run e2e` 재실행 → 미검증 해제.

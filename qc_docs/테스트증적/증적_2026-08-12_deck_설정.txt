@@ -1,0 +1,33 @@
+# 테스트 증적 — deck 팔레트 동기화 & LLM 설정 단위
+실행시각: 2026-08-12 10:46:21 KST · 소스: commit fc27f72 · 환경: device VM Python 3.10.12
+======================================================
+## REQ-F-005: python3 server/deck/test_deck_theme_sync.py
+✓ 라이트 제목(ink) 동기화 = 0F1B3D
+✓ 라이트 강조(blue) 동기화
+✓ 라이트 카드면 동기화
+✓ 다크 페이지 배경 동기화
+✓ 다크 강조(blue) 동기화
+✓ 다크 카드면 동기화
+✓ 라이트 표지 배경 = 네이비 0F1B3D
+✓ 다크 표지 배경 동기화
+✓ 표지 글자 = 흰색
+✓ 두 파일 팔레트 블록 파싱됨
+
+ALL PASS — 미리보기(PPTX)·편집 캔버스 팔레트 동기화 유지됨
+>> exit=0
+
+## REQ-F-010: python3 server/test_settings_store.py
+✓ 초기 기본값 provider=self
+✓ 초기 configured=False
+✓ 저장 후 configured=True
+✓ 저장 후 model 반영
+✓ timeout 코어스(30.0)
+✓ 재로딩 api_key 유지
+✓ mask_key 마스킹(원문 미노출)
+✓ env 폴백 LLM_MODEL 적용
+✓ llm_endpoint 문자열 반환
+✓ _coerce_bool('true')
+✓ _coerce_float('abc'→default)
+
+ALL PASS
+>> exit=0

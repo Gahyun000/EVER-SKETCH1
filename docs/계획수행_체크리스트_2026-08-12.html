@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>계획 수행 체크리스트 - 2026-08-12</title>
+  <style>
+    :root {
+      --paper: #fbfaf7;
+      --ink: #182033;
+      --muted: #667085;
+      --line: #d9dee8;
+      --done: #14745f;
+      --warn: #a35c12;
+      --fail: #b42318;
+      --hold: #344054;
+      --panel: #ffffff;
+      --blue: #245cc7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+    header {
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    .kicker {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0;
+      margin: 0 0 8px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+    .verdict {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+      gap: 16px;
+      margin: 22px 0;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+      .stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #f2b8b5;
+      background: #e8f5ef;
+      color: var(--done);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+    h2 {
+      font-size: 18px;
+      margin: 0 0 12px;
+      letter-spacing: 0;
+    }
+    p { margin: 0 0 10px; }
+    .meta {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+    th {
+      background: #eef2f8;
+      color: #293244;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .status {
+      display: inline-block;
+      min-width: 74px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-weight: 800;
+      font-size: 12px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .done { background: #e8f5ef; color: var(--done); }
+    .fail { background: #fff0ef; color: var(--fail); }
+    .warn { background: #fff7e8; color: var(--warn); }
+    .hold { background: #eef1f5; color: var(--hold); }
+    code {
+      background: #f2f4f7;
+      border: 1px solid #e4e7ec;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .94em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    li { margin: 6px 0; }
+    .next {
+      border-left: 5px solid var(--blue);
+    }
+    @media (max-width: 820px) {
+      .verdict, .grid { grid-template-columns: 1fr; }
+      main { padding: 24px 14px 42px; }
+      table, thead, tbody, tr, th, td { display: block; }
+      thead { display: none; }
+      tr { border-bottom: 1px solid var(--line); }
+      td { border-bottom: 0; padding: 9px 12px; }
+      td::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 3px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="kicker">검토 기준일: 2026-08-12 KST</p>
+      <h1>클로드 작업 계획 수행 체크리스트</h1>
+    </header>
+
+    <section class="verdict">
+      <div class="panel">
+        <span class="stamp">결론: 미완료 원인 해결 후 검증 통과</span>
+        <p style="margin-top:14px">초기 검토에서는 서버 pytest, e2e, 코드 결함 4건이 미완료였으나 2026-08-12 수정 후 새 검증에서 모두 통과했습니다.</p>
+      </div>
+      <div class="panel meta">
+        <div><strong>게이트:</strong> G4 품질 검토 후 수정 완료</div>
+        <div><strong>승인 상태:</strong> 로컬 검증 통과</div>
+        <div><strong>검증 기준:</strong> 실제 명령 출력과 파일/라인 근거</div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-bottom:16px">
+      <h2>수행 체크리스트</h2>
+      <table aria-label="계획 수행 체크리스트">
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>상태</th>
+            <th>근거</th>
+            <th>남은 조치</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="항목">작업트리 변경 범위 확인</td>
+            <td data-label="상태"><span class="status done">완료</span></td>
+            <td data-label="근거"><code>git status --short</code>, <code>git diff --stat HEAD</code>로 추적/미추적 변경 확인</td>
+            <td data-label="남은 조치">없음</td>
+          </tr>
+          <tr>
+            <td data-label="항목">프론트엔드 빌드 검증</td>
+            <td data-label="상태"><span class="status done">완료</span></td>
+            <td data-label="근거"><code>npm run build</code> exit 0, Vite production build 생성</td>
+            <td data-label="남은 조치">경고 <code>NO_COLOR</code>는 기능 실패 아님</td>
+          </tr>
+          <tr>
+            <td data-label="항목">서버 pytest 전체 검증</td>
+            <td data-label="상태"><span class="status done">완료</span></td>
+            <td data-label="근거"><code>server/conftest.py</code>에서 스크립트형 테스트 수집을 제외하고 <code>server/test_script_harness.py</code>에서 subprocess 실행으로 격리. <code>python3 -m pytest server -q</code> exit 0</td>
+            <td data-label="남은 조치">없음</td>
+          </tr>
+          <tr>
+            <td data-label="항목">e2e 검증</td>
+            <td data-label="상태"><span class="status done">완료</span></td>
+            <td data-label="근거"><code>npx playwright install chromium</code>으로 브라우저를 설치하고, 현재 빈 슬라이드 UI 계약에 맞춰 <code>e2e/smoke.mjs</code>를 갱신. <code>npm run e2e</code>에서 11/11 통과</td>
+            <td data-label="남은 조치">없음</td>
+          </tr>
+          <tr>
+            <td data-label="항목">개별 서버 하네스</td>
+            <td data-label="상태"><span class="status done">완료</span></td>
+            <td data-label="근거"><code>python3 server/test_editor.py</code>, <code>server/test_self_check.py</code>, <code>server/test_edit_lane.py</code>, <code>server/test_create_lane.py</code> 개별 실행 통과</td>
+            <td data-label="남은 조치">pytest/CI에서 같은 결과가 나오도록 구조 정리</td>
+          </tr>
+          <tr>
+            <td data-label="항목">덱 변환 하네스</td>
+            <td data-label="상태"><span class="status done">완료</span></td>
+            <td data-label="근거"><code>python3 server/deck/test_extractor.py</code>, <code>python3 server/deck/test_deck_theme_sync.py</code> 통과</td>
+            <td data-label="남은 조치">없음</td>
+          </tr>
+          <tr>
+            <td data-label="항목">코드리뷰 findings 처리</td>
+            <td data-label="상태"><span class="status done">완료</span></td>
+            <td data-label="근거">pytest 격리, 복제 페이지 요소 ID 재발급, SSE 스트림 시작 후 폴백 재시도 차단, provider별 LLM configured 판정 분리를 적용</td>
+            <td data-label="남은 조치">없음</td>
+          </tr>
+          <tr>
+            <td data-label="항목">표준 작업대장 기록</td>
+            <td data-label="상태"><span class="status done">완료</span></td>
+            <td data-label="근거"><code>docs/작업대장/작업이력대장_2026-08-12_클로드작업검토.md</code> 및 이번 요청 작업대장 생성</td>
+            <td data-label="남은 조치">수정 작업 착수 시 별도 작업대장 추가</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>해결된 차단 항목</h2>
+        <ul>
+          <li>서버 테스트는 pytest 수집 방식 때문에 깨졌고, subprocess 하네스로 격리했습니다.</li>
+          <li>e2e는 Chromium 미설치와 오래된 `.chip` 기반 계약 때문에 실패했고, 브라우저 설치 및 현재 UI 스모크로 갱신했습니다.</li>
+          <li>리뷰 findings 4건은 코드 수정과 검증 명령으로 대조했습니다.</li>
+        </ul>
+      </div>
+      <div class="panel next">
+        <h2>수행한 해결</h2>
+        <ul>
+          <li>스크립트형 테스트는 pytest 수집에서 제외하고 통합 하네스에서 실행합니다.</li>
+          <li>복제 페이지의 내부 요소 ID와 연결선을 새 ID로 재매핑합니다.</li>
+          <li>SSE 폴백에서 액션 중복 적용을 막습니다.</li>
+          <li>provider별 LLM 필수 입력 조건을 분리합니다.</li>
+          <li>Chromium 설치 후 e2e를 현재 UI 기준으로 재실행했습니다.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

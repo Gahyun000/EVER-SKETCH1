@@ -1,0 +1,291 @@
+# -*- coding: utf-8 -*-
+"""HTML → 덱 IR(dict). 범용 파서(ebook_html htmlImport.ts 이식).
+
+원본 서식은 버리고 내용만 가져온다. 어떤 계열의 HTML이든 h1/h2/문단/목록/콜아웃을
+표지·목차·섹션으로 분해한 뒤, 소제목(h3)은 카드로 재구성해 표지틀 덱 IR 로 만든다.
+브라우저 DOMParser 대신 BeautifulSoup 를 쓴다(동작 규칙은 원본과 동일).
+
+밀도 정리(항상): 카드 설명은 첫 문장·~76자로 압축하고 페이지당 카드 수를 제한해
+'글 벽'이 아니라 성근 슬라이드가 나오게 한다(미리보기 덱처럼). 원문 덤프 방지.
+LLM 요약(옵션): extract(summarize_fn=...) 을 주면 섹션을 헤드라인+핵심 2~3줄로 더 압축한다.
+"""
+import re
+from copy import copy as _copy
+from bs4 import BeautifulSoup, Tag
+
+# 강조박스(콜아웃) 선택자 — 원본과 동일
+CALLOUT_SEL = (".note,.warn,.warning,.caution,.danger,.alert,.ok,.ok-box,.success,"
+               ".tip,.key,.info,.q,.callout,.hint,blockquote")
+CALLOUT_CLASSNAMES = [c.strip(".") for c in CALLOUT_SEL.split(",") if c.startswith(".")]
+TONE_LABEL = {"info": "정보", "key": "핵심", "warn": "주의"}
+
+# ── 밀도 상수(성근 슬라이드) ──────────────────────────────────────────────
+DESC_CHARS = 76        # 카드 설명 목표 길이(첫 문장 우선)
+LEAD_CHARS = 92        # 섹션 리드(부제) 목표 길이
+MAX_CARDS = 6          # 페이지(섹션)당 카드 상한 — 넘치면 잘라 성글게
+COVER_CARDS = 3        # 표지 카드 수
+
+
+def _clean(s) -> str:
+    return re.sub(r"\s+", " ", (s or "")).strip()
+
+
+def _classes(el) -> str:
+    c = el.get("class") if isinstance(el, Tag) else None
+    return " ".join(c) if c else ""
+
+
+def _is_callout(el) -> bool:
+    if not isinstance(el, Tag):
+        return False
+    if el.name == "blockquote":
+        return True
+    cls = set((el.get("class") or []))
+    return any(cn in cls for cn in CALLOUT_CLASSNAMES)
+
+
+def _callout_tone(el) -> str:
+    cls = (_classes(el) + " " + el.name).lower()
+    if re.search(r"\b(ok|success|tip|key|good|done)\b", cls):
+        return "key"
+    if re.search(r"\b(warn|warning|caution|danger|alert|note)\b", cls):
+        return "warn"
+    return "info"
+
+
+def _is_toc_title(t: str) -> bool:
+    """제목이 목차/Contents 류인지 — 원본에 포함된 목차 슬라이드는 자동 목차와 중복되므로 본문에서 제외."""
+    s = re.sub(r"[\s\W_]+", "", (t or "")).lower()
+    return s in ("목차", "차례", "목록", "index", "contents", "contentspage",
+                 "toc", "tableofcontents", "outline", "agenda")
+
+
+def _heading_text(el) -> str:
+    clone = BeautifulSoup(str(el), "html.parser")
+    for x in clone.select(".n, .no, .num, .step, .tag, .badge, .chip, .pill, sup"):
+        x.decompose()
+    t = _clean(clone.get_text(" "))
+    t = re.sub(r"^(\d{1,2})[.)\]]\s+", "", t)   # 선행 목록번호 제거(연도 4자리는 보존)
+    return t
+
+
+def _cover_subtitle(soup) -> str:
+    sub = _clean((soup.select_one(".lede, .lead, .subtitle, .sub") or {}).get_text(" ")
+                 if soup.select_one(".lede, .lead, .subtitle, .sub") else "")
+    if not sub:
+        p = soup.find("p")
+        sub = _clean(p.get_text(" ")) if p else ""
+    if len(sub) > 140:
+        cut = sub[:140]
+        sp = cut.rfind(" ")
+        sub = (cut[:sp] if sp > 80 else cut).strip() + "…"
+    return sub
+
+
+def parse_html(html: str) -> dict:
+    """HTML → {title, cover:{title,sub}, sections:[{title, blocks:[{type,text,tone?}]}]}."""
+    soup = BeautifulSoup(html, "html.parser")
+    doc_title = _clean(soup.title.get_text() if soup.title else "")
+    first_h1 = soup.find("h1")
+    cover_title = (_heading_text(first_h1) if first_h1 else "") or doc_title or "가져온 문서"
+    cover_sub = _cover_subtitle(soup)
+
+    sections = []
+    cur = None
+    saw_first_h1 = False
+    body = soup.body or soup
+    els = body.select("h1, h2, h3, p, ul, ol, hr, " + CALLOUT_SEL)
+
+    for el in els:
+        tag = el.name.lower()
+        if tag == "h1":
+            if not saw_first_h1:
+                saw_first_h1 = True
+                continue                      # 첫 H1 = 표지
+            cur = {"title": _heading_text(el) or "페이지", "blocks": []}
+            sections.append(cur)
+            continue
+        if tag == "h2":
+            cur = {"title": _heading_text(el) or "페이지", "blocks": []}
+            sections.append(cur)
+            continue
+        if cur is None:
+            continue                          # 첫 섹션 이전(표지 리드문 등) 건너뜀
+        if el.find_parent("li"):
+            continue
+        if _is_callout(el):
+            t = _clean(el.get_text(" "))
+            if t:
+                cur["blocks"].append({"type": "callout", "text": t, "tone": _callout_tone(el)})
+            continue
+        if el.find_parent(lambda p: _is_callout(p)):
+            continue                          # 콜아웃 내부 요소는 위에서 통째 처리
+        if tag == "h3":
+            t = _heading_text(el)
+            if t:
+                cur["blocks"].append({"type": "h2", "text": t})
+        elif tag == "p":
+            t = _clean(el.get_text(" "))
+            if t:
+                cur["blocks"].append({"type": "text", "text": t})
+        elif tag == "hr":
+            cur["blocks"].append({"type": "divider", "text": ""})
+        elif tag in ("ul", "ol"):
+            for li in el.find_all("li", recursive=False):
+                t = _clean(li.get_text(" "))
+                if t:
+                    cur["blocks"].append({"type": "bullet", "text": t})
+
+    return {"title": doc_title or cover_title,
+            "cover": {"title": cover_title, "sub": cover_sub},
+            "sections": sections}
+
+
+# ── 밀도 정리 ──────────────────────────────────────────────
+def _condense(text: str, n: int = DESC_CHARS) -> str:
+    """첫 문장 우선으로 ~n자까지. '글 벽'을 성근 한 줄로 줄인다."""
+    text = re.sub(r"\s+", " ", text or "").strip()
+    if not text:
+        return ""
+    first = re.split(r"(?<=[.!?。])\s", text)[0]
+    if len(first) <= n:
+        return first
+    cut = first[:n].rstrip()
+    sp = cut.rfind(" ")
+    return (cut[:sp] if sp > 40 else cut).rstrip(" ,·-") + "…"
+
+
+def _short(text: str, n: int = 120) -> str:
+    text = re.sub(r"\s+", " ", text or "").strip()
+    if len(text) <= n:
+        return text
+    cut = re.split(r"(?<=[.。])\s", text)[0]
+    return cut if len(cut) <= n else text[: n - 1].rstrip() + "…"
+
+
+def _plaintext(blocks) -> str:
+    return " ".join(b.get("text", "") for b in blocks if b.get("text"))
+
+
+def _cols(n: int) -> str:
+    return "c2" if n in (2, 4) else "c3"
+
+
+def _section_cards(blocks):
+    """블록 → (lead, cards). h3 소제목마다 카드 시작, 이후 문단/불릿은 그 카드 설명으로.
+    콜아웃은 별도 카드(색조 라벨). 소제목 없는 텍스트/불릿은 lead 또는 낱개 카드로.
+    설명은 _condense 로 첫 문장·짧게. 카드 수는 MAX_CARDS 로 제한(성근 슬라이드)."""
+    lead = ""
+    cards = []
+    cur = None
+
+    def flush():
+        nonlocal cur
+        if cur is not None:
+            cur["desc"] = _condense(" ".join(cur.pop("_d")))
+            cards.append(cur)
+            cur = None
+
+    loose = []
+    for b in blocks:
+        t = b["type"]
+        if t == "h2":
+            flush()
+            cur = {"type": "kick", "title": b["text"], "_d": []}
+        elif t == "callout":
+            flush()
+            cards.append({"type": "kick", "kick": TONE_LABEL.get(b.get("tone", "info"), "정보"),
+                          "title": "", "desc": _condense(b["text"])})
+        elif t in ("text", "bullet"):
+            if cur is not None:
+                cur["_d"].append(b["text"])
+            elif not lead and t == "text":
+                lead = _condense(b["text"], LEAD_CHARS)
+            else:
+                loose.append(b["text"])
+        # divider 무시
+    flush()
+    for x in loose:
+        cards.append({"type": "kick", "title": "", "desc": _condense(x)})
+    if len(cards) > MAX_CARDS:            # 넘치는 카드는 잘라 성글게
+        cards = cards[:MAX_CARDS]
+    return lead, cards
+
+
+def _summary_cards(title, text, summarize_fn):
+    """summarize_fn(title, text) → {headline, bullets} 이면 (lead, cards) 로. 실패시 None."""
+    try:
+        summ = summarize_fn(title, text)
+    except Exception:
+        summ = None
+    if not summ:
+        return None
+    bullets = [str(b).strip() for b in (summ.get("bullets") or []) if str(b).strip()]
+    if not bullets:
+        return None
+    lead = _condense(str(summ.get("headline") or ""), LEAD_CHARS)
+    cards = [{"type": "kick", "title": "", "desc": _condense(b)} for b in bullets[:MAX_CARDS]]
+    return lead, cards
+
+
+def extract(html: str, theme: str = "light", title: str | None = None, summarize_fn=None) -> dict:
+    """HTML → 덱 IR. summarize_fn 주면 섹션을 LLM 으로 헤드라인+핵심 몇 줄로 더 압축(없으면 휴리스틱)."""
+    doc = parse_html(html)
+    doc_title = title or doc["title"] or "문서"
+
+    # 원본에 포함된 목차/Contents 슬라이드는 제외 — 아래에서 자동 목차를 다시 생성하므로 중복 방지.
+    content_sections = [s for s in doc["sections"] if not _is_toc_title(s.get("title", ""))]
+
+    pages = []
+    # 표지
+    cover_cards = []
+    if content_sections:
+        _, c0 = _section_cards(content_sections[0]["blocks"])
+        for i, c in enumerate([x for x in c0 if x.get("title")][:COVER_CARDS]):
+            cover_cards.append({"type": "dot", "dot": ["aqua", "orange", "blue"][i % 3],
+                                "title": c["title"], "desc": c.get("desc", "")})
+    pages.append({"type": "cover", "heading": doc["cover"]["title"], "headingSize": 40,
+                  "sub": doc["cover"]["sub"], "eyebrow": "", "cards": cover_cards})
+
+    # 본문 섹션
+    body_pages = []
+    toc_items = []
+    for idx, sec in enumerate(content_sections, 1):
+        res = _summary_cards(sec["title"], _plaintext(sec["blocks"]), summarize_fn) if summarize_fn else None
+        if res is None:
+            res = _section_cards(sec["blocks"])
+        lead, cards = res
+        markN = "%02d" % idx
+        n = len(cards)
+        small = n >= 6
+        page = {"type": "section", "markN": markN, "markEn": "",
+                "heading": sec["title"], "sub": lead, "eyebrow": "",
+                "cols": _cols(n if not small else 3), "cards": cards, "small": small}
+        if small:
+            page.update(cardsY=4.95, cardsH=4.25, eyebrowY=4.55, subH=0.6)
+        elif n == 0:
+            page["titleH"] = 1.0             # 카드 없는 페이지는 제목·리드 위주
+        body_pages.append(page)
+        toc_items.append([markN, sec["title"][:20], _short(lead, 16), "%02d" % (3 + idx - 1)])
+
+    toc = {"type": "toc", "markEn": "CONTENTS", "title": "목차",
+           "sub": _short(doc["cover"]["sub"] or "문서의 주요 섹션입니다.", 60), "items": toc_items}
+    pages = [pages[0], toc] + body_pages
+
+    footer_left = re.sub(r"\.html?$", "", doc_title)
+    return {
+        "meta": {
+            "title": doc_title, "footerLeft": footer_left[:40],
+            "theme": "dark" if theme == "dark" else "light",
+            "brandTop": "UNIEVER CO., LTD.", "brandTopRight": "AX TRANSFORMATION · 2026",
+            "wordmark": {"a": "UNIEVER", "b": "AX", "sub": "AI TRANSFORMATION PROGRAM"},
+        },
+        "pages": pages,
+    }
+
+
+if __name__ == "__main__":
+    import sys, json
+    html = open(sys.argv[1], encoding="utf-8").read()
+    theme = sys.argv[2] if len(sys.argv) > 2 else "light"
+    print(json.dumps(extract(html, theme), ensure_ascii=False, indent=2))

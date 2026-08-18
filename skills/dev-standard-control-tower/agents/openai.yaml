@@ -1,0 +1,4 @@
+interface:
+  display_name: "개발표준 컨트롤타워"
+  short_description: "핵심 철학·표준 UI·문서·게이트·포트를 통합 통제합니다."
+  default_prompt: "Use $dev-standard-control-tower to govern this project with human-approved documents, the complete UI and docs contracts, routed skills, safe verification, quality gates, collision-safe ports, and verified one-click startup."

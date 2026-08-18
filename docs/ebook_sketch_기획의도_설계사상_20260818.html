@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ebook_sketch — 기획의도 · 설계사상 · 로드맵 (26.08.18)</title>
+<style>
+  :root{
+    --ink:#111418; --ink2:#3d4650; --ink3:#6b7480; --line:#e3e7ec;
+    --bg:#ffffff; --soft:#f6f8fa; --accent:#1e4fd8; --accent-soft:#eaf0ff;
+    --warn:#b45309; --warn-soft:#fff5e6; --ok:#0f7b52; --ok-soft:#e8f6f0;
+    --l3:#1e4fd8; --l2:#0f7b52; --l1:#6b7480;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;
+    font-size:15px; line-height:1.75; letter-spacing:-.01em;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:56px 28px 96px}
+  header.doc{border-bottom:2px solid var(--ink); padding-bottom:18px; margin-bottom:36px}
+  .date{font-size:34px; font-weight:800; letter-spacing:-.03em; margin:0}
+  .title{font-size:20px; font-weight:700; margin:6px 0 0}
+  .meta{color:var(--ink3); font-size:13px; margin-top:10px}
+  .lede{background:var(--soft); border-left:3px solid var(--accent); padding:16px 18px; margin:0 0 40px; border-radius:0 6px 6px 0}
+  .lede b{color:var(--accent)}
+  h2{font-size:23px; font-weight:800; letter-spacing:-.02em; margin:52px 0 6px; padding-top:14px; border-top:1px solid var(--line)}
+  h2 .en{font-weight:500; color:var(--ink3); font-size:15px; margin-left:8px}
+  h3{font-size:16px; font-weight:700; margin:28px 0 8px; color:var(--ink)}
+  h3::before{content:"▍"; color:var(--accent); margin-right:6px}
+  p{margin:8px 0; color:var(--ink2)}
+  ul{margin:8px 0 8px; padding-left:20px; color:var(--ink2)}
+  li{margin:5px 0}
+  li b, p b{color:var(--ink)}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14px}
+  th,td{border:1px solid var(--line); padding:9px 11px; text-align:left; vertical-align:top}
+  th{background:var(--soft); font-weight:700; color:var(--ink); white-space:nowrap}
+  td{color:var(--ink2)}
+  .tag{display:inline-block; font-size:12px; font-weight:700; padding:1px 8px; border-radius:99px; line-height:1.7}
+  .t-l3{background:var(--accent-soft); color:var(--l3)}
+  .t-l2{background:var(--ok-soft); color:var(--l2)}
+  .t-l1{background:#eef0f3; color:var(--l1)}
+  .t-new{background:var(--warn-soft); color:var(--warn)}
+  .t-have{background:var(--ok-soft); color:var(--ok)}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0}
+  .card{border:1px solid var(--line); border-radius:8px; padding:16px 18px; background:#fff}
+  .card h4{margin:0 0 8px; font-size:15px; font-weight:700}
+  .card.bad{background:#fdf6f6; border-color:#f0dede}
+  .card.good{background:var(--ok-soft); border-color:#cfe9dd}
+  .flow{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0; font-size:13.5px}
+  .step{background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:7px 12px; color:var(--ink2)}
+  .step.on{background:var(--accent-soft); border-color:#c6d5ff; color:var(--l3); font-weight:600}
+  .arw{color:var(--ink3)}
+  .note{background:var(--warn-soft); border:1px solid #f2e2c4; border-radius:8px; padding:14px 16px; margin:16px 0; font-size:14px; color:#6b4a12}
+  .note b{color:#6b4a12}
+  ol.q{counter-reset:q; list-style:none; padding-left:0}
+  ol.q li{counter-increment:q; padding-left:34px; position:relative; margin:12px 0}
+  ol.q li::before{content:counter(q); position:absolute; left:0; top:2px; width:23px; height:23px; border-radius:50%;
+    background:var(--ink); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center}
+  footer.doc{margin-top:60px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink3); font-size:12.5px}
+  code{background:var(--soft); padding:1px 6px; border-radius:4px; font-size:13px; color:#c1305a; font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  @media (max-width:720px){ .grid{grid-template-columns:1fr} .wrap{padding:32px 18px 64px} }
+  @media print{ .wrap{max-width:none} h2{page-break-after:avoid} table{page-break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <p class="date">26.08.18</p>
+  <p class="title">ebook_sketch — 월간 임원회의 자료 협업 플랫폼 기획의도 · 설계사상 · 로드맵</p>
+  <p class="meta">통합 대상: <b>ebook_html</b>(React·TS 편집기 + FastAPI) · <b>uniever_ebook</b>(이북/덱 생성기) · <b>default_skill</b>(표준스킬 43종) &nbsp;|&nbsp; 작성: 유니에버 AI팀</p>
+</header>
+
+<p class="lede">
+  한 문장 요약 — <b>월 1회 임원회의 자료를 "파일로 주고받는 일"에서 "링크 하나 위에서 같이 고치는 일"로 바꾼다.</b>
+  임원 각자에게 고정 표준 템플릿 1장이 부여되고, 그 자리에서 고치고, 관리자가 열람하며 메모로 피드백하고, 작성자가 즉시 반영한다. PPT 왕복은 사라진다.
+</p>
+
+<h2>1. 기획의도 <span class="en">Why &amp; Background</span></h2>
+
+<h3>문제 인식 — 지금 무엇이 불편한가</h3>
+<p>월 1회 임원회의 자료는 내용이 어려워서 힘든 게 아니다. <b>내용을 만드는 시간보다 파일을 돌리는 시간이 더 길다.</b></p>
+<div class="flow">
+  <span class="step">PPT 작성</span><span class="arw">→</span>
+  <span class="step">메일·메신저 발송</span><span class="arw">→</span>
+  <span class="step">검사·코멘트(구두/메일)</span><span class="arw">→</span>
+  <span class="step">수정</span><span class="arw">→</span>
+  <span class="step">재발송</span><span class="arw">→</span>
+  <span class="step">버전 혼선</span><span class="arw">→</span>
+  <span class="step">취합·양식 정리</span>
+</div>
+<ul>
+  <li><b>왕복 비용</b> — 작성 → 발송 → 검사 → 수정 → 재발송이 회차마다 반복된다. 실제 소요의 대부분이 이 왕복이다.</li>
+  <li><b>버전 분열</b> — <code>최종.pptx</code>, <code>최종_수정.pptx</code>, <code>최종_진짜최종.pptx</code>. 어느 것이 원본인지 사람이 기억으로 관리한다.</li>
+  <li><b>피드백 유실</b> — 코멘트가 문서 밖(메일·구두·메신저)에 있어 어느 장, 어느 칸 이야기인지 다시 물어야 한다. 반영 여부도 추적되지 않는다.</li>
+  <li><b>양식 이탈</b> — 임원별로 표 모양·글꼴·색이 달라져 취합 단계에서 관리자가 손으로 다시 맞춘다.</li>
+  <li><b>열람 통제 부재</b> — 파일이 나가는 순간 누가 보고 누가 고칠 수 있는지 통제할 방법이 없다.</li>
+</ul>
+
+<h3>해결 목표 — 이 프로젝트로 무엇을 바꾸는가</h3>
+<div class="grid">
+  <div class="card bad">
+    <h4>AS-IS</h4>
+    <ul>
+      <li>파일이 이동한다 (첨부·다운로드)</li>
+      <li>피드백은 문서 밖에 있다</li>
+      <li>원본은 사람의 기억 속에 있다</li>
+      <li>양식은 권고사항이다</li>
+      <li>취합은 관리자의 수작업이다</li>
+    </ul>
+  </div>
+  <div class="card good">
+    <h4>TO-BE</h4>
+    <ul>
+      <li>사람이 링크로 모인다 (원본 1개)</li>
+      <li>피드백은 그 페이지·그 칸에 붙는다</li>
+      <li>원본은 서버가 보증한다 (버전 자동기록)</li>
+      <li>양식은 시스템이 고정한다</li>
+      <li>취합은 발행 버튼 한 번이다</li>
+    </ul>
+  </div>
+</div>
+<p>정량 목표(파일럿 1회차 기준 가설): <b>자료 준비 리드타임 50% 단축</b>, <b>재발송 횟수 0회</b>, <b>취합·양식정리 수작업 시간 80% 감소</b>. 파일럿에서 실측해 조정한다.</p>
+
+<h3>존재 이유 — 왜 지금, 왜 우리가 만드는가</h3>
+<ul>
+  <li><b>재료가 이미 있다.</b> 편집기(ebook_html), 이북·덱 생성기(uniever_ebook), 개발표준(default_skill) 3종이 각각 동작한다. 새로 만드는 게 아니라 <b>이어 붙여 제품으로 만드는 단계</b>다.</li>
+  <li><b>범용 협업툴로는 안 된다.</b> 상용 도구는 회의체 고유의 <b>고정 표준 양식 + 임원 1인 1장 + 회차 취합 + 이북/PPT 산출</b>이라는 흐름을 그대로 담지 못한다.</li>
+  <li><b>사내 파일럿이 곧 레퍼런스다.</b> 유니에버 임원회의에서 검증한 흐름은 그대로 <b>사내 표준 → 상품(솔루션 사업)</b>으로 확장할 수 있다. 이번 프로젝트의 최종 목적지는 사내 도구가 아니라 <b>비즈니스 모델</b>이다.</li>
+</ul>
+
+<h2>2. 설계사상 <span class="en">Philosophy &amp; Principle</span></h2>
+
+<h3>핵심 철학 — 다섯 개의 문장</h3>
+<table>
+  <tr><th style="width:210px">원칙</th><th>의미와 결과</th></tr>
+  <tr><td><b>① 원본은 하나다</b><br><span style="font-size:12.5px;color:var(--ink3)">Single Source of Truth</span></td>
+      <td>문서는 이동하지 않는다. 사람이 링크로 온다. 파일 첨부는 <b>최종 산출(발행) 단계에서만</b> 발생한다. 버전은 서버가 자동 기록한다.</td></tr>
+  <tr><td><b>② 권한은 화면이 아니라 데이터에 붙는다</b></td>
+      <td>버튼을 숨기는 것은 UX이고, 막는 것은 API다. 모든 읽기·쓰기·삭제는 서버에서 소유자·레벨을 검증한다. 프런트 가드는 보조 수단일 뿐이다.</td></tr>
+  <tr><td><b>③ 피드백은 문서 안에서 닫힌다</b></td>
+      <td>메모는 반드시 <b>페이지(또는 셀)에 앵커</b>된다. 남기기 → 보기 → 고치기 → 해결까지 한 화면에서 끝난다. 문서 밖으로 나가는 코멘트는 만들지 않는다.</td></tr>
+  <tr><td><b>④ 자유도는 의도적으로 제한한다</b></td>
+      <td>표준 양식은 시스템이 박아둔다. 사용자는 <b>칸 안의 내용, 셀 병합·추가, 글자 크기·굵기 수준</b>까지만 만진다. 자유도를 줄여야 취합이 자동화된다.</td></tr>
+  <tr><td><b>⑤ 되돌릴 수 있어야 손이 빨라진다</b></td>
+      <td>자동 저장 + 버전 스냅샷 + 복원이 기본. 실수를 되돌릴 수 있다는 확신이 있어야 사용자가 과감히 고친다.</td></tr>
+</table>
+
+<h3>우선순위 — 가치가 충돌할 때</h3>
+<p><b>정확성(원본 무결) &gt; 권한·보안 &gt; 취합 자동화 &gt; 편집 자유도 &gt; 화면의 화려함</b></p>
+<ul>
+  <li>"임원이 원하는 대로 다 편집되게" 와 "취합이 자동으로" 가 충돌하면 → <b>취합 자동화가 이긴다.</b> 편집 자유는 예외 요청으로 관리자 승인 후 확장한다.</li>
+  <li>"빨리 쓰게 로그인 없이" 와 "누가 무엇을 봤는가" 가 충돌하면 → <b>권한이 이긴다.</b> 임원 발표자료는 열람 이력이 남아야 한다.</li>
+  <li>"신규 기능 추가" 와 "기존 산출 경로 유지" 가 충돌하면 → <b>기존 산출 경로가 이긴다.</b> 아래 무수정 계약을 참조.</li>
+</ul>
+
+<h3>기술 · 구조 원칙</h3>
+<ul>
+  <li><b>스택 고정</b> — React + TypeScript + Vite(프런트) / FastAPI + SQLite(백엔드). 현재 ebook_html 구조를 그대로 계승하고, 사내 서버 + 자체 계정(ID/PW) 인증을 얹는다.</li>
+  <li><b>무수정 계약 유지</b> — <code>uniever_ebook</code>의 생성기(<code>generator.py</code>, 덱 빌더)는 수정하지 않는다. 연결은 기존 계약(<b>PNG 폴더 산출 → CLI 호출</b>)을 그대로 쓴다. 통합의 방향은 "합치기"가 아니라 <b>"호출하기"</b>다.</li>
+  <li><b>단일 상태 모델</b> — 페이지 = 카드 + 자유 캔버스 요소. 이북 1장 = PNG 1장이라는 기존 렌더 계약을 유지해 편집·발표·이북·PPTX 산출이 하나의 상태에서 나온다.</li>
+  <li><b>표준스킬 준수</b> — default_skill의 개발표준(UI 표준, G0~G6 게이트, 검증 증적)을 개발 프로세스에 그대로 적용한다. 화면 작업은 <code>uniever-development-standard</code> 필수 경유.</li>
+  <li><b>확장 여지만 열어둔다</b> — SSO/AD 연동, PostgreSQL 전환, 멀티테넌시(외부 고객사)는 <b>인터페이스만 분리</b>해 두고 구현은 뒤로 미룬다. 지금 만들지 않는다.</li>
+</ul>
+
+<h2>3. 통합 구도 — 세 저장소를 어떻게 합치나</h2>
+<table>
+  <tr><th style="width:150px">자산</th><th>가져오는 것</th><th style="width:110px">상태</th></tr>
+  <tr><td><b>ebook_html</b></td>
+      <td>카드/자유 캔버스 편집기, 표 셀 병합·행열 추가·정렬(<code>tableOps</code>), 서식 툴바, 자동저장·버전관리, 프로젝트(내 이북) 저장, 메모장, PPTX·PDF 내보내기, FastAPI+SQLite 서버</td>
+      <td><span class="tag t-have">재사용</span></td></tr>
+  <tr><td><b>uniever_ebook</b></td>
+      <td>이북 생성기(PNG 폴더 → 이북), EVER-PEAK 덱 빌더, 브랜드 자산·색 팔레트, 표준스킬 43종 이식본</td>
+      <td><span class="tag t-have">호출</span></td></tr>
+  <tr><td><b>default_skill</b></td>
+      <td>개발표준·게이트(G0~G6)·UI 표준·검증 증적 규약</td>
+      <td><span class="tag t-have">프로세스</span></td></tr>
+  <tr><td><b>ebook_sketch</b><br>(신규)</td>
+      <td><b>계정·권한(L1~L3)</b>, <b>사용자 관리 화면</b>, <b>회차(월간) 모델</b>, <b>표준 템플릿 배부</b>, <b>앵커 메모 피드백</b>, <b>회차 취합·발행</b>, 열람·변경 이력</td>
+      <td><span class="tag t-new">신규 개발</span></td></tr>
+</table>
+<p class="note"><b>핵심 판단:</b> 편집기·표 편집·내보내기는 이미 만들어져 있다. 이번 프로젝트에서 실제로 새로 만드는 것은 <b>"사람과 권한과 회차"</b> 계층이다. 편집 기능 재개발에 시간을 쓰지 않는다.</p>
+
+<h2>4. 핵심 기능 ① — 권한 3레벨</h2>
+<p>기존 ebook_html과의 가장 큰 차이. 지금 시스템에는 <b>사용자 개념 자체가 없다</b>(프로젝트에 소유자가 없음). 여기에 계정·소유·레벨을 도입한다.</p>
+<table>
+  <tr>
+    <th style="width:170px">레벨</th><th>대상</th><th>권한</th><th style="width:180px">보이는 범위</th>
+  </tr>
+  <tr>
+    <td><span class="tag t-l3">L3 관리자</span></td><td>회의 주관·기획 담당</td>
+    <td><b>작성 · 수정 · 삭제</b> + 사용자 관리(계정 생성·레벨 변경·비활성화) + 회차 개설/마감 + 템플릿 배부 + 전체 이북 열람 + 메모 작성·해결 + 최종 발행</td>
+    <td>전체</td>
+  </tr>
+  <tr>
+    <td><span class="tag t-l2">L2 작성자</span></td><td>임원 · 부서 담당자</td>
+    <td><b>작성 · 수정</b> (본인 이북) + 본인 이북에 달린 메모 확인·답글·해결 요청. <b>삭제 불가</b>, 타인 이북 접근 불가</td>
+    <td>본인 이북 + 공개된 회차 결과물</td>
+  </tr>
+  <tr>
+    <td><span class="tag t-l1">L1 열람자</span></td><td>일반 참석자·공유 대상</td>
+    <td><b>읽기 전용</b>. 편집·삭제·메모 작성 불가(메모 열람도 기본 차단, 관리자 설정으로 열람만 허용 가능)</td>
+    <td>발행된 회차 결과물</td>
+  </tr>
+</table>
+<h3>권한 설계 규칙</h3>
+<ul>
+  <li><b>소유 기반</b> — 모든 이북에 <code>owner_id</code>가 붙는다. L2는 "내 것"만, L3는 "전부". 판정은 서버 미들웨어 한 곳에서 한다.</li>
+  <li><b>삭제는 L3만</b> — L2의 삭제 요청은 "삭제 요청" 상태로 남기고 실제 삭제는 L3가 승인한다(회차 자료 유실 방지).</li>
+  <li><b>이력 필수</b> — 로그인, 열람, 편집, 발행, 권한 변경은 감사 로그에 남는다. 임원 자료 특성상 "누가 봤는가"가 요구된다.</li>
+  <li><b>초기 계정</b> — 관리자 1명을 시드로 생성하고, 이후 모든 계정은 관리자 화면에서 발급한다. 자가 가입은 만들지 않는다.</li>
+</ul>
+
+<h2>5. 핵심 기능 ② — 노션식 메모 피드백 루프</h2>
+<p>현재 ebook_html의 메모는 <b>프로젝트 단위 메모장</b>이다. 이를 <b>페이지·셀에 붙는 코멘트</b>로 확장하고 상태를 부여한다.</p>
+<div class="flow">
+  <span class="step on">L3 관리자: 페이지에 메모</span><span class="arw">→</span>
+  <span class="step">L2 작성자 알림(배지)</span><span class="arw">→</span>
+  <span class="step on">그 자리에서 즉시 수정</span><span class="arw">→</span>
+  <span class="step">"수정함" 표시</span><span class="arw">→</span>
+  <span class="step on">L3 확인 → 해결(closed)</span>
+</div>
+<table>
+  <tr><th style="width:170px">항목</th><th>정의</th></tr>
+  <tr><td>앵커</td><td>이북 &gt; 페이지 &gt; (선택)요소·셀 좌표. 클릭하면 해당 위치로 스크롤·하이라이트</td></tr>
+  <tr><td>상태</td><td><code>열림</code> → <code>수정함</code> → <code>해결</code> (해결 권한은 메모 작성자 또는 L3)</td></tr>
+  <tr><td>작성 권한</td><td>L3 전원 / L2는 본인 이북에 한해 답글. L1은 작성 불가</td></tr>
+  <tr><td>알림</td><td>1단계는 화면 내 배지 + 미해결 목록(폴링). 메일·메신저 연동은 2단계 검토</td></tr>
+  <tr><td>이력</td><td>메모·답글·해결은 삭제해도 이력에 남는다. 회차 종료 시 "미해결 N건" 요약</td></tr>
+</table>
+
+<h2>6. 핵심 기능 ③ — 고정 표준 템플릿과 편집 범위</h2>
+<p>회차가 열리면 <b>임원 1인당 표준 템플릿 1장</b>이 자동으로 부여된다(예: 로드맵/마일스톤 표 + 진행현황 + 향후계획 + 이슈리스트 양식). 사용자는 그 위에서만 작업한다.</p>
+<table>
+  <tr><th style="width:130px">구분</th><th>허용</th><th>차단</th></tr>
+  <tr><td>표</td><td>셀 내용 입력, <b>셀 병합·해제</b>, <b>행·열 추가·삭제</b>, 셀 정렬, 셀 배경색</td><td>표 삭제, 표준 헤더 행 변경(관리자만)</td></tr>
+  <tr><td>글자</td><td>크기, <b>굵게</b>, 기울임, 밑줄, 색, 정렬 — 한글(HWP)식 즉시 서식</td><td>임의 폰트 교체(브랜드 폰트 세트 내에서만 선택)</td></tr>
+  <tr><td>레이아웃</td><td>지정 영역 내 요소 이동·크기 조절</td><td>페이지 규격·표지·목차 구조 변경(관리자만)</td></tr>
+  <tr><td>페이지</td><td>—</td><td>페이지 추가·삭제(1인 1장 원칙, 예외는 관리자 승인)</td></tr>
+</table>
+<p class="note"><b>이미 구현되어 있는 것:</b> 셀 병합/해제, 행·열 추가·삭제, 셀 정렬은 <code>src/canvas/tableOps.ts</code>에 순수 함수로 존재한다. 서식 툴바(<code>EditToolbar</code>, <code>ClassicBar</code>)도 있다. 이번 단계 작업은 <b>새 구현이 아니라 "표준 템플릿 위에서의 권한별 제한 모드" 추가</b>다.</p>
+
+<h2>7. 데이터 모델 초안 (신규 항목만)</h2>
+<table>
+  <tr><th style="width:170px">테이블</th><th>주요 컬럼</th><th>비고</th></tr>
+  <tr><td><code>Users</code></td><td>id, login_id, pw_hash, name, dept, level(1|2|3), active, created_at</td><td><span class="tag t-new">신규</span> 자체 계정</td></tr>
+  <tr><td><code>Sessions</code></td><td>token, user_id, expires_at, ip, user_agent</td><td><span class="tag t-new">신규</span></td></tr>
+  <tr><td><code>Cycles</code></td><td>id, title(2026-09 임원회의), status(준비·작성·검토·발행·마감), due_at, template_id</td><td><span class="tag t-new">신규</span> 회차</td></tr>
+  <tr><td><code>Projects</code></td><td>+ <b>owner_id</b>, <b>cycle_id</b>, submit_status</td><td>기존 테이블 확장</td></tr>
+  <tr><td><code>Comments</code></td><td>id, project_id, page_id, anchor(요소·셀), author_id, body, status, parent_id, created_at</td><td>기존 <code>Notes</code> 확장/승계</td></tr>
+  <tr><td><code>AuditLogs</code></td><td>id, user_id, action, target, ts, detail</td><td><span class="tag t-new">신규</span> 열람·편집·권한 이력</td></tr>
+  <tr><td><code>ProjectVersions</code></td><td>(기존 그대로)</td><td>자동 버전·복원 재사용</td></tr>
+</table>
+
+<h2>8. 단계별 로드맵</h2>
+<table>
+  <tr><th style="width:70px">단계</th><th style="width:190px">목표</th><th>내용</th><th style="width:110px">완료 게이트</th></tr>
+  <tr><td><b>P0</b><br>1주</td><td>기획 확정 · 설계</td>
+      <td>본 문서 확정, 권한 매트릭스·데이터 모델 확정, 통합 저장소(<code>ebook_sketch</code>) 구조 결정, 표준 템플릿 1종 확정(첨부 로드맵 양식 기준)</td>
+      <td>기획서·설계서 승인</td></tr>
+  <tr><td><b>P1</b><br>2주</td><td>계정 · 권한 기반</td>
+      <td>Users/Sessions, 로그인 화면, 서버 권한 가드(레벨·소유 검증), Projects에 owner_id 부여 및 기존 데이터 이관, 관리자 사용자 관리 화면(생성·레벨변경·비활성화)</td>
+      <td>L1/L2/L3 시나리오 테스트 통과</td></tr>
+  <tr><td><b>P2</b><br>2주</td><td>회차 · 템플릿 배부</td>
+      <td>Cycles 모델, 회차 개설 시 임원별 템플릿 1장 자동 생성·배부, "내 이북" 목록의 소유 필터, 제출 상태(작성중·제출·반려)</td>
+      <td>가상 회차 1건 개설 → 5인 배부 성공</td></tr>
+  <tr><td><b>P3</b><br>2주</td><td>메모 피드백 루프</td>
+      <td>페이지·셀 앵커 코멘트, 상태 전이(열림→수정함→해결), 미해결 배지·목록, 답글, 권한별 노출 제어</td>
+      <td>메모 → 수정 → 해결 왕복 1건 무결</td></tr>
+  <tr><td><b>P4</b><br>1.5주</td><td>편집 제한 모드</td>
+      <td>표준 템플릿 잠금 영역 정의, 권한별 편집 허용 범위 적용(표·서식은 허용, 구조는 차단), 서식 툴바 정리 및 UI 표준 점검</td>
+      <td>L2 계정으로 금지 동작 차단 확인</td></tr>
+  <tr><td><b>P5</b><br>1.5주</td><td>취합 · 발행</td>
+      <td>회차 마감 → 임원별 1장 자동 병합 → 이북(PNG→generator.py) · PPTX · PDF 산출, 발행본 L1 공개, 감사 로그</td>
+      <td>발행 1건 무오류 산출</td></tr>
+  <tr><td><b>P6</b><br>1주</td><td>파일럿 · 인수</td>
+      <td>실제 월간 회의 1회 리허설 운영, 사용자 교육 1시간, 이슈 수집·수정, 운영 매뉴얼·인수인계 문서</td>
+      <td>실회의 1회 완주 + 정량 목표 측정</td></tr>
+</table>
+<p>총 약 <b>11주</b>(순차 기준). P3와 P4는 부분 병행 가능하여 실제 9~10주 압축 여지가 있다. 각 단계 종료 시 default_skill 표준의 <b>검증 증적</b>을 남긴다.</p>
+
+<h3>이후 확장 (파일럿 이후 검토)</h3>
+<ul>
+  <li>사내 SSO/AD 연동, PostgreSQL 전환, 동시 편집(실시간 커서)</li>
+  <li>AI 보조: 지난 회차 대비 변경점 요약, 이슈리스트 자동 초안, 문체 정리</li>
+  <li><b>상품화</b> — 멀티테넌시 + 조직·템플릿 커스터마이징 → 사외 판매 가능한 "회의체 문서 협업" 솔루션</li>
+</ul>
+
+<h2>9. 리스크와 대응</h2>
+<table>
+  <tr><th style="width:230px">리스크</th><th>대응</th></tr>
+  <tr><td>임원이 웹 편집기를 쓰지 않고 PPT를 고집</td><td>템플릿을 "이미 채워진 상태"로 배부해 진입장벽 제거. 최종 PPTX 내보내기를 항상 보장. 교육 1회 + 관리자 대리입력 경로 유지</td></tr>
+  <tr><td>편집 기능이 PPT만 못하다는 불만</td><td>범위를 명시적으로 좁힌다(표·서식 수준). 초과 요구는 관리자 승인 후 템플릿 자체를 개선하는 방식으로 흡수</td></tr>
+  <tr><td>기존 ebook_html 데이터(소유자 없는 프로젝트) 이관</td><td>P1에서 일괄 관리자 소유로 이관 후 재배정. 이관 스크립트와 롤백 스냅샷 필수</td></tr>
+  <tr><td>권한 우회(프런트만 막고 API 노출)</td><td>서버 가드를 단일 지점에 두고, 각 엔드포인트에 대해 L1/L2/L3 3계정 자동 테스트를 회귀 스위트로 고정</td></tr>
+  <tr><td>uniever_ebook 생성기 변경 유혹</td><td>무수정 계약 유지. 필요한 변형은 호출 측(폴더·옵션)에서 해결</td></tr>
+  <tr><td>회의 일정 고정(월 1회)으로 실패 시 한 달 대기</td><td>P6 이전에 가상 회차로 2회 리허설. 실회의는 기존 PPT 프로세스와 1회 병행 운영</td></tr>
+</table>
+
+<h2>10. 지금 결정이 필요한 것</h2>
+<ol class="q">
+  <li><b>표준 템플릿 정본</b> — 첨부하신 로드맵/마일스톤 + 진행현황 + 향후계획 + 이슈리스트 양식을 그대로 정본으로 확정할지, 항목을 조정할지.</li>
+  <li><b>대상 인원</b> — 1회차에 참여하는 임원(L2) 수와 열람자(L1) 범위. 회차당 페이지 수 산정의 기준이 된다.</li>
+  <li><b>저장소 전략</b> — <code>ebook_html</code>을 <code>ebook_sketch</code>로 개명·확장할지, 새 저장소를 만들고 두 자산을 이식할지.</li>
+  <li><b>서버 위치</b> — 사내 어느 서버에 올릴지, 포트·도메인·백업 정책(SQLite 파일 백업 주기).</li>
+  <li><b>L1의 메모 열람 허용 여부</b> — 열람자에게 피드백 내역을 보일지 감출지(기본안: 감춤).</li>
+  <li><b>파일럿 회차</b> — 9월 회의를 병행 운영 대상으로 삼을지, 10월로 잡을지. P0 착수일이 여기서 역산된다.</li>
+</ol>
+
+<footer class="doc">
+  ebook_sketch 기획의도·설계사상·로드맵 v0.1 · 2026-08-18 · 유니에버(주) AI팀<br>
+  근거 자산: <code>ebook_html</code>(React+TS+Vite / FastAPI+SQLite, 카드·자유캔버스 편집기, tableOps, 버전관리, PPTX·PDF 내보내기) ·
+  <code>uniever_ebook</code>(이북 생성기·덱 빌더·브랜드 자산) · <code>default_skill</code>(표준스킬 43종, G0~G6 개발표준)
+</footer>
+
+</div>
+</body>
+</html>

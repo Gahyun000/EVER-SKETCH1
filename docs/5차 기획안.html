@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ebook_html 5차 기획안 — 구글 슬라이드형 편집기 + HWP + 덱 가져오기</title>
+<style>
+  :root{
+    --ink:#0F1B3D; --text:#111318; --muted:#5B6270; --line:#E6E8EE; --bg:#F4F5F7; --card:#FFFFFF;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A; --red:#c0362c;
+    --gs:#2462EB; --hwp:#0f9d58; --keep:#c5501f;
+    --tint-blue:#EAF1FE; --tint-green:#E9F5EF; --tint-amber:#FBF0E1;
+    --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);line-height:1.65;font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:48px 24px 120px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:29px;margin:10px 0 10px;letter-spacing:-.02em;color:var(--ink)}
+  .lede{font-size:16px;color:var(--muted);max-width:840px}
+  .hero{background:var(--ink);color:#fff;border-radius:16px;padding:26px 28px;margin:18px 0 8px}
+  .hero .kicker{color:#8fb4ff}.hero h1{color:#fff;margin-top:8px}.hero .lede{color:rgba(255,255,255,.82)}
+  .hero .meta{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.6);margin-top:14px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 28px;margin:18px 0;box-shadow:0 1px 2px rgba(15,27,61,.04)}
+  h2{font-size:20px;margin:0 0 4px;color:var(--ink)}
+  h2 .n{display:inline-flex;width:27px;height:27px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:10px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 16px}
+  h3{font-size:15.5px;margin:20px 0 7px;color:var(--ink)}
+  p{margin:9px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fafbfd}
+  .decis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:6px 0}
+  .decis .c{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fcfdff}
+  .decis .c .t{font-size:11px;font-weight:800;letter-spacing:.03em;color:var(--blue);text-transform:uppercase}
+  .decis .c .v{font-size:14.5px;font-weight:700;margin:6px 0 3px;color:var(--ink)}
+  .decis .c .d{font-size:12px;color:var(--muted);line-height:1.5}
+  /* 흐름 */
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:10px 0}
+  .flow .step{flex:1;min-width:120px;border:1px solid var(--line);border-radius:11px;padding:12px 13px;background:#fcfdff}
+  .flow .step .k{font-size:10.5px;font-weight:800;color:var(--blue)}
+  .flow .step .t{font-size:13.5px;font-weight:700;margin-top:3px;color:var(--ink)}
+  .flow .step .d{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .flow .step.human{background:var(--tint-amber);border-color:#f2debe}
+  .flow .step.human .k{color:var(--amber)}
+  .flow .arr{align-self:center;color:#b9bec9;font-weight:800}
+  /* 태그·상태 */
+  .tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px}
+  .tag.gs{background:var(--tint-blue);color:var(--gs)} .tag.hwp{background:var(--tint-green);color:var(--hwp)} .tag.keep{background:#fbeee6;color:var(--keep)}
+  .st{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px}
+  .st.done{background:var(--tint-green);color:var(--green)} .st.doing{background:var(--tint-blue);color:var(--blue)} .st.todo{background:#eef0f4;color:var(--muted)}
+  /* 로드맵 */
+  .phase{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+  .phase:first-of-type{border-top:0}
+  .phase .no{flex:0 0 34px;height:34px;border-radius:9px;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:800}
+  .phase .body{flex:1}
+  .phase .body .h{font-size:14.5px;font-weight:700;color:var(--ink)}
+  .phase .body .d{font-size:12.5px;color:var(--muted);margin-top:3px}
+  ul{margin:8px 0;padding-left:20px} li{margin:4px 0;font-size:13.5px}
+  .callout{border-left:4px solid var(--blue);background:var(--tint-blue);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;color:#26365e}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="kicker">ebook_html · 5차 기획안</div>
+    <h1>구글 슬라이드형 편집기 + HWP(한글), 그리고 "HTML을 편집 가능한 덱으로"</h1>
+    <p class="lede">ebook_html을 구글 슬라이드처럼 슬라이드를 편집하는 도구로 재설계한다. HTML 가져오기는
+    html_pdf_agent의 깔끔한 덱 변환을 그대로 써서, 미리보기를 거쳐 <b>메인 캔버스에 편집 가능한 PPT</b>로 들어온다.
+    기존 자유 캔버스 도구와 이북/문서 기능은 살리고, 부족한 문서 편집은 HWP(한글) 기능으로 채운다.</p>
+    <div class="meta">작성 2026-07-29 (KST) · 선행 문서: 2·3·4차 기획서 · 참조 목업: docs/에디터_목업.html</div>
+  </div>
+
+  <section>
+    <h2><span class="n">1</span>배경 · 목표</h2>
+    <div class="sub">왜 5차인가</div>
+    <p>4차까지의 임포터는 HTML을 카드/블록으로 가져왔지만, ① 긴 섹션이 <code>(2)(3)</code>으로 쪼개져 목차가 지저분하고,
+    ② 결과 디자인이 우리 표지틀 덱만큼 깔끔하지 않았다. 한편 <b>html_pdf_agent</b>가 같은 계열/일반 HTML을 표지틀 덱(PPTX)으로
+    깔끔하게 뽑는 것이 검증됐다. 5차는 그 변환을 ebook_html로 들여오고, 편집 경험 자체를 구글 슬라이드 + HWP 수준으로 끌어올린다.</p>
+    <div class="decis">
+      <div class="c"><div class="t">목표 A</div><div class="v">편집 가능한 PPT</div><div class="d">캔버스에서 글자·도형을 구글 슬라이드처럼 직접 수정.</div></div>
+      <div class="c"><div class="t">목표 B</div><div class="v">깔끔한 가져오기</div><div class="d">html_pdf_agent 덱 변환을 그대로 사용(분할·중복 없음).</div></div>
+      <div class="c"><div class="t">목표 C</div><div class="v">HWP(한글) 편집</div><div class="d">글자·문단모양·글맵시·표·맞춤법 등 문서 편집 보강.</div></div>
+      <div class="c"><div class="t">원칙</div><div class="v">기존 기능 유지</div><div class="d">자유 캔버스 도구·이북/문서 기능은 없애지 않는다.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>핵심 흐름 — 가져오기</h2>
+    <div class="sub">변환 → 미리보기(사람 확인) → 메인 캔버스 반영</div>
+    <div class="flow">
+      <div class="step"><div class="k">1 · 가져오기</div><div class="t">HTML 선택</div><div class="d">파일 선택 + 테마(라이트/다크)</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="k">2 · 변환</div><div class="t">덱으로 변환</div><div class="d">서버 /api/deck (extractor→deck_builder→PPTX·썸네일)</div></div>
+      <div class="arr">→</div>
+      <div class="step human"><div class="k">3 · 미리보기(모달)</div><div class="t">확인 · 다운로드</div><div class="d">슬라이드 미리보기 + PPTX·PDF 다운로드(모달 안)</div></div>
+      <div class="arr">→</div>
+      <div class="step human"><div class="k">4 · 사람 확정</div><div class="t">"메인 캔버스로 가기"</div><div class="d">버튼을 눌러야 캔버스에 반영</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="k">5 · 캔버스</div><div class="t">편집 가능 요소</div><div class="d">덱 레이아웃을 편집 요소로 로드</div></div>
+    </div>
+    <div class="callout">현재는 4단계에서 <b>이미지 슬라이드</b>가 캔버스에 들어가 수정이 안 된다. 5차의 핵심은 이를
+    <b>편집 가능한 요소(텍스트박스·카드·꼬리)</b>로 바꾸는 것이다. 상단 자동 다운로드 링크는 제거하고 다운로드는 미리보기 모달로 모은다.</div>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>화면 구조 — 구글 슬라이드 + HWP + 하단 도구</h2>
+    <div class="sub">목업: docs/에디터_목업.html</div>
+    <ul>
+      <li><b>제목줄</b> — 로고·제목·자동저장 · 우측 <b>슬라이드쇼 ▾</b>(발표 대체)·공유·아바타</li>
+      <li><b>메뉴줄</b> — 파일/수정/보기/삽입/서식/슬라이드/정렬/도구 · <b>한글(HWP)</b> · 확장/도움말</li>
+      <li><b>툴바1(편집)</b> — 글꼴·크기·B/I/U · 구글 슬라이드(도형·선·이미지·표 · 배경·레이아웃·테마·전환) · HWP(글자모양·문단모양·표·글맵시·맞춤법)</li>
+      <li><b>툴바2(기존 유지)</b> — 세로이북/가로덱 · 라이트/다크 · HTML 가져오기 · AI로 정리 · 예시영상 · 환경설정 · 이북 만들기</li>
+      <li><b>좌</b> 슬라이드 썸네일 · <b>중앙</b> 캔버스 · <b>우</b> 속성 패널(글자·문단모양/레이아웃·테마/글맵시) + 아이콘 열</li>
+      <li><b>하단 독</b> — 기존 자유 캔버스 도구(펜·도형·색·AI 초안) <b>그대로 유지</b></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>기능 매핑 · 정리된 결정</h2>
+    <table>
+      <thead><tr><th>영역</th><th>넣을 기능</th><th>출처</th></tr></thead>
+      <tbody>
+        <tr><td>슬라이드 편집</td><td>레이아웃·테마·전환·도형·선·이미지·표·정렬·슬라이드쇼</td><td><span class="tag gs">구글 슬라이드</span></td></tr>
+        <tr><td>문서 편집</td><td>글자모양·문단모양(자간·장평·줄간격)·글맵시·표·각주·개요·맞춤법</td><td><span class="tag hwp">HWP(한글)</span></td></tr>
+        <tr><td>글꼴</td><td>편집 툴바 글꼴·크기·B/I/U + HWP 글자모양</td><td><span class="tag gs">통합</span> <span class="tag hwp">통합</span></td></tr>
+        <tr><td>이북/문서</td><td>세로이북/가로덱·라이트/다크·HTML 가져오기·AI로 정리·예시영상·환경설정·이북 만들기</td><td><span class="tag keep">기존 유지</span></td></tr>
+        <tr><td>자유 캔버스</td><td>펜·도형·색·레이어·주석·AI 초안(하단 독)</td><td><span class="tag keep">기존 유지</span></td></tr>
+      </tbody>
+    </table>
+    <div class="decis">
+      <div class="c"><div class="t">결정</div><div class="v">발표 → 슬라이드쇼</div><div class="d">구글 슬라이드 슬라이드쇼가 발표를 대체 → 발표 버튼 제거.</div></div>
+      <div class="c"><div class="t">결정</div><div class="v">폰트 프리셋 제거</div><div class="d">문서 전체 "Aa 자동/보통" 제거 → 편집 툴바+글자모양으로 통합.</div></div>
+      <div class="c"><div class="t">결정</div><div class="v">가져오기=덱 변환</div><div class="d">ebook_html 자체 파서 대신 html_pdf_agent 덱 변환 사용.</div></div>
+      <div class="c"><div class="t">결정</div><div class="v">사람 확정 게이트</div><div class="d">미리보기 → "메인 캔버스로 가기" 눌러야 반영(HITL).</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>현황 — 이미 완료</h2>
+    <table>
+      <thead><tr><th>항목</th><th>내용</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td>서버 덱 변환 이식</td><td><code>server/deck/</code> extractor·deck_builder·convert + <code>/api/deck</code> + <code>/deck_out</code></td><td><span class="st done">완료</span></td></tr>
+        <tr><td>가져오기 → 덱 변환</td><td>TopBar에서 /api/deck 호출, 고해상 슬라이드 생성</td><td><span class="st done">완료</span></td></tr>
+        <tr><td>슬라이드→캔버스(이미지)</td><td><code>importDeckSlides</code> — 슬라이드 이미지를 페이지로</td><td><span class="st done">완료(임시)</span></td></tr>
+        <tr><td>편집 페이지 정리</td><td>분할 제거(한 섹션=한 페이지) + PageView 오토핏</td><td><span class="st done">완료</span></td></tr>
+        <tr><td>에디터 리디자인 목업</td><td>docs/에디터_목업.html</td><td><span class="st done">완료</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span>구현 로드맵</h2>
+    <div class="phase"><div class="no">1</div><div class="body">
+      <div class="h">가져오기 흐름 정리 <span class="st doing">다음</span></div>
+      <div class="d">미리보기 모달 복원(다운로드 모달 안) + "메인 캔버스로 가기" 버튼 · 상단 자동 다운로드 링크 제거 · 발표→슬라이드쇼 · 폰트 프리셋 제거.</div>
+    </div></div>
+    <div class="phase"><div class="no">2</div><div class="body">
+      <div class="h">우측 속성 패널 <span class="st todo">예정</span></div>
+      <div class="d">선택 요소의 글자모양·문단모양(HWP) · 레이아웃·테마(구글 슬라이드) 편집 패널 + 아이콘 열.</div>
+    </div></div>
+    <div class="phase"><div class="no">3</div><div class="body">
+      <div class="h">덱 IR → 편집 요소 로드 <span class="st todo">예정</span></div>
+      <div class="d">deck_builder가 아는 좌표로 각 슬라이드를 편집 가능한 요소(텍스트박스·카드·꼬리)로 캔버스에 로드. "덱 디자인 그대로 + 수정 가능".</div>
+    </div></div>
+    <div class="phase"><div class="no">4</div><div class="body">
+      <div class="h">HWP 기능 심화 <span class="st todo">예정</span></div>
+      <div class="d">글맵시·표·각주·개요·맞춤법 등 우선순위 정해 순차 추가.</div>
+    </div></div>
+  </section>
+
+  <section>
+    <h2><span class="n">7</span>리스크 · 다음 결정</h2>
+    <ul>
+      <li><b>편집 요소 재현 정밀도</b> — 덱 레이아웃을 편집 요소로 옮길 때 폰트·줄바꿈 차이. deck_builder 좌표를 그대로 쓰면 최소화.</li>
+      <li><b>HWP 우선순위</b> — 글맵시·표 계산·개요·각주 중 무엇을 먼저? (사용자 결정 필요)</li>
+      <li><b>캔버스 비율</b> — 세로 이북(3:4) 기준. 가로 덱 지원 시 레이아웃 재계산 필요.</li>
+      <li><b>LibreOffice 의존</b> — 미리보기·PDF는 soffice 필요. 없으면 편집 페이지로 폴백.</li>
+    </ul>
+  </section>
+
+</div>
+</body>
+</html>

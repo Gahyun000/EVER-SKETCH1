@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Design"
+  short_description: "주제에 맞고 뻔하지 않은 프론트엔드 디자인을 만듭니다."
+  default_prompt: "Use $frontend-design to create a distinctive, subject-grounded interface for this brief."

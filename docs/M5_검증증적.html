@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M5 검증·증적 리포트 — ebook_html</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--red:#c23b48;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:44px 24px 100px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:27px;margin:10px 0 8px;letter-spacing:-.02em}
+  .lede{font-size:15.5px;color:var(--muted);max-width:780px}
+  .pass-badge{display:inline-block;background:#e6f5ee;color:var(--green);font-weight:800;border-radius:999px;padding:6px 16px;font-size:15px;margin-top:12px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin:18px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:19px;margin:0 0 4px}h2 .n{display:inline-flex;width:26px;height:26px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:9px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 14px}
+  p{margin:8px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  pre{background:#12141b;color:#e8ebf2;border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.55;overflow:auto}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  td.mono{font-family:var(--mono);font-size:12px}
+  .ok{color:var(--green);font-weight:800}
+  .sev{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:5px}
+  .sh{background:#fdeef0;color:var(--red)}.sm{background:#fbf1e0;color:var(--amber)}.sl{background:#e6f5ee;color:var(--green)}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:34px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">M5 검증·증적 · G5</div>
+<h1>ebook_html 검증 리포트</h1>
+<p class="lede">카드 빌더 + 자유 캔버스 + 발표 + 온보딩 전 기능을 실제 headless 브라우저(Playwright)로 자동 검증한 증적입니다. 스킬 적용: <code>webapp-testing</code>, <code>verification-before-completion</code>.</p>
+<div class="pass-badge">✓ 15 / 15 PASS · exit 0</div>
+
+<section>
+  <h2><span class="n">1</span>검증 방법</h2>
+  <ul>
+    <li><b>대상</b>: 프로덕션 빌드(<code>vite build</code> → <code>dist</code>) — 실제 배포물과 동일.</li>
+    <li><b>실행</b>: Playwright + Chromium(headless) 자동 조작. <code>npm run e2e</code> 한 줄.</li>
+    <li><b>격리</b>: 프론트 단독 검증을 위해 <code>/api/build</code>는 모의 서버로 응답(ok:true). 실제 <code>generator.py</code> 종단은 §4 참고.</li>
+    <li><b>환경</b>: Node 22 · Playwright 1.55 · Chromium 1194. (Mac에선 <code>npx playwright install chromium</code> 후 동일 실행)</li>
+  </ul>
+<pre>$ npm run e2e
+serving dist on http://127.0.0.1:8899
+PASS · 팔레트 렌더            PASS · 도형 2개
+PASS · 초기 시드 페이지(3)     PASS · 연결선 생성(화살표)
+PASS · 카드 추가(+1)          PASS · 펜 자유선
+PASS · 편집 → 미리보기 반영    PASS · 설명서 패널
+PASS · 가로 전환             PASS · 튜토리얼 코치 표시
+PASS · 자유 캔버스 도형 추가   PASS · 튜토리얼 스포트라이트 링
+PASS · 이북 만들기(모의 API)   PASS · 발표 모드 진입 / 종료(Esc)
+=== 15/15 PASS ===</pre>
+</section>
+
+<section>
+  <h2><span class="n">2</span>수용 기준 대응 (마일스톤 × 테스트)</h2>
+  <table>
+    <thead><tr><th>수용 기준</th><th>검증 항목</th><th>결과</th></tr></thead>
+    <tbody>
+      <tr><td>M2 카드만으로 이북 구성</td><td>팔레트·시드·카드추가·편집·미리보기·방향</td><td class="ok">PASS ×6</td></tr>
+      <tr><td>M3 자유 캔버스</td><td>도형 추가·연결선(화살표)·펜</td><td class="ok">PASS ×4</td></tr>
+      <tr><td>M4 발표 모드</td><td>진입·키 넘김·Esc 종료</td><td class="ok">PASS ×1</td></tr>
+      <tr><td>온보딩(사용설명서·튜토리얼)</td><td>설명서 패널·튜토리얼 코치·스포트라이트 링</td><td class="ok">PASS ×3</td></tr>
+      <tr><td>이북 생성 파이프라인</td><td>이북 만들기 → PNG 렌더 → /api/build 완료</td><td class="ok">PASS ×1</td></tr>
+    </tbody>
+  </table>
+  <p class="sub">특기: "이북 만들기" 통과는 <b>html-to-image로 각 페이지를 실제 PNG로 렌더한 뒤 API를 호출</b>하는 전 과정이 headless에서 동작함을 의미(내보내기 배선 검증).</p>
+</section>
+
+<section>
+  <h2><span class="n">3</span>회귀 방지</h2>
+  <p>테스트 하네스가 저장소에 포함됩니다 — 이후 변경 시 <code>npm run e2e</code>로 15개 항목을 재검증.</p>
+  <ul>
+    <li><code>e2e/server_test.mjs</code> — dist 정적 서빙 + <code>/api/build</code> 모의</li>
+    <li><code>e2e/smoke.mjs</code> — 15개 UI 시나리오(Playwright)</li>
+    <li><code>e2e/run.mjs</code> — 서버 기동+스모크 오케스트레이션</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">4</span>미검증 · 잔여 리스크</h2>
+  <table>
+    <thead><tr><th>항목</th><th>상태 / 심각도</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr><td>실제 generator.py 종단(이북 파일 생성)</td><td><span class="sev sm">사용자 Mac 육안 확인</span></td><td>M1~M4에서 실제 실행으로 이북 생성 확인 완료(사용자). 자동 테스트는 프론트~API 경계까지.</td></tr>
+      <tr><td>PNG 폰트 임베드 화질</td><td><span class="sev sm">중간</span></td><td>headless에서 렌더는 성공. 실제 폰트 화질은 산출 이북 육안 대조 권장.</td></tr>
+      <tr><td>연결선 복잡 케이스(다중 꺾임)</td><td><span class="sev sl">낮음</span></td><td>단일 꺾임까지 지원·검증. 다중 꺾임점은 미지원(백로그).</td></tr>
+      <tr><td>다장 대량(수십 페이지) 성능</td><td><span class="sev sl">낮음</span></td><td>순차 toPng — 페이지 많으면 지연 가능. 진행표시/병렬은 후속.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">5</span>판정</h2>
+  <p><b>G5 검증 통과.</b> 자동 스모크 15/15 PASS + 사용자 실기기 종단 확인(M1~M4). 잔여 리스크는 모두 낮음~중간이며 백로그로 관리. 다음은 <b>M6 파일럿</b>(실제 경영진 1인 관찰).</p>
+</section>
+
+<div class="foot">M5 검증·증적 리포트 · ebook_html · G5 · Playwright 15/15 PASS</div>
+</div>
+</body>
+</html>

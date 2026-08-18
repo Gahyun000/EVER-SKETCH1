@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ebook_html 에디터 리디자인 목업 — 구글 슬라이드 + HWP</title>
+<style>
+  :root{
+    --bg:#f4f4f1; --surface:#fff; --plane:#f6f7f9; --ink:#1a1a1a; --ink2:#52514e; --muted:#8a8883;
+    --line:#e3e4e8; --blue:#2a78d6; --blue-d:#184f95; --blue-100:#eaf2fd; --navy:#0e1c30;
+    --gs:#2a78d6;      /* 구글 슬라이드 기능 강조 */
+    --hwp:#0f9d58;     /* HWP(한글) 기능 강조 */
+    --keep:#c5501f;    /* 유지 기능 강조 */
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,system-ui,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:var(--sans);background:#e9eaed;color:var(--ink);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+  .app{display:grid;grid-template-rows:auto auto auto auto 1fr auto;height:100vh}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:var(--surface);font:inherit;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;color:var(--ink2)}
+  .seg button.on{background:var(--navy);color:#fff}
+  .toolbar2{background:var(--surface)}
+  .keep2{font-size:10px;font-weight:800;color:var(--keep);background:rgba(197,80,31,.1);border:1px solid rgba(197,80,31,.25);border-radius:20px;padding:3px 9px}
+
+  /* 제목줄 */
+  .titlebar{display:flex;align-items:center;gap:12px;background:var(--surface);padding:8px 16px;border-bottom:1px solid var(--line)}
+  .titlebar .logo{width:26px;height:26px;border-radius:7px;background:var(--blue);display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px}
+  .titlebar .tt{font-size:15px;font-weight:650}
+  .titlebar .chip{font-size:11px;color:var(--muted)}
+  .titlebar .sp{flex:1}
+  .titlebar .rbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .titlebar .rbtn.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .titlebar .av{width:30px;height:30px;border-radius:50%;background:#1b7a3d;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px}
+
+  /* 메뉴줄 */
+  .menubar{display:flex;align-items:center;gap:2px;background:var(--surface);padding:2px 14px 6px;border-bottom:1px solid var(--line);font-size:13.5px}
+  .menubar .m{padding:5px 10px;border-radius:7px;color:var(--ink2);cursor:pointer}
+  .menubar .m:hover{background:var(--plane)}
+  .menubar .m.hwp{color:var(--hwp);font-weight:700}
+  .menubar .div{width:1px;height:16px;background:var(--line);margin:0 6px}
+
+  /* 툴바 */
+  .toolbar{display:flex;align-items:center;gap:6px;background:var(--plane);padding:7px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tb{width:32px;height:32px;border-radius:7px;border:0;background:none;cursor:pointer;display:grid;place-items:center;font-size:15px;color:#3a3a3a}
+  .tb:hover{background:#e6e8ec}
+  .grp{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:9px}
+  .grp.gs{background:rgba(42,120,214,.08);outline:1px solid rgba(42,120,214,.2)}
+  .grp.hwp{background:rgba(15,157,88,.08);outline:1px solid rgba(15,157,88,.22)}
+  .grp .lab{font-size:10px;font-weight:700;letter-spacing:.02em;padding:0 4px}
+  .grp.gs .lab{color:var(--gs)} .grp.hwp .lab{color:var(--hwp)}
+  .tbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+  .tbtn.imp{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .toolbar .sp{flex:1}
+
+  /* 본문: 좌 썸네일 · 캔버스 · 우 패널 */
+  .body{display:grid;grid-template-columns:210px 1fr 300px;min-height:0}
+  .film{background:var(--surface);border-right:1px solid var(--line);overflow:auto;padding:12px 10px}
+  .film .add{display:flex;align-items:center;gap:8px;color:var(--blue);font-size:12.5px;font-weight:700;padding:6px 4px;cursor:pointer}
+  .thumb{display:flex;gap:9px;align-items:flex-start;padding:7px 4px;cursor:pointer;border-radius:8px}
+  .thumb:hover{background:var(--plane)}
+  .thumb.on .mini{outline:2px solid var(--blue)}
+  .thumb .no{font-size:11px;color:var(--muted);width:14px;text-align:right;padding-top:16px;font-variant-numeric:tabular-nums}
+  .mini{flex:1;aspect-ratio:3/4;background:#fff;border:1px solid var(--line);border-radius:6px;position:relative;overflow:hidden}
+  .mini .bar{position:absolute;left:8%;right:8%;top:9%;height:3px;background:var(--blue);border-radius:2px}
+  .mini .h{position:absolute;left:8%;width:60%;top:30%;height:7px;background:#cfd3da;border-radius:2px}
+  .mini .l{position:absolute;left:8%;height:3px;background:#e2e4e9;border-radius:2px}
+  .mini .c{position:absolute;bottom:10%;height:22%;border:1px solid #e2e4e9;border-radius:4px}
+
+  .stage{background:#e9eaed;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:28px}
+  /* 캔버스 슬라이드(세로 3:4 — 유니에버 덱) */
+  .slide{width:560px;aspect-ratio:3/4;background:#fff;border-radius:6px;box-shadow:0 10px 40px -8px rgba(20,25,40,.28);position:relative;padding:44px 44px 32px}
+  .sel{position:absolute;border:1.5px solid var(--blue);border-radius:4px}
+  .sel .hd{position:absolute;width:9px;height:9px;background:#fff;border:1.5px solid var(--blue);border-radius:2px}
+  .sel .hd.tl{left:-5px;top:-5px}.sel .hd.tr{right:-5px;top:-5px}.sel .hd.bl{left:-5px;bottom:-5px}.sel .hd.br{right:-5px;bottom:-5px}
+  .s-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;border-bottom:1.5px solid var(--line);padding-bottom:10px}
+  .s-meta .r{color:var(--blue);font-weight:700}
+  .s-badge{display:inline-block;background:var(--blue);color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:3px 11px;margin-top:22px}
+  .s-mark{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--blue);margin-top:12px}
+  .s-h{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:8px}
+  .s-h em{font-style:normal;color:var(--blue)}
+  .s-sub{font-size:13px;color:var(--ink2);margin-top:14px}
+  .s-cards{display:flex;gap:10px;margin-top:20px}
+  .s-cards .cc{background:var(--blue-100);border-radius:16px;padding:8px 16px;font-size:12px;font-weight:700;color:var(--blue-d)}
+  .canvas-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  /* 우측 패널: 아이콘 열 + 열린 패널 */
+  .right{display:grid;grid-template-columns:1fr 52px;background:var(--surface);border-left:1px solid var(--line);min-height:0}
+  .panel{overflow:auto;padding:14px 14px 20px;border-right:1px solid var(--line)}
+  .panel h4{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.02em;margin:14px 0 8px}
+  .panel h4:first-child{margin-top:2px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .pill{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface);flex:1;text-align:center;min-width:64px}
+  .pill.gs{border-color:rgba(42,120,214,.35)} .pill.hwp{border-color:rgba(15,157,88,.4);color:#0b6e3e}
+  .sel-line{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2);margin:5px 0}
+  .sel-line input,.sel-line select{font:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+  .swrow{display:flex;gap:5px;margin-top:4px}
+  .sw{width:18px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.1)}
+  .tag{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:20px;vertical-align:middle;margin-left:6px}
+  .tag.gs{background:rgba(42,120,214,.12);color:var(--gs)} .tag.hwp{background:rgba(15,157,88,.14);color:var(--hwp)}
+  .iconcol{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;background:var(--plane)}
+  .ic{width:44px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;border-radius:9px;cursor:pointer;font-size:9.5px;color:var(--ink2)}
+  .ic:hover{background:#e6e8ec}
+  .ic.on{background:var(--blue-100);color:var(--blue-d);font-weight:700}
+  .ic .g{font-size:16px}
+
+  /* 하단 도구 독(기존 유지) */
+  .dock{display:flex;align-items:center;gap:6px;background:#fff;border-top:1px solid var(--line);padding:8px 14px}
+  .dock .keepbadge{font-size:10px;font-weight:800;color:var(--keep);background:rgba(197,80,31,.1);border:1px solid rgba(197,80,31,.25);border-radius:20px;padding:3px 9px;margin-right:6px}
+  .dk{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center;font-size:15px}
+  .dk.play{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .dk.ai{width:auto;padding:0 12px;background:#6c3ce0;color:#fff;border-color:#6c3ce0;font-size:12px;font-weight:700}
+  .dksw{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+  .dock .sp{flex:1}
+  .dock .hint{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  /* 범례 */
+  .legend{position:fixed;right:18px;bottom:70px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 12px 30px -12px rgba(0,0,0,.25);font-size:12px;z-index:5}
+  .legend b{display:block;margin-bottom:8px;font-size:12px}
+  .legend .li{display:flex;align-items:center;gap:8px;margin:5px 0;color:var(--ink2)}
+  .legend .dot{width:12px;height:12px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 제목줄 -->
+  <div class="titlebar">
+    <div class="logo">AX</div>
+    <div class="tt">유니에버 AX 에디터</div>
+    <span class="chip">☆  ⛅ 자동 저장됨</span>
+    <span class="sp"></span>
+    <button class="rbtn" title="구글 슬라이드 슬라이드쇼(발표 대체)">▷ 슬라이드쇼 ▾</button>
+    <button class="rbtn pri">↥ 공유</button>
+    <div class="av">가</div>
+  </div>
+
+  <!-- 메뉴줄 (구글 슬라이드 + 한글/HWP) -->
+  <div class="menubar">
+    <span class="m">파일</span><span class="m">수정</span><span class="m">보기</span>
+    <span class="m">삽입</span><span class="m">서식</span><span class="m">슬라이드</span>
+    <span class="m">정렬</span><span class="m">도구</span>
+    <span class="div"></span>
+    <span class="m hwp">한글(HWP)</span>
+    <span class="div"></span>
+    <span class="m">확장</span><span class="m">도움말</span>
+  </div>
+
+  <!-- 툴바 -->
+  <div class="toolbar">
+    <button class="tb" title="실행취소">↺</button><button class="tb" title="다시실행">↻</button>
+    <button class="tb" title="인쇄">🖨</button><button class="tb" title="서식복사">🖌</button>
+    <button class="tb" title="확대">🔍</button>
+    <span class="div" style="width:1px;height:22px;background:var(--line);margin:0 4px"></span>
+    <span class="grp gs"><span class="lab">글꼴</span>
+      <button class="tbtn" title="글꼴">Pretendard ▾</button><button class="tbtn" title="크기">30 ▾</button>
+      <button class="tb" title="굵게"><b>B</b></button><button class="tb" title="기울임"><i>I</i></button>
+      <button class="tb" title="밑줄"><u>U</u></button><button class="tb" title="글자색">A</button>
+    </span>
+    <span class="grp gs"><span class="lab">구글 슬라이드</span>
+      <button class="tb" title="선택">▣</button><button class="tb" title="텍스트">T</button>
+      <button class="tb" title="도형">◇</button><button class="tb" title="선">╱</button>
+      <button class="tb" title="이미지">🖼</button><button class="tb" title="표">▦</button>
+      <button class="tbtn">배경</button><button class="tbtn">레이아웃</button>
+      <button class="tbtn">테마</button><button class="tbtn">전환</button>
+    </span>
+    <span class="grp hwp"><span class="lab">HWP(한글)</span>
+      <button class="tbtn">글자모양</button><button class="tbtn">문단모양</button>
+      <button class="tbtn">표</button><button class="tbtn">글맵시</button>
+      <button class="tbtn">맞춤법</button>
+    </span>
+  </div>
+
+  <!-- 툴바2: 기존 이북/문서 기능 (유지) + 슬라이드쇼가 발표 대체 -->
+  <div class="toolbar toolbar2">
+    <span class="keep2">기존 기능 · 유지</span>
+    <span class="seg"><button class="on">세로 이북</button><button>가로 덱</button></span>
+    <span class="seg"><button class="on">라이트</button><button>다크</button></span>
+    <button class="tbtn imp">📄 HTML 가져오기</button>
+    <button class="tbtn">✨ AI로 정리</button>
+    <button class="tbtn">▶ 예시영상</button>
+    <button class="tbtn">⚙ 환경설정</button>
+    <span class="sp"></span>
+    <span style="font-size:11px;color:var(--muted);margin-right:6px">발표 → 상단 <b style="color:var(--gs)">슬라이드쇼</b>로 대체</span>
+    <button class="tbtn" style="background:#111;color:#fff;border-color:#111">이북 만들기 →</button>
+  </div>
+
+  <!-- 본문 -->
+  <div class="body">
+    <!-- 좌: 슬라이드 썸네일 -->
+    <div class="film">
+      <div class="add">＋ 새 슬라이드</div>
+      <div class="thumb"><span class="no">1</span><div class="mini"><div class="bar"></div><div class="h" style="width:70%"></div><div class="l" style="top:46%;width:80%"></div><div class="l" style="top:54%;width:65%"></div></div></div>
+      <div class="thumb"><span class="no">2</span><div class="mini"><div class="bar"></div><div class="h" style="width:40%"></div><div class="l" style="top:44%;width:85%"></div><div class="l" style="top:52%;width:85%"></div><div class="l" style="top:60%;width:70%"></div></div></div>
+      <div class="thumb on"><span class="no">3</span><div class="mini"><div class="bar"></div><div class="h" style="width:75%"></div><div class="l" style="top:44%;width:80%"></div><div class="c" style="left:8%;width:24%"></div><div class="c" style="left:38%;width:24%"></div><div class="c" style="left:68%;width:24%"></div></div></div>
+      <div class="thumb"><span class="no">4</span><div class="mini"><div class="bar"></div><div class="h" style="width:55%"></div><div class="c" style="left:8%;width:38%;height:30%"></div><div class="c" style="left:54%;width:38%;height:30%"></div></div></div>
+      <div class="thumb"><span class="no">5</span><div class="mini"><div class="bar"></div><div class="h" style="width:65%"></div><div class="l" style="top:44%;width:80%"></div><div class="l" style="top:52%;width:60%"></div></div></div>
+      <div class="thumb"><span class="no">6</span><div class="mini" style="background:var(--navy)"><div class="bar" style="background:#7db4ff"></div><div class="h" style="width:70%;background:#33507a"></div></div></div>
+    </div>
+
+    <!-- 중앙: 캔버스 -->
+    <div class="stage">
+      <div class="slide">
+        <div class="s-meta"><span>UNIEVER CO., LTD.</span><span class="r">AX TRANSFORMATION · 2026</span></div>
+        <span class="s-badge">eBook</span>
+        <div class="s-mark">09-1 · 범용 이북</div>
+        <!-- 선택된 제목 텍스트박스(편집 가능 표현) -->
+        <div style="position:relative;display:inline-block;margin-top:6px">
+          <div class="s-h">HTML을 PDF <em>이북으로</em> 쉽게 전환</div>
+          <div class="sel" style="inset:-6px -10px"><span class="hd tl"></span><span class="hd tr"></span><span class="hd bl"></span><span class="hd br"></span></div>
+        </div>
+        <div class="s-sub">html을 이북용 pdf로 전환됩니다.</div>
+        <div class="s-cards"><span class="cc">HTML</span><span class="cc">전환</span></div>
+        <div class="canvas-hint">세로 3:4 · 클릭해 텍스트 편집 · 드래그로 이동</div>
+      </div>
+    </div>
+
+    <!-- 우: 속성 패널 + 아이콘 열 -->
+    <div class="right">
+      <div class="panel">
+        <h4>선택 · 텍스트 <span class="tag gs">구글</span></h4>
+        <div class="sel-line"><select><option>Pretendard</option><option>맑은 고딕</option><option>본고딕</option></select><input value="30" style="width:44px"></div>
+        <div class="sel-line"><b>B</b> <i>I</i> <u>U</u> <span>S</span> · <span>↺ 색</span></div>
+
+        <h4>글자모양 · 문단모양 <span class="tag hwp">HWP</span></h4>
+        <div class="sel-line"><span>자간</span><input value="-2" style="width:44px"><span>장평</span><input value="100" style="width:44px"></div>
+        <div class="sel-line"><span>줄간격</span><input value="160%" style="width:56px"><span>정렬 ▤ ▥ ▦ 양쪽</span></div>
+        <div class="row"><span class="pill hwp">글머리표</span><span class="pill hwp">개요 수준</span><span class="pill hwp">각주</span></div>
+
+        <h4>레이아웃 · 테마 <span class="tag gs">구글</span></h4>
+        <div class="row"><span class="pill gs">표지</span><span class="pill gs">본문</span><span class="pill gs">카드 3</span></div>
+        <div class="row"><span class="pill gs">라이트</span><span class="pill gs">다크</span></div>
+
+        <h4>글맵시 · 표 · 도형 <span class="tag hwp">HWP</span></h4>
+        <div class="row"><span class="pill hwp">글맵시</span><span class="pill gs">표 삽입</span><span class="pill gs">도형</span></div>
+
+        <h4>채우기 · 색</h4>
+        <div class="swrow"><span class="sw" style="background:#2a78d6"></span><span class="sw" style="background:#0e1c30"></span><span class="sw" style="background:#128a62"></span><span class="sw" style="background:#c5501f"></span><span class="sw" style="background:#4a3aa7"></span><span class="sw" style="background:#fff"></span></div>
+      </div>
+      <div class="iconcol">
+        <div class="ic on"><span class="g">▤</span>슬라이드</div>
+        <div class="ic"><span class="g">▦</span>레이아웃</div>
+        <div class="ic"><span class="g">🎨</span>테마</div>
+        <div class="ic"><span class="g">✨</span>전환</div>
+        <div class="ic"><span class="g">🖼</span>이미지</div>
+        <div class="ic"><span class="g">🅰</span>글맵시</div>
+        <div class="ic"><span class="g">🔤</span>맞춤법</div>
+        <div class="ic"><span class="g">⤓</span>변환</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 도구 독 (기존 유지) -->
+  <div class="dock">
+    <span class="keepbadge">기존 하단 도구 · 유지</span>
+    <button class="dk play" title="재생/미리보기">▶</button>
+    <button class="dk" title="사각형">▭</button><button class="dk" title="원">◯</button>
+    <button class="dk" title="마름모">◇</button><button class="dk" title="삼각형">△</button>
+    <button class="dk" title="텍스트">T</button><button class="dk" title="표">▦</button>
+    <button class="dk" title="별">★</button><button class="dk" title="화살표">→</button>
+    <button class="dk" title="펜">✎</button>
+    <span class="dksw" style="background:#111"></span><span class="dksw" style="background:#2a78d6"></span>
+    <span class="dksw" style="background:#f0c419"></span><span class="dksw" style="background:#e05a4a"></span>
+    <span class="dksw" style="background:#57b894"></span>
+    <button class="dk" title="맨 앞으로">⤒</button><button class="dk" title="맨 뒤로">⤓</button>
+    <button class="dk ai" title="AI 초안">✦ AI 초안</button>
+    <span class="sp"></span>
+    <span class="hint">도구를 고르고 캔버스를 클릭/드래그 · 자유 캔버스(주석·도형) 유지</span>
+  </div>
+</div>
+
+<!-- 범례 -->
+<div class="legend">
+  <b>기능 색 구분 (목업)</b>
+  <div class="li"><span class="dot" style="background:var(--gs)"></span>구글 슬라이드 기능(레이아웃·테마·전환·도형·표)</div>
+  <div class="li"><span class="dot" style="background:var(--hwp)"></span>HWP(한글) 기능(글자·문단모양·글맵시·각주·맞춤법)</div>
+  <div class="li"><span class="dot" style="background:var(--keep)"></span>기존 하단 도구 유지(자유 캔버스·펜·도형)</div>
+</div>
+
+</body>
+</html>

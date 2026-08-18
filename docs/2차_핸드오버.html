@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ebook_html 2차 핸드오버</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--purple:#7a3ff2;--red:#c23b48;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.65;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:48px 24px 120px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:29px;margin:10px 0 10px;letter-spacing:-.02em}
+  .lede{font-size:16px;color:var(--muted);max-width:820px}
+  .pass{display:inline-block;background:#e6f5ee;color:var(--green);font-weight:800;border-radius:999px;padding:6px 16px;font-size:15px;margin-top:12px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 28px;margin:18px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:20px;margin:0 0 4px}h2 .n{display:inline-flex;width:27px;height:27px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:10px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 16px}
+  h3{font-size:15.5px;margin:20px 0 7px}
+  p{margin:9px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700;background:#fafbfd}
+  td.mono{font-family:var(--mono);font-size:11.5px}
+  .ok{color:var(--green);font-weight:800}
+  .flow{font-family:var(--mono);font-size:12px;background:#12141b;color:#e8ebf2;border-radius:10px;padding:16px 18px;line-height:1.7;overflow:auto;white-space:pre}
+  pre{background:#12141b;color:#e8ebf2;border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.5;overflow:auto}
+  .note{background:#fff7ec;border:1px solid #f0dcae;border-radius:11px;padding:13px 16px;font-size:13.5px;margin:12px 0}
+  .pill{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px}
+  .p-new{background:#efe7fb;color:var(--purple)}.p-mod{background:#e6f0ff;color:var(--blue)}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:36px}
+  @media print{body{background:#fff}section{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">ebook_html · 2차 핸드오버 · 2026-07-28</div>
+<h1>2차 개발 마무리 — 토글·예시영상·Agentic-PM 이식</h1>
+<p class="lede">1차(카드 빌더·자유 캔버스·발표·단축키) 위에, 오늘 회의 결정을 반영한 2차를 완료했습니다 — 노션식 <b>블록·토글</b> + 발표 서식, 상단 <b>예시영상</b>(인앱 가이드), <b>Agentic-PM 환경설정·채팅</b> 이식(대화형 + 시범 액션), 그리고 <b>BMC 9블록 제거</b>. <code>uniever_ebook</code>은 계속 무수정입니다.</p>
+<div class="pass">✓ 자동 스모크 35 / 35 PASS · <code>npm run e2e</code></div>
+
+<section>
+  <h2><span class="n">0</span>마일스톤 (2차)</h2>
+  <table>
+    <thead><tr><th style="width:14%">단계</th><th style="width:30%">내용</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td><b>P0</b> 스택 정합</td><td>lucide-react·react-markdown 도입, 백엔드 확장(설정/챗 라우터·SQLite·.env), 가벼운 CSS 이식</td><td class="ok">완료</td></tr>
+      <tr><td><b>P1</b> 환경설정</td><td>SettingsPage + LlmSettingsCard + <code>/api/settings/llm</code>(조회·저장·연결테스트) + App_Settings(SQLite)</td><td class="ok">완료</td></tr>
+      <tr><td><b>P2</b> 채팅 코어(대화형)</td><td>ChatPanel + 챗 엔진(중립화) + LLM 연동 + SSE 스트리밍 + DOCX 내보내기</td><td class="ok">완료</td></tr>
+      <tr><td><b>P3</b> 토글 + 발표 서식</td><td>블록 에디터(<code>/</code> 슬래시·<code>&gt;</code> 토글·볼드·가운데정렬)·배경설정·아웃라인→페이지</td><td class="ok">완료</td></tr>
+      <tr><td><b>P4</b> 예시영상</td><td>상단 ▶예시영상 → 인앱 가이드 자동 재생(작업물 스냅샷·복원)</td><td class="ok">완료</td></tr>
+      <tr><td><b>P5</b> 챗 액션 브리지</td><td>ui_action 레지스트리 → 카드 추가·방향 전환·이북 만들기(확인)</td><td class="ok">완료</td></tr>
+      <tr><td><b>P6</b> 검증·핸드오버</td><td>스모크 35/35 확장, 본 문서</td><td class="ok">완료</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">1</span>새 기능 사용법</h2>
+  <h3>노션식 블록·토글 (빈 페이지)</h3>
+  <p>왼쪽 <b>틀 구조 → 빈 페이지(블록·토글)</b> 추가. 오른쪽 에디터에서 <code>/</code>로 블록 메뉴(제목·소제목·본문·목록·토글·구분선), <code>&gt;</code>+스페이스로 <b>접히는 제목 토글</b>. 블록 선택 후 <b>B</b>(굵게, ⌘/Ctrl+B)·<b>⇔</b>(가운데 정렬), 상단 스와치로 <b>배경색</b>. 보이는 그대로 이북·발표에 담깁니다.</p>
+  <h3>예시영상 (인앱 가이드)</h3>
+  <p>상단 <b>▶ 예시영상</b> → 앱이 실제 컴포넌트로 이북을 단계별로 만들어 보여줍니다(자막·진행점·일시정지). 시작 시 현재 작업을 저장하고 <b>닫으면 그대로 복원</b>됩니다.</p>
+  <h3>환경설정 (LLM)</h3>
+  <p>상단 <b>⚙ 환경설정</b> → provider(self/openai/anthropic/custom)·Base URL·User ID·API Key·모델·Timeout 저장 + 연결 테스트. API Key는 서버(App_Settings)에만 저장하고 브라우저엔 저장하지 않습니다.</p>
+  <h3>채팅 (이북 도우미)</h3>
+  <p>우하단 <b>💬 이북 도우미</b> → 대화. LLM이 설정돼 있으면 실제 호출, 없으면 친절한 안내로 답합니다. 아래 <b>시범 액션</b>도 실행합니다.</p>
+  <table>
+    <thead><tr><th style="width:38%">말하면</th><th>동작</th></tr></thead>
+    <tbody>
+      <tr><td>"성과 카드 넣어줘", "표지 추가해줘"</td><td>해당 카드를 실제로 추가(자동 적용)</td></tr>
+      <tr><td>"가로로 바꿔줘" / "세로로"</td><td>방향 전환(자동 적용)</td></tr>
+      <tr><td>"이북 만들어줘"</td><td>확인/취소 → 확인 시 실제 빌드</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">2</span>아키텍처 (2차 후)</h2>
+  <div class="flow">[ 브라우저 ]  ebook_html 프론트 (React + zustand)
+   ├─ 카드 빌더 · 자유 캔버스 · 발표 · 단축키            (1차)
+   ├─ 블록/토글 에디터 + 발표 서식(배경·볼드·정렬)       (P3)
+   ├─ 예시영상(인앱 가이드) 오버레이                    (P4)
+   ├─ 환경설정 화면(LLM)  · 채팅 패널(SSE·DOCX)          (P1·P2)
+   └─ 챗 액션 브리지 (ui_action → zustand)              (P5)
+          │
+          ▼
+[ 로컬 서버 ]  ebook_html FastAPI (확장)
+   ├─ /api/build ─────────► uniever_ebook/ebook-generator/generator.py  (무수정)
+   ├─ /api/settings/llm(+/test) ─► App_Settings(SQLite) · .env 폴백
+   ├─ /api/chat/v2 · /v2/stream ─► chat_engine(중립화) ─► (설정된 LLM 또는 폴백)
+   └─ /api/export/docx ─► python-docx</div>
+  <div class="note"><b>이식 원칙.</b> Agentic-PM은 <b>원본 무수정</b>, 필요한 부분만 ebook_html로 복제·이식했습니다. 환경설정은 <code>App_Settings(llm.*)</code> 로직을 그대로 옮겼고(<code>server/settings_store.py</code>), 채팅은 <b>재사용 코어</b>(대화·세션·SSE·LLM 호출)만 이식하고 <b>PM 도메인 계층(recipes·navigation·PM ui_action)은 중립화</b>했습니다. 그 자리에 ebook 전용 액션(카드·방향·빌드)을 얹었습니다.</div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>실행법</h2>
+  <p>Finder에서 <code>run.command</code> 더블클릭 하나로 끝납니다. 최초 실행 시 프론트 의존성(<code>lucide-react</code>, <code>react-markdown</code> 등)과 백엔드 의존성(<code>fastapi</code>, <code>uvicorn</code>, <code>pillow</code>, <code>python-docx</code>)을 자동 설치한 뒤 빌드·기동하고 브라우저를 엽니다.</p>
+  <pre>./run.command          # 원클릭 (권장)
+npm run e2e            # 자동 검증 35/35 (Mac에선 npx playwright install chromium 후)</pre>
+</section>
+
+<section>
+  <h2><span class="n">4</span>파일 맵 (2차 신규·변경)</h2>
+  <table>
+    <thead><tr><th style="width:40%">경로</th><th style="width:14%">구분</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">server/settings_store.py</td><td><span class="pill p-new">신규</span></td><td>App_Settings(llm.*) 로드/저장(이식)</td></tr>
+      <tr><td class="mono">server/chat.py</td><td><span class="pill p-new">신규</span></td><td>채팅 코어(중립화) + 액션 인텐트 + SSE</td></tr>
+      <tr><td class="mono">server/app.py</td><td><span class="pill p-mod">변경</span></td><td>설정·챗·DOCX 엔드포인트 추가</td></tr>
+      <tr><td class="mono">src/settings/{SettingsPage,LlmSettingsCard,api}.*</td><td><span class="pill p-new">신규</span></td><td>환경설정 화면(이식)</td></tr>
+      <tr><td class="mono">src/chat/{ChatPanel,MarkdownView,config,actions}.*</td><td><span class="pill p-new">신규</span></td><td>채팅 패널·마크다운·액션 레지스트리</td></tr>
+      <tr><td class="mono">src/builder/BlockEditor.tsx</td><td><span class="pill p-new">신규</span></td><td>노션식 블록·토글 에디터</td></tr>
+      <tr><td class="mono">src/builder/DemoPlayer.tsx</td><td><span class="pill p-new">신규</span></td><td>예시영상 인앱 가이드 재생</td></tr>
+      <tr><td class="mono">src/cards/{registry,PageView}.tsx</td><td><span class="pill p-mod">변경</span></td><td>note 카드 + 블록 렌더·배경, BMC 제거</td></tr>
+      <tr><td class="mono">src/state/store.ts</td><td><span class="pill p-mod">변경</span></td><td>Block 타입·blocks/bg·setBlocks/setPageBg</td></tr>
+      <tr><td class="mono">src/builder/{Layout,TopBar,Editor,Palette}.tsx · App.tsx</td><td><span class="pill p-mod">변경</span></td><td>버튼·오버레이 배선, 시드·팔레트 정리</td></tr>
+      <tr><td class="mono">e2e/{smoke,server_test}.mjs</td><td><span class="pill p-mod">변경</span></td><td>2차 기능 스모크 35/35</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">5</span>변경·결정 로그</h2>
+  <table>
+    <thead><tr><th style="width:34%">결정</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><b>BMC 9블록 제거</b></td><td>회의 요청. 팔레트에서 제거하고 시드·예시영상·챗 인식의 참조도 정리.</td></tr>
+      <tr><td><b>챗 범위 = 대화형 + 시범 액션</b></td><td>2차엔 "안녕?" 대화 + 안전 액션(카드·방향·빌드확인). 파괴적 액션은 확인 절차.</td></tr>
+      <tr><td><b>예시영상 = 인앱 가이드</b></td><td>영상 파일 없이 컴포넌트로 실시연. 유지보수는 스크립트만 수정.</td></tr>
+      <tr><td><b>가벼운 CSS 이식</b></td><td>Tailwind 전면 도입 대신 필요한 클래스만 ebook_html 토큰으로 재작성.</td></tr>
+      <tr><td><b>로컬 단일 사용자</b></td><td>Agentic-PM의 토큰 인증은 제외. api_key는 서버에만 저장.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">6</span>남은 것 · 백로그</h2>
+  <ul>
+    <li><b>챗 액션 확장</b> — 내용 채우기·발표 진입·페이지 삭제 등. <code>server/chat.py</code>의 <code>detect_action</code>과 <code>src/chat/actions.ts</code>에 항목만 추가.</li>
+    <li><b>최상위 토글 = 슬라이드 자동 분할</b> — 현재 토글은 한 페이지 안에서 펼쳐 렌더. "토글을 페이지로 나누기" 액션은 후속.</li>
+    <li><b>인라인 서식</b> — 굵게·정렬은 현재 블록 단위. 단어 단위는 후속.</li>
+    <li><b>실제 LLM 연결</b> — 환경설정에 사내/외부 LLM 등록 시 대화 품질↑(폴백은 규칙 기반).</li>
+    <li><b>대량 페이지 export 성능</b> — 1차부터의 순차 렌더 이슈(진행표시/병렬은 후속).</li>
+  </ul>
+  <div class="note"><b>불변 원칙.</b> <code>uniever_ebook</code> 무수정 · <code>Agentic-PM</code> 원본 무수정(복제 이식). 배포는 컨테이너 빌드·검증 후 <code>_deploy/</code>를 거쳐 소스만 갱신 — 최종 <code>git commit</code>은 Mac에서 직접 권장.</div>
+</section>
+
+<div class="foot">ebook_html 2차 핸드오버 · P0–P6 완료 · 자동검증 35/35 PASS · uniever_ebook 무수정</div>
+</div>
+</body>
+</html>

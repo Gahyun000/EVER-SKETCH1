@@ -1,0 +1,115 @@
+// 덱 IR → 편집 가능한 페이지(자유 요소). "구글 슬라이드처럼 덱 그대로 + 수정 가능".
+// deck_builder(7.5×10 inch) 레이아웃을 ebook_html 세로 캔버스 좌표로 재현한다.
+// 팔레트는 deck_builder.js(EVER-PEAK)와 동기화 — 미리보기 덱과 편집 캔버스가 같은 룩이 되도록.
+import type { Page, FreeEl, Orientation } from '../state/store'
+import { pageSize } from '../cards/sizing'
+
+interface Card { type?: string; kick?: string; title?: string; desc?: string; num?: string; dot?: string; badge?: string; id?: string; role?: string; icon?: string; value?: string; label?: string; color?: string }
+interface DeckPage { type: string; markN?: string; markEn?: string; heading?: string; headingSize?: number; sub?: string; eyebrow?: string; cols?: string; cards?: Card[]; small?: boolean; note?: string; cardsY?: number; cardsH?: number; eyebrowY?: number; titleH?: number; subH?: number; title?: string; items?: string[][]; lines?: { text: string }[] }
+interface DeckIR { meta: { title?: string; footerLeft?: string; theme?: string; brandTop?: string; brandTopRight?: string; wordmark?: { a: string; b: string; sub: string } }; pages: DeckPage[] }
+
+// 본문 팔레트 (EVER-PEAK 라이트/다크) — deck_builder.js 와 동일 값.
+const LIGHT = { pageBg: '', ink: '#0F1B3D', ink2: '#1C2433', muted: '#8A92A3', blue: '#2462EB', blueD: '#1B4FC4', violet: '#5B4BD6', aqua: '#3E9E6E', orange: '#D98A2A', cardBg: '#F6F8FC', badgeBg: '#EAF1FE' }
+const DARK = { pageBg: '#0b1626', ink: '#ffffff', ink2: '#e7edf6', muted: '#9fb0c7', blue: '#4d86ff', blueD: '#6e9bff', violet: '#a796ff', aqua: '#4fc08d', orange: '#e9a05c', cardBg: '#141f30', badgeBg: '#182740' }
+// 표지 팔레트 (네이비 배경) — 라이트/다크 모두 표지는 네이비. deck_builder.js 의 cover 서브팔레트와 동일.
+const COVER_L = { pageBg: '#0F1B3D', ink: '#ffffff', ink2: '#BAC4DC', muted: '#8B97BC', blue: '#6EA0FF', blueD: '#6EA0FF', violet: '#6EA0FF', aqua: '#57C9A0', orange: '#F0A968', cardBg: '#18264A', badgeBg: '#18264A' }
+const COVER_D = { pageBg: '#0b1626', ink: '#ffffff', ink2: '#9FB0C7', muted: '#68798F', blue: '#4d86ff', blueD: '#6e9bff', violet: '#a796ff', aqua: '#4fc08d', orange: '#e9a05c', cardBg: '#141f30', badgeBg: '#141f30' }
+const DOT = (t: typeof LIGHT, k?: string) => k === 'aqua' ? t.aqua : k === 'orange' ? t.orange : t.blue
+
+export function deckIrToPages(ir: DeckIR, orientation: Orientation = 'portrait'): Page[] {
+  const { W, H } = pageSize(orientation)
+  const Sx = W / 7.5, Sy = H / 10
+  const dark = ir.meta?.theme === 'dark'
+  const BASE = dark ? DARK : LIGHT
+  const MX = 0.62, CW = 6.26
+  const total = ir.pages.length
+  let eid = 1
+  const fs = (pt: number) => Math.max(7, Math.round(pt * 0.8))
+
+  const pages: Page[] = ir.pages.map((pg, idx) => {
+    const els: FreeEl[] = []
+    // 표지는 네이비 서브팔레트, 나머지는 본문 팔레트 — deck_builder.js 와 동일한 분기.
+    const isCover = pg.type === 'cover'
+    const T = isCover ? (dark ? COVER_D : COVER_L) : BASE
+    const txt = (xi: number, yi: number, wi: number, hi: number, text: string, pt: number, o: { bold?: boolean; color?: string } = {}) =>
+      els.push({ id: eid++, type: 'text', x: xi * Sx, y: yi * Sy, w: wi * Sx, h: hi * Sy, text: (text || '').replace(/\n/g, ' '), color: 'transparent', fs: fs(pt), bold: !!o.bold, tcolor: o.color || T.ink })
+    const box = (xi: number, yi: number, wi: number, hi: number, color: string) =>
+      els.push({ id: eid++, type: 'round', x: xi * Sx, y: yi * Sy, w: wi * Sx, h: hi * Sy, text: '', color, fs: 12 })
+
+    // 공통: 상단 메타 + 하단 꼬리
+    txt(MX, 0.42, CW * 0.55, 0.3, ir.meta?.brandTop || 'UNIEVER CO., LTD.', 9, { color: T.muted })
+    txt(MX + CW * 0.4, 0.42, CW * 0.6, 0.3, ir.meta?.brandTopRight || 'AX TRANSFORMATION · 2026', 9, { bold: true, color: T.blue })
+    txt(MX, 9.42, CW * 0.6, 0.3, ir.meta?.footerLeft || '', 9, { color: T.muted })
+    txt(MX + CW * 0.4, 9.42, CW * 0.6, 0.3, ('0' + (idx + 1)).slice(-2) + ' / ' + total, 9, { color: T.muted })
+
+    const drawCards = (cards: Card[], colN: number, cy: number, ch0: number, small: boolean) => {
+      const gap = 0.16, n = cards.length, rows = Math.ceil(n / colN)
+      const cw = (CW - gap * (colN - 1)) / colN
+      const chh = (ch0 - gap * (rows - 1)) / rows
+      cards.forEach((c, i) => {
+        const r = Math.floor(i / colN), cc = i % colN
+        const x = MX + cc * (cw + gap), y = cy + r * (chh + gap)
+        box(x, y, cw, chh, T.cardBg)
+        const ix = x + 0.2, iw = cw - 0.4
+        let ty = y + 0.2
+        if (c.type === 'stat') { txt(ix, y + 0.35, iw, 0.8, c.value || '', 26, { bold: true, color: (c.color === 'aqua' ? T.aqua : T.blue) }); txt(ix, y + 1.15, iw, chh - 1.15, c.label || '', 11, { color: T.ink2 }); return }
+        if (c.type === 'chip') { txt(ix, y + chh / 2 - 0.2, 0.55, 0.4, c.id || '', 12, { bold: true, color: T.violet }); txt(ix + 0.55, y + 0.12, iw - 0.55, chh - 0.24, (c.title || '') + (c.role ? '\n' + c.role : ''), 11, { color: T.ink }); return }
+        if (c.type === 'badge' && c.badge) { box(ix, ty, 0.5, 0.5, T.badgeBg); txt(ix, ty, 0.5, 0.5, c.badge, 14, { bold: true, color: T.blueD }); txt(ix + 0.62, ty, iw - 0.62, 0.5, c.title || '', small ? 13 : 15, { bold: true, color: T.ink }); txt(ix, ty + 0.72, iw, chh - 0.92, c.desc || '', small ? 9.4 : 10.5, { color: T.ink2 }); return }
+        if (c.type === 'icon' && c.icon) { txt(ix, ty, 0.55, 0.5, c.icon, 16, { bold: true, color: T.blue }); txt(ix + 0.62, ty, iw - 0.62, 0.5, c.title || '', small ? 13 : 15, { bold: true, color: T.ink }); txt(ix, ty + 0.72, iw, chh - 0.92, c.desc || '', small ? 9.4 : 10.5, { color: T.ink2 }); return }
+        if (c.type === 'dot') { box(ix, ty + 0.02, 0.15, 0.15, DOT(T, c.dot)); ty += 0.32 }
+        else if (c.type === 'num' && c.num) { txt(ix, ty, iw, 0.34, c.num, 15, { bold: true, color: T.blue }); ty += 0.42 }
+        else if (c.kick) { txt(ix, ty, iw, 0.3, c.kick, 9, { bold: true, color: T.blue }); ty += 0.32 }
+        if (c.title) { txt(ix, ty, iw, 0.42, c.title, small ? 13 : 15, { bold: true, color: T.ink }); ty += small ? 0.34 : 0.44 }
+        if (c.desc) txt(ix, ty, iw, chh - (ty - y) - 0.1, c.desc, small ? 9.4 : 10.6, { color: T.ink2 })
+      })
+    }
+
+    if (pg.type === 'cover') {
+      const wm = ir.meta?.wordmark || { a: 'UNIEVER', b: 'AX', sub: 'AI TRANSFORMATION PROGRAM' }
+      box(MX, 1.08, 0.34, 0.34, '#d63a2a')
+      txt(MX + 0.46, 1.02, CW, 0.5, wm.a + ' ' + wm.b, 24, { bold: true, color: T.ink })
+      txt(MX + 0.46, 1.5, CW, 0.24, wm.sub, 8, { color: T.muted })
+      txt(MX, 2.2, CW, 1.6, pg.heading || '', pg.headingSize || 40, { bold: true, color: T.ink })
+      if (pg.sub) txt(MX, 4.1, CW * 0.86, 1.0, pg.sub, 13, { color: T.ink2 })
+      if (pg.eyebrow) txt(MX, 6.35, CW, 0.3, pg.eyebrow, 9, { color: T.muted })
+      drawCards(pg.cards || [], 3, 6.75, 2.35, false)
+    } else if (pg.type === 'toc') {
+      txt(MX, 1.05, CW, 0.3, pg.markEn || 'CONTENTS', 11, { bold: true, color: T.blue })
+      txt(MX, 1.5, CW, 0.9, pg.title || '목차', 34, { bold: true, color: T.ink })
+      if (pg.sub) txt(MX, 2.5, CW, 0.5, pg.sub, 12, { color: T.ink2 })
+      let y = 3.05; const rh = Math.min(0.66, (8.9 - 3.05) / Math.max(1, (pg.items || []).length))
+      ;(pg.items || []).forEach((r) => {
+        txt(MX, y, 0.6, rh, r[0], 13, { bold: true, color: T.blue })
+        txt(MX + 0.65, y, 2.8, rh, r[1] || '', 13, { bold: true, color: T.ink })
+        txt(MX + 3.5, y, CW - 4.1, rh, r[2] || '', 10, { color: T.muted })
+        txt(MX + CW - 0.6, y, 0.6, rh, r[3] || '', 10, { color: T.muted })
+        y += rh
+      })
+    } else if (pg.type === 'quote') {
+      txt(MX, 1.05, CW, 0.3, pg.markEn || 'PRINCIPLE', 11, { bold: true, color: T.blue })
+      box(MX, 2.6, CW, 4.6, T.cardBg)
+      txt(MX + 0.5, 3.4, CW - 1.0, 1.8, (pg.lines || []).map((l) => l.text).join(' '), 26, { bold: true, color: T.ink })
+      if (pg.sub) txt(MX + 0.5, 5.4, CW - 1.2, 1.3, pg.sub, 13, { color: T.ink2 })
+    } else if (pg.type === 'stats') {
+      if (pg.markN || pg.markEn) txt(MX, 1.05, CW, 0.3, ((pg.markN || '') + '   ' + (pg.markEn || '')).trim(), 11, { bold: true, color: T.blue })
+      txt(MX, 1.5, CW, 1.0, pg.heading || '', 27, { bold: true, color: T.ink })
+      if (pg.sub) txt(MX, 2.7, CW * 0.9, 0.9, pg.sub, 13, { color: T.ink2 })
+      if (pg.eyebrow) txt(MX, 6.0, CW, 0.3, pg.eyebrow, 9, { color: T.muted })
+      drawCards((pg.cards || []).map((c) => ({ ...c, type: 'stat' })), Math.max(1, (pg.cards || []).length), 6.4, 2.35, false)
+    } else { // section (기본)
+      if (pg.markN || pg.markEn) txt(MX, 1.05, CW, 0.3, ((pg.markN || '') + '   ' + (pg.markEn || '')).trim(), 11, { bold: true, color: T.blue })
+      const th = pg.titleH || 1.0
+      txt(MX, 1.47, CW, th, pg.heading || '', 27, { bold: true, color: T.ink })
+      if (pg.sub) txt(MX, 1.47 + th + 0.1, CW * 0.9, pg.subH || 1.0, pg.sub, 13, { color: T.ink2 })
+      const cy = pg.cardsY || 6.35, ch0 = pg.cardsH || 2.35
+      if (pg.eyebrow) txt(MX, pg.eyebrowY || (cy - 0.4), CW, 0.3, pg.eyebrow, 9, { color: T.muted })
+      const colN = pg.cols ? Number(pg.cols.replace(/\D/g, '')) || 3 : 3
+      drawCards(pg.cards || [], colN, cy, ch0, !!pg.small)
+      if (pg.note) { box(MX, 8.45, CW, 0.72, T.badgeBg); txt(MX + 0.22, 8.45, CW - 0.44, 0.72, pg.note, 10, { color: T.blueD }) }
+    }
+
+    return { id: 0, cardKey: 'slide', fields: {}, free: true, els, conns: [], strokes: [], blocks: [], bg: isCover ? T.pageBg : (dark ? DARK.pageBg : ''), contd: false }
+  })
+
+  return pages
+}

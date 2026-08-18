@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>스케치 반영 감사 체크리스트 | 유니에버 AI팀</title>
+  <style>
+    :root{font-family:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;color:#17212b;background:#f3f6f9;--navy:#0b1f33;--blue:#1769e0;--green:#16855b;--amber:#a96300;--red:#b42318;--purple:#6938a8;--line:#dbe3eb}
+    *{box-sizing:border-box}body{margin:0;line-height:1.55}.top{padding:52px max(24px,calc((100vw - 1180px)/2));color:#fff;background:linear-gradient(125deg,#0b1f33,#174d75)}.top h1{margin:10px 0;font-size:clamp(31px,5vw,52px);letter-spacing:-.04em}.top p{max-width:850px;margin:0;color:#c9d8e5}.eyebrow{color:#54d4ae;font-weight:800;font-size:12px;letter-spacing:.12em}.rule{margin-top:18px;padding:12px 14px;border:1px solid #ffffff2e;border-radius:9px;background:#ffffff0d;font-size:13px}.dashboard{max-width:1180px;margin:-24px auto 24px;padding:0 24px}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 15px 35px #18324a16}.stat{padding:12px;border-radius:10px;background:#f6f8fb}.stat strong{display:block;font-size:25px}.stat span{color:#687787;font-size:12px}.filters{max-width:1180px;margin:0 auto 14px;padding:0 24px;display:flex;gap:8px;flex-wrap:wrap}.filters button{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}.filters button.active{color:#fff;border-color:var(--blue);background:var(--blue)}main{max-width:1180px;margin:auto;padding:0 24px 70px}.section-card{margin:13px 0;border:1px solid var(--line);border-radius:12px;background:#fff}.section-card summary{display:grid;grid-template-columns:40px 1fr auto;gap:10px;padding:18px 20px;cursor:pointer;color:var(--navy);font-size:19px;font-weight:800}.section-card summary small{color:#6a7886;font-size:12px;font-weight:600}.section-index{color:var(--blue);font-size:12px}.section-body{padding:4px 18px 22px;border-top:1px solid var(--line)}.check-list{margin:0;padding:0;list-style:none}.check-list .check-list{margin-left:32px;padding-left:14px;border-left:2px solid #e7edf3}.check-item{margin:7px 0}.check-row{display:grid;grid-template-columns:22px 48px 1fr;gap:9px;padding:11px;border:1px solid #e5ebf1;border-radius:9px;background:#fff}.audit-check{width:19px;height:19px;margin-top:2px;border:2px solid #a4b1bd;border-radius:5px}.audit-check.checked{position:relative;border-color:var(--green);background:var(--green)}.audit-check.checked:after{content:"";position:absolute;left:4px;top:1px;width:7px;height:11px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(42deg)}.item-number{padding-top:2px;color:#8795a2;font-size:11px}.item-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.item-text{font-weight:700}.badge{flex:none;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800}.status-full .badge{color:var(--green);background:#e8f7f1}.status-partial .badge{color:var(--amber);background:#fff3df}.status-missing .badge{color:var(--red);background:#feeceb}.status-conflict .badge{color:var(--purple);background:#f1eafa}.audit-note{margin:6px 0;color:#526270;font-size:13px}.evidence{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:11px}.evidence strong{color:#71808e}.evidence a{padding:3px 7px;border-radius:5px;color:#155fc8;background:#edf4ff;text-decoration:none}.evidence a:hover{text-decoration:underline}.check-item.hidden{display:none}.section-card.filtered-empty{display:none}footer{padding:25px;text-align:center;color:#6f7d89;background:#fff;border-top:1px solid var(--line);font-size:12px}@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.check-list .check-list{margin-left:12px}.check-row{grid-template-columns:22px 35px 1fr}.item-heading{display:block}.badge{display:inline-block;margin-top:6px}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="eyebrow">UNIEVER AI TEAM · STANDARD AUDIT</div><h1>스케치 반영 감사 체크리스트</h1><p>원본 스케치 96개 요구를 실제 표준문서, 양식, SKILL 및 신규 프로젝트 생성 프롬프트와 대조한 결과입니다.</p><div class="rule"><strong>체크 원칙:</strong> 요구가 실제 파일에 완전하게 존재하고 실행·검증 기준까지 연결된 경우만 체크했습니다. 부분 반영, 미반영, 원문과 현행 표준의 충돌은 체크하지 않았습니다.</div></header>
+  <section class="dashboard"><div class="stats"><div class="stat"><strong>96</strong><span>전체 항목</span></div><div class="stat"><strong>90</strong><span>반영 · 체크</span></div><div class="stat"><strong>2</strong><span>부분 반영</span></div><div class="stat"><strong>0</strong><span>미반영</span></div><div class="stat"><strong>4</strong><span>표준 충돌</span></div></div></section>
+  <nav class="filters" aria-label="감사 결과 필터"><button class="active" data-filter="all">전체</button><button data-filter="full">반영</button><button data-filter="partial">부분 반영</button><button data-filter="missing">미반영</button><button data-filter="conflict">표준 충돌</button></nav>
+  <main><details class="section-card" open>
+        <summary><span class="section-index">01</span><span>개요</span><small>7 / 7 반영</small></summary>
+        <div class="section-body"><ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s1-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">신규 프로젝트 개발시 공통의 지침에 따라 일관성이 있게 개발을 한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">공통 표준의 우선 적용과 프로젝트 간 일관성이 필수 원칙으로 선언되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../README.md" target="_blank" rel="noopener">README - 핵심 원칙·적용 방법</a><a href="../AGENTS.md" target="_blank" rel="noopener">AGENTS - 에이전트 필수 규칙</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s1-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">프로젝트의 진행 절차를 정확하게 따른다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">표준 단계와 승인 게이트를 따라야 하며 생략 시 중단하도록 규정한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s1-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">어떤 프로젝트를 진행 하더라도 일관성을 유지해야한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">공통 표준의 우선 적용과 프로젝트 간 일관성이 필수 원칙으로 선언되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../README.md" target="_blank" rel="noopener">README - 핵심 원칙·적용 방법</a><a href="../AGENTS.md" target="_blank" rel="noopener">AGENTS - 에이전트 필수 규칙</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s1-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">공통의 정해진 규칙을 따라야 한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">공통 표준의 우선 적용과 프로젝트 간 일관성이 필수 원칙으로 선언되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../README.md" target="_blank" rel="noopener">README - 핵심 원칙·적용 방법</a><a href="../AGENTS.md" target="_blank" rel="noopener">AGENTS - 에이전트 필수 규칙</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s1-5">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">5</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">결과물을 미리 html 로 만들어 놓고 진행하고 결과를 바탕으로 개발을 하고 AI 가 자유롭게 결과를 판단하여 생성하지 않도록 한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">개발 전 HTML 프로토타입을 기준선으로 승인하고 AI의 임의 변경을 금지한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s1-6">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">6</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">또한 사전에 요구사항 및 설계서등등을 상세하게 만들어 AI 가 스스로 판단하고 결정하여 결과물을 생성하지 않도록 한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구사항·설계·추적표를 먼저 확정하고 미정 사항은 승인 전 구현하지 않는다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s1-7">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">만약 사전 문서에 부족함을 발견한다면 그 즉시 개발을 중단 하고 문서를 우선 보강 하도록 한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">필수 문서가 없거나 불완전하면 개발을 중단하고 문서 보강부터 수행한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a><a href="../templates/프로젝트착수_체크리스트.md" target="_blank" rel="noopener">프로젝트 착수 체크리스트</a></div>
+          </div>
+        </div>
+        
+      </li></ul></div>
+      </details><details class="section-card" open>
+        <summary><span class="section-index">02</span><span>핵심 철학</span><small>7 / 7 반영</small></summary>
+        <div class="section-body"><ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s2-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">결과물을 AI 에 맡기고 의존 하지 않는다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">AI 산출물은 초안이며 인간 승인 문서와 검증 결과가 정본이 되도록 규정한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../README.md" target="_blank" rel="noopener">README - 핵심 원칙·적용 방법</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a><a href="../standards/04_AI개발표준.md" target="_blank" rel="noopener">UDS-104 - AI 작업·기록·검증</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s2-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">인간의 검증이 완료된 결과물을 미리 문서로 만들고 AI 는 이 문서를 바탕으로 개발을 한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">AI 산출물은 초안이며 인간 승인 문서와 검증 결과가 정본이 되도록 규정한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../README.md" target="_blank" rel="noopener">README - 핵심 원칙·적용 방법</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a><a href="../standards/04_AI개발표준.md" target="_blank" rel="noopener">UDS-104 - AI 작업·기록·검증</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s2-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">코딩 완료 후 자체 테스트를 진행 하는 경우 메모리등 시스템 다운을 최대한 고려한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">테스트 전 자원량을 확인하고 메모리·CPU·GPU 한도와 중단 조건을 둔다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/06_테스트및품질.md" target="_blank" rel="noopener">UDS-106 - 테스트·품질·자원 안전</a><a href="../standards/11_하네스및루프엔지니어링.md" target="_blank" rel="noopener">UDS-111 - 하네스·루프 표준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s2-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">핵심 기술 및 엔진에 해당 하는 작업을 했을 경우 해당 기술문서를 작성한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">핵심 기술·엔진의 설계, 검증, 한계와 운영 정보를 기술문서로 남기게 한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/04_AI개발표준.md" target="_blank" rel="noopener">UDS-104 - AI 작업·기록·검증</a><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s2-5">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">5</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">작업시 공공 개발진행문서에 히스토리를 남긴다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">모든 작업을 공용 개발진행대장에 세션 단위로 기록한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s2-6">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">6</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">착수 시점에서 아래에 나열된 문서들이 없다면 개발을 중단 하고 문서 생성을 권고하여 문서 생성을 최우선을 진행한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">착수 필수 문서가 없으면 구현을 시작할 수 없고 문서 생성이 우선이다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a><a href="../templates/프로젝트착수_체크리스트.md" target="_blank" rel="noopener">프로젝트 착수 체크리스트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s2-7">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">프로젝트 초기 시작 및 작업의 중요도에 따라서 계획을 우선적으로 수립하고 진행을 하고 사용자에게 계획수립을 권장한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">착수 시 범위·위험·계획을 수립하고 중요도와 승인 게이트에 따라 진행한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li></ul></div>
+      </details><details class="section-card" open>
+        <summary><span class="section-index">03</span><span>프로젝트 진행 절차</span><small>20 / 22 반영</small></summary>
+        <div class="section-body"><ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s3-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">고객 미팅을 통한 회의록 작성</span><span class="badge">반영</span></div>
+            <p class="audit-note">고객 미팅 결과를 표준 회의록으로 작성하는 단계가 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../templates/start_docs/02_회의록_템플릿.md" target="_blank" rel="noopener">회의록 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">관련 문서 및 자료 분석</span><span class="badge">반영</span></div>
+            <p class="audit-note">관련 자료 수집·분석과 출처 기록이 착수 절차에 포함된다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">사업단이 작성한 문서를 고객사에 리뷰 및 컨펌 진행</span><span class="badge">반영</span></div>
+            <p class="audit-note">초기 분석 산출물을 고객에게 검토·승인받는 게이트가 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">여러차례의 걸처 작성한 회의록과 정리한 문서를 바탕으로 요구사항 정의서 작성</span><span class="badge">반영</span></div>
+            <p class="audit-note">회의·분석 결과를 요구사항 정의서로 통합하고 고객 승인을 받는다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../templates/start_docs/03_요구사항정의서_템플릿.md" target="_blank" rel="noopener">요구사항 정의서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-5">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">5</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">요구사항 정의서 고객사 컨펌</span><span class="badge">반영</span></div>
+            <p class="audit-note">회의·분석 결과를 요구사항 정의서로 통합하고 고객 승인을 받는다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../templates/start_docs/03_요구사항정의서_템플릿.md" target="_blank" rel="noopener">요구사항 정의서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-6">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">6</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">프로세스 흐름도 작성</span><span class="badge">반영</span></div>
+            <p class="audit-note">프로세스 정의서 약식 양식이 단계, 역할, 흐름도, 규칙, 예외와 추적성을 정의한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../templates/start_docs/08_프로세스정의서_템플릿.md" target="_blank" rel="noopener">프로세스 정의서 표준양식</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-7">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">화면 설계서 작성</span><span class="badge">반영</span></div>
+            <p class="audit-note">화면 설계서 작성·검토·승인 단계와 표준양식이 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-8">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">8</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">DB 설계서 작성</span><span class="badge">반영</span></div>
+            <p class="audit-note">DB 설계서 작성·검토·승인 단계와 표준양식이 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../templates/start_docs/05_DB설계서_템플릿.md" target="_blank" rel="noopener">DB 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-9">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">설계서 고객사 컨펌</span><span class="badge">반영</span></div>
+            <p class="audit-note">설계 산출물은 G2에서 고객·기술책임자 승인 대상이다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-10">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">10</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">개발 착수</span><span class="badge">반영</span></div>
+            <p class="audit-note">G2 승인 뒤에만 개발 착수가 가능하다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-conflict" data-status="conflict" data-item-id="s3-11">
+        <div class="check-row">
+          <span class="audit-check " aria-label="미완료"></span>
+          <span class="item-number">11</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">개발 서버 혹은 운영 서버 배포</span><span class="badge">표준 충돌</span></div>
+            <p class="audit-note">현재 표준은 개발 직후 운영 배포를 허용하지 않고 테스트·품질 승인 뒤 배포하도록 순서를 변경했다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/08_배포및운영.md" target="_blank" rel="noopener">UDS-108 - 배포·운영·인수</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-12">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">12</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">검토(설계서 대비 결과)</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구사항 추적표와 승인 설계 대비 구현 결과를 검토한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-13">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">13</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">결과물 고객사 리뷰</span><span class="badge">반영</span></div>
+            <p class="audit-note">구현·보완 결과의 고객 리뷰 단계가 명시되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-14">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">14</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">수정 및 보완</span><span class="badge">반영</span></div>
+            <p class="audit-note">리뷰 결과는 변경 요청으로 기록하고 수정·보완 후 재검증한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-15">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">15</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">개발자 테스트</span><span class="badge">반영</span></div>
+            <p class="audit-note">개발자 단위·계약 테스트와 결과 기록이 필수다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/06_테스트및품질.md" target="_blank" rel="noopener">UDS-106 - 테스트·품질·자원 안전</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-partial" data-status="partial" data-item-id="s3-16">
+        <div class="check-row">
+          <span class="audit-check " aria-label="미완료"></span>
+          <span class="item-number">16</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">검토(고객 추가 요구사항 대비 결과) 및 PM 단위 테스트</span><span class="badge">부분 반영</span></div>
+            <p class="audit-note">고객 추가 요구사항 검토와 업무 검증은 있으나 'PM 단위 테스트'라는 독립 역할·단계가 명시되지 않았다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/06_테스트및품질.md" target="_blank" rel="noopener">UDS-106 - 테스트·품질·자원 안전</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-17">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">17</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">고객사 리뷰</span><span class="badge">반영</span></div>
+            <p class="audit-note">구현·보완 결과의 고객 리뷰 단계가 명시되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-18">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">18</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">통합 테스트</span><span class="badge">반영</span></div>
+            <p class="audit-note">통합 테스트가 품질 게이트의 필수 단계다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/06_테스트및품질.md" target="_blank" rel="noopener">UDS-106 - 테스트·품질·자원 안전</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-19">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">19</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">고객사 리뷰 및 컨펌</span><span class="badge">반영</span></div>
+            <p class="audit-note">최종 고객 검토·승인과 완료 승인 게이트가 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-20">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">20</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">최종 개발 완료 컨펌</span><span class="badge">반영</span></div>
+            <p class="audit-note">최종 고객 검토·승인과 완료 승인 게이트가 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/01_개발거버넌스.md" target="_blank" rel="noopener">UDS-101 - 단계 게이트·중단 기준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-21">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">21</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">산출결과물 작성(요구사항 정의서, 프로세스 흐름도, 화면 설계서, DB 설계서, 사용자 메뉴얼, 개발자 메뉴얼, 운영 배포 메뉴얼)</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 설계·매뉴얼 산출물의 생성 및 인수 기준이 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a><a href="../templates/end_docs/01_사용자매뉴얼_템플릿.md" target="_blank" rel="noopener">사용자 매뉴얼 표준양식</a><a href="../templates/end_docs/02_개발자매뉴얼_템플릿.md" target="_blank" rel="noopener">개발자 매뉴얼 표준양식</a><a href="../templates/end_docs/03_운영배포매뉴얼_템플릿.md" target="_blank" rel="noopener">운영·배포 매뉴얼 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s3-22">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">22</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">프로젝트 완료</span><span class="badge">반영</span></div>
+            <p class="audit-note">인수·운영 전환·종료 기록까지 완료 절차로 정의한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../standards/08_배포및운영.md" target="_blank" rel="noopener">UDS-108 - 배포·운영·인수</a></div>
+          </div>
+        </div>
+        
+      </li></ul></div>
+      </details><details class="section-card" open>
+        <summary><span class="section-index">04</span><span>개발 지침</span><small>56 / 60 반영</small></summary>
+        <div class="section-body"><ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">start_docs 폴더를 만들어서 문서를 만들것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">start_docs에 프로세스 정의서와 사용자·개발자·운영배포 약식 양식을 포함하고 상세 인수 문서는 end_docs로 확장한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a><a href="../templates/start_docs/08_프로세스정의서_템플릿.md" target="_blank" rel="noopener">프로세스 정의서 표준양식</a><a href="../templates/start_docs/09_사용자매뉴얼_약식_템플릿.md" target="_blank" rel="noopener">사용자 매뉴얼 약식 표준양식</a><a href="../templates/start_docs/10_개발자매뉴얼_약식_템플릿.md" target="_blank" rel="noopener">개발자 매뉴얼 약식 표준양식</a><a href="../templates/start_docs/11_운영배포매뉴얼_약식_템플릿.md" target="_blank" rel="noopener">운영·배포 매뉴얼 약식 표준양식</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-1-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 회의록 양식</span><span class="badge">반영</span></div>
+            <p class="audit-note">표준 회의록 양식 파일이 존재한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/start_docs/02_회의록_템플릿.md" target="_blank" rel="noopener">회의록 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-1-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 요구사항 정의서 양식</span><span class="badge">반영</span></div>
+            <p class="audit-note">표준 요구사항 정의서 양식 파일이 존재한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/start_docs/03_요구사항정의서_템플릿.md" target="_blank" rel="noopener">요구사항 정의서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-1-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1.3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 프로세스 정의서 양식</span><span class="badge">반영</span></div>
+            <p class="audit-note">착수 단계에서 사용할 독립 프로세스 정의서 약식 표준양식이 존재한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/start_docs/08_프로세스정의서_템플릿.md" target="_blank" rel="noopener">프로세스 정의서 표준양식</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-1-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1.4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 화면 설계서 양식</span><span class="badge">반영</span></div>
+            <p class="audit-note">표준 화면 설계서 양식 파일이 존재한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-1-5">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1.5</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 DB 설계서 양식</span><span class="badge">반영</span></div>
+            <p class="audit-note">표준 DB 설계서 양식 파일이 존재한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/start_docs/05_DB설계서_템플릿.md" target="_blank" rel="noopener">DB 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-1-6">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1.6</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 사용자 메뉴얼 양식</span><span class="badge">반영</span></div>
+            <p class="audit-note">start_docs에 착수용 사용자 매뉴얼 약식 양식이 있고 완료 시 end_docs 상세 양식으로 확장한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/start_docs/09_사용자매뉴얼_약식_템플릿.md" target="_blank" rel="noopener">사용자 매뉴얼 약식 표준양식</a><a href="../templates/end_docs/01_사용자매뉴얼_템플릿.md" target="_blank" rel="noopener">사용자 매뉴얼 표준양식</a><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-1-7">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1.7</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 개발자 메뉴얼 양식</span><span class="badge">반영</span></div>
+            <p class="audit-note">start_docs에 착수용 개발자 매뉴얼 약식 양식이 있고 완료 시 end_docs 상세 양식으로 확장한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/start_docs/10_개발자매뉴얼_약식_템플릿.md" target="_blank" rel="noopener">개발자 매뉴얼 약식 표준양식</a><a href="../templates/end_docs/02_개발자매뉴얼_템플릿.md" target="_blank" rel="noopener">개발자 매뉴얼 표준양식</a><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-1-8">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">1.8</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 운영 배포 메뉴얼 양식</span><span class="badge">반영</span></div>
+            <p class="audit-note">start_docs에 착수용 운영·배포 매뉴얼 약식 양식이 있고 완료 시 end_docs 상세 양식으로 확장한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/start_docs/11_운영배포매뉴얼_약식_템플릿.md" target="_blank" rel="noopener">운영·배포 매뉴얼 약식 표준양식</a><a href="../templates/end_docs/03_운영배포매뉴얼_템플릿.md" target="_blank" rel="noopener">운영·배포 매뉴얼 표준양식</a><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">qc_docs 폴더를 생성 하여 문서를 만들것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">qc_docs 구조와 품질 문서 생성 규칙이 정의되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a><a href="../templates/qc_docs/01_품질계획서_템플릿.md" target="_blank" rel="noopener">품질계획서 표준양식</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-2-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">2.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">각각의 결과물별로 임의의 데이터로 품질검사 기준서를 만들것</span><span class="badge">반영</span></div>
+            <p class="audit-note">화면·HTML·DB·프로세스·API·요구사항·매뉴얼마다 양식을 복제하고 정상·빈값·경계·오류·권한 합성 데이터를 작성하도록 한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/qc_docs/05_산출물별품질검사기준서_템플릿.md" target="_blank" rel="noopener">산출물별 품질검사 기준서</a><a href="../standards/06_테스트및품질.md" target="_blank" rel="noopener">UDS-106 - 테스트·품질·자원 안전</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-2-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">2.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">엔진은 이 품질검사 기준서를 바탕으로 품질 검수를 진행할것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">프로젝트 생성 에이전트나 검증 하네스가 원본 산출물에서 기준을 추출하고 합성 데이터와 판정식으로 검수·보완·재검수하도록 절차가 정의되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../templates/qc_docs/05_산출물별품질검사기준서_템플릿.md" target="_blank" rel="noopener">산출물별 품질검사 기준서</a><a href="../standards/06_테스트및품질.md" target="_blank" rel="noopener">UDS-106 - 테스트·품질·자원 안전</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a><a href="../templates/qc_docs/03_품질검사체크리스트.md" target="_blank" rel="noopener">품질검사 체크리스트</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">개발 기법 :</span><span class="badge">반영</span></div>
+            <p class="audit-note">프로젝트 위험에 따라 T0~T3 개발기법을 선정하도록 한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/11_하네스및루프엔지니어링.md" target="_blank" rel="noopener">UDS-111 - 하네스·루프 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-3-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">3.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">SKILL 폴더를 만들어 하네스 엔지니어링 기반의 루프 엔지니어링 표준 SKILL 을 만들것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">T1 하네스 엔지니어링과 T2·T3 하네스 기반 루프 엔지니어링이 각각 즉시 복사·사용 가능한 완성형 표준 SKILL로 제공되며 T등급에 따라 선택한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/harness-engineering-standard/SKILL.md" target="_blank" rel="noopener">하네스 엔지니어링 표준 SKILL</a><a href="../SKILL/harness-loop-engineering-standard/SKILL.md" target="_blank" rel="noopener">하네스 기반 루프 엔지니어링 표준 SKILL</a><a href="../standards/11_하네스및루프엔지니어링.md" target="_blank" rel="noopener">UDS-111 - 하네스·루프 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-conflict" data-status="conflict" data-item-id="s4-3-2">
+        <div class="check-row">
+          <span class="audit-check " aria-label="미완료"></span>
+          <span class="item-number">3.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">핵심 엔진은 인간의 개입이 없는 완전 자율형 에이전틱으로 만들것.</span><span class="badge">표준 충돌</span></div>
+            <p class="audit-note">현재 표준은 무인 완전자율을 금지하고 위험 작업에 인간 승인·킬 스위치·실행 한도를 강제한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/11_하네스및루프엔지니어링.md" target="_blank" rel="noopener">UDS-111 - 하네스·루프 표준</a><a href="../SKILL/SKILL_템플릿.md" target="_blank" rel="noopener">SKILL 템플릿</a><a href="../AGENTS.md" target="_blank" rel="noopener">AGENTS - 에이전트 필수 규칙</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">품질 검사 기준서 : 최종 결과물을 html 로 미리 만들어 품질 검사를 진행할것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">승인된 최종 결과 HTML을 품질 기준선과 회귀 비교 대상으로 사용한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../standards/06_테스트및품질.md" target="_blank" rel="noopener">UDS-106 - 테스트·품질·자원 안전</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-5">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">5</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">완전 자율형 및 루프 무한루프를 방지할것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">반복 한도, 시간·비용 예산, 정체 감지, 취소·재개, 킬 스위치를 요구한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/11_하네스및루프엔지니어링.md" target="_blank" rel="noopener">UDS-111 - 하네스·루프 표준</a><a href="../SKILL/SKILL_템플릿.md" target="_blank" rel="noopener">SKILL 템플릿</a><a href="../AGENTS.md" target="_blank" rel="noopener">AGENTS - 에이전트 필수 규칙</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-6">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">6</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">프로젝트 착수시 필요한 문서 및 정보는 docs/기획 폴더를 참고할것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">착수 입력과 기획 문서를 docs/기획에 두고 생성·개발 판단의 입력으로 사용한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">표준 SKILL :</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI 개발 표준 SKILL에 공통 화면, KST 24시간제, 자체 확인창, 모달 격리, 표 셀 줄바꿈 방지와 결정론적 완료 체크가 포함되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-7-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">공통</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI 개발 표준 SKILL에 공통 화면, KST 24시간제, 자체 확인창, 모달 격리, 표 셀 줄바꿈 방지와 결정론적 완료 체크가 포함되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">전체 화면의 컨셉과 구조</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI 개발 표준 SKILL에 공통 화면, KST 24시간제, 자체 확인창, 모달 격리, 표 셀 줄바꿈 방지와 결정론적 완료 체크가 포함되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-1-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.1.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">날짜와 시간은 한국 24시간 기준.</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI 개발 표준 SKILL에 공통 화면, KST 24시간제, 자체 확인창, 모달 격리, 표 셀 줄바꿈 방지와 결정론적 완료 체크가 포함되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-1-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.1.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">“저장 하시겠습니까?” 와 같은 알림 메세지창은 자체 제작.</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI 개발 표준 SKILL에 공통 화면, KST 24시간제, 자체 확인창, 모달 격리, 표 셀 줄바꿈 방지와 결정론적 완료 체크가 포함되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-1-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.1.3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">모든 모달은 부모창에 영향을 주지 않도록 한다. (마우스 스크롤등등).</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI 개발 표준 SKILL에 공통 화면, KST 24시간제, 자체 확인창, 모달 격리, 표 셀 줄바꿈 방지와 결정론적 완료 체크가 포함되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-1-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.1.4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">한칸에 2줄 이슈는 없도록 한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI 개발 표준 SKILL에 공통 화면, KST 24시간제, 자체 확인창, 모달 격리, 표 셀 줄바꿈 방지와 결정론적 완료 체크가 포함되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-1-5">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.1.5</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">한칸에 세로줄 이슈는 없도록 한다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI 개발 표준 SKILL에 공통 화면, KST 24시간제, 자체 확인창, 모달 격리, 표 셀 줄바꿈 방지와 결정론적 완료 체크가 포함되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-1-6">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.1.6</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">분석인 경우에는 실시간 실행 로그를 모달로 출력.</span><span class="badge">반영</span></div>
+            <p class="audit-note">분석 작업의 실시간 실행 로그를 자체 모달에 표시하고 실행 ID, 단계, 진행률, 상태, KST 시각, 취소와 종료 상태를 검증한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">조회 화면</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI SKILL이 시작일·종료일·검색어·조회·페이지네이션과 행 클릭 상세 진입, 중복 상세 버튼 금지를 필수화한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-2-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.2.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">시작일, 종료일, 검색어, 조회 버튼.</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI SKILL이 시작일·종료일·검색어·조회·페이지네이션과 행 클릭 상세 진입, 중복 상세 버튼 금지를 필수화한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-2-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.2.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">페이지 네비게이션은 필수.</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI SKILL이 시작일·종료일·검색어·조회·페이지네이션과 행 클릭 상세 진입, 중복 상세 버튼 금지를 필수화한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-2-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.2.3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">목록을 클릭하여 상세화면으로 전환하고 별도의 상세보기 버튼은 생성하지 않는다.</span><span class="badge">반영</span></div>
+            <p class="audit-note">UI SKILL이 시작일·종료일·검색어·조회·페이지네이션과 행 클릭 상세 진입, 중복 상세 버튼 금지를 필수화한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">신규 등록 화면</span><span class="badge">반영</span></div>
+            <p class="audit-note">신규 등록·수정의 필드, 검증, 중복 검사, 중복 제출 방지, 미저장 변경, 성공·실패·권한·동시성 처리가 정의되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">버튼</span><span class="badge">반영</span></div>
+            <p class="audit-note">실행·저장·삭제·수정 버튼에 공통 자체 확인창을 적용하고 브라우저 기본 확인창 사용을 금지한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-7-1-4-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.1.4.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">실행, 저장, 삭제, 수정 버튼의 경우 자체 제작된 사용자 컨펌은 필수.</span><span class="badge">반영</span></div>
+            <p class="audit-note">실행·저장·삭제·수정 버튼에 공통 자체 확인창을 적용하고 브라우저 기본 확인창 사용을 금지한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-7-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">7.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">메뉴별 세부</span><span class="badge">반영</span></div>
+            <p class="audit-note">모든 메뉴에 화면 ID, 유형, 목적, 권한, 필드, 동작, API, 상태, 요구사항·테스트 ID를 작성하는 메뉴별 매트릭스를 요구한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../SKILL/ui-development-standard/SKILL.md" target="_blank" rel="noopener">UI 개발 표준 SKILL</a><a href="../templates/start_docs/04_화면설계서_템플릿.md" target="_blank" rel="noopener">화면 설계서 표준양식</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-8">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">8</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">사전 결과물 생성</span><span class="badge">반영</span></div>
+            <p class="audit-note">개발 착수 전에 HTML 프로토타입을 만들고 승인된 품질 기준선으로 고정한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-8-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">8.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">개발착수 시점에서 결과물을 html 로 생성하여 품질 기준서로 삼을것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">개발 착수 전에 HTML 프로토타입을 만들고 승인된 품질 기준선으로 고정한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/03_요구사항및설계.md" target="_blank" rel="noopener">UDS-103 - 요구사항·화면·DB·프로토타입</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">docs 폴더를 생성 하여 문서를 만들것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">docs 표준 트리와 생성 규칙이 정의되어 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-partial" data-status="partial" data-item-id="s4-9-1">
+        <div class="check-row">
+          <span class="audit-check " aria-label="미완료"></span>
+          <span class="item-number">9.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">공통 :</span><span class="badge">부분 반영</span></div>
+            <p class="audit-note">공통 기록 규칙은 있으나 모든 문서·폴더에 날짜를 강제하는 원문과 정본 문서의 고정 경로 원칙이 다르다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-conflict" data-status="conflict" data-item-id="s4-9-1-1">
+        <div class="check-row">
+          <span class="audit-check " aria-label="미완료"></span>
+          <span class="item-number">9.1.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">모든 폴더는 당일 날짜 폴더에 생성할것.</span><span class="badge">표준 충돌</span></div>
+            <p class="audit-note">현재 표준은 활동 기록만 날짜 폴더를 사용하고 정본 문서는 고정 경로를 사용한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-conflict" data-status="conflict" data-item-id="s4-9-1-2">
+        <div class="check-row">
+          <span class="audit-check " aria-label="미완료"></span>
+          <span class="item-number">9.1.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">모든 문서는 파일명에 해당 에이전트명(클로드, 코덱스)과 날짜를 넣을것.</span><span class="badge">표준 충돌</span></div>
+            <p class="audit-note">현재 표준은 협업·활동 기록에 에이전트명과 날짜를 쓰지만 모든 정본 문서 파일명에는 강제하지 않는다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">요청과 회신 문서의 경우 협업폴더에 생성을 하고 파일명에 세션 아이디를 추가하고 협업폴더에 생성할것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">요청·회신을 협업 폴더에 같은 세션 ID로 기록하는 명명 규칙이 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">공공 개발진행문서 하나를 만들어서 표형태로 히스토리 관리를 할것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">단일 개발진행대장을 표 형식으로 유지하도록 한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-4-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.4.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">날짜, 세션 아이디, 에이전트명(클로드, 코덱스, 제미나이), 구분(일반, 요청, 회신, 검토, 계획, 분석, 결과), 작업명, 완료유무</span><span class="badge">반영</span></div>
+            <p class="audit-note">날짜, 세션, 에이전트, 구분, 작업명, 상태 필드가 모두 포함된다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-4-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.4.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">구분이 요청과 회신의 경우 요청의 요청 세션 아이디를 기준으로 회신도 동일 세션 아이디로 파일명을 만들어서 동일 내용에 대해 요청과 회신을 할것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">요청과 회신이 동일 세션 ID를 사용하도록 명시한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/09_문서및기록관리.md" target="_blank" rel="noopener">UDS-109 - 문서·협업·진행대장</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">폴더의 구성</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">공통</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">기획</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-3">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.3</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">개발일지</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-4">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.4</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">계획</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-5">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.5</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">분석</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-6">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.6</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">검토</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-7">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.7</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">협업</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-8">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.8</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">기술문서</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-9-1-5-9">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">9.1.5.9</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">아이디어</span><span class="badge">반영</span></div>
+            <p class="audit-note">요구된 공통·기획·개발일지·계획·분석·검토·협업·기술문서·아이디어 폴더가 표준 트리에 모두 있다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li></ul>
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-10">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">10</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">end_docs 폴더를 생성하여 문서를 만들것. 단 인간의 지시가 없다면 문서 생성 금지.</span><span class="badge">반영</span></div>
+            <p class="audit-note">end_docs는 인간의 명시 지시 또는 완료 게이트 승인 때만 생성하도록 제한한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/10_프로젝트폴더표준.md" target="_blank" rel="noopener">UDS-110 - 프로젝트 폴더 표준</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-10-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">10.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">개발 완료시 산출 결과물을 만들것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">개발 완료 시 최종 산출물과 인수 문서를 생성·검증한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a><a href="../standards/08_배포및운영.md" target="_blank" rel="noopener">UDS-108 - 배포·운영·인수</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-11">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">11</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">필요한 라이브러리는 자동으로 설치를 할 수 있게 하고 원클릭으로 프론트와 백엔드가 실행되고 웹브라우저에 접속되게 만들것. 가급적 포트 충돌이 없도록 할것.</span><span class="badge">반영</span></div>
+            <p class="audit-note">프론트·백엔드 구현 완료 후 실제 명령으로 의존성, 포트 회피, 동시 실행, 준비 확인, 브라우저 연결과 종료를 갖춘 프로젝트 전용 원클릭 파일을 생성·검증하도록 G3에서 강제한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/05_코딩및형상관리.md" target="_blank" rel="noopener">UDS-105 - 코딩·실행 환경</a><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a><a href="../templates/end_docs/02_개발자매뉴얼_템플릿.md" target="_blank" rel="noopener">개발자 매뉴얼 표준양식</a></div>
+          </div>
+        </div>
+        <ul class="check-list"><li class="check-item status-full" data-status="full" data-item-id="s4-11-1">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">11.1</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">윈도우용</span><span class="badge">반영</span></div>
+            <p class="audit-note">신규 프로젝트 개발 완료 시 실제 구현에 맞는 더블클릭 Windows .bat 또는 .cmd를 생성하고 Windows에서 검증하도록 한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/05_코딩및형상관리.md" target="_blank" rel="noopener">UDS-105 - 코딩·실행 환경</a><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a><a href="../templates/end_docs/02_개발자매뉴얼_템플릿.md" target="_blank" rel="noopener">개발자 매뉴얼 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li><li class="check-item status-full" data-status="full" data-item-id="s4-11-2">
+        <div class="check-row">
+          <span class="audit-check checked" aria-label="반영 완료"></span>
+          <span class="item-number">11.2</span>
+          <div class="item-main">
+            <div class="item-heading"><span class="item-text">맥북용</span><span class="badge">반영</span></div>
+            <p class="audit-note">신규 프로젝트 개발 완료 시 실제 구현에 맞는 실행 가능한 macOS .command 또는 .sh를 생성하고 macOS에서 검증하도록 한다.</p>
+            <div class="evidence"><strong>근거</strong><a href="../standards/05_코딩및형상관리.md" target="_blank" rel="noopener">UDS-105 - 코딩·실행 환경</a><a href="../standards/02_프로젝트수행절차.md" target="_blank" rel="noopener">UDS-102 - 프로젝트 수행 절차</a><a href="../PROMPTS/신규프로젝트_생성_마스터프롬프트.md" target="_blank" rel="noopener">신규 프로젝트 생성 마스터 프롬프트</a><a href="../templates/end_docs/02_개발자매뉴얼_템플릿.md" target="_blank" rel="noopener">개발자 매뉴얼 표준양식</a></div>
+          </div>
+        </div>
+        
+      </li></ul>
+      </li></ul></div>
+      </details></main>
+  <footer>감사 기준일 2026-06-15 · 원본 스케치와 표준 저장소의 실제 파일 존재 여부를 기준으로 판정</footer>
+  <script>
+    const buttons=[...document.querySelectorAll("[data-filter]")];
+    buttons.forEach(button=>button.addEventListener("click",()=>{
+      buttons.forEach(item=>item.classList.toggle("active",item===button));
+      const filter=button.dataset.filter;
+      document.querySelectorAll(".check-item").forEach(item=>item.classList.toggle("hidden",filter!=="all"&&item.dataset.status!==filter));
+      document.querySelectorAll(".section-card").forEach(section=>{
+        section.classList.toggle("filtered-empty",![...section.querySelectorAll(".check-item")].some(item=>!item.classList.contains("hidden")));
+        if(filter!=="all")section.open=true;
+      });
+    }));
+  </script>
+</body>
+</html>

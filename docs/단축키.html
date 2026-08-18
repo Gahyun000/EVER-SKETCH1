@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ebook_html 키보드 단축키</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--purple:#7a3ff2;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:44px 24px 100px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:27px;margin:10px 0 8px;letter-spacing:-.02em}
+  .lede{font-size:15.5px;color:var(--muted);max-width:760px}
+  .tip{background:#f0f4ff;border:1px solid #d9e2fb;border-radius:11px;padding:13px 16px;font-size:13.5px;color:#33447a;margin:16px 0}
+  .tip b{color:var(--blue)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:16px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:18px;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:25px;height:25px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:12.5px}
+  .sub{color:var(--muted);font-size:13px;margin:2px 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td{padding:9px 8px;border-bottom:1px solid #eef0f4;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  td.keys{width:46%;white-space:nowrap}
+  td.desc{color:#3a4150}
+  kbd{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:700;color:#31415e;background:#f2f4f8;border:1px solid #d6dbe6;border-bottom-width:2px;border-radius:6px;padding:2px 7px;margin:1px 1px}
+  .plus{color:var(--muted);font-size:12px;margin:0 2px}
+  .os{font-size:11px;color:var(--muted);font-weight:600}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:30px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
+  .legend b{color:var(--ink)}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  @media print{body{background:#fff}section{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">ebook_html · 키보드 단축키</div>
+<h1>스케치 빌더 단축키 정리</h1>
+<p class="lede">경영진용 스케치 빌더에 웬만한 컴퓨터 단축키를 넣었습니다. 아래가 전체 목록입니다. <b>모든 기능은 마우스로도 그대로 됩니다</b> — 단축키는 익숙한 분을 위한 지름길일 뿐이에요.</p>
+
+<div class="tip"><b>맥 / 윈도우 공통.</b> 맥은 <kbd>⌘</kbd>(Command), 윈도우·리눅스는 <kbd>Ctrl</kbd>을 쓰면 됩니다. 아래 <kbd>⌘/Ctrl</kbd>은 "둘 중 아무거나"라는 뜻입니다. <kbd>⇧</kbd>는 Shift.</div>
+
+<section>
+  <h2><span class="n">1</span>편집 (도형을 고른 상태에서)</h2>
+  <p class="sub">캔버스에서 도형·글자·화살표를 하나 선택한 뒤 사용합니다.</p>
+  <table><tbody>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>Z</kbd></td><td class="desc">되돌리기 (뒤로가기)</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>⇧</kbd><span class="plus">+</span><kbd>Z</kbd> <span class="os">또는</span> <kbd>Ctrl</kbd><span class="plus">+</span><kbd>Y</kbd></td><td class="desc">다시 실행 (되돌린 것 재적용)</td></tr>
+    <tr><td class="keys"><kbd>Delete</kbd> <span class="os">또는</span> <kbd>Backspace</kbd></td><td class="desc">선택한 도형 삭제</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>D</kbd></td><td class="desc">복제 (그 자리 옆에 하나 더)</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>C</kbd></td><td class="desc">복사</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>V</kbd></td><td class="desc">붙여넣기 (복사해 둔 도형을 지금 페이지에)</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>X</kbd></td><td class="desc">잘라내기</td></tr>
+    <tr><td class="keys"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></td><td class="desc">도형을 1px씩 조금 이동</td></tr>
+    <tr><td class="keys"><kbd>⇧</kbd><span class="plus">+</span> 방향키</td><td class="desc">도형을 10px씩 크게 이동</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>]</kbd></td><td class="desc">맨 앞으로 (겹칠 때 위로)</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>[</kbd></td><td class="desc">맨 뒤로 (겹칠 때 아래로)</td></tr>
+    <tr><td class="keys"><kbd>Esc</kbd></td><td class="desc">선택 해제 · 그리기 도구 취소(선택 도구로 복귀)</td></tr>
+  </tbody></table>
+</section>
+
+<section>
+  <h2><span class="n">2</span>도구 전환 (글자판 한 글자)</h2>
+  <p class="sub">Whimsical처럼 키 하나로 도구를 바꿉니다. 도구만 바뀌고, 도형은 캔버스를 클릭할 때 생깁니다.</p>
+  <table><tbody>
+    <tr><td class="keys"><kbd>V</kbd></td><td class="desc">선택/이동</td></tr>
+    <tr><td class="keys"><kbd>R</kbd></td><td class="desc">사각형</td></tr>
+    <tr><td class="keys"><kbd>O</kbd></td><td class="desc">원</td></tr>
+    <tr><td class="keys"><kbd>D</kbd></td><td class="desc">마름모</td></tr>
+    <tr><td class="keys"><kbd>T</kbd></td><td class="desc">텍스트(글자)</td></tr>
+    <tr><td class="keys"><kbd>S</kbd></td><td class="desc">스티키(메모)</td></tr>
+    <tr><td class="keys"><kbd>I</kbd></td><td class="desc">이미지 자리</td></tr>
+    <tr><td class="keys"><kbd>C</kbd></td><td class="desc">화살표 연결</td></tr>
+    <tr><td class="keys"><kbd>P</kbd></td><td class="desc">펜(자유 선)</td></tr>
+  </tbody></table>
+</section>
+
+<section>
+  <h2><span class="n">3</span>페이지</h2>
+  <table><tbody>
+    <tr><td class="keys"><kbd>PageUp</kbd></td><td class="desc">이전 페이지 선택</td></tr>
+    <tr><td class="keys"><kbd>PageDown</kbd></td><td class="desc">다음 페이지 선택</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>⇧</kbd><span class="plus">+</span><kbd>↑</kbd></td><td class="desc">현재 페이지를 앞 순서로 이동</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>⇧</kbd><span class="plus">+</span><kbd>↓</kbd></td><td class="desc">현재 페이지를 뒤 순서로 이동</td></tr>
+  </tbody></table>
+</section>
+
+<section>
+  <h2><span class="n">4</span>문서 · 발표 (어디서나)</h2>
+  <p class="sub">이 네 개는 칸에 글자를 쓰는 중에도 동작합니다.</p>
+  <table><tbody>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>S</kbd> <span class="os">또는</span> <kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>Enter</kbd></td><td class="desc">이북 만들기</td></tr>
+    <tr><td class="keys"><kbd>⌘/Ctrl</kbd><span class="plus">+</span><kbd>⇧</kbd><span class="plus">+</span><kbd>P</kbd> <span class="os">또는</span> <kbd>F5</kbd></td><td class="desc">발표 시작</td></tr>
+    <tr><td class="keys"><kbd>F1</kbd></td><td class="desc">도움말 열기</td></tr>
+  </tbody></table>
+</section>
+
+<section>
+  <h2><span class="n">5</span>발표 모드 안에서</h2>
+  <table><tbody>
+    <tr><td class="keys"><kbd>→</kbd> <span class="os">또는</span> <kbd>Space</kbd> <span class="os">또는</span> 화면 클릭</td><td class="desc">다음 장</td></tr>
+    <tr><td class="keys"><kbd>←</kbd></td><td class="desc">이전 장</td></tr>
+    <tr><td class="keys"><kbd>Esc</kbd></td><td class="desc">발표 끝내고 편집으로</td></tr>
+  </tbody></table>
+</section>
+
+<section>
+  <h2><span class="n">6</span>알아두면 좋은 점</h2>
+  <div class="legend" style="display:block">
+    <p style="margin:6px 0">· <b>입력칸에 글자를 쓰는 중</b>에는 편집·도구 단축키가 잠깐 꺼집니다. 제목이나 내용에 "d", "v" 같은 글자를 그냥 쳐도 도구가 바뀌지 않게 하기 위해서예요. (단, <kbd>⌘/Ctrl</kbd>+<kbd>S</kbd> 저장과 발표는 항상 됩니다.)</p>
+    <p style="margin:6px 0">· 앱 안에서도 <b>도움말</b> 버튼(오른쪽 위) → 맨 아래 <b>"⌨ 키보드 단축키"</b> 표에서 언제든 볼 수 있습니다.</p>
+    <p style="margin:6px 0">· 되돌리기/다시 실행은 <b>페이지별로 40~60단계</b>까지 기억합니다.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">7</span>구현 메모 (개발용)</h2>
+  <p class="sub">유지보수하는 분을 위한 위치 표시. uniever_ebook은 건드리지 않았습니다.</p>
+  <table><tbody>
+    <tr><td class="keys"><code>src/builder/Hotkeys.tsx</code></td><td class="desc">전역 키다운 처리(신규). Layout에 항상 마운트, 모달 열리면 자동 양보.</td></tr>
+    <tr><td class="keys"><code>src/canvas/model.ts</code></td><td class="desc">되돌리기 + <b>다시 실행 스택</b> 추가(pushRedo/popRedo/pushUndoRaw).</td></tr>
+    <tr><td class="keys"><code>src/builder/Dock.tsx</code></td><td class="desc">↷ 다시 실행 버튼 + undo가 redo를 기록하도록 배선.</td></tr>
+    <tr><td class="keys"><code>src/builder/TopBar.tsx</code></td><td class="desc"><code>ebook:build</code> 이벤트 수신 → 이북 만들기(⌘S)와 연결.</td></tr>
+    <tr><td class="keys"><code>src/builder/Help.tsx</code></td><td class="desc">도움말 모달 안 단축키 치트시트 표.</td></tr>
+    <tr><td class="keys"><code>e2e/smoke.mjs</code></td><td class="desc">복제·삭제·되돌리기·다시실행·방향키·도구키 자동 테스트 추가 → <b>25/25 PASS</b>.</td></tr>
+  </tbody></table>
+</section>
+
+<div class="foot">ebook_html · 키보드 단축키 · 마우스로도 전부 가능 · 자동검증 25/25 PASS</div>
+</div>
+</body>
+</html>

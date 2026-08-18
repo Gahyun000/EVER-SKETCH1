@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이북 개선 계획서 — EVER-PEAK 라이트/다크 테마 · 목차 클릭 이동</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2462EB;--green:#3E9E6E;--amber:#D98A2A;--red:#c23b48;
+    --navy:#0F1B3D;--lime:#dceeb1;--lilac:#e7e3fb;--mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.62;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:44px 24px 100px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:28px;line-height:1.25;margin:10px 0 10px;letter-spacing:-.02em;color:var(--navy)}
+  .lede{font-size:15.5px;color:var(--muted);max-width:820px}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+  .tag{font-size:11.5px;font-weight:700;background:#eef1f6;color:#3a4356;border-radius:999px;padding:4px 11px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin:18px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:19px;margin:0 0 4px;letter-spacing:-.01em;color:var(--navy)}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:9px;vertical-align:2px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 14px}
+  h3{font-size:15px;margin:22px 0 7px}
+  p{margin:8px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  pre{background:#0f1526;color:#d8e0f0;border-radius:10px;padding:14px 16px;overflow:auto;font-family:var(--mono);font-size:12px;line-height:1.55}
+  pre .c{color:#7f8db0}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  td.mono,th.mono{font-family:var(--mono);font-size:12px}
+  ul{margin:8px 0;padding-left:20px}li{margin:6px 0}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.cols2{grid-template-columns:1fr}}
+  .box{border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+  .box h4{margin:0 0 8px;font-size:14px}
+  .bad{border-left:4px solid var(--red)} .good{border-left:4px solid var(--green)}
+  .bad h4{color:var(--red)} .good h4{color:var(--green)}
+  .adr{background:#f0f4ff;border:1px solid #d9e2fb;border-radius:10px;padding:13px 16px;margin:12px 0;font-size:13.5px}
+  .adr b{color:var(--blue)}
+  .flag{background:#fff7ed;border:1px solid #f6dcae;border-radius:10px;padding:13px 16px;margin:12px 0;font-size:13.5px}
+  .flag b{color:var(--amber)}
+  .mile{border:1px solid var(--line);border-radius:12px;padding:0;margin:12px 0;overflow:hidden}
+  .mile .mh{display:flex;align-items:center;gap:10px;padding:11px 15px;background:#fafbfd;border-bottom:1px solid var(--line)}
+  .mile .mid{font-family:var(--mono);font-size:12px;font-weight:800;color:#fff;background:var(--navy);border-radius:6px;padding:3px 8px}
+  .mile .mt{font-weight:700;font-size:14.5px}
+  .mile .mb{padding:12px 16px 16px}
+  .pill{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;margin-left:auto}
+  .p-must{background:#fdecee;color:#c23b48}.p-core{background:#eaf1fe;color:#2462EB}.p-opt{background:#eef7f1;color:#3E9E6E}
+  .flow{font-family:var(--mono);font-size:12px;color:#31415e;background:#f6f8fc;border:1px solid #e3e9f5;border-radius:10px;padding:12px 14px;line-height:1.9}
+  .flow b{color:var(--red)}
+  .footer{color:var(--muted);font-size:12.5px;margin-top:30px;text-align:center}
+  .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid rgba(0,0,0,.12)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">ebook_html · 개선 계획서</div>
+  <h1>EVER-PEAK 라이트/다크 테마 &amp; 목차 클릭 이동 살리기</h1>
+  <p class="lede">ebook_html이 만드는 이북을 <b>EVER-PEAK 솔루션소개(라이트)</b>와 <b>EVER-PEAK 솔루션소개 다크</b> 두 프리셋 중에서
+  <b>골라 뽑을 수 있게</b> 하고, 지금 "위에 자동으로 불러와지는" 어색한 목차를
+  <b>책 안의 정돈된 목차 페이지 + 어디서 열어도 눌리는 클릭 이동</b>으로 바꾸는 계획입니다.</p>
+  <div class="meta">
+    <span class="tag">작성일 2026-08-10</span>
+    <span class="tag">대상 저장소 ebook_html</span>
+    <span class="tag">기준 디자인 EVER-PEAK 솔루션소개 (라이트 · 다크)</span>
+    <span class="tag">테마 문서 단위 선택</span>
+    <span class="tag">제약 uniever_ebook 불변 계약</span>
+    <span class="tag">확정 설계도 목업 HTML 첨부</span>
+    <span class="tag">결정 확정 옵션 A (뷰어 밝게 · 페이지만 다크)</span>
+    <span class="tag">상태 M0 착수 준비 v1.4</span>
+  </div>
+  <div class="adr" style="margin-top:6px"><b>설계 기준 = 승인된 목업.</b> M1(테마·목차)은 상상이 아니라
+  <code>docs/이북목업_EVERPEAK_라이트다크_목차이동.html</code>을 <b>그대로 실제 컴포넌트로 이식</b>하는 작업이다.
+  목업의 색 토큰·목차 마크업·본문 카드 구조가 곧 구현 스펙이며, 목업에서 확인한 라이트/다크 전환과 목차 클릭 이동이
+  그대로 재현되면 M1·M2 완료로 본다. (§3.5 · §5 M1 참고)</div>
+
+  <!-- 0. 한 장 요약 -->
+  <section>
+    <h2><span class="n">0</span>한 장 요약</h2>
+    <p class="sub">바쁘면 이 박스만 읽으셔도 됩니다.</p>
+    <div class="cols2">
+      <div class="box bad">
+        <h4>지금 (AX 사업모델 이북)</h4>
+        <ul>
+          <li>목차가 <b>이미지로만</b> 구워져 나가고, 클릭 좌표 정보가 없음</li>
+          <li>뷰어가 <b>OCR로 위치를 추측</b>하다 실패 → 목차가 안 눌리거나 위에 어정쩡하게 뜸</li>
+          <li>라이트 톤 카드라 <b>다크 디자인이 아님</b></li>
+        </ul>
+      </div>
+      <div class="box good">
+        <h4>목표 (EVER-PEAK 라이트/다크 선택)</h4>
+        <ul>
+          <li><b>라이트/다크를 문서 단위로 선택</b> — 라이트는 EVER-PEAK 솔루션소개, 다크는 그 다크판과 동일 계열</li>
+          <li>목차가 <b>책 안의 정돈된 페이지</b>로 들어가고, 항목·페이지번호를 누르면 <b>정확히 이동</b> (뷰어·PDF 어디서든)</li>
+          <li>ebook_html 편집만으로 <b>매번 자동</b> 생성 — 손으로 손 안 봐도 됨</li>
+        </ul>
+      </div>
+    </div>
+    <div class="adr" style="margin-top:14px">
+      <b>핵심 발견 — 큰 공사가 아닙니다.</b> "목차 클릭 이동" 기능은 <code>generator.py</code> · <code>flip.js</code>에
+      <b>이미 완성되어</b> 있습니다(EVER-PEAK 다크가 그 방식으로 동작 중). 뷰어는 <code>_hotspots.json</code>(항목별 클릭 영역 좌표)만
+      있으면 각 항목에 클릭 버튼을 깔아줍니다. <b>지금 유일하게 빠진 고리는, ebook_html이 목차를 PNG로만 굽고 이 좌표 파일을 만들어 주지 않는다는 것</b>입니다.
+      ebook_html은 목차를 자기가 그리므로 각 줄의 좌표를 <b>정확히 알고</b> 있습니다 — OCR 추측 없이 그대로 내보내면 끝입니다.
+    </div>
+  </section>
+
+  <!-- 1. 배경 -->
+  <section>
+    <h2><span class="n">1</span>배경 &amp; 목표</h2>
+    <p><b>왜 ebook_html인가.</b> 원래 이북은 제가 만든 PPT 틀을 슬라이드 하나하나 고쳐 만들었고, 그게 번거로워서
+    "틀을 편하게 수정해 이북으로 뽑는 도구"로 ebook_html을 만들었습니다. 그 방향은 유지합니다.</p>
+    <p><b>기준 디자인.</b> 가장 잘 나온 형태는 <code>EVER-PEAK_솔루션소개_다크</code>입니다.
+    다크 배경 · 파랑 강조(<span class="swatch" style="background:#2462EB"></span><code>#2462EB</code>) · <code>CONTENTS / OPPORTUNITY</code> 같은 영문 키커 ·
+    번호칩 목차 · <code>EVER-PEAK · UNIEVER · 02 / 23</code> 푸터가 특징이고, 목차의 항목·페이지번호가 실제로 눌립니다.</p>
+    <p><b>이번 목표(한 문장).</b> ebook_html에서 만든 이북을 <b>EVER-PEAK 라이트/다크 중 골라</b> 그 모양으로 뽑을 수 있고,
+    그 <b>목차가 책 안에서 자연스럽게 · 클릭하면 이동</b>하게 만든다. 목차 이동은 편집 도구 안이 아니라
+    <b>완성된 이북이 열리는 모든 곳</b>(플립 뷰어 · 내보낸 PDF)에서 작동해야 한다.</p>
+    <div class="adr"><b>테마는 다크 전용이 아니다.</b> 기준은 두 개다 — <b>라이트 = <code>EVER-PEAK_솔루션소개</code></b>,
+    <b>다크 = <code>EVER-PEAK_솔루션소개_다크</code></b>(같은 레이아웃, 색만 반전). 사용자가 문서를 만들 때 라이트/다크를 <b>고를 수</b> 있어야 한다.
+    좋은 소식: 코드에 라이트/다크 재료가 이미 흩어져 있어(아래 §3.4) 새로 만드는 게 아니라 <b>모아 잇는</b> 작업이다.</div>
+  </section>
+
+  <!-- 2. 현황 파이프라인 진단 -->
+  <section>
+    <h2><span class="n">2</span>현황 진단 — 지금 이북이 만들어지는 흐름</h2>
+    <p class="sub">실제 코드를 따라간 결과입니다. 근본 원인은 "이미지 평탄화" 한 곳에 있습니다.</p>
+    <div class="flow">
+      ebook_html 편집(React 카드)<br>
+      &nbsp;&nbsp;└▶ <code>exportBook.ts</code> : 각 페이지를 <b>PNG로 굽는다</b> (html-to-image) — 목차도 <code>00. 목차.png</code>로 평탄화<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└▶ <code>server/app.py · /api/build</code> : PNG들을 <code>_build_input/&lt;ts&gt;/</code>에 저장 → <code>generator.py build</code> 호출<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└▶ <code>uniever_ebook/ebook-generator/generator.py</code> : 이미지들을 묶어 플립 뷰어 생성<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└▶ <code>ebooks/&lt;id&gt;/index.html</code> + <code>flip.js</code> : 이게 "열리는 이북"
+    </div>
+
+    <h3>2.1 목차가 안 눌리는 진짜 이유</h3>
+    <p>목차 페이지도 다른 페이지처럼 통째로 <b>PNG 그림</b>이 됩니다. 그림 속 글자는 클릭이 안 되므로,
+    뷰어가 목차를 눌리게 하려면 "이 사각형 영역을 누르면 몇 페이지로 간다"는 <b>좌표(핫스팟)</b>가 별도로 필요합니다.
+    <code>generator.py</code>는 이 좌표를 두 경로로 얻습니다:</p>
+    <table>
+      <thead><tr><th>경로</th><th>동작</th><th>신뢰도</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">_hotspots.json</td><td>정확한 좌표 파일이 있으면 <b>그대로</b> 사용 (우선순위 1위)</td><td style="color:var(--green)">높음 · 확정적</td></tr>
+        <tr><td class="mono">_auto_hotspots</td><td>파일이 없으면 목차 PNG를 <b>OCR</b>해서 글자를 본문 제목과 맞춰 좌표를 추측</td><td style="color:var(--red)">낮음 · 자주 실패</td></tr>
+      </tbody>
+    </table>
+    <p>지금 ebook_html은 <code>_hotspots.json</code>을 <b>만들어 주지 않으므로</b> 항상 OCR 추측 경로로 떨어집니다.
+    <code>generator.py</code> 주석에도 남아 있듯 "목차 줄과 본문 제목이 맞지 않아 자동 링크를 만들지 못했습니다" 같은
+    실패가 나면 링크가 아예 없거나 엉뚱하게 붙습니다. 이사님이 보신 "위에 어정쩡하게 불러와지는" 현상이 이 계열입니다.</p>
+
+    <h3>2.2 다크가 아닌 이유</h3>
+    <p>목차 카드를 그리는 <code>src/cards/PageView.tsx</code>는 흰 배경 · 회색 글자(<code>#3a4150</code>)로 되어 있고,
+    색 토큰(<code>src/design/tokens.ts</code>)은 라이트 팔레트뿐입니다(다크 세트 없음).
+    뷰어 <code>flip.css</code>도 밝은 크롬입니다. 그래서 EVER-PEAK 다크의 느낌이 나지 않습니다.</p>
+
+    <div class="flag">
+      <b>제약 하나 — uniever_ebook 불변 계약.</b>
+      <br><b>쉽게 말하면:</b> <code>uniever_ebook</code>은 이북을 실제로 찍어내는 <b>공용 인쇄기</b>(엔진 <code>generator.py</code> + 뷰어 <code>flip.js/flip.css</code>)이고
+      다른 이북들도 다 같이 씁니다. <code>ebook_html</code>은 그 인쇄기에 <b>원고를 잘 넣어주는 편집 도구</b>일 뿐,
+      "<b>인쇄기 자체는 뜯어고치지 않는다</b>"가 이 프로젝트가 정해둔 규칙입니다(<code>src/export/contract.ts</code>에 명시). 인쇄기를 건드리면 그걸 같이 쓰는 다른 이북이 깨질 수 있어서요.
+      <br><br><b>그래서 "충돌"이란:</b> 다크는 두 겹입니다. ① <b>페이지(종이) 자체를 어둡게</b> — 다크 PNG를 구워 넣으면 되니 인쇄기 안 건드림, <span style="color:var(--green)">충돌 없음</span>.
+      ② <b>뷰어 겉면(툴바·바깥 여백)까지 어둡게</b> — 이 색은 인쇄기 안의 <code>flip.css</code>가 정하므로 여길 고쳐야 함 = 인쇄기를 뜯는 것 = <span style="color:var(--red)">계약과 충돌</span>.
+      <br><br><b>목차 클릭 이동은 충돌 없음</b>(<code>_hotspots.json</code>만 넣으면 됨). 걸리는 건 딱 하나 — "다크일 때 뷰어 겉면까지 어둡게 할지"이며, §4의 D1·D4에서 결정합니다.
+    </div>
+  </section>
+
+  <!-- 3. 해결 설계 -->
+  <section>
+    <h2><span class="n">3</span>해결 설계 — 빠진 고리 하나만 잇는다</h2>
+    <p class="sub">권장안: ebook_html이 목차를 그릴 때 좌표를 같이 계산해 <code>_hotspots.json</code>으로 내보낸다. 뷰어는 손대지 않는다.</p>
+
+    <h3>3.1 데이터 흐름 (개선 후)</h3>
+    <div class="flow">
+      ebook_html 목차 카드(다크 디자인)로 렌더 → PNG로 굽기<br>
+      &nbsp;&nbsp;<b>+ 각 목차 항목의 화면 좌표(비율)와 대상 seq를 함께 계산</b><br>
+      &nbsp;&nbsp;└▶ <code>/api/build</code> 페이로드에 <code>hotspots[]</code> 추가 → <code>app.py</code>가 <code>_build_input/&lt;ts&gt;/_hotspots.json</code>으로 저장<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└▶ <code>generator.py</code>가 <b>OCR 대신 이 정확한 좌표</b>를 사용 (기존 코드 그대로)<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└▶ <code>flip.js</code>가 항목마다 클릭 버튼을 깔고, 누르면 해당 페이지로 이동
+    </div>
+
+    <h3>3.2 좌표 계약 (이미 정해져 있음 — 여기에 맞추기만)</h3>
+    <p><code>generator.py</code>의 <code>_load_hotspots</code>가 읽는 형식입니다. 좌표는 페이지 대비 <b>0~1 비율</b>:</p>
+    <pre>{
+  "hotspots": [
+    <span class="c">// 목차 "01 기회 …… 03" 줄을 누르면 seq=1 페이지로 이동</span>
+    { "seq": 1, "x": 0.06, "y": 0.34, "w": 0.88, "h": 0.07, "label": "기회" },
+    { "seq": 2, "x": 0.06, "y": 0.42, "w": 0.88, "h": 0.07, "label": "해결" }
+  ]
+}</pre>
+    <p>ebook_html은 목차 레이아웃을 직접 그리므로 각 줄의 <code>x/y/w/h</code>를 <b>정확히</b> 산출할 수 있습니다.
+    (예: 목차 <code>&lt;li&gt;</code>의 <code>getBoundingClientRect()</code>를 페이지 컨테이너 크기로 나눠 비율화.) OCR 불필요 · 100% 정확.</p>
+
+    <h3>3.3 목차·카드 디자인을 EVER-PEAK 라이트/다크 프리셋으로</h3>
+    <p><code>PageView.tsx</code>의 <code>toc</code> 카드를 EVER-PEAK 스펙으로 다시 그립니다: 영문 키커 <code>CONTENTS</code>,
+    번호칩(<code>01·02…</code>) + 항목명 + 한 줄 설명 + 우측 페이지번호, 하단 <code>EVER-PEAK · UNIEVER · 02 / 23</code> 푸터.
+    이때 색은 <b>하드코딩하지 않고 테마 토큰</b>에서 읽어, 같은 목차 컴포넌트가 라이트/다크 양쪽으로 렌더되게 합니다.</p>
+    <p><code>tokens.ts</code>에 <b>라이트/다크 두 세트</b>를 두고 <b>문서 단위 <code>theme</code> 값</b>(<code>'light' | 'dark'</code>)으로 전환합니다.
+    목차뿐 아니라 표지·본문·콜아웃 카드가 모두 이 토큰을 참조하도록 통일합니다.</p>
+    <table>
+      <thead><tr><th>토큰</th><th class="mono">라이트 (EVER-PEAK 솔루션소개)</th><th class="mono">다크 (EVER-PEAK 다크)</th></tr></thead>
+      <tbody>
+        <tr><td>페이지 배경</td><td class="mono">#ffffff</td><td class="mono">#0e1c30</td></tr>
+        <tr><td>제목/본문 글자</td><td class="mono">#111318</td><td class="mono">#ffffff / #c9d6e6</td></tr>
+        <tr><td>강조 파랑</td><td class="mono">#2462EB</td><td class="mono">#7db4ff</td></tr>
+        <tr><td>보조/구분선</td><td class="mono">#5b6270 / #e6e8ee</td><td class="mono">#8ea3bd / #23364f</td></tr>
+      </tbody>
+    </table>
+    <p class="sub">※ 값은 코드에 이미 있는 <code>LIGHT</code>/<code>DARK</code>(<code>deckToPages.ts</code>) 팔레트를 기준으로 삼고, EVER-PEAK 원본과 대조해 M1에서 확정합니다.</p>
+
+    <h3>3.4 이미 있는 재료 (새로 만들지 않고 모아 잇기)</h3>
+    <p>라이트/다크는 맨땅이 아닙니다. 아래를 표준으로 <b>승격·통합</b>합니다:</p>
+    <table>
+      <thead><tr><th class="mono">위치</th><th>현재 상태</th><th>이번에 할 일</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">deckToPages.ts</td><td><code>LIGHT</code>/<code>DARK</code> 팔레트 + <code>theme==='dark'</code> 분기 존재</td><td>이 팔레트를 <code>tokens.ts</code> 공용 테마로 승격</td></tr>
+        <tr><td class="mono">TopBar/ClassicBar.tsx</td><td>덱 임포트용 <b>라이트/다크</b> 토글 존재(<code>/api/deck</code>로만 전달)</td><td>이북 <b>문서 테마</b> 선택으로 확장·연결</td></tr>
+        <tr><td class="mono">RightPanel/MenuBar.tsx</td><td>페이지 단위 배경 라이트/다크 핀 존재</td><td>문서 기본 테마 아래의 페이지 예외로 정리</td></tr>
+        <tr><td class="mono">PageView.tsx</td><td>노트·콜아웃엔 다크 분기 있음, <b>목차 카드엔 없음</b></td><td>목차 포함 전 카드가 테마 토큰 참조</td></tr>
+        <tr><td class="mono">export/build 경로</td><td>테마 값이 <b>전달 안 됨</b></td><td>선택 테마를 export→build까지 관통(핫스팟엔 무관)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>3.5 목업 → 실제 컴포넌트 이식 지도</h3>
+    <p>승인된 목업(<code>docs/이북목업_EVERPEAK_라이트다크_목차이동.html</code>)의 각 조각이 어느 실제 파일로 옮겨지는지의 대응표입니다.
+    새 디자인을 짜는 게 아니라 <b>목업을 그대로 컴포넌트화</b>합니다.</p>
+    <table>
+      <thead><tr><th>목업의 조각</th><th class="mono">이식 대상 (ebook_html)</th><th>이식 방식</th></tr></thead>
+      <tbody>
+        <tr><td>:root / html.dark 색 변수</td><td class="mono">src/design/tokens.ts</td><td>라이트/다크 두 토큰 세트로 이식, theme로 전환</td></tr>
+        <tr><td>목차 페이지(tocHTML) — 키커·번호칩·설명·페이지번호</td><td class="mono">src/cards/PageView.tsx (toc)</td><td>하드코딩 라이트 목차를 목업 마크업으로 교체, 색은 토큰 참조</td></tr>
+        <tr><td>본문 카드(sectionHTML) — 키커·타이틀·번호카드·PASS박스</td><td class="mono">src/cards/PageView.tsx (content)</td><td>콜아웃/카드 스타일을 목업과 일치, 테마 대응</td></tr>
+        <tr><td>표지(coverHTML)</td><td class="mono">src/cards/PageView.tsx (cover)</td><td>EVER-PEAK 표지 톤으로 정리</td></tr>
+        <tr><td>라이트/다크 토글</td><td class="mono">TopBar.tsx · state/store.ts</td><td>기존 덱 토글을 문서 테마 상태로 승격(§3.4)</td></tr>
+        <tr><td>목차 행 data-goto 클릭</td><td class="mono">exportBook.ts → _hotspots.json</td><td>목업의 클릭 = 실제로는 §3.2 핫스팟 좌표로 구현(M2)</td></tr>
+      </tbody>
+    </table>
+    <p class="sub">※ 목업은 순수 HTML/JS 데모라 그대로 붙지는 않습니다. "화면·상호작용의 확정 스펙"으로 쓰고, React 컴포넌트/토큰 구조에 맞게 옮깁니다.</p>
+
+    <div class="cols2">
+      <div class="box good">
+        <h4>권장안 A — 다크 이미지 + 정확 핫스팟</h4>
+        <ul>
+          <li>목차를 EVER-PEAK 다크 그대로 <b>PNG로 굽고</b>, 좌표를 <code>_hotspots.json</code>으로 동봉</li>
+          <li>뷰어(uniever_ebook) <b>수정 0</b> → 불변 계약 완전 준수</li>
+          <li>디자인 픽셀 100% 재현 + 클릭 확정</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h4>대안 B — 뷰어의 텍스트 목차 강화</h4>
+        <ul>
+          <li><code>flip.js</code>엔 데이터 기반 텍스트 목차(<code>tocPageHTML</code>)도 이미 있음 (선택 가능·검색 유리)</li>
+          <li>다만 EVER-PEAK 다크 룩으로 만들려면 <code>flip.js/flip.css</code> <b>수정 필요</b> → 불변 계약과 충돌</li>
+          <li>2단계 개선 후보로 보류</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px"><b>→ 권장: A안.</b> 계약을 지키면서 디자인·클릭을 동시에 만족합니다. B안은 후속(검색·접근성 강화) 여지로 남깁니다.</p>
+  </section>
+
+  <!-- 4. 결정 필요 -->
+  <section>
+    <h2><span class="n">4</span>결정 사항 (확정)</h2>
+    <p class="sub">2026-08-10 확정 — 모든 결정이 정해져 M0부터 바로 착수 가능합니다.</p>
+    <div class="adr" style="background:#eef7f1;border-color:#cde9d8"><b style="color:var(--green)">✔ D1 · D4 확정 — (a) 뷰어 겉면은 밝게 고정, 페이지만 다크.</b>
+    페이지(종이)는 다크 PNG로 완전 다크가 되고, 뷰어 <b>바깥 여백·툴바(크롬)</b>는 현행 밝은 상태를 유지합니다.
+    <code>flip.css</code>를 포함해 <b>uniever_ebook은 한 줄도 수정하지 않습니다</b>(불변 계약 완전 준수). 목업 <code>docs/이북목업_옵션A_밝은뷰어_다크페이지.html</code>이 이 확정안입니다.</div>
+    <div class="adr" style="background:#eef7f1;border-color:#cde9d8"><b style="color:var(--green)">✔ D3 확정 — 테마는 문서 단위 선택.</b>
+    라이트(EVER-PEAK 솔루션소개)/다크(EVER-PEAK 다크)를 <b>문서 통째로</b> 고릅니다. 페이지별 예외는 2단계 후보로 보류.</div>
+    <div class="adr"><b>D2 — 착수 M0에서 규명 (결정 아님).</b> "위에 불러와지는" 목차가 ebook_html 자동 삽입 목차 카드 문제인지
+    뷰어 <code>☰ 목차</code> 버튼 UX 문제인지, M0에서 화면으로 재현해 특정한 뒤 정돈합니다.</div>
+    <div class="flag" style="background:#eef2fb;border-color:#d9e2fb"><b style="color:var(--blue)">참고 — 대비가 거슬릴 경우의 절충안(계약 유지).</b> 밝은 뷰어 안 다크 페이지의 경계가 세 보이면,
+    ① 다크 이북 페이지에 <b>옅은 테두리/그림자</b>를 줘 경계를 부드럽게(ebook_html 쪽, 계약 준수), 또는 ② 나중에 뷰어 배경만 중간 톤으로 바꾸는 최소 예외를 별건으로 검토. 지금 확정에는 포함하지 않음.</div>
+  </section>
+
+  <!-- 5. 마일스톤 -->
+  <section>
+    <h2><span class="n">5</span>작업 계획 (마일스톤)</h2>
+    <p class="sub">각 단계는 독립적으로 눈으로 확인 가능한 산출물을 냅니다.</p>
+
+    <div class="mile">
+      <div class="mh"><span class="mid">M0</span><span class="mt">현상 재현 &amp; 기준 고정</span><span class="pill p-must">필수</span></div>
+      <div class="mb">EVER-PEAK 다크 원본과 AX 사업모델 이북을 나란히 열어 "좋은 목차 / 나쁜 목차"를 화면으로 특정(D2).
+      기준 목차 페이지의 좌표·색·타이포를 수치로 확정. <b>산출:</b> 비교 스크린샷 + 목차 스펙 표.</div>
+    </div>
+    <div class="mile">
+      <div class="mh"><span class="mid">M1</span><span class="mt">라이트/다크 테마 토큰 &amp; 목차 카드 디자인</span><span class="pill p-core">핵심</span></div>
+      <div class="mb"><b>승인된 목업(<code>docs/이북목업_EVERPEAK_라이트다크_목차이동.html</code>)을 그대로 이식</b>한다(§3.5 대응표).
+      <code>tokens.ts</code>에 라이트/다크 두 세트 정리(§3.3~3.4), <code>PageView.tsx</code> 목차·본문·표지 카드를 목업 마크업으로
+      재구성하되 색은 테마 토큰에서 읽게 함. <b>산출:</b> 편집기 미리보기가 목업과 육안 동일 · 같은 목차가 라이트/다크로 각각 렌더.</div>
+    </div>
+    <div class="mile">
+      <div class="mh"><span class="mid">M1.5</span><span class="mt">문서 테마 선택 UI &amp; 관통</span><span class="pill p-must">필수</span></div>
+      <div class="mb">이북 만들 때 <b>라이트/다크 선택</b>(기존 토글 재사용)을 문서 테마로 승격하고, 그 값을 export→<code>/api/build</code>까지 전달.
+      <b>산출:</b> 토글만 바꿔 라이트 이북 / 다크 이북이 각각 생성됨.</div>
+    </div>
+    <div class="mile">
+      <div class="mh"><span class="mid">M2</span><span class="mt">핫스팟 좌표 산출 &amp; 내보내기</span><span class="pill p-must">필수</span></div>
+      <div class="mb"><code>exportBook.ts</code>에서 목차 각 항목의 비율 좌표+대상 seq 계산 → <code>/api/build</code> 페이로드에 <code>hotspots[]</code> 추가.
+      <code>app.py</code>가 <code>_hotspots.json</code>으로 기록. <b>산출:</b> 생성된 이북에서 목차 클릭 → 정확히 이동.</div>
+    </div>
+    <div class="mile">
+      <div class="mh"><span class="mid">M3</span><span class="mt">목차 UX 정돈 (뷰어 무수정)</span><span class="pill p-core">핵심</span></div>
+      <div class="mb">D1=(a) 확정에 따라 <b>뷰어 크롬은 손대지 않습니다</b>(uniever_ebook 무수정). "위에 불러와지는" 목차 동작 정리(M0의 D2 결과 반영),
+      <code>☰ 목차</code> 버튼 일관화, 필요 시 다크 페이지에 옅은 테두리로 경계 마감(§4 절충안 ①). <b>산출:</b> 목업과 육안 동등한 완성 이북.</div>
+    </div>
+    <div class="mile">
+      <div class="mh"><span class="mid">M4</span><span class="mt">검증 &amp; 회귀</span><span class="pill p-must">필수</span></div>
+      <div class="mb">아래 §6 체크리스트로 실제 클릭·이동을 눈으로 확인. 기존 라이트 이북이 깨지지 않는지 회귀 확인
+      (<code>e2e/</code> 스모크 활용). <b>산출:</b> 검증 증적(스크린샷·GIF).</div>
+    </div>
+    <div class="mile">
+      <div class="mh"><span class="mid">M5</span><span class="mt">HTML 임포트 → 목차 자동 감지 → 카드</span><span class="pill p-core">구현 완료</span></div>
+      <div class="mb"><b>이사님 실제 워크플로우(다양한 HTML 가져오기).</b> 가져온 HTML을 통짜 이미지가 아니라
+      <b>표지 + 목차(자동) + 섹션 카드</b>로 들여와, 목차가 이북에서 클릭 이동되게 함.
+      <br>① <code>htmlImport.ts</code>: 문서에 <b>명시적 목차(Contents 네비 <code>&lt;a href="#id"&gt;</code>)</b>가 있으면 그걸 목차로 인식하고
+      각 항목을 대상 <code>&lt;section id&gt;</code>에 1:1 매핑(작성자 목차 + 정확한 페이지 매핑). 없으면 제목(H1/H2) 기반으로 폴백.
+      표(table)는 행 텍스트로, <code>pre</code>도 캡처, 빈 섹션 방지 안전망 포함.
+      <br>② <code>TopBar/ClassicBar</code>: 섹션이 감지되면 <b>카드 경로(importDoc) 우선</b> — 슬라이드/이미지 덱만 덱 경로.
+      <br><b>검증:</b> 실제 <code>AX_전환_실행로드맵</code> HTML에서 표지 + <b>목차 13항목</b> + 12개 섹션(표 포함) 감지 확인, tsc 0.</div>
+    </div>
+    <div class="mile">
+      <div class="mh"><span class="mid">M6</span><span class="mt">(A) 긴 섹션 자동 분할 — 글씨 범벅 완화</span><span class="pill p-core">구현 완료</span></div>
+      <div class="mb">임포트 카드가 한 장에 우겨넣어 글씨가 작아지던 문제 해결. 사장돼 있던 <code>paginate.ts</code>(렌더 높이 측정 분할)를
+      임포트 카드 경로에 연결 — 긴 섹션은 <b>"제목 (2)(3)"으로 자동 분할</b>. 이어지는 페이지엔 <code>contd</code> 플래그를 달아
+      <b>목차에는 안 보이되 seq는 소비</b>(핫스팟 정렬 유지). <b>검증:</b> tsc 0. LLM 불필요.</div>
+    </div>
+    <div class="mile">
+      <div class="mh"><span class="mid">M7</span><span class="mt">(B) LLM 요약 큐레이션 — EVER-PEAK식 자동화</span><span class="pill p-core">구현 완료 · 현지 LLM 테스트 대기</span></div>
+      <div class="mb"><b>구현:</b> ① <code>server/app.py</code>에 <code>POST /api/summarize</code> — 섹션 원문 → 게이트웨이 LLM → <b>{headline, bullets 3~5, cardType}</b> JSON.
+      유니에버 게이트웨이 호환으로 <b>헤더+본문 모두에 user_id·api_key</b> 전송(연결 테스트 호출부도 동일 보강). api_key는 <b>서버 설정에서만 읽고 코드/응답에 노출 안 함</b>.
+      ② <code>store.summarizeNotes()</code> + <b>✨ AI 요약</b> 버튼(양 툴바) — 본문 카드들을 요약으로 치환, <b>실패 섹션은 (A) 원문 유지 폴백</b>.
+      <br><b>HELIX 조사:</b> HELIX 엔드포인트는 도메인 전용이라 미사용. HELIX가 쓰는 게이트웨이(<code>211.224.106.178:8004/api/v1/inference/chat/completions</code>, model <code>gemma3:27b</code> 등)를 ebook_html 환경설정에 넣으면 됨 — <b>HELIX 코드 연동 불필요</b>.
+      <br><b>남은 검증:</b> 게이트웨이가 사내망이라 클라우드에서 호출 불가 → <b>이사님 Mac에서 환경설정 입력 → 연결 테스트 → AI 요약</b>으로 실제 확인 필요(tsc·py 문법은 통과).</div>
+    </div>
+  </section>
+
+  <!-- 6. 검증 -->
+  <section>
+    <h2><span class="n">6</span>완료 판정 체크리스트</h2>
+    <p class="sub">아래가 모두 실제 실행으로 확인돼야 "완료"입니다. (verification-before-completion 규약)</p>
+    <ul>
+      <li><b>라이트로 만든 이북</b>이 <code>EVER-PEAK 솔루션소개</code>와, <b>다크로 만든 이북</b>이 <code>EVER-PEAK 다크</code>와 육안으로 같은 계열이다.</li>
+      <li>이북 만들 때 <b>라이트/다크 토글</b>만 바꿔도 해당 톤으로 생성되고, 목차 카드도 그 톤을 따른다.</li>
+      <li>목차의 <b>모든 항목</b>을 눌렀을 때 각각 <b>정확한 페이지</b>로 이동한다(빗나감 0) — 라이트·다크 양쪽 모두.</li>
+      <li><code>_hotspots.json</code>이 빌드 산출물에 생성되고, generator 로그에 "핫스팟 N개 적용"이 찍힌다(OCR 경로로 안 떨어짐).</li>
+      <li>목차가 "위에 어정쩡하게 불러와지는" 현상이 사라졌다.</li>
+      <li>내보낸 PDF에서도 목차 클릭 이동이 유지된다(뷰어 밖에서도 동작).</li>
+      <li>기존 라이트 이북 생성이 그대로 동작한다(회귀 없음).</li>
+      <li>uniever_ebook 수정 여부가 D1 결정과 일치한다(무단 변경 없음).</li>
+    </ul>
+  </section>
+
+  <!-- 7. 근거 파일 -->
+  <section>
+    <h2><span class="n">7</span>근거 — 확인한 파일</h2>
+    <table>
+      <thead><tr><th>파일</th><th>확인한 내용</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">src/export/exportBook.ts</td><td>모든 페이지를 PNG로 굽고 <code>/api/build</code>로 전송(목차 role 포함)</td></tr>
+        <tr><td class="mono">server/app.py</td><td><code>/api/build</code>가 PNG 저장 후 <code>generator.py build</code> 호출, 결과를 <code>/ebooks/&lt;id&gt;/</code>로 서빙</td></tr>
+        <tr><td class="mono">ebook-generator/generator.py</td><td><code>_load_hotspots</code>(좌표 파일 우선) · <code>_auto_hotspots</code>(OCR 대체) — 목차 클릭 로직 보유</td></tr>
+        <tr><td class="mono">ebooks/&lt;id&gt;/flip.js</td><td>핫스팟을 <code>data-goto-seq</code> 버튼으로 렌더, 클릭 시 해당 seq로 <code>animateTo</code></td></tr>
+        <tr><td class="mono">src/cards/PageView.tsx</td><td>목차 카드가 흰 배경·회색 글자(라이트) — 다크 아님</td></tr>
+        <tr><td class="mono">src/design/tokens.ts</td><td>라이트 팔레트만 존재(다크 세트 없음)</td></tr>
+        <tr><td class="mono">src/export/contract.ts</td><td>"uniever_ebook은 수정하지 않는다" 불변 계약 명시</td></tr>
+        <tr><td class="mono">src/import/htmlImport.ts</td><td>명시적 목차(Contents 네비) 감지 + 섹션 매핑 + 표/pre 캡처(M5 구현)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="footer">ebook_html 개선 계획서 v1.7 · 2026-08-10 · <b>구현: M0~M2 · full-bleed · M5(목차 감지) · M6(A·자동 분할) · M7(B·LLM 요약)</b> · 남은 것: 현지 LLM 연결 테스트</div>
+
+</div>
+</body>
+</html>

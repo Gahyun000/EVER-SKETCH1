@@ -1,0 +1,25 @@
+# 테스트 증적 — e2e 가져오기(현행 UI) 실측 통과
+실행시각: 2026-08-12 10:55:21 KST · 소스: commit b30c00d
+환경: Anthropic 클라우드 컨테이너, Chromium 1194(PW_CHROME), Playwright 1.62, npm build 후 dist 서빙(server_test.mjs 8899)
+방법: 현행 import UX 반영 — 업로드 → 덱 미리보기 모달 → '메인 캔버스로 가기'(.ax-tbtn.dark) → 로컬 editableDoc 파이프라인(parseHtml→paginate) 커밋
+------------------------------------------------------
+## import_v2_smoke.mjs (REQ-F-003 가져오기)
+  before=1 after=5 status="가져옴: imp.html" errs=0
+  PASS 가져오기 후 페이지 증가
+  PASS 본문 첫 마커(IMPORT-MARK-A) 렌더
+  PASS 본문 끝 마커(IMPORT-MARK-Z) 미유실
+  PASS 상태 가져옴 표시
+  PASS 페이지 오류 없음
+  → ALL PASS (exit 0)
+
+## import_pagination_v2_smoke.mjs (REQ-F-003 넘침 분할)
+  before=1 after=12 errs=0
+  PASS 긴 장이 여러 페이지로 분할(≥5장)  [실측 12장]
+  PASS 마지막 문단 미유실(END-MARKER-Z)
+  PASS 분할 표기 존재(장 (2))
+  PASS 페이지 오류 없음
+  → ALL PASS (exit 0)
+------------------------------------------------------
+판정: REQ-F-003(HTML 가져오기 + 넘침 분할) **실측 통과**. 클라이언트 파이프라인(parseHtml→paginate→pages) 브라우저 검증.
+비고: /api/deck(변환 백엔드)는 모의 서버 미구현이라 미리보기는 오류 후 editableDoc 로컬 폴백 경로로 커밋(정상 설계 경로). REQ-F-004의 PNG→generator.py 실제 이북 빌드는 별도(모의 /api/build).
+신규 스모크: e2e/import_v2_smoke.mjs, e2e/import_pagination_v2_smoke.mjs (구 .chip/.fitem 스모크 대체, 현행 ax-* + 미리보기 커밋 흐름).

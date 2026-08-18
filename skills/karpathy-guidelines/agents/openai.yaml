@@ -1,0 +1,4 @@
+interface:
+  display_name: "Karpathy Guidelines"
+  short_description: "과잉 구현을 막고 최소·검증 가능한 코드 변경을 유도합니다."
+  default_prompt: "Use $karpathy-guidelines to make the smallest verifiable code change for this request."

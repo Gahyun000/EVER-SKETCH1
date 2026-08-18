@@ -1,0 +1,18 @@
+실행시각: 2026-08-12 11:04:28 KST · 소스: commit 69e93ee
+# 테스트 증적 — e2e 자유 캔버스(F-002) + FOLIO 배선(F-011)
+환경: 클라우드 컨테이너, Chromium 1194(PW_CHROME), Playwright 1.62, dist 서빙(8899)
+------------------------------------------------------
+## canvas_smoke.mjs
+  fel box=1 ellipse=2 conns=1 folio=http://127.0.0.1:8811 errs=0
+  PASS 사각형 추가(.fel >=1)
+  PASS 원 추가(.fel >=2)
+  PASS 연결선 생성(화살표 marker-end >=1)
+  PASS FOLIO 칩 배선(8811)
+  PASS 페이지 오류 없음
+  -> ALL PASS (exit 0)
+------------------------------------------------------
+판정:
+  - REQ-F-002 자유 캔버스: 실측 통과(도형 추가·화살표 연결, 메인 스테이지 interactive freelayer).
+  - REQ-F-011 EVER-FOLIO: 부분(칩 배선 href :8811 검증 / 8811 라이브러리 실기동 연동은 실행기(run.command) 경유 필요).
+비고: fel 은 필름스트립 미니에도 복제 렌더되므로 활성 레이어(freelayer:not(.off))로 스코프 필요.
+신규 스모크: e2e/canvas_smoke.mjs

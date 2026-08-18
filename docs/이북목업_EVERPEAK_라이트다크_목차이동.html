@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이북 목업 — EVER-PEAK 라이트/다크 · 목차 클릭 이동</title>
+<style>
+  :root{
+    --appbg:#e9edf2; --page:#ffffff; --ink:#0F1B3D; --body:#1c2433; --sub:#5b6270; --muted:#98a1b2;
+    --blue:#2462EB; --kick:#2462EB; --line:#e6e8ee; --chipbd:#2462EB; --card:#f6f8fc; --cardbd:#e3e9f5;
+    --footer:#8a92a3; --shadow:0 24px 60px rgba(15,27,61,.16); --tbar:#ffffff; --tbarbd:#e6e8ee; --tink:#1c2433;
+  }
+  html.dark{
+    --appbg:#060d18; --page:#0b1626; --ink:#ffffff; --body:#e7edf6; --sub:#9fb0c7; --muted:#68798f;
+    --blue:#4d86ff; --kick:#4d86ff; --line:rgba(255,255,255,.12); --chipbd:#3d6dff; --card:rgba(255,255,255,.05); --cardbd:rgba(255,255,255,.10);
+    --footer:#5f7290; --shadow:0 30px 70px rgba(0,0,0,.55); --tbar:#0a1322; --tbarbd:rgba(255,255,255,.09); --tink:#e7edf6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--appbg);color:var(--tink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;transition:background .35s}
+  /* 상단 툴바 */
+  .tbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:11px 18px;background:var(--tbar);border-bottom:1px solid var(--tbarbd);transition:background .35s,border-color .35s}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:14px;letter-spacing:-.01em}
+  .brand .mk{width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,var(--blue),#7db4ff)}
+  .sp{flex:1}
+  .tbtn{border:1px solid var(--tbarbd);background:transparent;color:var(--tink);border-radius:9px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .tbtn:hover{border-color:var(--blue);color:var(--blue)}
+  .seg{display:flex;border:1px solid var(--tbarbd);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:transparent;color:var(--tink);padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
+  .seg button.on{background:var(--blue);color:#fff}
+  .pageind{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+  /* 힌트 스트립 */
+  .hint{display:flex;align-items:center;gap:8px;justify-content:center;font-size:12.5px;color:var(--muted);padding:8px 14px;background:transparent}
+  .hint b{color:var(--blue)}
+  /* 무대 */
+  .stage{display:flex;align-items:center;justify-content:center;gap:14px;padding:26px 18px 40px;min-height:calc(100vh - 108px)}
+  .nav{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--tbarbd);background:var(--tbar);color:var(--tink);cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .nav:hover{border-color:var(--blue);color:var(--blue)}
+  .nav:disabled{opacity:.3;cursor:default}
+  /* 페이지 카드 (EVER-PEAK 세로형) */
+  .page{position:relative;width:580px;max-width:calc(100vw - 130px);aspect-ratio:0.70;background:var(--page);color:var(--body);border-radius:6px;box-shadow:var(--shadow);
+    padding:46px 52px 40px;overflow:hidden;transition:background .35s,color .35s,box-shadow .35s}
+  .page .kick{font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--kick);text-transform:uppercase}
+  .page .kick .seq{color:var(--muted);margin-left:8px;letter-spacing:.1em}
+  .page h1{font-size:34px;line-height:1.18;margin:16px 0 0;color:var(--ink);letter-spacing:-.02em;font-weight:800}
+  .page h1 .accent{color:var(--blue)}
+  .page .lede{margin:16px 0 0;font-size:14.5px;line-height:1.6;color:var(--sub)}
+  .page .lede b{color:var(--blue);font-weight:700}
+  .rule{height:1px;background:var(--line);margin:18px 0 2px}
+  /* 목차 */
+  .toc-list{margin:4px 0 0;list-style:none;padding:0}
+  .toc-row{display:grid;grid-template-columns:34px 1fr auto;align-items:baseline;gap:16px;padding:11px 8px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px;transition:background .15s,transform .12s}
+  .toc-row:hover{background:color-mix(in srgb, var(--blue) 12%, transparent);transform:translateX(3px)}
+  .toc-row .no{font-size:13px;font-weight:800;color:var(--blue);font-variant-numeric:tabular-nums}
+  .toc-row .tit{font-size:18px;font-weight:800;color:var(--ink)}
+  .toc-row .desc{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin-top:3px}
+  .toc-row .pg{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  /* 본문 카드 리스트 */
+  .cards{margin:22px 0 0;display:flex;flex-direction:column;gap:14px}
+  .icard{display:grid;grid-template-columns:32px 1fr;gap:14px;align-items:start}
+  .icard .chip{width:32px;height:32px;border:1.5px solid var(--chipbd);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--blue)}
+  .icard h3{margin:2px 0 4px;font-size:16px;font-weight:800;color:var(--ink)}
+  .icard p{margin:0;font-size:13px;line-height:1.55;color:var(--sub)}
+  .icard p b{color:var(--blue)}
+  .passbox{margin:22px 0 0;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;padding:14px 16px;background:var(--card)}
+  .passbox .plabel{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--blue)}
+  .passbox .plabel .dot{color:#3E9E6E;margin-right:6px}
+  .passbox p{margin:6px 0 0;font-size:12.5px;line-height:1.55;color:var(--sub)}
+  /* 표지 */
+  .cover{display:flex;flex-direction:column;justify-content:center;height:100%}
+  .cover .ct{font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--kick);text-transform:uppercase}
+  .cover h1{font-size:46px;line-height:1.12;margin:18px 0 0}
+  .cover .cs{margin:16px 0 0;font-size:15px;color:var(--sub)}
+  /* 푸터 */
+  .foot{position:absolute;left:54px;right:54px;bottom:26px;display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.12em;color:var(--footer);text-transform:uppercase}
+  .foot .badge{width:22px;height:22px;border:1px solid var(--line);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue)}
+  .center-mark{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:26px;height:26px;border:1px solid var(--line);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:13px}
+  @media(max-width:640px){.page{padding:38px 30px 36px}.foot,.page h1{}}
+</style>
+</head>
+<body>
+  <div class="tbar">
+    <div class="brand"><span class="mk"></span><span>EVER-PEAK · 솔루션 소개 <span style="color:var(--muted);font-weight:600">(목업)</span></span></div>
+    <div class="sp"></div>
+    <button class="tbtn" id="toToc">☰ 목차</button>
+    <div class="seg" role="group" aria-label="테마">
+      <button id="tLight" class="on" type="button">라이트</button>
+      <button id="tDark" type="button">다크</button>
+    </div>
+    <div class="pageind" id="pageind">표지</div>
+  </div>
+  <div class="hint">목차 항목을 <b>클릭</b>하면 해당 페이지로 이동합니다 · 오른쪽 위에서 <b>라이트/다크</b>를 바꿔보세요 · ← → 키로도 넘길 수 있어요</div>
+
+  <div class="stage">
+    <button class="nav" id="prev" aria-label="이전">‹</button>
+    <div class="page" id="page"></div>
+    <button class="nav" id="next" aria-label="다음">›</button>
+  </div>
+
+<script>
+(function(){
+  // ── 목차/본문 데이터 (EVER-PEAK 솔루션소개 재현) ──
+  var TOC = [
+    {no:"01", tit:"기회",   desc:"이미 쌓인 데이터로 무엇을 더 할 수 있는가", pg:"03", idx:2},
+    {no:"02", tit:"해결",   desc:"유니에버는 이렇게 해결한다",              pg:"04", idx:3},
+    {no:"03", tit:"에이전트", desc:"AI 에이전트란 · 장점 · 활용 분야",       pg:"05", idx:4},
+    {no:"04", tit:"가치",   desc:"왜 유니에버인가",                      pg:"09", idx:5},
+    {no:"05", tit:"방법",   desc:"작동 원리 · 아키텍처 · 솔루션 9종",      pg:"10", idx:6},
+    {no:"06", tit:"화면",   desc:"실제로 동작하는 화면",                  pg:"17", idx:7},
+    {no:"07", tit:"효과",   desc:"무엇이 좋아지는가",                    pg:"20", idx:8},
+    {no:"08", tit:"도입",   desc:"지금 어떻게 시작하는가 · 문의",          pg:"21", idx:9}
+  ];
+
+  // 본문 페이지 정의
+  var SECTIONS = [
+    { kick:"OPPORTUNITY", seq:"01", pg:"03", title:['이미 가진 것으로 ', '<span class="accent">더 할 수 있는 일</span>'],
+      lede:'문제를 찾자는 게 아니라, <b>쌓여 있지만 아직 쓰이지 않는 자산</b>을 어디까지 활용할 수 있는지의 이야기입니다.',
+      cards:[
+        {n:"01", h:"이미 쌓인 품질 데이터", p:'검사 기록·불량 이력·설비 로그가 매일 늘어납니다. <b>지금은 보관되고, 앞으로는 판단에 쓰입니다.</b>'},
+        {n:"02", h:"숙련자의 판단 기준", p:'베테랑의 원인 진단 노하우가 개인 경험에 남아 있습니다. <b>조직 자산으로 남길 수 있습니다.</b>'},
+        {n:"03", h:"문서로 흩어진 지식", p:'매뉴얼·ISIR·시정조치 이력이 폴더마다 있습니다. <b>검색 한 번으로 닿게 만들 수 있습니다.</b>'},
+        {n:"04", h:"현업의 분석 수요", p:'SQL을 몰라도 데이터를 보고 싶어 하는 사람이 많습니다. <b>자연어로 열어줄 수 있습니다.</b>'}
+      ],
+      pass:'지금 방식을 바꾸자는 제안이 아닙니다. 사람이 하던 판단은 그대로 두고, 반복 조회·정리·감시만 에이전트가 대신합니다.'},
+    { kick:"SOLUTION", seq:"02", pg:"04", title:['유니에버는 ', '<span class="accent">이렇게 해결합니다</span>'],
+      lede:'데이터를 <b>찾고 · 보고 · 판정</b>하는 세 동작을, 현장 흐름을 바꾸지 않고 얹습니다.',
+      cards:[
+        {n:"01", h:"찾기", p:'흩어진 문서·기록을 <b>한 곳에서 자연어로</b> 검색합니다.'},
+        {n:"02", h:"보기", p:'숫자를 <b>판단 가능한 요약</b>으로 바꿔 보여줍니다.'},
+        {n:"03", h:"판정", p:'이상 신호를 <b>먼저 알리고</b>, 근거를 함께 제시합니다.'}
+      ], pass:null },
+    { kick:"AGENT", seq:"03", pg:"05", title:['AI 에이전트란 ', '<span class="accent">무엇인가</span>'],
+      lede:'묻는 말에 답만 하는 챗봇이 아니라, <b>목표를 받아 스스로 여러 단계를 실행</b>하는 일꾼입니다.',
+      cards:[
+        {n:"01", h:"이해", p:'무엇을 원하는지 <b>맥락으로</b> 파악합니다.'},
+        {n:"02", h:"실행", p:'조회·정리·작성을 <b>순서대로</b> 처리합니다.'},
+        {n:"03", h:"보고", p:'결과와 <b>근거</b>를 함께 돌려줍니다.'}
+      ], pass:null },
+    { kick:"VALUE", seq:"04", pg:"09", title:['왜 ', '<span class="accent">유니에버인가</span>'],
+      lede:'도구가 아니라 <b>현장에 맞춘 운영</b>을 함께 만듭니다.',
+      cards:[
+        {n:"01", h:"현장 언어", p:'제조 용어와 흐름을 <b>그대로</b> 씁니다.'},
+        {n:"02", h:"안전한 도입", p:'기존 시스템을 <b>바꾸지 않고</b> 얹습니다.'}
+      ], pass:null },
+    { kick:"METHOD", seq:"05", pg:"10", title:['작동 원리 · 아키텍처 · ', '<span class="accent">솔루션 9종</span>'],
+      lede:'하나의 흐름 위에 <b>9개 솔루션</b>이 필요할 때 붙습니다.',
+      cards:[
+        {n:"품질", h:"찾고, 보고, 판정합니다", p:'결함검출·검사 이력 분석.'},
+        {n:"지식", h:"흩어진 문서를 답으로", p:'매뉴얼·이력 자연어 검색.'},
+        {n:"설비", h:"예측하고, 지시서까지", p:'이상 예측·조치 지시.'},
+        {n:"경영", h:"숫자를 요약으로", p:'지표를 판단 가능한 형태로.'}
+      ], pass:null },
+    { kick:"SCREENS", seq:"06", pg:"17", title:['실제로 ', '<span class="accent">동작하는 화면</span>'],
+      lede:'개념이 아니라 <b>지금 쓰는 화면</b>입니다.',
+      cards:[
+        {n:"01", h:"결함 검출", p:'실시간 판정 화면.'},
+        {n:"02", h:"경영 가시성", p:'대시보드 요약.'},
+        {n:"03", h:"품질·지식·설비", p:'통합 조회.'}
+      ], pass:null },
+    { kick:"IMPACT", seq:"07", pg:"20", title:['무엇이 ', '<span class="accent">좋아지는가</span>'],
+      lede:'속도·정확도·<b>일관성</b>이 함께 올라갑니다.',
+      cards:[
+        {n:"01", h:"더 빠르게", p:'반복 조회 시간을 줄입니다.'},
+        {n:"02", h:"더 정확하게", p:'놓치던 신호를 잡습니다.'}
+      ], pass:null },
+    { kick:"START", seq:"08", pg:"21", title:['지금 ', '<span class="accent">어떻게 시작하는가</span>'],
+      lede:'작게 시작해 <b>한 달 안에</b> 첫 결과를 봅니다.',
+      cards:[
+        {n:"01", h:"진단", p:'가장 효과 큰 한 곳을 고릅니다.'},
+        {n:"02", h:"파일럿", p:'한 라인·한 팀에서 검증합니다.'},
+        {n:"03", h:"문의", p:'ever-peak@uniever · 담당자 배정.'}
+      ], pass:null }
+  ];
+
+  // ── 페이지 렌더러 ──
+  function coverHTML(){
+    return '<div class="cover">'+
+      '<div class="ct">UNIEVER · AI FACTORY</div>'+
+      '<h1>EVER-PEAK<br>솔루션 소개</h1>'+
+      '<div class="cs">이미 가진 것으로 더 할 수 있는 일 — 제조 현장을 위한 AI 에이전트</div>'+
+      '</div>'+
+      '<div class="center-mark">⊕</div>';
+  }
+  function tocHTML(){
+    var rows = TOC.map(function(t){
+      return '<li class="toc-row" data-goto="'+t.idx+'" role="button" tabindex="0">'+
+        '<span class="no">'+t.no+'</span>'+
+        '<span class="tit">'+t.tit+'<span class="desc">'+t.desc+'</span></span>'+
+        '<span class="pg">'+t.pg+'</span>'+
+      '</li>';
+    }).join('');
+    return '<div class="kick">Contents</div>'+
+      '<h1>목차</h1>'+
+      '<div class="lede">기회에서 출발해 해결·가치·방법·효과·도입까지, 하나의 흐름으로 이어지는 순서로 설명합니다.</div>'+
+      '<div class="rule"></div>'+
+      '<ul class="toc-list">'+rows+'</ul>'+
+      foot("02");
+  }
+  function sectionHTML(s){
+    var cards = s.cards.map(function(c){
+      return '<div class="icard"><div class="chip">'+c.n+'</div>'+
+        '<div><h3>'+c.h+'</h3><p>'+c.p+'</p></div></div>';
+    }).join('');
+    var pass = s.pass ? '<div class="passbox"><div class="plabel"><span class="dot">●</span>PASS · 전제</div><p>'+s.pass+'</p></div>' : '';
+    return '<div class="kick">'+s.kick+' <span class="seq">'+s.seq+'</span></div>'+
+      '<h1>'+s.title[0]+s.title[1]+'</h1>'+
+      '<div class="lede">'+s.lede+'</div>'+
+      '<div class="rule"></div>'+
+      '<div class="cards">'+cards+'</div>'+ pass +
+      foot(s.pg);
+  }
+  function foot(pg){
+    return '<div class="foot"><span>EVER-PEAK · UNIEVER</span><span>'+pg+' / 23</span></div>';
+  }
+
+  // 페이지 목록: 0 표지, 1 목차, 2~ 섹션
+  var pages = [{kind:'cover', label:'표지'}, {kind:'toc', label:'목차'}];
+  SECTIONS.forEach(function(s){ pages.push({kind:'sec', s:s, label:s.pg+' / 23'}); });
+
+  var cur = 0;
+  var pageEl = document.getElementById('page');
+  var indEl = document.getElementById('pageind');
+  function render(){
+    var p = pages[cur], html;
+    if(p.kind==='cover') html = coverHTML();
+    else if(p.kind==='toc') html = tocHTML();
+    else html = sectionHTML(p.s);
+    pageEl.innerHTML = html;
+    indEl.textContent = p.label;
+    document.getElementById('prev').disabled = (cur===0);
+    document.getElementById('next').disabled = (cur===pages.length-1);
+    // 목차 행 클릭 바인딩
+    Array.prototype.forEach.call(pageEl.querySelectorAll('[data-goto]'), function(el){
+      el.addEventListener('click', function(){ goto(parseInt(el.getAttribute('data-goto'),10)); });
+      el.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){e.preventDefault();goto(parseInt(el.getAttribute('data-goto'),10));} });
+    });
+  }
+  function goto(i){ if(i<0||i>=pages.length) return; cur=i; render(); pageEl.animate?pageEl.animate([{opacity:.3,transform:'translateY(6px)'},{opacity:1,transform:'none'}],{duration:220,easing:'ease-out'}):0; }
+
+  document.getElementById('prev').addEventListener('click', function(){ goto(cur-1); });
+  document.getElementById('next').addEventListener('click', function(){ goto(cur+1); });
+  document.getElementById('toToc').addEventListener('click', function(){ goto(1); });
+  document.addEventListener('keydown', function(e){ if(e.key==='ArrowRight') goto(cur+1); if(e.key==='ArrowLeft') goto(cur-1); });
+
+  // 테마 전환
+  var tl=document.getElementById('tLight'), td=document.getElementById('tDark');
+  function setTheme(dark){ document.documentElement.classList.toggle('dark', dark); tl.classList.toggle('on',!dark); td.classList.toggle('on',dark); }
+  tl.addEventListener('click', function(){ setTheme(false); });
+  td.addEventListener('click', function(){ setTheme(true); });
+
+  // 시작: 목차부터 보여주면 클릭 이동을 바로 체험 가능
+  cur = 1; setTheme(false); render();
+})();
+</script>
+</body>
+</html>

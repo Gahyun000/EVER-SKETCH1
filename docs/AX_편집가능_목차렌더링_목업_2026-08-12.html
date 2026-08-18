@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AX HTML 편집 가능 목차 렌더링 목업</title>
+  <style>
+    :root {
+      --navy: #0f1b3d;
+      --ink: #172033;
+      --muted: #778197;
+      --line: #dce3ef;
+      --page: #f5f7fb;
+      --paper: #ffffff;
+      --panel: #f7f9fd;
+      --blue: #2462eb;
+      --blue2: #eaf1fe;
+      --green: #2f9e73;
+      --aqua: #2aa7a5;
+      --amber: #cf7a21;
+      --violet: #6555d9;
+      --shadow: 0 18px 45px rgba(15, 27, 61, .12);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 260px minmax(820px, 1fr) 280px;
+      min-height: 100vh;
+    }
+    .rail, .inspector {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      background: #fff;
+      border-right: 1px solid var(--line);
+      padding: 18px;
+    }
+    .inspector {
+      border-right: 0;
+      border-left: 1px solid var(--line);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      color: var(--navy);
+      font-weight: 900;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: var(--navy);
+      position: relative;
+    }
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      right: -4px;
+      top: 7px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #d63a2a;
+      border: 3px solid #fff;
+    }
+    .rail small, .inspector small {
+      display: block;
+      color: var(--muted);
+      font: 700 10px/1.4 var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+    }
+    .thumbs {
+      display: grid;
+      gap: 10px;
+    }
+    .thumb {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      padding: 10px;
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .thumb:hover, .thumb:focus {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+    .thumb b {
+      color: var(--blue);
+      font: 800 13px var(--mono);
+    }
+    .thumb span {
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .work {
+      padding: 24px 34px 70px;
+    }
+    .notice {
+      max-width: 900px;
+      margin: 0 auto 24px;
+      border: 1px solid #c9d7ff;
+      background: #edf3ff;
+      color: #1b4fc4;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .slide {
+      width: 750px;
+      height: 1000px;
+      margin: 0 auto 34px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      border-radius: 6px;
+      scroll-margin-top: 20px;
+    }
+    .slide.dark {
+      background: var(--navy);
+      color: #fff;
+    }
+    .topline, .bottomline {
+      position: absolute;
+      left: 62px;
+      right: 62px;
+      height: 1px;
+      background: rgba(130, 145, 175, .36);
+    }
+    .topline { top: 82px; }
+    .bottomline { bottom: 65px; }
+    .meta-left, .meta-right, .foot-left, .foot-right {
+      position: absolute;
+      font: 800 10px/1 var(--mono);
+      letter-spacing: 1.8px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .dark .meta-left, .dark .foot-left, .dark .foot-right { color: #8b97bc; }
+    .meta-left { left: 62px; top: 43px; }
+    .meta-right { right: 62px; top: 43px; color: var(--blue); }
+    .foot-left { left: 62px; bottom: 40px; }
+    .foot-right { right: 62px; bottom: 40px; }
+    .editable {
+      position: absolute;
+      outline: 1.5px dashed transparent;
+      border-radius: 4px;
+    }
+    .editable:hover, .editable:focus {
+      outline-color: var(--blue);
+      background: rgba(36, 98, 235, .045);
+    }
+    .editable::after {
+      content: "";
+      display: none;
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      right: -5px;
+      bottom: -5px;
+      border: 1px solid var(--blue);
+      background: #fff;
+      border-radius: 2px;
+    }
+    .editable:hover::after, .editable:focus::after { display: block; }
+    .label {
+      position: absolute;
+      padding: 4px 7px;
+      border-radius: 999px;
+      font: 800 9px var(--mono);
+      color: #1b4fc4;
+      background: var(--blue2);
+      border: 1px solid #cddcff;
+    }
+    .cover-word {
+      left: 108px;
+      top: 100px;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -.2px;
+    }
+    .cover-dot {
+      position: absolute;
+      left: 62px;
+      top: 111px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #d63a2a;
+      border: 5px solid var(--navy);
+    }
+    .cover-title {
+      left: 62px;
+      top: 220px;
+      width: 620px;
+      font-size: 48px;
+      line-height: 1.08;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+    .cover-sub {
+      left: 62px;
+      top: 412px;
+      width: 560px;
+      color: #c8d1e8;
+      font-size: 16px;
+      line-height: 1.65;
+      font-weight: 600;
+    }
+    .cover-card {
+      position: absolute;
+      bottom: 112px;
+      width: 198px;
+      height: 146px;
+      background: #18264a;
+      border: 1px solid #2c3b63;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .cover-card:nth-of-type(1) { left: 62px; }
+    .cover-card:nth-of-type(2) { left: 276px; }
+    .cover-card:nth-of-type(3) { left: 490px; }
+    .cover-card .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-bottom: 16px;
+      background: var(--aqua);
+    }
+    .cover-card:nth-of-type(2) .dot { background: #f0a968; }
+    .cover-card:nth-of-type(3) .dot { background: #6ea0ff; }
+    .cover-card strong {
+      display: block;
+      color: #fff;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .cover-card p {
+      margin: 0;
+      color: #c7d0e6;
+      font-size: 11px;
+      line-height: 1.45;
+      font-weight: 600;
+    }
+    .mark {
+      left: 62px;
+      top: 110px;
+      color: var(--blue);
+      font: 900 13px var(--mono);
+      letter-spacing: 1.6px;
+    }
+    .slide-title {
+      left: 62px;
+      top: 150px;
+      width: 620px;
+      font-size: 34px;
+      line-height: 1.14;
+      font-weight: 900;
+      color: var(--navy);
+    }
+    .lead {
+      left: 62px;
+      top: 250px;
+      width: 590px;
+      color: #2b3548;
+      font-size: 14px;
+      line-height: 1.65;
+      font-weight: 600;
+    }
+    .toc-list {
+      position: absolute;
+      left: 62px;
+      right: 62px;
+      top: 315px;
+      display: grid;
+      gap: 0;
+    }
+    .toc-row {
+      display: grid;
+      grid-template-columns: 58px 230px 1fr 44px;
+      min-height: 66px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .toc-row:hover { background: #f8fbff; }
+    .toc-row b {
+      color: var(--blue);
+      font: 900 15px var(--mono);
+    }
+    .toc-row strong {
+      color: var(--navy);
+      font-size: 15px;
+    }
+    .toc-row span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .toc-row em {
+      color: #a1acbf;
+      font: normal 800 11px var(--mono);
+      text-align: right;
+    }
+    .cards {
+      position: absolute;
+      left: 62px;
+      right: 62px;
+      top: 525px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .card {
+      min-height: 170px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      position: relative;
+    }
+    .card .chip {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--blue2);
+      color: var(--blue);
+      font: 900 10px var(--mono);
+      margin-bottom: 14px;
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      color: var(--navy);
+      font-size: 15px;
+      line-height: 1.25;
+    }
+    .card p {
+      margin: 0;
+      color: #334056;
+      font-size: 11.5px;
+      line-height: 1.55;
+      font-weight: 600;
+    }
+    .flow {
+      position: absolute;
+      left: 62px;
+      right: 62px;
+      top: 390px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+    .flow-step {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--blue);
+      border-radius: 8px;
+      padding: 14px 12px;
+      min-height: 150px;
+      position: relative;
+    }
+    .flow-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: -12px;
+      top: 64px;
+      width: 14px;
+      height: 2px;
+      background: #a9b8d4;
+    }
+    .flow-step b {
+      display: block;
+      color: var(--blue);
+      font: 900 13px var(--mono);
+      margin-bottom: 10px;
+    }
+    .flow-step strong {
+      color: var(--navy);
+      font-size: 13px;
+    }
+    .flow-step p {
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+    .compare {
+      position: absolute;
+      left: 62px;
+      right: 62px;
+      top: 370px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .lane {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .lane h3 {
+      margin: 0;
+      padding: 14px 16px;
+      background: var(--navy);
+      color: #fff;
+      font-size: 15px;
+    }
+    .lane.alt h3 { background: var(--blue); }
+    .lane ul {
+      margin: 0;
+      padding: 16px 18px 18px 30px;
+      display: grid;
+      gap: 13px;
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 650;
+      color: #354055;
+    }
+    .timeline {
+      position: absolute;
+      left: 62px;
+      right: 62px;
+      top: 345px;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+    }
+    .phase {
+      min-height: 265px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      position: relative;
+    }
+    .phase b {
+      color: var(--blue);
+      font: 900 18px var(--mono);
+    }
+    .phase strong {
+      display: block;
+      margin: 16px 0 10px;
+      color: var(--navy);
+      font-size: 13px;
+    }
+    .phase p {
+      color: #435069;
+      font-size: 10.5px;
+      line-height: 1.45;
+      font-weight: 650;
+      margin: 0;
+    }
+    .object-note {
+      position: absolute;
+      right: 62px;
+      top: 885px;
+      color: var(--blue);
+      font: 800 10px var(--mono);
+    }
+    .prop-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+    .prop-card b {
+      display: block;
+      color: var(--navy);
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .prop {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      gap: 8px;
+      font-size: 12px;
+      padding: 5px 0;
+      border-top: 1px solid #edf1f7;
+    }
+    .prop span:first-child {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+    .legend {
+      display: grid;
+      gap: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #435069;
+    }
+    .sw {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      margin-right: 7px;
+      vertical-align: -1px;
+    }
+    @media (max-width: 1180px) {
+      .app { grid-template-columns: 1fr; }
+      .rail, .inspector { position: static; height: auto; border: 0; }
+      .work { overflow: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="rail">
+      <div class="brand"><span class="brand-mark"></span><span>EVER-PEAK editable mockup</span></div>
+      <small>Rendered TOC</small>
+      <nav class="thumbs" aria-label="목업 슬라이드">
+        <a class="thumb" href="#s01"><b>01</b><span>표지 · AX 전환 메시지</span></a>
+        <a class="thumb" href="#s02"><b>02</b><span>목차 · 클릭 이동 구조</span></a>
+        <a class="thumb" href="#s03"><b>03</b><span>E2E 업무 운영체계</span></a>
+        <a class="thumb" href="#s04"><b>04</b><span>PM 업무 비교</span></a>
+        <a class="thumb" href="#s05"><b>05</b><span>AI 실행 허브 흐름</span></a>
+        <a class="thumb" href="#s06"><b>06</b><span>첫 90일 로드맵</span></a>
+      </nav>
+    </aside>
+
+    <section class="work">
+      <div class="notice">
+        이 목업은 앱 코드가 아니라 정적 HTML 시안입니다. 원본 HTML의 `section`, `card`, `table`, `phase` 구조를 바탕으로
+        PPTX/캔버스에서 편집 가능한 객체로 재조판할 때의 목표 수준을 보여줍니다.
+        파란 점선과 작은 핸들은 “텍스트 박스/도형 객체로 선택 가능”하다는 표시입니다.
+      </div>
+
+      <article id="s01" class="slide dark">
+        <div class="topline"></div><div class="bottomline"></div>
+        <div class="meta-left">UNIEVER CO., LTD.</div>
+        <div class="meta-right">AX TRANSFORMATION · 2026</div>
+        <div class="foot-left">AX_전환_실행로드맵_v1</div>
+        <div class="foot-right">01 / 06</div>
+        <div class="cover-dot"></div>
+        <div class="editable cover-word" contenteditable="true">UNIEVER <span style="color:#6ea0ff">AX</span></div>
+        <div class="editable cover-title" contenteditable="true">AI 도입이 아니라<br>일하는 방식의 전환</div>
+        <div class="editable cover-sub" contenteditable="true">문제 정의, 데이터 정리, 프로세스 재설계, AI 실행 위임, 성과 측정을 하나의 운영체계로 묶는 전환 로드맵입니다.</div>
+        <div class="cover-card editable" contenteditable="true"><div class="dot"></div><strong>정본 중심</strong><p>PM 개발문서를 기준선으로 삼고 변경·검증 이력을 남깁니다.</p></div>
+        <div class="cover-card editable" contenteditable="true"><div class="dot"></div><strong>E2E 연결</strong><p>회의, 문서, 코드, 테스트, 증적을 같은 흐름으로 연결합니다.</p></div>
+        <div class="cover-card editable" contenteditable="true"><div class="dot"></div><strong>사람 승인</strong><p>AI 실행과 사람의 판단 책임을 분리합니다.</p></div>
+      </article>
+
+      <article id="s02" class="slide">
+        <div class="topline"></div><div class="bottomline"></div>
+        <div class="meta-left">UNIEVER CO., LTD.</div>
+        <div class="meta-right">AX TRANSFORMATION · 2026</div>
+        <div class="foot-left">AX_전환_실행로드맵_v1</div>
+        <div class="foot-right">02 / 06</div>
+        <div class="editable mark" contenteditable="true">CONTENTS</div>
+        <div class="editable slide-title" contenteditable="true">목차</div>
+        <div class="editable lead" contenteditable="true">목차는 단순 이미지가 아니라 각 슬라이드의 `role`, `sectionId`, `pageNo`에서 자동 렌더링되는 링크 객체로 취급합니다.</div>
+        <div class="toc-list">
+          <a class="toc-row editable" href="#s03" contenteditable="true"><b>01</b><strong>E2E 업무 운영체계</strong><span>AI 도구 구매가 아니라 운영 방식 전환</span><em>03</em></a>
+          <a class="toc-row editable" href="#s04" contenteditable="true"><b>02</b><strong>PM 업무 비교</strong><span>바이브코딩 미사용 vs 사용의 1:1 비교</span><em>04</em></a>
+          <a class="toc-row editable" href="#s05" contenteditable="true"><b>03</b><strong>AI 실행 허브</strong><span>문서·터미널·브라우저·Git·AI 연결</span><em>05</em></a>
+          <a class="toc-row editable" href="#s06" contenteditable="true"><b>04</b><strong>첫 90일 로드맵</strong><span>파일럿을 닫힌 루프로 완주</span><em>06</em></a>
+        </div>
+        <div class="label" style="left:62px;top:830px">TOC objects: link + title + summary + pageNo</div>
+      </article>
+
+      <article id="s03" class="slide">
+        <div class="topline"></div><div class="bottomline"></div>
+        <div class="meta-left">UNIEVER CO., LTD.</div>
+        <div class="meta-right">AX TRANSFORMATION · 2026</div>
+        <div class="foot-left">AX_전환_실행로드맵_v1</div>
+        <div class="foot-right">03 / 06</div>
+        <div class="editable mark" contenteditable="true">01</div>
+        <div class="editable slide-title" contenteditable="true">우리의 AX는 E2E 업무 운영체계다</div>
+        <div class="editable lead" contenteditable="true">AX를 AI 도구를 사는 일로 정의하지 않습니다. 문제 정의부터 성과 측정까지 일 전체를 바꾸는 것으로 정의합니다.</div>
+        <div class="cards">
+          <div class="card editable" contenteditable="true"><span class="chip">AS-IS</span><h3>현재의 병목</h3><p>회의 녹음·고객사 문서·개발문서·코드가 분리되고, 개발자가 요구를 다시 해석하는 시간이 듭니다.</p></div>
+          <div class="card editable" contenteditable="true"><span class="chip">TO-BE</span><h3>전환 후의 상태</h3><p>PM 개발문서가 정본이 되고, 개발자는 문서를 AI 코딩 지시의 기준으로 사용합니다.</p></div>
+          <div class="card editable" contenteditable="true"><span class="chip">TRACE</span><h3>검증 가능한 흐름</h3><p>변경·검증 이력이 남아 요구, 코드, 테스트, 증적을 같은 선에서 추적합니다.</p></div>
+        </div>
+        <div class="object-note">editable: title / lead / 3 cards / chips</div>
+      </article>
+
+      <article id="s04" class="slide">
+        <div class="topline"></div><div class="bottomline"></div>
+        <div class="meta-left">UNIEVER CO., LTD.</div>
+        <div class="meta-right">AX TRANSFORMATION · 2026</div>
+        <div class="foot-left">AX_전환_실행로드맵_v1</div>
+        <div class="foot-right">04 / 06</div>
+        <div class="editable mark" contenteditable="true">02</div>
+        <div class="editable slide-title" contenteditable="true">PM 업무 — 바이브코딩 미사용 vs 사용</div>
+        <div class="editable lead" contenteditable="true">원본의 표는 편집 가능한 2열 비교표 또는 두 개의 lane 객체로 변환할 수 있습니다.</div>
+        <div class="compare">
+          <div class="lane editable" contenteditable="true">
+            <h3>미사용</h3>
+            <ul>
+              <li>회의 녹음과 고객사 문서를 따로 관리</li>
+              <li>개발자가 요구를 다시 해석</li>
+              <li>변경 근거와 승인 상태가 흩어짐</li>
+            </ul>
+          </div>
+          <div class="lane alt editable" contenteditable="true">
+            <h3>사용</h3>
+            <ul>
+              <li>PM 문서를 AI 코딩 기준선으로 전달</li>
+              <li>요구·화면·DB·검증 기준을 같이 묶음</li>
+              <li>CR·AI 작업 ID·증적을 남김</li>
+            </ul>
+          </div>
+        </div>
+        <div class="label" style="left:62px;top:715px">table → editable comparison lanes</div>
+      </article>
+
+      <article id="s05" class="slide">
+        <div class="topline"></div><div class="bottomline"></div>
+        <div class="meta-left">UNIEVER CO., LTD.</div>
+        <div class="meta-right">AX TRANSFORMATION · 2026</div>
+        <div class="foot-left">AX_전환_실행로드맵_v1</div>
+        <div class="foot-right">05 / 06</div>
+        <div class="editable mark" contenteditable="true">03</div>
+        <div class="editable slide-title" contenteditable="true">cli_ide_tauri를 개발자의 AI 실행 허브로 사용한다</div>
+        <div class="editable lead" contenteditable="true">문서·터미널·브라우저·파일·Git·AI 에이전트를 같은 컨텍스트로 연결해 계획 → 코딩 → 검토 → 테스트 → 증적을 반복합니다.</div>
+        <div class="flow">
+          <div class="flow-step editable" contenteditable="true"><b>01</b><strong>PM 문서</strong><p>회의록·REQ·PROC·SCR·DB 기준선</p></div>
+          <div class="flow-step editable" contenteditable="true"><b>02</b><strong>AI 지시</strong><p>작업 단위 분해와 에이전트 배정</p></div>
+          <div class="flow-step editable" contenteditable="true"><b>03</b><strong>코딩</strong><p>코드 생성·개발자 검토·통합</p></div>
+          <div class="flow-step editable" contenteditable="true"><b>04</b><strong>검증</strong><p>테스트·하네스·브라우저 확인</p></div>
+          <div class="flow-step editable" contenteditable="true"><b>05</b><strong>증적</strong><p>CR·AI 작업 ID·운영 기록</p></div>
+        </div>
+        <div class="label" style="left:62px;top:710px">flow-item → editable shapes + connectors</div>
+      </article>
+
+      <article id="s06" class="slide">
+        <div class="topline"></div><div class="bottomline"></div>
+        <div class="meta-left">UNIEVER CO., LTD.</div>
+        <div class="meta-right">AX TRANSFORMATION · 2026</div>
+        <div class="foot-left">AX_전환_실행로드맵_v1</div>
+        <div class="foot-right">06 / 06</div>
+        <div class="editable mark" contenteditable="true">04</div>
+        <div class="editable slide-title" contenteditable="true">첫 90일은 하나의 파일럿을 끝까지 완주한다</div>
+        <div class="editable lead" contenteditable="true">100개의 PoC를 벌이지 않고, 통제 가능한 업무 하나를 골라 닫힌 루프로 완주합니다.</div>
+        <div class="timeline">
+          <div class="phase editable" contenteditable="true"><b>0</b><strong>착수</strong><p>스폰서·현업 오너·기술책임자 지정, 파일럿 선정</p></div>
+          <div class="phase editable" contenteditable="true"><b>1</b><strong>업무 분석</strong><p>AS-IS·병목·반복 업무·데이터 위치 조사</p></div>
+          <div class="phase editable" contenteditable="true"><b>2</b><strong>AI-Ready</strong><p>정본 문서와 데이터 기준선 준비</p></div>
+          <div class="phase editable" contenteditable="true"><b>3</b><strong>PM 문서</strong><p>REQ·PROC·SCR·DB 개발문서 생성</p></div>
+          <div class="phase editable" contenteditable="true"><b>4</b><strong>AI 코딩</strong><p>문서 기반 코딩 지시와 검증 증적</p></div>
+          <div class="phase editable" contenteditable="true"><b>5</b><strong>운영·성과</strong><p>실제 업무 성과 측정과 확산 판단</p></div>
+        </div>
+        <div class="label" style="left:62px;top:705px">phase → editable timeline blocks</div>
+      </article>
+    </section>
+
+    <aside class="inspector">
+      <small>Editable model</small>
+      <div class="prop-card">
+        <b>Slide IR</b>
+        <div class="prop"><span>role</span><span>cover / toc / content</span></div>
+        <div class="prop"><span>sectionId</span><span>AX-SEC-01...</span></div>
+        <div class="prop"><span>toc</span><span>title + summary + pageNo + link</span></div>
+      </div>
+      <div class="prop-card">
+        <b>PPT 객체화 가능 수준</b>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--blue)"></i>텍스트: 제목·본문·목차 수정 가능</span>
+          <span><i class="sw" style="background:var(--green)"></i>도형: 카드·칩·타임라인 크기 조절 가능</span>
+          <span><i class="sw" style="background:var(--amber)"></i>표: 비교표/단계표로 재조판 가능</span>
+          <span><i class="sw" style="background:var(--violet)"></i>목차: role 기반 자동 렌더링 가능</span>
+        </div>
+      </div>
+      <div class="prop-card">
+        <b>현실적 한계</b>
+        <div class="legend">
+          <span>HTML/CSS 픽셀 100% 복제와 전체 객체 편집은 동시에 어렵습니다.</span>
+          <span>대신 의미 구조를 뽑아 EVER-PEAK 룩으로 재조판하면 지금 목업 수준의 편집성과 목차 렌더링을 같이 가져갈 수 있습니다.</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

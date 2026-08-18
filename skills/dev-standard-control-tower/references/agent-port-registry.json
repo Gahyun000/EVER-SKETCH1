@@ -1,0 +1,1018 @@
+{
+  "schema_version": 1,
+  "audited_at": "2026-07-06T08:39:55+09:00",
+  "source": "/Users/uniever1/Uniever_AI/default_skill/skills/dev-standard-control-tower/references/agent-projects.json",
+  "policy": {
+    "frontend_range": [
+      5200,
+      5499
+    ],
+    "backend_range": [
+      8800,
+      9199
+    ],
+    "runtime_probe": true,
+    "strict_port": true
+  },
+  "projects": [
+    {
+      "name": "Agentic-PM",
+      "path": "/Users/uniever1/Uniever_AI/Agentic-PM",
+      "status": "audited-verified",
+      "frontend_ports": [
+        5273
+      ],
+      "backend_ports": [
+        18800
+      ],
+      "auxiliary_ports": [
+        7878
+      ],
+      "note": "run_app 및 Vite 설정 기준; 7878은 FileMetric 연계",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 5273,
+          "file": "frontend/vite.config.ts",
+          "line": 8,
+          "score": 95,
+          "excerpt": "port: 5273,"
+        },
+        {
+          "role": "backend",
+          "port": 18800,
+          "file": "run_app.bat",
+          "line": 47,
+          "score": 90,
+          "excerpt": "start \"Agentic-PM Backend\" /D \"%ROOT%backend\" cmd /k \"echo [Backend] Booting uvicorn on port 18800. First launch may take 30-60s while WhisperX/torch imports... && .venv\\Scripts\\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 18800"
+        },
+        {
+          "role": "backend",
+          "port": 7878,
+          "file": "backend/.env",
+          "line": 31,
+          "score": 100,
+          "excerpt": "FILEMETRIC_API_URL=http://localhost:7878"
+        }
+      ]
+    },
+    {
+      "name": "ARIA_AI_Agent",
+      "path": "/Users/uniever1/Uniever_AI/ARIA_AI_Agent",
+      "status": "audited-verified",
+      "frontend_ports": [],
+      "backend_ports": [
+        8910
+      ],
+      "auxiliary_ports": [
+        8004,
+        11434
+      ],
+      "note": "단일 FastAPI 서비스; 8004·11434는 외부 추론 연계",
+      "evidence": [
+        {
+          "role": "backend",
+          "port": 8910,
+          "file": "scripts/serve.py",
+          "line": 1,
+          "score": 90,
+          "excerpt": "\"\"\"ARIA 서버 실행 — http://localhost:8910"
+        },
+        {
+          "role": "backend",
+          "port": 8004,
+          "file": "aria/core/settings.py",
+          "line": 20,
+          "score": 80,
+          "excerpt": "\"server_url\": \"http://127.0.0.1:8004/api/v1/inference/chat/completions\","
+        },
+        {
+          "role": "auxiliary",
+          "port": 11434,
+          "file": "aria/core/settings.py",
+          "line": 26,
+          "score": 80,
+          "excerpt": "\"local_url\": \"http://localhost:11434/api/chat\","
+        }
+      ]
+    },
+    {
+      "name": "Auto_ML_Agent_Pilot",
+      "path": "/Users/uniever1/Uniever_AI/Auto_ML_Agent_Pilot",
+      "status": "not-applicable",
+      "frontend_ports": [],
+      "backend_ports": [],
+      "auxiliary_ports": [],
+      "note": "문서·압축 소스만 존재하여 실행 포트 미확정",
+      "evidence": []
+    },
+    {
+      "name": "Business_Plan_ai_Agent",
+      "path": "/Users/uniever1/Uniever_AI/Business_Plan_ai_Agent",
+      "status": "audited-verified",
+      "frontend_ports": [
+        3000
+      ],
+      "backend_ports": [],
+      "auxiliary_ports": [],
+      "note": "Vite 단독 프론트엔드",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 3000,
+          "file": "package.json",
+          "line": 7,
+          "score": 95,
+          "excerpt": "\"dev\": \"vite --port=3000 --host=0.0.0.0\","
+        }
+      ]
+    },
+    {
+      "name": "C_Brain_Agent2",
+      "path": "/Users/uniever1/Uniever_AI/C_Brain_Agent2",
+      "status": "audited-verified",
+      "frontend_ports": [
+        3000
+      ],
+      "backend_ports": [
+        4000
+      ],
+      "auxiliary_ports": [
+        11434
+      ],
+      "note": "Vite 3000 + 백엔드 4000",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 3000,
+          "file": "frontend/package.json",
+          "line": 7,
+          "score": 95,
+          "excerpt": "\"dev\": \"vite --port=3000 --host=0.0.0.0\","
+        },
+        {
+          "role": "backend",
+          "port": 4000,
+          "file": "start-cbrain.bat",
+          "line": 108,
+          "score": 90,
+          "excerpt": "echo echo Starting backend on http://localhost:4000"
+        },
+        {
+          "role": "auxiliary",
+          "port": 11434,
+          "file": "agentic_engine/examples/quick_start.py",
+          "line": 25,
+          "score": 90,
+          "excerpt": "\"ollama_url\":  \"http://localhost:11434/api/chat\","
+        }
+      ]
+    },
+    {
+      "name": "cli-ide",
+      "path": "/Users/uniever1/Uniever_AI/cli-ide",
+      "status": "audited-verified",
+      "frontend_ports": [
+        49737
+      ],
+      "backend_ports": [],
+      "auxiliary_ports": [],
+      "note": "현재 vite.config 기준; TECHNICAL의 5274는 과거 값",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 49737,
+          "file": "vite.config.ts",
+          "line": 15,
+          "score": 95,
+          "excerpt": "port: 49737,"
+        }
+      ]
+    },
+    {
+      "name": "dashboard-generator",
+      "path": "/Users/uniever1/Uniever_AI/dashboard-generator",
+      "status": "audited-verified",
+      "frontend_ports": [
+        3010
+      ],
+      "backend_ports": [
+        8010
+      ],
+      "auxiliary_ports": [],
+      "note": "현재 Vite/start 런처 기준; README·env 예시의 3000/8000은 과거 값",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 3010,
+          "file": "vite.config.ts",
+          "line": 15,
+          "score": 95,
+          "excerpt": "port: 3010,"
+        },
+        {
+          "role": "backend",
+          "port": 8010,
+          "file": "start.bat",
+          "line": 5,
+          "score": 90,
+          "excerpt": "REM  Backend  : http://localhost:8010  (Python SQLite)"
+        }
+      ]
+    },
+    {
+      "name": "eis_ai_demo",
+      "path": "/Users/uniever1/Uniever_AI/eis_ai_demo",
+      "status": "audited-verified",
+      "frontend_ports": [
+        5177
+      ],
+      "backend_ports": [
+        8101
+      ],
+      "auxiliary_ports": [],
+      "note": "기본값; Windows 런처는 점유 시 다음 포트 탐색, macOS 런처는 고정",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 5177,
+          "file": "frontend/vite.config.ts",
+          "line": 15,
+          "score": 95,
+          "excerpt": "port: 5177, // HELIX(5175)·계림(5176) 과 구분"
+        },
+        {
+          "role": "backend",
+          "port": 8101,
+          "file": "start.bat",
+          "line": 9,
+          "score": 90,
+          "excerpt": "set \"BASE_BACKEND_PORT=8101\""
+        }
+      ]
+    },
+    {
+      "name": "EIS.SITE",
+      "path": "/Users/uniever1/Uniever_AI/EIS.SITE",
+      "status": "audited-verified",
+      "frontend_ports": [
+        5177
+      ],
+      "backend_ports": [
+        8101
+      ],
+      "auxiliary_ports": [],
+      "note": "고정 기본값으로 eis_ai_demo와 충돌",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 5177,
+          "file": "frontend/vite.config.ts",
+          "line": 12,
+          "score": 95,
+          "excerpt": "port: 5177, // HELIX(5175)·계림(5176) 과 구분"
+        },
+        {
+          "role": "backend",
+          "port": 8101,
+          "file": "start.bat",
+          "line": 7,
+          "score": 90,
+          "excerpt": "set BACKEND_PORT=8101"
+        }
+      ]
+    },
+    {
+      "name": "FileFlow_AI_Agent",
+      "path": "/Users/uniever1/Uniever_AI/FileFlow_AI_Agent",
+      "status": "not-applicable",
+      "frontend_ports": [],
+      "backend_ports": [],
+      "auxiliary_ports": [],
+      "note": "데스크톱 GUI/배치 앱으로 네트워크 리스너 없음",
+      "evidence": []
+    },
+    {
+      "name": "FileMetric_AI_Agent",
+      "path": "/Users/uniever1/Uniever_AI/FileMetric_AI_Agent",
+      "status": "audited-verified",
+      "frontend_ports": [
+        5173
+      ],
+      "backend_ports": [
+        7878
+      ],
+      "auxiliary_ports": [
+        8001,
+        8082,
+        8090
+      ],
+      "note": "주 서비스 5173/7878; OCR·VLM 보조 서비스 포트 별도",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 5173,
+          "file": "frontend/vite.config.ts",
+          "line": 7,
+          "score": 95,
+          "excerpt": "port: 5173,"
+        },
+        {
+          "role": "backend",
+          "port": 7878,
+          "file": "run_app.command",
+          "line": 12,
+          "score": 90,
+          "excerpt": "BACKEND_PORT=7878"
+        },
+        {
+          "role": "backend",
+          "port": 8001,
+          "file": "start_nanonets_vlm.bat",
+          "line": 16,
+          "score": 90,
+          "excerpt": "REM    set VLLM_PORT=8001"
+        },
+        {
+          "role": "backend",
+          "port": 8082,
+          "file": "start_paddleocr.bat",
+          "line": 100,
+          "score": 90,
+          "excerpt": "echo                set PADDLEX_PORT=8082"
+        },
+        {
+          "role": "backend",
+          "port": 8090,
+          "file": "run_app.command",
+          "line": 14,
+          "score": 90,
+          "excerpt": "PADDLEX_PORT=8090"
+        }
+      ]
+    },
+    {
+      "name": "GeaLim_AiAgent",
+      "path": "/Users/uniever1/Uniever_AI/GeaLim_AiAgent",
+      "status": "audited-verified",
+      "frontend_ports": [
+        6081
+      ],
+      "backend_ports": [
+        6080
+      ],
+      "auxiliary_ports": [
+        6082
+      ],
+      "note": "run_macos.command 환경변수 기본값",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 6081,
+          "file": "scripts/run_macos.command",
+          "line": 10,
+          "score": 90,
+          "excerpt": "FRONTEND_PORT=\"${GEALIM_FRONTEND_PORT:-6081}\""
+        },
+        {
+          "role": "backend",
+          "port": 6080,
+          "file": "scripts/run_macos.command",
+          "line": 8,
+          "score": 90,
+          "excerpt": "BACKEND_PORT=\"${GEALIM_BACKEND_PORT:-6080}\""
+        },
+        {
+          "role": "frontend",
+          "port": 6082,
+          "file": "scripts/run_macos.command",
+          "line": 11,
+          "score": 90,
+          "excerpt": "VERIFY_PORT=\"${GEALIM_VERIFY_PORT:-6082}\""
+        }
+      ]
+    },
+    {
+      "name": "HARVEST_Agent",
+      "path": "/Users/uniever1/Uniever_AI/HARVEST_Agent",
+      "status": "audited-verified",
+      "frontend_ports": [
+        5173
+      ],
+      "backend_ports": [
+        8765
+      ],
+      "auxiliary_ports": [
+        6379,
+        9090
+      ],
+      "note": "Docker Compose 및 Vite 설정 기준",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 5173,
+          "file": "docker-compose.yml",
+          "line": 53,
+          "score": 95,
+          "excerpt": "- \"5173:5173\""
+        },
+        {
+          "role": "backend",
+          "port": 8765,
+          "file": "docker-compose.yml",
+          "line": 9,
+          "score": 95,
+          "excerpt": "- \"8765:8765\""
+        },
+        {
+          "role": "auxiliary",
+          "port": 6379,
+          "file": "docker-compose.yml",
+          "line": 43,
+          "score": 95,
+          "excerpt": "- \"6379:6379\""
+        },
+        {
+          "role": "auxiliary",
+          "port": 9090,
+          "file": ".env",
+          "line": 72,
+          "score": 100,
+          "excerpt": "PROMETHEUS_METRICS_PORT=9090"
+        }
+      ]
+    },
+    {
+      "name": "helix_domain_sdk",
+      "path": "/Users/uniever1/Uniever_AI/helix_domain_sdk",
+      "status": "audited-verified",
+      "frontend_ports": [],
+      "backend_ports": [],
+      "auxiliary_ports": [
+        8004,
+        8767
+      ],
+      "note": "SDK 라이브러리로 자체 리스너 없음; HELIX/HARVEST 기본 연계 주소",
+      "evidence": []
+    },
+    {
+      "name": "helix-domain-template",
+      "path": "/Users/uniever1/Uniever_AI/helix-domain-template",
+      "status": "audited-verified",
+      "frontend_ports": [],
+      "backend_ports": [
+        8770
+      ],
+      "auxiliary_ports": [
+        8004,
+        8765
+      ],
+      "note": "cookiecutter 기본 생성값; 자체 프론트 없음",
+      "evidence": []
+    },
+    {
+      "name": "helix-guideboard-template-full",
+      "path": "/Users/uniever1/Uniever_AI/helix-guideboard-template-full",
+      "status": "audited-verified",
+      "frontend_ports": [
+        3000
+      ],
+      "backend_ports": [
+        8765
+      ],
+      "auxiliary_ports": [
+        8000,
+        8004
+      ],
+      "note": "cookiecutter 기본값; 런처가 RAG 8000·HELIX 8004도 시작",
+      "evidence": [
+        {
+          "role": "backend",
+          "port": 8000,
+          "file": "{{cookiecutter.domain_id}}_dashboard/start.bat",
+          "line": 66,
+          "score": 90,
+          "excerpt": "echo  [4/4] Starting RAG_Server on http://localhost:8000 ..."
+        },
+        {
+          "role": "backend",
+          "port": 8004,
+          "file": "{{cookiecutter.domain_id}}_dashboard/start.bat",
+          "line": 53,
+          "score": 90,
+          "excerpt": "echo  [3/4] Starting HELIX backend on http://localhost:8004 ..."
+        }
+      ]
+    },
+    {
+      "name": "helix-guideboard-ui",
+      "path": "/Users/uniever1/Uniever_AI/helix-guideboard-ui",
+      "status": "not-applicable",
+      "frontend_ports": [],
+      "backend_ports": [],
+      "auxiliary_ports": [],
+      "note": "빌드형 React UI 라이브러리로 자체 dev 서버 없음",
+      "evidence": []
+    },
+    {
+      "name": "HERIX_Agent",
+      "path": "/Users/uniever1/Uniever_AI/HERIX_Agent",
+      "status": "audited-verified",
+      "frontend_ports": [
+        5175,
+        3246,
+        3386,
+        3560
+      ],
+      "backend_ports": [
+        8765,
+        8946,
+        9086,
+        9260
+      ],
+      "auxiliary_ports": [
+        8004,
+        11434
+      ],
+      "note": "코어 5175/8765 + 저장소 내 3개 도메인 smoke 프로필",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 5175,
+          "file": "frontend/vite.config.ts",
+          "line": 14,
+          "score": 95,
+          "excerpt": "port: 5175,"
+        },
+        {
+          "role": "backend",
+          "port": 8765,
+          "file": "_run_backend.bat",
+          "line": 35,
+          "score": 90,
+          "excerpt": "echo   HELIX Backend - http://127.0.0.1:8765"
+        },
+        {
+          "role": "frontend",
+          "port": 3246,
+          "file": "domain/_synth_e2e_smoke/docker-compose.yml",
+          "line": 31,
+          "score": 95,
+          "excerpt": "- \"3246:3246\""
+        },
+        {
+          "role": "frontend",
+          "port": 3386,
+          "file": "domain/smoke_test/.env",
+          "line": 10,
+          "score": 100,
+          "excerpt": "FRONTEND_PORT=3386"
+        },
+        {
+          "role": "frontend",
+          "port": 3560,
+          "file": "domain/claude_smoke/docker-compose.yml",
+          "line": 31,
+          "score": 95,
+          "excerpt": "- \"3560:3560\""
+        },
+        {
+          "role": "backend",
+          "port": 8946,
+          "file": "domain/_synth_e2e_smoke/docker-compose.yml",
+          "line": 14,
+          "score": 95,
+          "excerpt": "- \"8946:8946\""
+        },
+        {
+          "role": "backend",
+          "port": 9086,
+          "file": "domain/smoke_test/.env",
+          "line": 9,
+          "score": 100,
+          "excerpt": "BACKEND_PORT=9086"
+        },
+        {
+          "role": "backend",
+          "port": 9260,
+          "file": "domain/claude_smoke/docker-compose.yml",
+          "line": 14,
+          "score": 95,
+          "excerpt": "- \"9260:9260\""
+        },
+        {
+          "role": "backend",
+          "port": 8004,
+          "file": "domain/_synth_e2e_smoke/start.bat",
+          "line": 32,
+          "score": 90,
+          "excerpt": "set HELIX_BACKEND_URL=http://localhost:8004"
+        },
+        {
+          "role": "auxiliary",
+          "port": 11434,
+          "file": "backend/app/config.py",
+          "line": 48,
+          "score": 80,
+          "excerpt": "\"local_url\": \"http://127.0.0.1:11434/api/generate\","
+        }
+      ]
+    },
+    {
+      "name": "insurance_Analisys_Agentic",
+      "path": "/Users/uniever1/Uniever_AI/insurance_Analisys_Agentic",
+      "status": "audited-verified",
+      "frontend_ports": [
+        5173
+      ],
+      "backend_ports": [
+        3000,
+        8000
+      ],
+      "auxiliary_ports": [
+        11434
+      ],
+      "note": "Express 3000과 FastAPI 8000 두 백엔드 경로가 공존",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 5173,
+          "file": "start_app.ps1",
+          "line": 123,
+          "score": 90,
+          "excerpt": "Start-Process \"http://localhost:5173\""
+        },
+        {
+          "role": "backend",
+          "port": 3000,
+          "file": "backend/server.ts",
+          "line": 9,
+          "score": 90,
+          "excerpt": "const PORT = 3000;"
+        },
+        {
+          "role": "backend",
+          "port": 8000,
+          "file": "start_app.ps1",
+          "line": 78,
+          "score": 90,
+          "excerpt": "& $py -X utf8 -m uvicorn main:app --host 127.0.0.1 --port 8000 2>&1"
+        },
+        {
+          "role": "auxiliary",
+          "port": 11434,
+          "file": "backend/server.ts",
+          "line": 21,
+          "score": 90,
+          "excerpt": "ollama_url: \"http://localhost:11434\","
+        }
+      ]
+    },
+    {
+      "name": "Intelligent_Execution_Dashboard",
+      "path": "/Users/uniever1/Uniever_AI/Intelligent_Execution_Dashboard",
+      "status": "audited-verified",
+      "frontend_ports": [
+        3000
+      ],
+      "backend_ports": [
+        8765
+      ],
+      "auxiliary_ports": [
+        8004
+      ],
+      "note": "가이드보드 3000/8765; HELIX 8004 연계",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 3000,
+          "file": "my_domain_dashboard/.env",
+          "line": 10,
+          "score": 100,
+          "excerpt": "FRONTEND_PORT=3000"
+        },
+        {
+          "role": "backend",
+          "port": 8765,
+          "file": "backend/.env",
+          "line": 6,
+          "score": 100,
+          "excerpt": "GUIDEBOARD_PORT=8765"
+        },
+        {
+          "role": "backend",
+          "port": 8004,
+          "file": "my_domain_dashboard/start.bat",
+          "line": 47,
+          "score": 90,
+          "excerpt": "set HELIX_BACKEND_URL=http://localhost:8004"
+        }
+      ]
+    },
+    {
+      "name": "LLM",
+      "path": "/Users/uniever1/Uniever_AI/LLM",
+      "status": "audited-verified",
+      "frontend_ports": [
+        8002
+      ],
+      "backend_ports": [
+        8004,
+        8001
+      ],
+      "auxiliary_ports": [
+        11434
+      ],
+      "note": "Vite 실제 설정은 8002이나 start.bat 문구는 5173으로 불일치; 백엔드 런처 8004와 Docker 8001 병존",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 8002,
+          "file": "llm_api/frontend/vite.config.ts",
+          "line": 8,
+          "score": 95,
+          "excerpt": "port: 8002,"
+        },
+        {
+          "role": "backend",
+          "port": 8004,
+          "file": "llm_api/start.bat",
+          "line": 34,
+          "score": 90,
+          "excerpt": "start \"Backend - FastAPI\" cmd /k \"cd /d \"\"%~dp0backend\"\" && (if exist .venv\\Scripts\\activate.bat call .venv\\Scripts\\activate.bat) && (set DATABASE_URL=sqlite:///./llm_gateway.db & set VLLM_URL=http://localhost:11434 & set ACTIVE_MODEL=llama"
+        },
+        {
+          "role": "auxiliary",
+          "port": 11434,
+          "file": "llm_api/start.bat",
+          "line": 22,
+          "score": 90,
+          "excerpt": "set OLLAMA_HOST=0.0.0.0:11434"
+        }
+      ]
+    },
+    {
+      "name": "RAG_Server",
+      "path": "/Users/uniever1/Uniever_AI/RAG_Server",
+      "status": "audited-verified",
+      "frontend_ports": [
+        3000
+      ],
+      "backend_ports": [
+        8000
+      ],
+      "auxiliary_ports": [
+        11434
+      ],
+      "note": "Vite/프론트 서버 3000 + FastAPI 8000",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 3000,
+          "file": "frontend/vite.config.ts",
+          "line": 19,
+          "score": 95,
+          "excerpt": "port: 3000,"
+        },
+        {
+          "role": "backend",
+          "port": 8000,
+          "file": "backend/run_backend.bat",
+          "line": 17,
+          "score": 90,
+          "excerpt": "python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+        },
+        {
+          "role": "auxiliary",
+          "port": 11434,
+          "file": "backend/main.py",
+          "line": 145,
+          "score": 80,
+          "excerpt": "localLlmUrl: Optional[str] = \"http://localhost:11434/v1\""
+        }
+      ]
+    },
+    {
+      "name": "Report_Creator_AI_Agent",
+      "path": "/Users/uniever1/Uniever_AI/Report_Creator_AI_Agent",
+      "status": "audited-verified",
+      "frontend_ports": [
+        5180
+      ],
+      "backend_ports": [
+        7879
+      ],
+      "auxiliary_ports": [
+        8004
+      ],
+      "note": "start-mac/start-windows 및 Vite 설정 기준",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 5180,
+          "file": "app/frontend/vite.config.js",
+          "line": 7,
+          "score": 95,
+          "excerpt": "port: 5180,"
+        },
+        {
+          "role": "backend",
+          "port": 7879,
+          "file": "start-mac.command",
+          "line": 11,
+          "score": 90,
+          "excerpt": "BACK_PORT=7879"
+        },
+        {
+          "role": "backend",
+          "port": 8004,
+          "file": "app/backend/server.py",
+          "line": 66,
+          "score": 90,
+          "excerpt": "DEFAULT_GATEWAY = \"http://127.0.0.1:8004/api/v1/inference/chat/completions\""
+        }
+      ]
+    },
+    {
+      "name": "samil_2y_front-main",
+      "path": "/Users/uniever1/Uniever_AI/samil_2y_front-main",
+      "status": "audited-verified",
+      "frontend_ports": [
+        3000
+      ],
+      "backend_ports": [],
+      "auxiliary_ports": [],
+      "note": "Vite 단독 프론트엔드",
+      "evidence": [
+        {
+          "role": "frontend",
+          "port": 3000,
+          "file": "package.json",
+          "line": 7,
+          "score": 95,
+          "excerpt": "\"dev\": \"vite --port=3000 --host=0.0.0.0\","
+        }
+      ]
+    },
+    {
+      "name": "Uniever_Search",
+      "path": "E:/Dev_AI/Uniever_Search",
+      "status": "registered-manual",
+      "frontend_ports": [
+        5200
+      ],
+      "backend_ports": [
+        8800
+      ],
+      "auxiliary_ports": [
+        7878
+      ],
+      "note": "수동등록: 코드상 FE 5200 / BE 8800(.dev-standard.json,vite,main.py) / FileMetric 7878. 데모 README의 8801 표기는 코드와 불일치(별도 정리 필요)."
+    }
+  ],
+  "collisions": {
+    "3000": [
+      "Business_Plan_ai_Agent:frontend",
+      "C_Brain_Agent2:frontend",
+      "helix-guideboard-template-full:frontend",
+      "insurance_Analisys_Agentic:backend",
+      "Intelligent_Execution_Dashboard:frontend",
+      "RAG_Server:frontend",
+      "samil_2y_front-main:frontend"
+    ],
+    "5173": [
+      "FileMetric_AI_Agent:frontend",
+      "HARVEST_Agent:frontend",
+      "insurance_Analisys_Agentic:frontend"
+    ],
+    "5177": [
+      "eis_ai_demo:frontend",
+      "EIS.SITE:frontend"
+    ],
+    "8000": [
+      "insurance_Analisys_Agentic:backend",
+      "RAG_Server:backend"
+    ],
+    "8101": [
+      "eis_ai_demo:backend",
+      "EIS.SITE:backend"
+    ],
+    "8765": [
+      "HARVEST_Agent:backend",
+      "helix-guideboard-template-full:backend",
+      "HERIX_Agent:backend",
+      "Intelligent_Execution_Dashboard:backend"
+    ]
+  },
+  "active_at_audit": {
+    "3000": false,
+    "3010": false,
+    "3246": false,
+    "3386": false,
+    "3560": false,
+    "4000": false,
+    "5173": false,
+    "5175": false,
+    "5177": false,
+    "5180": false,
+    "5273": false,
+    "6080": false,
+    "6081": false,
+    "6082": false,
+    "6379": false,
+    "7878": false,
+    "7879": false,
+    "8000": false,
+    "8001": false,
+    "8002": false,
+    "8004": false,
+    "8010": false,
+    "8082": false,
+    "8090": false,
+    "8101": false,
+    "8765": false,
+    "8767": false,
+    "8770": false,
+    "8910": false,
+    "8946": false,
+    "9086": false,
+    "9090": false,
+    "9260": false,
+    "11434": false,
+    "18800": false,
+    "49737": false
+  },
+  "reservations": [
+    {
+      "name": "Uniever_AI_Factory",
+      "backend_ports": [
+        8850
+      ],
+      "frontend_ports": [],
+      "reserved_at": "2026-07-05T15:17:44.532042+09:00"
+    },
+    {
+      "name": "EIS_Generator_AI_Agent",
+      "path": "/Users/uniever1/Uniever_AI/EIS_Generator_AI_Agent",
+      "status": "reserved",
+      "frontend_ports": [
+        5290
+      ],
+      "backend_ports": [
+        8842
+      ],
+      "auxiliary_ports": [],
+      "note": "범용 EIS 생성기; FE5290/BE8842. 구8830(Intent Classification_Engine) 사용이력 회피 재배정. Codex 1차검수(EIS-COL-REV-20260705-001) EIS-BLK-003 대응.",
+      "reserved_at": "2026-07-06T08:41:29+09:00"
+    },
+    {
+      "name": "Uniever_Agentic_Vision_AI_Agent",
+      "project_root": "E:\\Dev_AI\\Uniever_Agentic_Vision_AI_Agent",
+      "frontend_port": 5206,
+      "backend_port": 8860,
+      "reserved_at": "2026-07-08T20:33:10+09:00",
+      "frontend_ports": [
+        5206
+      ],
+      "backend_ports": [
+        8860
+      ],
+      "note": "교정: 자동할당 5200/8800이 미등록 Uniever_Search와 충돌 → 5206/8860로 재지정"
+    },
+    {
+      "name": "UMAAR-OPS",
+      "project_root": "/Users/uniever1/Uniever_AI/Uniever_AI_Reference",
+      "frontend_port": 5310,
+      "backend_port": 8861,
+      "frontend_ports": [
+        5310
+      ],
+      "backend_ports": [
+        8861
+      ],
+      "reserved_at": "2026-07-13T16:20:08+09:00",
+      "note": "U-MAAR Ops. 프로젝트 루트를 Uniever_AI_Reference 로 이동(2026-07-14). FE5310/BE8861(설계 후보 8860은 타 예약과 충돌 조정)."
+    },
+    {
+      "name": "insurance-coverage-desktop",
+      "project_root": "/Users/uniever1/Dev/insurence_claude",
+      "frontend_port": 5204,
+      "backend_port": 8804,
+      "frontend_ports": [
+        5204
+      ],
+      "backend_ports": [
+        8804
+      ],
+      "reserved_at": "2026-07-24T13:57:05+09:00",
+      "note": "Tauri 설치형 앱 개발 서버. FE 5204 사용, BE 8804는 향후 로컬 adapter 예약만 하며 현재 프로세스는 없음. LLM 8004는 외부 auxiliary 서비스."
+    },
+    {
+      "name": "AI_Prompt_Ssam",
+      "project_root": "/Users/uniever1/Dev/AI_Prompt_Ssam",
+      "frontend_port": 5201,
+      "backend_port": 8801,
+      "reserved_at": "2026-07-24T13:58:42+09:00"
+    }
+  ]
+}

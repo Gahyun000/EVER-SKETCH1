@@ -1,0 +1,28 @@
+# deps / build
+node_modules
+dist
+*.local
+.DS_Store
+
+# python
+server/.venv
+__pycache__/
+*.pyc
+*.pyo
+
+# local data / secrets — NEVER commit
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+!.env.example
+
+# vite temp
+vite.config.ts.timestamp-*
+
+# working dirs / build artifacts
+_build_input
+_deploy
+_deck_out/
+_to_delete_*

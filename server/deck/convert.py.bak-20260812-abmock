@@ -1,0 +1,181 @@
+# -*- coding: utf-8 -*-
+"""HTML → 편집 가능한 덱 PPTX(+PDF·썸네일). html_pdf_agent 변환 이식.
+
+'HTML 가져오기' 버튼이 호출한다. extractor(범용 파서) → 덱 IR → deck_builder.js(pptxgenjs)
+→ PPTX. LibreOffice(soffice)+PyMuPDF 가 있으면 PDF·슬라이드 썸네일까지 만든다(없으면 생략).
+"""
+import json
+import os
+import re
+import secrets
+import shutil
+import subprocess
+import tempfile
+import time
+import pathlib
+
+from .extractor import extract
+
+HERE = pathlib.Path(__file__).resolve().parent
+EB_ROOT = HERE.parent.parent                 # ebook_html 루트
+DECK_BUILDER = HERE / "deck_builder.js"
+NODE_MODULES = EB_ROOT / "node_modules"      # pptxgenjs 위치
+OUT = EB_ROOT / "_deck_out"
+OUT.mkdir(parents=True, exist_ok=True)
+
+
+def _which(*names):
+    for n in names:
+        p = shutil.which(n)
+        if p:
+            return p
+    return None
+
+
+def _find_soffice():
+    p = _which("soffice", "libreoffice")
+    if p:
+        return p
+    for c in ["/Applications/LibreOffice.app/Contents/MacOS/soffice",
+              os.path.expanduser("~/Applications/LibreOffice.app/Contents/MacOS/soffice"),
+              "/opt/homebrew/bin/soffice", "/usr/local/bin/soffice"]:
+        if os.path.exists(c):
+            return c
+    return None
+
+
+NODE = _which("node")
+SOFFICE = _find_soffice()
+
+
+def _slug(name: str) -> str:
+    base = re.sub(r"\.html?$", "", name or "", flags=re.I)
+    base = re.sub(r"[^0-9A-Za-z가-힣._-]+", "_", base).strip("_")
+    return base[:60] or "deck"
+
+
+def convert(html: str, theme: str, source_name: str, summarize_fn=None) -> dict:
+    if NODE is None:
+        raise RuntimeError("node 를 찾을 수 없습니다. run.command 로 실행하세요.")
+    if not DECK_BUILDER.exists():
+        raise RuntimeError("deck_builder.js 가 없습니다.")
+    # summarize_fn(title, text)->{headline,bullets} 이 있으면 섹션을 성글게 요약(없으면 휴리스틱 압축).
+    ir = extract(html, theme=("dark" if theme == "dark" else "light"),
+                 title=source_name, summarize_fn=summarize_fn)
+    base = _slug(source_name)
+    token = time.strftime("%Y%m%d_%H%M%S") + "_" + secrets.token_hex(2)
+    workdir = OUT / token
+    workdir.mkdir(parents=True, exist_ok=True)
+
+    ir_path = workdir / "deck.ir.json"
+    json.dump(ir, open(ir_path, "w", encoding="utf-8"), ensure_ascii=False)
+    pptx = workdir / (base + ".pptx")
+    env = dict(os.environ)
+    env["NODE_PATH"] = str(NODE_MODULES)
+    r = subprocess.run([NODE, str(DECK_BUILDER), str(ir_path), str(pptx)],
+                       capture_output=True, text=True, env=env)
+    if r.returncode != 0 or not pptx.exists():
+        raise RuntimeError("덱 빌드 실패: " + (r.stderr or r.stdout or "")[-400:])
+
+    result = {"token": token, "pptx": pptx.name, "pdf": None, "thumbs": [],
+              "pages": len(ir["pages"]), "ir": ir}
+
+    if SOFFICE:
+        try:
+            import fitz  # PyMuPDF
+            tmp = tempfile.mkdtemp(prefix="deck_")
+            tp = f"{tmp}/{base}.pptx"
+            shutil.copyfile(pptx, tp)
+            subprocess.run([SOFFICE, "--headless", "--convert-to", "pdf", "--outdir", tmp, tp],
+                           capture_output=True, text=True)
+            pdf = f"{tmp}/{base}.pdf"
+            if os.path.exists(pdf):
+                shutil.copyfile(pdf, workdir / (base + ".pdf"))
+                result["pdf"] = base + ".pdf"
+                doc = fitz.open(pdf)
+                for i, page in enumerate(doc, 1):
+                    pix = page.get_pixmap(matrix=fitz.Matrix(1.6, 1.6))   # 캔버스 표시용 고해상
+                    fn = "%02d.png" % i
+                    pix.save(str(workdir / fn))
+                    result["thumbs"].append(fn)
+                doc.close()
+            shutil.rmtree(tmp, ignore_errors=True)
+        except Exception:
+            pass
+
+    return result
+
+
+def convert_stream(html: str, theme: str, source_name: str, summarize_fn=None):
+    """convert 의 스트리밍판 — 진행 이벤트를 순서대로 yield 한다(SSE 로 그대로 흘려보냄).
+    이벤트: extract/build/pdf/render(슬라이드별)/warn/done/error. done.result 는 프론트가 쓸 최종 형태.
+    """
+    if NODE is None:
+        yield {"stage": "error", "error": "node 를 찾을 수 없습니다. run.command 로 실행하세요."}
+        return
+    if not DECK_BUILDER.exists():
+        yield {"stage": "error", "error": "deck_builder.js 가 없습니다."}
+        return
+
+    yield {"stage": "extract", "pct": 6, "msg": "HTML을 분석하고 있어요"}
+    try:
+        ir = extract(html, theme=("dark" if theme == "dark" else "light"),
+                     title=source_name, summarize_fn=summarize_fn)
+    except Exception as e:  # noqa: BLE001
+        yield {"stage": "error", "error": "분석 실패: %s" % e}
+        return
+
+    total = len(ir["pages"])
+    base = _slug(source_name)
+    token = time.strftime("%Y%m%d_%H%M%S") + "_" + secrets.token_hex(2)
+    workdir = OUT / token
+    workdir.mkdir(parents=True, exist_ok=True)
+    json.dump(ir, open(workdir / "deck.ir.json", "w", encoding="utf-8"), ensure_ascii=False)
+
+    yield {"stage": "build", "pct": 24, "pages": total,
+           "msg": "%d장 구성 완료 · 슬라이드 빌드 중" % total}
+    pptx = workdir / (base + ".pptx")
+    env = dict(os.environ)
+    env["NODE_PATH"] = str(NODE_MODULES)
+    r = subprocess.run([NODE, str(DECK_BUILDER), str(workdir / "deck.ir.json"), str(pptx)],
+                       capture_output=True, text=True, env=env)
+    if r.returncode != 0 or not pptx.exists():
+        yield {"stage": "error", "error": "덱 빌드 실패: " + (r.stderr or r.stdout or "")[-300:]}
+        return
+
+    result = {"ok": True, "pages": total, "ir": ir, "thumbs": [],
+              "pptx_url": "/deck_out/%s/%s" % (token, pptx.name), "pdf_url": None}
+
+    if not SOFFICE:
+        yield {"stage": "done", "pct": 100, "msg": "완료(미리보기 렌더 없음)", "result": result}
+        return
+
+    yield {"stage": "pdf", "pct": 40, "msg": "PDF로 변환하는 중"}
+    try:
+        import fitz  # PyMuPDF
+        tmp = tempfile.mkdtemp(prefix="deck_")
+        tp = f"{tmp}/{base}.pptx"
+        shutil.copyfile(pptx, tp)
+        subprocess.run([SOFFICE, "--headless", "--convert-to", "pdf", "--outdir", tmp, tp],
+                       capture_output=True, text=True)
+        pdf = f"{tmp}/{base}.pdf"
+        if os.path.exists(pdf):
+            shutil.copyfile(pdf, workdir / (base + ".pdf"))
+            result["pdf_url"] = "/deck_out/%s/%s.pdf" % (token, base)
+            doc = fitz.open(pdf)
+            P = doc.page_count or total or 1
+            for i, page in enumerate(doc, 1):
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.6, 1.6))
+                fn = "%02d.png" % i
+                pix.save(str(workdir / fn))
+                url = "/deck_out/%s/%s" % (token, fn)
+                result["thumbs"].append(url)
+                pct = 45 + int(53 * i / max(1, P))
+                yield {"stage": "render", "pct": pct, "i": i, "total": P, "thumb": url,
+                       "msg": "슬라이드 렌더링 %d/%d" % (i, P)}
+            doc.close()
+        shutil.rmtree(tmp, ignore_errors=True)
+    except Exception as e:  # noqa: BLE001
+        yield {"stage": "warn", "msg": "미리보기 렌더 생략: %s" % e}
+
+    yield {"stage": "done", "pct": 100, "msg": "완료", "result": result}

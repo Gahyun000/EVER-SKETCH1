@@ -1,0 +1,7 @@
+interface:
+  display_name: "Uniever Development Standard"
+  short_description: "유니에버 개발표준 정본 적용과 프로젝트 감사 절차"
+  default_prompt: "Use $uniever-development-standard to apply the Uniever development guideline to this project."
+
+policy:
+  allow_implicit_invocation: true

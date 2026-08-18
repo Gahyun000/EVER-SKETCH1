@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M6 파일럿 관찰 가이드 — ebook_html</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--red:#c23b48;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.62;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:940px;margin:0 auto;padding:44px 24px 100px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:27px;margin:10px 0 8px;letter-spacing:-.02em}
+  .lede{font-size:15.5px;color:var(--muted);max-width:760px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin:18px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:19px;margin:0 0 4px}h2 .n{display:inline-flex;width:26px;height:26px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:9px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 14px}
+  h3{font-size:15px;margin:18px 0 7px}
+  p{margin:8px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  .fillcell{height:26px}
+  .goal{background:#e6f5ee;border:1px solid #b9e3cd;border-radius:10px;padding:13px 15px;font-size:13.5px}
+  .goal b{color:var(--green)}
+  .warn{background:#fff7ec;border:1px solid #f0dcae;border-radius:10px;padding:12px 15px;font-size:13.5px;margin:10px 0}
+  .marker{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0}
+  .marker .m{border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .marker .m b{display:block;font-size:13.5px;margin-bottom:2px}
+  .marker .m span{font-size:12px;color:var(--muted)}
+  .verdict{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px}
+  .v-fix{background:#fdeef0;color:var(--red)} .v-back{background:#fbf1e0;color:var(--amber)} .v-ok{background:#e6f5ee;color:var(--green)}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:34px}
+  @media print{body{background:#fff}section{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">M6 파일럿 관찰 가이드 · G6</div>
+<h1>경영진 1인 파일럿 — 관찰 & 판정</h1>
+<p class="lede">완성된 ebook_html을 <b>실제 타깃(디지털에 낯선 경영진)</b> 한 명이 도움 없이 써보게 하고, 어디서 막히는지 관찰해 개선 목록으로 바꾸는 마지막 검증 단계입니다. 진행자(관찰자)가 이 문서를 그대로 들고 진행하세요.</p>
+
+<section>
+  <h2><span class="n">0</span>성공 기준 (미리 합의)</h2>
+  <div class="goal"><b>합격선 —</b> 참가자가 <b>도움 없이 10분 안에</b> 카드로 사업모델 이북 1권을 만들고(표지·본문 몇 장·마무리), <b>이북 만들기</b>로 실제 이북을 생성한 뒤 <b>발표 모드</b>로 넘겨본다. 치명적 막힘(스스로 못 빠져나오는 지점) 0건.</div>
+  <p class="sub">이 기준은 상황에 맞게 조정하세요. 핵심은 "관찰 전에 무엇이 합격인지 숫자로 정해두는 것".</p>
+</section>
+
+<section>
+  <h2><span class="n">1</span>준비</h2>
+  <ul>
+    <li><b>참가자</b>: 실제 경영진 1명(가능하면 이 도구를 쓸 사람). 우리 팀원·개발자는 대상 아님.</li>
+    <li><b>세팅</b>: <code>run.command</code> 실행 → 브라우저에 빌더가 열린 상태에서 시작. 참가자 앞엔 빈(혹은 시드) 화면.</li>
+    <li><b>진행자 역할</b>: <b>가르치지 않는다.</b> 과제만 주고 관찰·기록. 참가자가 30초 이상 스스로 못 풀 때만 최소 힌트(그리고 그 지점을 "막힘"으로 기록).</li>
+    <li><b>기록</b>: 가능하면 화면 녹화 + 이 문서의 기록지. 참가자에게 <b>"생각을 소리 내어 말해달라"</b>(think-aloud) 요청.</li>
+    <li><b>시간</b>: 15~20분 타임박스.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">2</span>과제 시나리오 (참가자에게 그대로 읽어주기)</h2>
+  <p>"당신 회사(또는 담당 사업)의 <b>사업 모델을 한 권의 이북으로</b> 만들어 주세요. 왼쪽에서 카드를 골라 내용을 채우고, 다 되면 <b>이북 만들기</b>를 누르세요. 마지막으로 <b>발표</b> 버튼으로 슬라이드처럼 넘겨봐 주세요. 제가 옆에서 돕진 않고 지켜볼게요 — 막히면 편하게 소리 내어 말씀해 주세요."</p>
+  <p class="sub">선택 심화 과제(시간 남으면): "한 페이지에 자유 캔버스로 도형 두 개를 화살표로 이어 간단한 흐름도를 그려보세요."</p>
+</section>
+
+<section>
+  <h2><span class="n">3</span>기록할 마커 (숫자로)</h2>
+  <div class="marker">
+    <div class="m"><b>첫 결과까지 시간</b><span>시작~첫 "이북스러운" 미리보기가 나오기까지</span></div>
+    <div class="m"><b>완성까지 시간</b><span>시작~이북 만들기 성공</span></div>
+    <div class="m"><b>막힘 횟수</b><span>30초 이상 스스로 못 푼 지점 수</span></div>
+    <div class="m"><b>치명적 막힘</b><span>힌트 없이는 못 빠져나온 지점 수</span></div>
+    <div class="m"><b>오해 순간</b><span>버튼 뜻을 잘못 이해한 횟수</span></div>
+    <div class="m"><b>"그만두고 싶다"</b><span>혼자였다면 창을 닫았을 지점 + 이유</span></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>관찰 기록지 (진행 중 작성)</h2>
+  <table>
+    <thead><tr><th style="width:16%">시각/단계</th><th style="width:40%">무엇을 하려 했나 / 무슨 일이 일어났나</th><th style="width:22%">막힘·오해</th><th>진행자 힌트(줬다면)</th></tr></thead>
+    <tbody>
+      <tr><td class="fillcell"></td><td></td><td></td><td></td></tr>
+      <tr><td class="fillcell"></td><td></td><td></td><td></td></tr>
+      <tr><td class="fillcell"></td><td></td><td></td><td></td></tr>
+      <tr><td class="fillcell"></td><td></td><td></td><td></td></tr>
+      <tr><td class="fillcell"></td><td></td><td></td><td></td></tr>
+      <tr><td class="fillcell"></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  <p class="sub">특히 주의해서 볼 지점: <b>카드 고르기</b>(무엇을 고를지 망설임), <b>내용 채우기</b>(예시를 지워야 하는지 헷갈림), <b>이북 만들기</b>(어디를 누를지), <b>자유 캔버스 도구</b>(연결 ⤳ 사용법), <b>발표</b> 진입/종료.</p>
+</section>
+
+<section>
+  <h2><span class="n">5</span>사후 인터뷰 (2~3분)</h2>
+  <ul>
+    <li>가장 헷갈렸던 부분은 어디였나요? 왜요?</li>
+    <li>혼자서도 다시 만들 수 있을 것 같나요?</li>
+    <li>기대와 다르게 동작한 부분이 있었나요?</li>
+    <li>이 도구를 실제 보고에 쓰겠어요? 안 쓴다면 무엇 때문에?</li>
+    <li>딱 하나만 바꿀 수 있다면 무엇을 바꾸겠어요?</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">6</span>판정 & 다음 액션</h2>
+  <p class="sub">관찰이 끝나면 나온 문제를 세 가지로 분류해 개선 목록으로 만듭니다.</p>
+  <table>
+    <thead><tr><th>발견한 문제</th><th>분류</th><th>메모</th></tr></thead>
+    <tbody>
+      <tr><td class="fillcell"></td><td><span class="verdict v-fix">즉시 수정</span></td><td></td></tr>
+      <tr><td class="fillcell"></td><td><span class="verdict v-back">백로그</span></td><td></td></tr>
+      <tr><td class="fillcell"></td><td><span class="verdict v-ok">문제 없음</span></td><td></td></tr>
+    </tbody>
+  </table>
+  <div class="warn"><b>판정:</b> 성공 기준(§0) 충족 + 치명적 막힘 0건이면 <b>G6 인수 통과</b>. 치명적 막힘이 있으면 → 즉시 수정 항목 반영 후 재파일럿(같은 시나리오, 다른 참가자 권장).</div>
+</section>
+
+<section>
+  <h2><span class="n">7</span>요약 결과 (1장)</h2>
+  <table>
+    <tbody>
+      <tr><th style="width:40%">참가자 / 일시</th><td class="fillcell"></td></tr>
+      <tr><th>완성까지 시간</th><td class="fillcell"></td></tr>
+      <tr><th>막힘 / 치명적 막힘</th><td class="fillcell"></td></tr>
+      <tr><th>성공 기준 충족?</th><td class="fillcell"></td></tr>
+      <tr><th>즉시 수정 항목 수</th><td class="fillcell"></td></tr>
+      <tr><th>판정 (통과 / 재파일럿)</th><td class="fillcell"></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="foot">M6 파일럿 관찰 가이드 · ebook_html · G6 · 도움 없이 관찰 → 개선 목록</div>
+</div>
+</body>
+</html>

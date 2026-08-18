@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ebook_html 최종 핸드오버</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--red:#c23b48;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.62;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:44px 24px 100px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:28px;margin:10px 0 8px;letter-spacing:-.02em}
+  .lede{font-size:15.5px;color:var(--muted);max-width:800px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 2px}
+  .badge{font-size:12px;font-weight:700;border-radius:999px;padding:5px 12px;background:#eef1f6;color:#3a4356}
+  .badge.g{background:#e6f5ee;color:var(--green)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin:18px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:19px;margin:0 0 4px}h2 .n{display:inline-flex;width:26px;height:26px;border-radius:8px;background:var(--ink);color:#fff;align-items:center;justify-content:center;font-size:13px;margin-right:9px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 14px}
+  h3{font-size:15px;margin:18px 0 7px}
+  p{margin:8px 0}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  pre{background:#12141b;color:#e8ebf2;border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;overflow:auto}
+  pre .c{color:#7f8aa3}.pre .s{color:#c3e88d}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  td.mono{font-family:var(--mono);font-size:12px}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+  .flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;font-size:12.5px;margin:8px 0}
+  .flow .b{border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:#fff}
+  .flow .b.new{border-top:3px solid var(--blue)} .flow .b.keep{border-top:3px solid var(--green)}
+  .flow .a{color:var(--muted);padding:0 9px;font-weight:700}
+  .ok{color:var(--green);font-weight:800}
+  .warn{background:#fff7ec;border:1px solid #f0dcae;border-radius:10px;padding:12px 15px;font-size:13.5px;margin:10px 0}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:34px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">최종 핸드오버 · 2026-07-28</div>
+<h1>ebook_html — 경영진 스케치 빌더</h1>
+<p class="lede">경영진이 카드로 사업모델을 조립하고(필요 시 Whimsical식 자유 캔버스로 자유 편집), 세로 이북/가로 덱으로 내보내며 그 자리에서 발표까지 하는 도구. 산출물은 기존 <b>uniever_ebook</b> 생성기로 이북이 되며 <b>uniever_ebook은 한 줄도 수정하지 않았습니다.</b></p>
+<div class="badges">
+  <span class="badge g">M0–M5 완료</span>
+  <span class="badge g">자동검증 19/19 PASS</span>
+  <span class="badge">React + TypeScript + FastAPI</span>
+  <span class="badge">경로 /Users/kimgahyun/Desktop/git/ebook_html</span>
+  <span class="badge">남음: M6 파일럿(사람)</span>
+</div>
+
+<section>
+  <h2><span class="n">1</span>한 장 아키텍처</h2>
+  <div class="flow">
+    <span class="b new">ebook_html (React+TS)<br>카드+자유캔버스+발표</span><span class="a">→ PNG</span>
+    <span class="b new">FastAPI 백엔드<br>/api/build</span><span class="a">→ subprocess</span>
+    <span class="b keep">generator.py<br>(무수정)</span><span class="a">→</span>
+    <span class="b keep">uniever_ebook/ebooks/&lt;id&gt;<br>자립형 이북</span>
+  </div>
+  <p class="sub">브라우저(프론트)는 python을 못 돌리므로 얇은 FastAPI 백엔드가 "이북 만들기" 때 각 페이지 PNG를 받아 폴더로 쓰고 <code>generator.py</code>를 한 번 호출. uniever_ebook은 서버로 띄우지 않고 스크립트만 호출합니다.</p>
+</section>
+
+<section>
+  <h2><span class="n">2</span>실행법 (본인 Mac)</h2>
+  <h3>원클릭</h3>
+  <pre><span class="c"># Finder에서 더블클릭 (Gatekeeper가 막으면 우클릭 → 열기)</span>
+ebook_html/run.command
+<span class="c"># 최초 1회만 npm install + pip install (인터넷 필요), 이후 브라우저 자동 오픈 http://127.0.0.1:8820</span></pre>
+  <h3>수동</h3>
+  <pre>cd ~/Desktop/git/ebook_html
+npm install &amp;&amp; npm run build
+python3 -m venv server/.venv &amp;&amp; source server/.venv/bin/activate
+pip install fastapi "uvicorn[standard]" pillow
+python -m uvicorn server.app:app --host 127.0.0.1 --port 8820</pre>
+  <h3>자동 검증(스모크 19종)</h3>
+  <pre>npm i            <span class="c"># playwright 포함</span>
+npx playwright install chromium   <span class="c"># 최초 1회</span>
+npm run e2e      <span class="c"># → 19/19 PASS 기대</span></pre>
+</section>
+
+<section>
+  <h2><span class="n">3</span>구현 현황 (마일스톤)</h2>
+  <table>
+    <thead><tr><th>단계</th><th>내용</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td>M0</td><td>스캐폴드 + default_skill 7종 이식 + 토큰/레지스트리/상태/계약</td><td class="ok">완료</td></tr>
+      <tr><td>M1</td><td>FastAPI 백엔드 + run.command + /api/build → generator.py</td><td class="ok">완료(실기기 확인)</td></tr>
+      <tr><td>M2</td><td>카드 13종 + 편집·미리보기 + 세로/가로 + 타이포 + 접이식 3분할</td><td class="ok">완료</td></tr>
+      <tr><td>M3</td><td>자유 캔버스(도형·연결·펜·이미지·아이콘·복제·정렬·되돌리기)</td><td class="ok">완료</td></tr>
+      <tr><td>M4</td><td>발표(프레젠테이션) 모드</td><td class="ok">완료</td></tr>
+      <tr><td>M5</td><td>Playwright 스모크 19/19 + 검증 리포트</td><td class="ok">완료</td></tr>
+      <tr><td>M6</td><td>경영진 1인 파일럿·인수</td><td>미착수(사람 단계)</td></tr>
+    </tbody>
+  </table>
+  <p class="sub">추가: 사용설명서·도구별 설명서·인터랙티브 튜토리얼(스포트라이트), 이미지 업로드, AI 문구 다듬기(자리), 연결선 Whimsical화(엣지앵커·엘보·자유꺾임).</p>
+</section>
+
+<section>
+  <h2><span class="n">4</span>기능 목록</h2>
+  <ul>
+    <li><b>카드 13종</b> — FRAME(표지·목차·마무리) · BMC 9블록(가치제안·고객군·수익원·채널·핵심자원·핵심활동·파트너·고객관계·비용) · EXTRA(한줄요약·성과KPI·로드맵·시장경쟁) · 비주얼(플로우·마인드맵·스티키·자유보드).</li>
+    <li><b>자유 캔버스</b> — 항상 켜짐. 도형5·텍스트·스티키·이미지(업로드)·아이콘·화살표 연결(엘보+자유꺾임)·펜·색·복제·앞뒤·되돌리기·삭제·AI초안 데모.</li>
+    <li><b>출력</b> — 세로 이북(0.75)/가로 덱(1.33) 선택, 폰트·크기 프리셋, 발표 모드.</li>
+    <li><b>온보딩</b> — 도움말, 도구별 설명서 패널, 하면 진행되는 튜토리얼(반짝이는 링).</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">5</span>프로젝트 구조</h2>
+  <pre>ebook_html/
+  run.command            <span class="c"># 원클릭 실행</span>
+  package.json  vite.config.ts  tsconfig.json  index.html
+  server/app.py          <span class="c"># FastAPI: /api/build → generator.py 호출 + dist·ebooks 서빙</span>
+  src/
+    design/tokens.ts     cards/registry.ts(13종)  cards/PageView.tsx(공용 렌더러)  cards/PageWithCanvas.tsx
+    state/store.ts  state/canvasUI.ts  canvas/FreeLayer.tsx  canvas/model.ts
+    builder/ TopBar·Palette·Filmstrip·Editor·Preview·ExportLayer·Dock·Present·Help·TutorialCoach
+    export/exportBook.ts   <span class="c"># 페이지 → PNG(html-to-image) → /api/build</span>
+  e2e/ server_test.mjs  smoke.mjs  run.mjs   <span class="c"># npm run e2e</span>
+  skills/                <span class="c"># default_skill 표준 7종 이식</span>
+  docs/                  <span class="c"># 아래 문서들</span></pre>
+</section>
+
+<section>
+  <h2><span class="n">6</span>연결 계약 (불변)</h2>
+  <p>ebook_html이 만드는 PNG 폴더 규칙 → 기존 CLI 호출:</p>
+  <pre>&lt;출력폴더&gt;/  표지.png · 00. 목차.png · NN. 제목.png · 뒷표지.png · (links.json)
+python3 generator.py build &lt;폴더&gt; --style card --title "..."   <span class="c"># uniever_ebook 무수정</span></pre>
+  <p class="sub">카드 + 자유 캔버스 요소는 페이지별 한 장 PNG로 합쳐져 저장되므로 폰트·도형·펜이 그대로 이북에 반영됩니다.</p>
+</section>
+
+<section>
+  <h2><span class="n">7</span>문서 (docs/)</h2>
+  <table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">ebook_html_개발계획서.html</td><td>G0~G6 개발 계획</td></tr>
+      <tr><td class="mono">M2_착수계획.html</td><td>컴포넌트 설계·빌드순서·수용기준</td></tr>
+      <tr><td class="mono">틀빌더_목업_..._2.html</td><td>최종 UX 목업(참조)</td></tr>
+      <tr><td class="mono">M5_검증증적.html</td><td>Playwright 19/19 검증 리포트</td></tr>
+      <tr><td class="mono">체크리스트.html</td><td>전 항목 현황</td></tr>
+      <tr><td class="mono">M6_파일럿가이드.html</td><td>경영진 파일럿 관찰 워크시트</td></tr>
+      <tr><td class="mono">개발일지.md</td><td>일자별 작업 기록</td></tr>
+    </tbody>
+  </table>
+  <p class="sub">이 밖에 벤치마킹 프레임워크·연결 설계도·컴포넌트 카탈로그·빌드 설계도·팀 구성안은 세션 대화로 전달됨(원하면 docs로 복사 가능).</p>
+</section>
+
+<section>
+  <h2><span class="n">8</span>남은 것 · 운영 메모</h2>
+  <ul>
+    <li><b>M6 파일럿</b> — <code>docs/M6_파일럿가이드.html</code>로 실제 경영진 1명 관찰 → 개선 목록. (필수)</li>
+    <li><b>백로그</b> — 실제 generator 종단 자동화, 연결선 다중 꺾임·곡선, 다장 대량 성능, AI 문구 다듬기 실제 LLM 연동.</li>
+    <li><b>git 주의</b> — 클라우드에서 연결 폴더의 <code>.git</code>은 마운트 권한 제약이 있어 커밋 시 임시 lock이 남습니다. 깔끔한 git은 <b>본인 Mac 터미널에서 직접 커밋</b> 권장.</li>
+    <li><b>정리</b> — <code>_deploy/</code>(이식용 임시 아카이브), <code>_build_input/</code>(내보내기 임시)는 <code>.gitignore</code> 처리됨. 지워도 됩니다.</li>
+  </ul>
+  <div class="warn"><b>핵심 원칙 유지:</b> uniever_ebook은 계속 무수정으로 두고, ebook_html은 그 <code>generator.py</code>를 호출만 합니다. 이북은 기존 라이브러리(<code>uniever_ebook/ebooks/</code>)에 그대로 쌓입니다.</div>
+</section>
+
+<div class="foot">ebook_html 최종 핸드오버 · M0–M5 완료 · 자동검증 19/19 · 남은 필수 M6 파일럿</div>
+</div>
+</body>
+</html>

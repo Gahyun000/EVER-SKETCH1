@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ebook_html 프로젝트 체크리스트</title>
+<style>
+  :root{--ink:#111318;--muted:#5b6270;--line:#e4e7ee;--bg:#f5f6f8;--card:#fff;--blue:#2f6df6;--green:#128a5a;--amber:#b8791a;--mono:"SF Mono",ui-monospace,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:44px 24px 100px}
+  .kicker{font-size:12.5px;font-weight:800;letter-spacing:.08em;color:var(--blue);text-transform:uppercase}
+  h1{font-size:27px;margin:10px 0 8px;letter-spacing:-.02em}
+  .lede{font-size:15.5px;color:var(--muted);max-width:760px}
+  .summary{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 2px}
+  .pill{font-size:12.5px;font-weight:800;border-radius:999px;padding:5px 13px}
+  .pill.done{background:#e6f5ee;color:var(--green)}
+  .pill.left{background:#fbf1e0;color:var(--amber)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 26px;margin:16px 0;box-shadow:0 1px 2px rgba(20,25,40,.03)}
+  h2{font-size:18px;margin:0 0 12px;display:flex;align-items:center;gap:9px}
+  h2 .tag{font-family:var(--mono);font-size:11px;font-weight:800;color:#fff;background:var(--ink);border-radius:6px;padding:3px 8px}
+  ul.ck{list-style:none;padding:0;margin:0}
+  ul.ck li{display:flex;gap:11px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+  ul.ck li:first-child{border-top:none}
+  .box{width:20px;height:20px;border-radius:6px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;margin-top:1px}
+  .box.on{background:var(--green);color:#fff}
+  .box.off{background:#fff;border:2px solid #c4cad6;color:transparent}
+  li .sub{color:var(--muted);font-size:12.5px;display:block;margin-top:1px}
+  li.pending .t{color:var(--muted)}
+  code{font-family:var(--mono);font-size:12px;background:#f0f2f6;padding:1px 6px;border-radius:5px;color:#31415e}
+  .foot{color:var(--muted);font-size:12.5px;text-align:center;margin-top:32px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="kicker">프로젝트 체크리스트 · 2026-07-28</div>
+<h1>ebook_html — 경영진 스케치 빌더</h1>
+<p class="lede">카드 빌더 + 자유 캔버스 + 발표 + 온보딩. uniever_ebook 무수정, PNG 폴더 → generator.py 연결. 아래는 전 항목 현황입니다.</p>
+<div class="summary">
+  <span class="pill done">완료 다수 · 자동검증 19/19 PASS</span>
+  <span class="pill left">남음: M6 파일럿(사람) · 성능 백로그</span>
+</div>
+
+<section>
+  <h2><span class="tag">마일스톤</span> M0 – M6</h2>
+  <ul class="ck">
+    <li><span class="box on">✓</span><div><span class="t"><b>M0 셋업</b></span><span class="sub">React+TS 스캐폴드 · default_skill 7종 이식 · 디자인토큰·카드레지스트리·상태·연결계약</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t"><b>M1 종단 슬라이스</b></span><span class="sub">FastAPI 백엔드 · run.command 원클릭 · /api/build → generator.py (사용자 Mac 실기기 확인)</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t"><b>M2 카드 카탈로그 + 빌더</b></span><span class="sub">13종 카드 · 편집·미리보기 · 세로/가로 · 타이포 · 접이식 3분할</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t"><b>M3 자유 캔버스</b></span><span class="sub">도형·텍스트·스티키·이미지·아이콘 · 연결(엘보·자유꺾임)·펜·복제·정렬·되돌리기</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t"><b>M4 발표 모드</b></span><span class="sub">전체화면 슬라이드쇼 · 키/클릭 넘김 · Esc 종료</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t"><b>M5 검증·증적</b></span><span class="sub">Playwright 스모크 19/19 PASS · <code>npm run e2e</code> · docs/M5_검증증적.html</span></div></li>
+    <li class="pending"><span class="box off">·</span><div><span class="t"><b>M6 파일럿·인수</b></span><span class="sub">실제 경영진 1명 관찰 · 피드백 반영 · 핸드오버 (사람 단계, 미착수)</span></div></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="tag">수용 기준</span> M2 · M3 · M4</h2>
+  <ul class="ck">
+    <li><span class="box on">✓</span><div><span class="t">13종 카드 모두 팔레트 노출·추가</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">선택 카드 편집이 미리보기에 실시간 반영</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">세로/가로 전환이 미리보기·산출물에 일치</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">타이포 프리셋(폰트·크기) 전환 <span class="sub">자동 스모크 포함</span></span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">카드만으로 표지→목차→본문N→마무리 다장 이북 생성</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">자유 캔버스 요소가 최종 이북 PNG에 합쳐져 반영</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">발표 모드 진입·넘김·Esc 종료</span></div></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="tag">온보딩</span> 낯선 경영진</h2>
+  <ul class="ck">
+    <li><span class="box on">✓</span><div><span class="t">도움말(사용설명서) 모달</span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">인터랙티브 자유 캔버스 튜토리얼 <span class="sub">실제 버튼에 반짝이는 스포트라이트 링, 하면 자동 진행</span></span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">도구별 설명서 패널 <span class="sub">각 컴포넌트 한 줄 설명</span></span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">자유 캔버스 항상 켜짐 + 기본 '선택' 도구로 실수 방지</span></div></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="tag">백로그</span> "미정"이었던 항목</h2>
+  <ul class="ck">
+    <li><span class="box on">✓</span><div><span class="t">카드 순서 조정 <span class="sub">필름스트립 ‹ › 로 이동</span></span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">AI 문구 다듬기 <span class="sub">에디터 "✨ 문구 다듬기"(가벼운 자동 정리, 실제 LLM 교체 가능)</span></span></div></li>
+    <li><span class="box on">✓</span><div><span class="t">이미지 업로드 <span class="sub">자유 캔버스 이미지 요소 더블클릭 → 실제 이미지, 이북에 반영</span></span></div></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="tag">잔여</span> 미체크 · 백로그</h2>
+  <ul class="ck">
+    <li class="pending"><span class="box off">·</span><div><span class="t"><b>M6 경영진 파일럿</b></span><span class="sub">실제 사용자 관찰 (사람 단계)</span></div></li>
+    <li class="pending"><span class="box off">·</span><div><span class="t">실제 generator.py 종단 자동화</span><span class="sub">현재 사용자 Mac 육안 확인 · 자동 테스트는 API 경계까지</span></div></li>
+    <li class="pending"><span class="box off">·</span><div><span class="t">연결선 다중 꺾임점 · 곡선</span><span class="sub">단일 꺾임까지 지원</span></div></li>
+    <li class="pending"><span class="box off">·</span><div><span class="t">다장 대량(수십 페이지) 내보내기 성능</span><span class="sub">순차 렌더 · 진행표시/병렬은 후속</span></div></li>
+  </ul>
+</section>
+
+<div class="foot">ebook_html 체크리스트 · 자동검증 19/19 PASS · 남은 필수: M6 파일럿</div>
+</div>
+</body>
+</html>
