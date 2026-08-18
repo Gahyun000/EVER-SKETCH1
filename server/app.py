@@ -31,7 +31,7 @@ GEN_DIR = UNIEVER / "ebook-generator"
 GEN_PY = GEN_DIR / "generator.py"
 EBOOKS = UNIEVER / "ebooks"
 
-app = FastAPI(title="ebook_html M2")
+app = FastAPI(title="EVER-SKETCH")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
