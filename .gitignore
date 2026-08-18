@@ -26,3 +26,5 @@ _build_input
 _deploy
 _deck_out/
 _to_delete_*
+
+_to_delete_gitjunk/
