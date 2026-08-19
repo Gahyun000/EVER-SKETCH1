@@ -21,7 +21,9 @@ from server.settings_store import (
 )
 from server import chat as chat_engine
 from server import projects as projects_store
-from server import notes as notes_store
+from server import auth as auth_store
+from server.routes_auth import router as auth_router
+from server.routes_projects import router as projects_router
 
 HERE = pathlib.Path(__file__).resolve().parent
 EBOOK_HTML = HERE.parent
@@ -556,131 +558,20 @@ def edit(req: EditIn):
 
 
 
-# ───────────────────────── 프로젝트(내 이북) ─────────────────────────
-class ProjectCreateIn(BaseModel):
-    name: Optional[str] = None
-    state: Optional[dict] = None
+# ───────────────────────── 프로젝트·메모·버전 ─────────────────────────
+# 라우트는 server/routes_projects.py 로 옮겼다(권한 가드 적용).
+# app.py 는 chat·deck·pptx 등 무거운 의존성을 끌어와서, 여기 두면 권한 회귀 테스트를 돌릴 수 없다.
+app.include_router(auth_router)
+app.include_router(projects_router)
 
-
-class ProjectSaveIn(BaseModel):
-    state: dict
-    name: Optional[str] = None
-
-
-class ProjectRenameIn(BaseModel):
-    name: str
-
-
-class VersionSaveIn(BaseModel):
-    state: dict
-    label: Optional[str] = None
-    pinned: bool = False
-    auto: bool = True
-
-
-class VersionPatchIn(BaseModel):
-    label: Optional[str] = None
-    pinned: Optional[bool] = None
-
-
-@app.get("/api/projects")
-def projects_list():
-    return {"projects": projects_store.list_projects()}
-
-
-@app.post("/api/projects")
-def projects_create(req: ProjectCreateIn):
-    return projects_store.create_project(req.name, req.state)
-
-
-@app.get("/api/projects/{pid}")
-def projects_get(pid: str):
-    p = projects_store.get_project(pid)
-    if not p:
-        return Response(status_code=404, content="not found")
-    return p
-
-
-@app.put("/api/projects/{pid}")
-def projects_save(pid: str, req: ProjectSaveIn):
-    return projects_store.save_project(pid, req.state, req.name)
-
-
-@app.patch("/api/projects/{pid}")
-def projects_rename(pid: str, req: ProjectRenameIn):
-    return projects_store.rename_project(pid, req.name)
-
-
-@app.delete("/api/projects/{pid}")
-def projects_delete(pid: str):
-    return projects_store.delete_project(pid)
-
-
-@app.post("/api/projects/{pid}/duplicate")
-def projects_duplicate(pid: str):
-    d = projects_store.duplicate_project(pid)
-    if not d:
-        return Response(status_code=404, content="not found")
-    return d
-
-
-class NoteIn(BaseModel):
-    project_id: str
-    id: str
-    title: str = ""
-    blocks: list = []
-    pinned: bool = False
-    sort: float = 0
-
-
-@app.get("/api/notes")
-def notes_list(project_id: str):
-    return {"notes": notes_store.list_notes(project_id)}
-
-
-@app.post("/api/notes")
-def notes_upsert(req: NoteIn):
-    return notes_store.upsert_note(req.project_id, req.id, req.title, req.blocks, req.pinned, req.sort)
-
-
-@app.delete("/api/notes/{nid}")
-def notes_delete(nid: str):
-    return notes_store.delete_note(nid)
-
-
-@app.get("/api/projects/{pid}/versions")
-def project_versions(pid: str):
-    return {"versions": projects_store.list_versions(pid)}
-
-
-@app.post("/api/projects/{pid}/versions")
-def project_version_save(pid: str, req: VersionSaveIn):
-    v = projects_store.save_version(pid, req.state, req.label, req.pinned, req.auto)
-    return {"ok": True, "version": v}
-
-
-@app.get("/api/projects/{pid}/versions/{vid}")
-def project_version_get(pid: str, vid: str):
-    v = projects_store.get_version(vid)
-    if not v:
-        return Response(status_code=404, content="not found")
-    return v
-
-
-@app.patch("/api/projects/{pid}/versions/{vid}")
-def project_version_patch(pid: str, vid: str, req: VersionPatchIn):
-    patch = {}
-    if req.label is not None:
-        patch["label"] = req.label
-    if req.pinned is not None:
-        patch["pinned"] = req.pinned
-    return projects_store.update_version(vid, patch)
-
-
-@app.delete("/api/projects/{pid}/versions/{vid}")
-def project_version_delete(pid: str, vid: str):
-    return projects_store.delete_version(vid)
-
+# 최초 관리자 시드 — 이미 있으면 아무것도 하지 않는다(멱등).
+_seed_pw = auth_store.ensure_seed_admin()
+if _seed_pw:
+    print("=" * 60)
+    print("  최초 관리자 계정을 만들었습니다.")
+    print("  아이디: admin   초기 비밀번호: %s" % _seed_pw)
+    print("  최초 로그인 시 비밀번호를 반드시 바꿔야 합니다.")
+    print("=" * 60)
 
 
 if EBOOKS.exists():

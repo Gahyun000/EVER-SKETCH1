@@ -12,10 +12,18 @@ from server import auth  # noqa: E402
 from server.permissions import can_grant_level, decide, USER_MANAGE  # noqa: E402
 
 
+_DB = str(pathlib.Path(_tmp) / "t.db")
+
+
 @pytest.fixture(autouse=True)
 def clean_db():
-    """테스트마다 DB 파일을 새로 만든다(격리)."""
-    p = pathlib.Path(os.environ["EVER_SKETCH_DB"])
+    """테스트마다 DB 파일을 새로 만든다(격리).
+
+    경로를 여기서 다시 세팅하는 이유 — pytest 는 전 테스트 모듈을 먼저 import 하므로
+    import 시점 환경변수는 마지막 모듈 것이 이긴다. 그러면 모듈끼리 DB를 공유해 버린다.
+    """
+    os.environ["EVER_SKETCH_DB"] = _DB
+    p = pathlib.Path(_DB)
     for suffix in ("", "-wal", "-shm"):
         f = pathlib.Path(str(p) + suffix)
         if f.exists():

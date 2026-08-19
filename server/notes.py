@@ -14,7 +14,11 @@ _HERE = pathlib.Path(__file__).resolve().parent
 
 
 def _db_path() -> str:
-    return os.environ.get("EBOOK_HTML_DB") or str(_HERE / "ebook_html.db")
+    return (
+        os.environ.get("EVER_SKETCH_DB")
+        or os.environ.get("EBOOK_HTML_DB")
+        or str(_HERE / "ebook_html.db")
+    )
 
 
 def _conn() -> sqlite3.Connection:
@@ -69,6 +73,16 @@ def upsert_note(project_id: str, id: str, title: str, blocks, pinned: bool, sort
     finally:
         c.close()
     return {"ok": True, "updatedAt": now}
+
+
+def project_of_note(id: str) -> Optional[str]:
+    """메모가 속한 이북 id. 삭제 권한을 그 이북 기준으로 판정하기 위해 필요하다."""
+    c = _conn()
+    try:
+        r = c.execute("SELECT project_id FROM Notes WHERE id=?", (id,)).fetchone()
+    finally:
+        c.close()
+    return r[0] if r else None
 
 
 def delete_note(id: str) -> dict:

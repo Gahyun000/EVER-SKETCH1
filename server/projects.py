@@ -26,11 +26,26 @@ _MAX_KEEP = 80
 
 
 def _db_path() -> str:
-    return os.environ.get("EBOOK_HTML_DB") or str(_HERE / "ebook_html.db")
+    # 신규 변수 우선, 기존 EBOOK_HTML_DB 는 폴백으로 유지(이관 전 호환)
+    return (
+        os.environ.get("EVER_SKETCH_DB")
+        or os.environ.get("EBOOK_HTML_DB")
+        or str(_HERE / "ebook_html.db")
+    )
+
+
+# W1 확장 컬럼 — 기존 DB에도 안전하게 덧붙인다(있으면 무시).
+_EXTRA_COLS = (
+    ("owner_id", "TEXT"),
+    ("cycle_id", "TEXT"),
+    ("template_id", "TEXT"),
+    ("submit_status", "TEXT DEFAULT 'draft'"),
+)
 
 
 def _conn() -> sqlite3.Connection:
     c = sqlite3.connect(_db_path())
+    c.execute("PRAGMA journal_mode=WAL")
     c.execute(
         "CREATE TABLE IF NOT EXISTS Projects("
         "id TEXT PRIMARY KEY, name TEXT, created_at REAL, updated_at REAL, "
@@ -42,6 +57,14 @@ def _conn() -> sqlite3.Connection:
         "pinned INTEGER, auto INTEGER, page_count INTEGER, hash TEXT, state TEXT)"
     )
     c.execute("CREATE INDEX IF NOT EXISTS idx_pv_project ON ProjectVersions(project_id)")
+    # ALTER TABLE ADD COLUMN 은 SQLite 에 IF NOT EXISTS 가 없다. 현재 컬럼을 보고 없는 것만 추가.
+    have = {r[1] for r in c.execute("PRAGMA table_info(Projects)").fetchall()}
+    for col, decl in _EXTRA_COLS:
+        if col not in have:
+            c.execute("ALTER TABLE Projects ADD COLUMN %s %s" % (col, decl))
+    c.execute("CREATE INDEX IF NOT EXISTS idx_projects_owner ON Projects(owner_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_projects_cycle ON Projects(cycle_id)")
+    c.commit()
     return c
 
 
@@ -69,23 +92,58 @@ def _title_of(state, fallback: str = "제목 없음") -> str:
 
 
 # ─────────────────────── 프로젝트 ───────────────────────
-def list_projects() -> list[dict]:
+_LIST_COLS = "id,name,created_at,updated_at,published_id,page_count,owner_id,cycle_id,submit_status"
+
+
+def _row_to_meta(r) -> dict:
+    return {"id": r[0], "name": r[1] or "제목 없음", "created_at": r[2],
+            "updated_at": r[3], "published_id": r[4], "page_count": r[5] or 0,
+            "owner_id": r[6], "cycle_id": r[7], "submit_status": r[8] or "draft"}
+
+
+def list_projects(visibility: str = "all", user_id: Optional[str] = None) -> list[dict]:
+    """visibility 는 permissions.visible_project_filter() 가 정한다.
+
+    목록 필터를 여기서 새로 판단하지 않는다 — 개별 판정(decide)과 어긋나면
+    '목록엔 보이는데 열면 403'이 난다.
+    """
+    if visibility == "none":
+        return []
     c = _conn()
     try:
-        rows = c.execute(
-            "SELECT id,name,created_at,updated_at,published_id,page_count "
-            "FROM Projects ORDER BY updated_at DESC"
-        ).fetchall()
+        if visibility == "all":
+            rows = c.execute(
+                "SELECT %s FROM Projects ORDER BY updated_at DESC" % _LIST_COLS
+            ).fetchall()
+        elif visibility == "own_or_published":
+            rows = c.execute(
+                "SELECT %s FROM Projects WHERE owner_id=? OR published_id IS NOT NULL "
+                "ORDER BY updated_at DESC" % _LIST_COLS, (user_id,)
+            ).fetchall()
+        elif visibility == "published":
+            rows = c.execute(
+                "SELECT %s FROM Projects WHERE published_id IS NOT NULL "
+                "ORDER BY updated_at DESC" % _LIST_COLS
+            ).fetchall()
+        else:
+            return []
     finally:
         c.close()
-    return [
-        {"id": r[0], "name": r[1] or "제목 없음", "created_at": r[2],
-         "updated_at": r[3], "published_id": r[4], "page_count": r[5] or 0}
-        for r in rows
-    ]
+    return [_row_to_meta(r) for r in rows]
 
 
-def create_project(name: Optional[str] = None, state: Optional[dict] = None) -> dict:
+def get_project_meta(pid: str) -> Optional[dict]:
+    """권한 판정용 — state(본문)를 읽지 않는다. 큰 JSON을 매 판정마다 파싱하지 않기 위함."""
+    c = _conn()
+    try:
+        r = c.execute("SELECT %s FROM Projects WHERE id=?" % _LIST_COLS, (pid,)).fetchone()
+    finally:
+        c.close()
+    return _row_to_meta(r) if r else None
+
+
+def create_project(name: Optional[str] = None, state: Optional[dict] = None,
+                   owner_id: Optional[str] = None, cycle_id: Optional[str] = None) -> dict:
     pid = _new_id("p")
     ts = _now()
     st = state or {}
@@ -93,22 +151,25 @@ def create_project(name: Optional[str] = None, state: Optional[dict] = None) -> 
     c = _conn()
     try:
         c.execute(
-            "INSERT INTO Projects(id,name,created_at,updated_at,published_id,page_count,state) "
-            "VALUES(?,?,?,?,?,?,?)",
-            (pid, nm, ts, ts, None, _page_count(st), json.dumps(st, ensure_ascii=False)),
+            "INSERT INTO Projects(id,name,created_at,updated_at,published_id,page_count,state,"
+            "owner_id,cycle_id,submit_status) VALUES(?,?,?,?,?,?,?,?,?,'draft')",
+            (pid, nm, ts, ts, None, _page_count(st), json.dumps(st, ensure_ascii=False),
+             owner_id, cycle_id),
         )
         c.commit()
     finally:
         c.close()
     return {"id": pid, "name": nm, "created_at": ts, "updated_at": ts,
-            "published_id": None, "page_count": _page_count(st), "state": st}
+            "published_id": None, "page_count": _page_count(st), "state": st,
+            "owner_id": owner_id, "cycle_id": cycle_id, "submit_status": "draft"}
 
 
 def get_project(pid: str) -> Optional[dict]:
     c = _conn()
     try:
         r = c.execute(
-            "SELECT id,name,created_at,updated_at,published_id,state FROM Projects WHERE id=?",
+            "SELECT id,name,created_at,updated_at,published_id,state,owner_id,cycle_id,submit_status "
+            "FROM Projects WHERE id=?",
             (pid,),
         ).fetchone()
     finally:
@@ -117,7 +178,32 @@ def get_project(pid: str) -> Optional[dict]:
         return None
     return {"id": r[0], "name": r[1] or "제목 없음", "created_at": r[2],
             "updated_at": r[3], "published_id": r[4],
-            "state": json.loads(r[5]) if r[5] else {}}
+            "state": json.loads(r[5]) if r[5] else {},
+            "owner_id": r[6], "cycle_id": r[7], "submit_status": r[8] or "draft"}
+
+
+def set_owner(pid: str, owner_id: str) -> dict:
+    c = _conn()
+    try:
+        c.execute("UPDATE Projects SET owner_id=? WHERE id=?", (owner_id, pid))
+        c.commit()
+    finally:
+        c.close()
+    return {"ok": True}
+
+
+def version_belongs_to(vid: str, pid: str) -> bool:
+    """버전이 그 프로젝트의 것인지 확인.
+
+    기존 라우터는 /projects/{pid}/versions/{vid} 에서 pid 를 쓰지 않고 vid 로만 조회했다.
+    권한을 pid 로만 검사하면 '내 pid + 남의 vid' 조합으로 남의 버전을 읽을 수 있다.
+    """
+    c = _conn()
+    try:
+        r = c.execute("SELECT project_id FROM ProjectVersions WHERE id=?", (vid,)).fetchone()
+    finally:
+        c.close()
+    return bool(r and r[0] == pid)
 
 
 def save_project(pid: str, state: dict, name: Optional[str] = None) -> dict:
@@ -177,11 +263,17 @@ def delete_project(pid: str) -> dict:
     return {"ok": True}
 
 
-def duplicate_project(pid: str) -> Optional[dict]:
+def duplicate_project(pid: str, owner_id: Optional[str] = None) -> Optional[dict]:
+    """복제본의 소유자는 **복제한 사람**이다.
+
+    원본 소유자를 그대로 물려주면, L3가 임원 자료를 복제했을 때 그 복제본이
+    임원 소유가 되어 L3의 '내 것' 목록에서 사라진다.
+    """
     src = get_project(pid)
     if not src:
         return None
-    return create_project(name=(src["name"] + " 복사본"), state=src["state"])
+    return create_project(name=(src["name"] + " 복사본"), state=src["state"],
+                          owner_id=owner_id or src.get("owner_id"))
 
 
 def set_published(pid: str, published_id: str) -> dict:
