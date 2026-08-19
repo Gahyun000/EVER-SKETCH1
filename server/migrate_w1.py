@@ -85,8 +85,11 @@ def run(dry_run: bool = False) -> dict:
         try:
             r = conn.execute("SELECT COUNT(*), MAX(updated_at) FROM Notes").fetchone()
             report["notes_count"] = r[0]
-            # 2001년 이후 ms 타임스탬프는 1e12 를 넘는다. 그보다 작으면 초 단위.
-            report["notes_unit"] = "seconds" if (r[1] or 0) < 1e12 else "milliseconds"
+            if not r[0] or r[1] is None:
+                report["notes_unit"] = "n/a"          # 빈 테이블은 판정하지 않는다
+            else:
+                # 2001년 이후 ms 타임스탬프는 1e12 를 넘는다. 그보다 작으면 초 단위.
+                report["notes_unit"] = "seconds" if r[1] < 1e12 else "milliseconds"
         except sqlite3.OperationalError:
             report["notes_count"] = 0
             report["notes_unit"] = "n/a"
