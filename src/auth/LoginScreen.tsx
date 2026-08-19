@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { clearRememberedId, loadRememberedId, saveRememberedId } from './rememberId'
 import { ApiError, apiSignup, LEVEL_DESC } from './authApi'
 import { useAuth } from './useAuth'
 
@@ -10,7 +11,10 @@ export default function LoginScreen() {
   const clearSessionLost = useAuth((s) => s.clearSessionLost)
 
   const [mode, setMode] = useState<Mode>('login')
-  const [loginId, setLoginId] = useState('')
+  // 저장해 둔 아이디가 있으면 채워 두고, 커서는 비밀번호로 보낸다.
+  const [remembered] = useState(() => loadRememberedId())
+  const [loginId, setLoginId] = useState(remembered)
+  const [remember, setRemember] = useState(!!remembered)
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [dept, setDept] = useState('')
@@ -30,6 +34,9 @@ export default function LoginScreen() {
     try {
       if (mode === 'login') {
         await login(loginId, password)
+        // 로그인에 성공한 뒤에만 저장한다 — 오타난 아이디를 기억하면 오히려 방해가 된다.
+        if (remember) saveRememberedId(loginId)
+        else clearRememberedId()
       } else {
         const r = await apiSignup({ login_id: loginId, password, name, dept, requested_level: level })
         setDone(r.message)
@@ -65,7 +72,8 @@ export default function LoginScreen() {
         <form onSubmit={submit}>
           <div className="es-field">
             <label htmlFor="es-login-id">아이디</label>
-            <input id="es-login-id" value={loginId} autoComplete="username" autoFocus
+            <input id="es-login-id" value={loginId} autoComplete="username"
+              autoFocus={!remembered}
               onChange={(e) => setLoginId(e.target.value)} placeholder="사내 아이디" />
           </div>
 
@@ -73,8 +81,21 @@ export default function LoginScreen() {
             <label htmlFor="es-pw">비밀번호</label>
             <input id="es-pw" type="password" value={password}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              autoFocus={!!remembered && mode === 'login'}
               onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'signup' ? '8자 이상' : ''} />
           </div>
+
+          {mode === 'login' && (
+            <label className="es-check">
+              <input type="checkbox" checked={remember}
+                onChange={(e) => {
+                  setRemember(e.target.checked)
+                  if (!e.target.checked) clearRememberedId()
+                }} />
+              <span>아이디 기억하기</span>
+              <em>비밀번호는 저장되지 않습니다</em>
+            </label>
+          )}
 
           {mode === 'signup' && (
             <>

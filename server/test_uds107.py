@@ -294,3 +294,56 @@ def test_주인_없는_대화는_최초_사용자에게_귀속된다():
     assert conv.owner_of("legacy") == "u_first"
     conv.claim("legacy", "u_second")                    # 이미 주인이 있으면 안 바뀐다
     assert conv.owner_of("legacy") == "u_first"
+
+
+# ══════════ §5 프런트엔드 비밀정보 저장 금지 ══════════
+def _frontend_sources():
+    root = pathlib.Path(__file__).resolve().parent.parent
+    src = root / "src"
+    if not src.exists():
+        pytest.skip("src/ 가 없는 환경")
+    return [f for f in src.rglob("*.ts")] + [f for f in src.rglob("*.tsx")]
+
+
+def test_UDS107_5_비밀번호를_브라우저_저장소에_넣지_않는다():
+    """localStorage·sessionStorage·쿠키에 비밀번호를 저장하면 XSS 한 번에 전부 털린다.
+
+    '아이디 기억하기'는 아이디만 저장한다. 비밀번호 기억은 브라우저 비밀번호 관리자에 맡긴다
+    (그래서 입력란에 autocomplete 속성을 정확히 붙였다).
+    """
+    import re
+    bad = re.compile(
+        r"(localStorage|sessionStorage|document\.cookie)[^\n]*"
+        r"(password|passwd|\bpw\b|비밀번호)",
+        re.IGNORECASE,
+    )
+    hits = []
+    for f in _frontend_sources():
+        for i, line in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+            if bad.search(line):
+                hits.append("%s:%d  %s" % (f.name, i, line.strip()[:90]))
+    assert not hits, "브라우저 저장소에 비밀번호가 저장됩니다:\n" + "\n".join(hits)
+
+
+def test_UDS107_5_아이디_기억하기는_아이디만_저장한다():
+    root = pathlib.Path(__file__).resolve().parent.parent
+    f = root / "src" / "auth" / "rememberId.ts"
+    if not f.exists():
+        pytest.skip("rememberId.ts 없음")
+    body = f.read_text(encoding="utf-8")
+    assert "es_remember_login_id" in body
+    # 저장 키가 하나뿐이어야 한다 — 슬쩍 늘어나면 여기서 걸린다.
+    import re
+    keys = set(re.findall(r"localStorage\.(?:setItem|getItem|removeItem)\(([A-Za-z_]+)", body))
+    assert keys == {"KEY"}, "저장 키가 늘었습니다: %s" % keys
+
+
+def test_UDS107_5_로그인_입력란에_autocomplete가_붙어있다():
+    """브라우저 비밀번호 관리자가 동작하려면 username/current-password 가 정확해야 한다."""
+    root = pathlib.Path(__file__).resolve().parent.parent
+    f = root / "src" / "auth" / "LoginScreen.tsx"
+    if not f.exists():
+        pytest.skip("LoginScreen.tsx 없음")
+    body = f.read_text(encoding="utf-8")
+    assert 'autoComplete="username"' in body
+    assert "'current-password'" in body and "'new-password'" in body
