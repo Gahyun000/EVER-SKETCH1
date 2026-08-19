@@ -147,6 +147,12 @@ class Frame:
     def size(self, emu: int) -> int:
         return max(1, int(round((emu or 0) * self.scale)))
 
+    def page_box(self, slide_w: int, slide_h: int) -> tuple[int, int, int, int]:
+        """슬라이드가 종이에서 차지하는 사각형(배경을 깔 자리)."""
+        return (int(round(self.off_x)), int(round(self.off_y)),
+                max(1, int(round(slide_w * self.scale))),
+                max(1, int(round(slide_h * self.scale))))
+
     def font(self, pt: Optional[float]) -> float:
         """포인트 → 화면 px. 원본 글자 크기 비율이 유지된다."""
         p = DEFAULT_FONT_PT if pt is None else float(pt)
@@ -383,6 +389,55 @@ def _walk(shapes, fr: Frame, out: list[dict], warnings: list[str], next_id) -> N
         warnings.append("가져오지 못한 개체가 있습니다(%s)." % (st,))
 
 
+def _background_of(owner) -> Optional[dict]:
+    """슬라이드/레이아웃/마스터의 배경. 못 읽으면 None(색을 지어내지 않는다).
+
+    python-pptx 에 배경을 바로 주는 API 가 없어서 XML 을 직접 본다.
+    테마 참조(p:bgRef)는 건너뛴다 — 테마 색표를 따라가야 하는데, 잘못 따라가서
+    엉뚱한 색을 칠하느니 안 칠하는 편이 낫다(그건 경고로 알린다).
+    """
+    from pptx.oxml.ns import qn
+
+    try:
+        csld = owner._element.find(qn("p:cSld"))
+        if csld is None:
+            return None
+        bg = csld.find(qn("p:bg"))
+        if bg is None:
+            return None
+        bgpr = bg.find(qn("p:bgPr"))
+        if bgpr is None:
+            return None
+        solid = bgpr.find(qn("a:solidFill"))
+        if solid is not None:
+            srgb = solid.find(qn("a:srgbClr"))
+            if srgb is not None and srgb.get("val"):
+                return {"color": "#" + srgb.get("val").upper()}
+        blip_fill = bgpr.find(qn("a:blipFill"))
+        if blip_fill is not None:
+            blip = blip_fill.find(qn("a:blip"))
+            rid = blip.get(qn("r:embed")) if blip is not None else None
+            if rid:
+                part = owner.part.related_part(rid)
+                return {"image": part.blob, "ctype": part.content_type or "image/png"}
+    except Exception:
+        return None
+    return None
+
+
+def slide_background(slide) -> Optional[dict]:
+    """슬라이드 → 레이아웃 → 마스터 순으로 배경을 찾는다."""
+    layout = getattr(slide, "slide_layout", None)
+    master = getattr(layout, "slide_master", None) if layout is not None else None
+    for owner in (slide, layout, master):
+        if owner is None:
+            continue
+        found = _background_of(owner)
+        if found:
+            return found
+    return None
+
+
 def _is_chrome_placeholder(shape) -> bool:
     """슬라이드 번호·바닥글·날짜 자리표시자인가."""
     from pptx.enum.shapes import PP_PLACEHOLDER
@@ -411,16 +466,58 @@ def convert_slide(prs, index: int, page_id: int = 1) -> SlideConversion:
         counter["n"] += 1
         return counter["n"]
 
-    _walk(slides[index].shapes, fr, els, warnings, next_id)
+    slide = slides[index]
+    _walk(slide.shapes, fr, els, warnings, next_id)
     if not els:
         warnings.append("가져올 내용이 없는 슬라이드입니다.")
+
+    # 배경을 안 가져오면 **표지의 흰 글자가 흰 종이 위에서 사라진다.**
+    # 실제로 그랬다 — 표지 제목(tcolor #FFFFFF)이 통째로 안 보였다.
+    page_bg = ""
+    bg = slide_background(slide)
+    if bg and bg.get("color"):
+        page_bg = bg["color"]
+    elif bg and bg.get("image"):
+        blob = bg["image"]
+        if len(blob) > MAX_IMAGE_BYTES:
+            warnings.append("배경 그림이 너무 커서(%.1fMB) 넣지 않았습니다."
+                            % (len(blob) / 1024 / 1024))
+        else:
+            x, y, w, h = fr.page_box(prs.slide_width, prs.slide_height)
+            els.insert(0, {          # 맨 앞 = 가장 아래에 깔린다
+                "id": next_id(), "type": "image",
+                "x": x, "y": y, "w": w, "h": h,
+                "text": "", "color": "transparent", "fs": 12,
+                "src": "data:%s;base64,%s" % (bg["ctype"],
+                                              base64.b64encode(blob).decode("ascii")),
+                "locked": True,      # 배경은 실수로 끌려다니면 안 된다
+            })
+
+    # 배경을 못 가져왔는데 흰 글자가 있으면 그 글자는 화면에서 사라진다.
+    # 조용히 두면 "글자가 없어졌다" 로만 보인다 — 무엇이 일어났는지 말해 준다.
+    if not page_bg and not (bg and bg.get("image")):
+        if any(_is_pale(e.get("tcolor")) for e in els if e["type"] in ("text", "box")):
+            warnings.append(
+                "배경을 가져오지 못했습니다. 흰색 글자가 흰 종이 위에서 보이지 않을 수 있습니다 "
+                "— 글자색을 바꾸거나 배경을 직접 넣어 주세요.")
 
     page = {
         "id": page_id, "cardKey": "slide", "fields": {}, "free": True,
         "els": els, "conns": [], "strokes": [], "blocks": [],
-        "bg": "", "role": "content",
+        "bg": page_bg, "role": "content",
     }
     return SlideConversion(page=page, warnings=_dedupe(warnings))
+
+
+def _is_pale(hexs: Optional[str]) -> bool:
+    """흰 종이 위에서 사라질 만큼 밝은 글자색인가."""
+    if not hexs or len(hexs) != 7 or hexs[0] != "#":
+        return False
+    try:
+        r, g, b = (int(hexs[i:i + 2], 16) for i in (1, 3, 5))
+    except ValueError:
+        return False
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 226
 
 
 def _dedupe(items: list[str]) -> list[str]:
@@ -449,21 +546,29 @@ def slide_infos(prs) -> list[dict]:
             title = ""
         tables = texts = images = 0
         best_y = None
+        best_text = ""
         for shape in slide.shapes:
             if getattr(shape, "has_table", False):
                 tables += 1
             elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                 images += 1
             elif getattr(shape, "has_text_frame", False):
+                # 슬라이드 번호(‹#›)·바닥글은 제목 후보가 아니다.
+                if _is_chrome_placeholder(shape):
+                    continue
                 t = (shape.text_frame.text or "").strip()
                 if t:
                     texts += 1
-                    if not title and (best_y is None or (shape.top or 0) < best_y):
+                    # **가장 위에 있는 글자**를 고른다.
+                    # 예전에는 조건이 `if not title and ...` 이라, 맨 처음 만난 글자가
+                    # 제목으로 굳어 버렸다. 도형 순서는 위치 순이 아니어서, 아래쪽에 있는
+                    # 슬라이드 번호가 첫 도형이면 제목이 '‹#›' 이 됐다 — 실제로 그랬다.
+                    if best_y is None or (shape.top or 0) < best_y:
                         best_y = shape.top or 0
-                        title = t.splitlines()[0][:60]
+                        best_text = t.splitlines()[0][:60]
         out.append({
             "index": i,
-            "title": title or "슬라이드 %d" % (i + 1),
+            "title": title or best_text or "슬라이드 %d" % (i + 1),
             "tables": tables, "texts": texts, "images": images,
         })
     return out

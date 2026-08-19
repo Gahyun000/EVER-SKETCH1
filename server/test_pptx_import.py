@@ -291,3 +291,51 @@ def test_검증은_모듈_없이도_돈다(data):
     with pytest.raises(pi.PptxImportError):
         pi.validate_upload("a.txt", data)
     assert builtins.__import__ is real_import
+
+
+# ── 9. 표지 — 배경과 제목 고르기 ──────────────────────────
+@pytest.fixture(scope="module")
+def cover() -> dict:
+    return pi.pptx_to_pages(fx.build_cover(), "cover.pptx")
+
+
+def test_cover_background_is_imported(cover):
+    """표지의 진한 배경을 안 가져오면 **흰 글자가 흰 종이 위에서 사라진다.**
+
+    실물에서 그랬다 — 표지 제목(tcolor #FFFFFF)이 통째로 안 보였다.
+    글자는 멀쩡히 들어와 있었고, 배경만 없었다.
+    """
+    assert cover["pages"][0]["bg"] == "#" + fx.COVER_BG
+
+
+def test_cover_title_survives_and_is_white(cover):
+    el = next(e for e in cover["pages"][0]["els"] if fx.COVER_TITLE in (e.get("text") or ""))
+    assert el["tcolor"] == "#FFFFFF"
+    assert el["bold"] is True
+
+
+def test_no_pale_text_warning_when_background_exists(cover):
+    """배경을 가져왔으면 '안 보일 수 있다' 경고를 띄우지 않는다 — 거짓 경고는 신뢰를 깎는다."""
+    assert not any("보이지 않을" in w for w in cover["warnings"]), cover["warnings"]
+
+
+def test_slide_title_is_the_topmost_text_not_the_first_shape(cover):
+    """도형 순서는 위치 순이 아니다.
+
+    실물 파일에서 슬라이드 번호가 **첫 도형**이었고, 목록의 제목이 '‹#›' 으로 나왔다.
+    예전 조건이 `if not title and ...` 이라 처음 만난 글자가 제목으로 굳어 버렸다.
+    """
+    assert cover["slides"][0]["title"] == fx.COVER_TITLE
+
+
+def test_slide_number_is_not_a_title_candidate(cover):
+    assert "#" not in cover["slides"][0]["title"]
+
+
+def test_pale_text_without_background_is_warned():
+    """배경을 못 가져왔는데 흰 글자가 있으면, 조용히 두면 '글자가 없어졌다' 로만 보인다."""
+    assert pi._is_pale("#FFFFFF") is True
+    assert pi._is_pale("#F8F8F8") is True
+    assert pi._is_pale("#1c2433") is False
+    assert pi._is_pale(None) is False
+    assert pi._is_pale("white") is False

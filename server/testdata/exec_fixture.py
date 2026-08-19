@@ -55,6 +55,66 @@ def _fill(cell, hexstr: str) -> None:
     cell.fill.fore_color.rgb = RGBColor.from_string(hexstr)
 
 
+COVER_BG = "1F3864"          # 표지 배경(진한 남색)
+COVER_TITLE = "유니에버㈜ 수행전략회의"
+
+
+def _set_solid_background(slide, hexstr: str) -> None:
+    """슬라이드 배경을 단색으로 — python-pptx 에 API 가 없어 XML 을 직접 넣는다.
+
+    표지가 '진한 배경 + 흰 글자' 인 건 매우 흔하다. 배경을 안 가져오면
+    흰 글자가 흰 종이 위에서 통째로 사라진다(실물에서 그랬다).
+    """
+    from pptx.oxml.ns import nsmap, qn
+    from lxml import etree
+
+    csld = slide._element.find(qn("p:cSld"))
+    bg = etree.SubElement(csld, qn("p:bg"))
+    bgpr = etree.SubElement(bg, qn("p:bgPr"))
+    solid = etree.SubElement(bgpr, qn("a:solidFill"))
+    clr = etree.SubElement(solid, qn("a:srgbClr"))
+    clr.set("val", hexstr)
+    etree.SubElement(bgpr, qn("a:effectLst"))
+    csld.insert(0, bg) if False else None
+    _ = nsmap
+
+
+def build_cover() -> bytes:
+    """표지 한 장짜리 파일. 배경·제목 고르기 테스트 전용으로 따로 둔다
+    (build() 앞에 끼워 넣으면 기존 테스트의 장 번호가 전부 밀린다)."""
+    prs = Presentation()
+    prs.slide_width = Inches(SLIDE_W_IN)
+    prs.slide_height = Inches(SLIDE_H_IN)
+    _add_cover(prs)
+    buf = io.BytesIO()
+    prs.save(buf)
+    return buf.getvalue()
+
+
+def _add_cover(prs) -> None:
+    """표지 — 진한 배경 위 흰 글자. 슬라이드 번호는 **맨 처음 도형**으로 넣는다.
+
+    도형 순서는 위치 순이 아니다. 실물 파일에서도 슬라이드 번호가 첫 도형이었고,
+    그래서 슬라이드 목록의 제목이 '‹#›' 으로 나왔다.
+    """
+    from pptx.util import Pt as _Pt
+
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    _set_solid_background(slide, COVER_BG)
+
+    num = slide.shapes.add_textbox(Inches(5.2), Inches(6.9), Inches(0.5), Inches(0.3))
+    r0 = num.text_frame.paragraphs[0].add_run()
+    r0.text = "‹#›"
+    r0.font.size = _Pt(11)
+
+    tb = slide.shapes.add_textbox(Inches(1.5), Inches(2.6), Inches(7.5), Inches(1.0))
+    run = tb.text_frame.paragraphs[0].add_run()
+    run.text = COVER_TITLE
+    run.font.size = _Pt(32)
+    run.font.bold = True
+    run.font.color.rgb = RGBColor.from_string("FFFFFF")
+
+
 def build() -> bytes:
     prs = Presentation()
     prs.slide_width = Inches(SLIDE_W_IN)
