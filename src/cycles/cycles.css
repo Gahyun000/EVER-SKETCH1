@@ -1,0 +1,121 @@
+/* 회차 화면 — EVER-SKETCH 브랜드 토큰(design/tokens.ts)과 같은 색. */
+.cy-screen {
+  --navy: #0F1B3D; --ink: #1c2433; --sub: #5b6270; --muted: #98a1b2;
+  --blue: #2462EB; --green: #3E9E6E; --amber: #D98A2A; --red: #b4232a;
+  --tint: #EAF1FE; --line: #e6e8ee; --card: #f6f8fc;
+  position: absolute; inset: 0; overflow: auto;
+  background: #fff; color: var(--ink);
+  font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', Inter, system-ui, sans-serif;
+  letter-spacing: -0.01em; padding: 26px 28px 40px;
+}
+
+.cy-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.cy-head h2 { font-size: 20px; font-weight: 800; color: var(--navy); margin: 0 0 4px; letter-spacing: -0.02em; }
+.cy-head p { font-size: 13px; color: var(--sub); margin: 0; }
+.cy-headbtns { display: flex; gap: 8px; flex-shrink: 0; }
+
+.cy-btn {
+  border: 1px solid var(--line); background: #fff; border-radius: 7px;
+  padding: 7px 14px; font-size: 13px; cursor: pointer; color: var(--ink);
+  font-family: inherit; white-space: nowrap;
+}
+.cy-btn:hover:not(:disabled) { background: var(--card); border-color: #c6d5ff; }
+.cy-btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
+.cy-btn.primary:hover:not(:disabled) { opacity: .9; background: var(--blue); }
+.cy-btn.danger { color: var(--red); border-color: #f0d6d6; }
+.cy-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.cy-msg { border-radius: 7px; padding: 10px 13px; font-size: 12.5px; margin-bottom: 14px; line-height: 1.55; }
+.cy-msg.err { background: #fdf0f0; border: 1px solid #f0d6d6; color: #7d2027; }
+.cy-msg.ok { background: #E9F5EF; border: 1px solid #cfe9dd; color: #215c46; }
+
+/* 회차 만들기 */
+.cy-create {
+  display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 14px 16px; margin-bottom: 18px;
+}
+.cy-field { display: flex; flex-direction: column; gap: 5px; }
+.cy-field.grow { flex: 1; min-width: 200px; }
+.cy-field label { font-size: 12px; font-weight: 700; color: var(--navy); }
+.cy-field label span { font-weight: 400; color: var(--muted); }
+.cy-field input {
+  height: 34px; border: 1px solid var(--line); border-radius: 6px; padding: 0 10px;
+  font-size: 13px; font-family: inherit; color: var(--ink); background: #fff;
+}
+.cy-field input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(36,98,235,.12); }
+.cy-hint { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+.cy-hint b { color: var(--sub); }
+
+/* 본문 2단 */
+.cy-body { display: grid; grid-template-columns: 220px 1fr; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .cy-body { grid-template-columns: 1fr; } }
+
+.cy-list { display: flex; flex-direction: column; gap: 6px; }
+.cy-item {
+  text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 8px;
+  padding: 10px 12px; cursor: pointer; font-family: inherit;
+}
+.cy-item:hover { border-color: #c6d5ff; background: var(--card); }
+.cy-item.on { border-color: var(--blue); background: var(--tint); }
+.cy-item-t { font-size: 13.5px; font-weight: 700; color: var(--navy); }
+.cy-item-s { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.cy-due { font-size: 11px; color: var(--muted); }
+
+.cy-st { font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 99px; }
+.cy-st.s-draft { background: #eef0f3; color: #6b7480; }
+.cy-st.s-writing { background: var(--tint); color: var(--blue); }
+.cy-st.s-review { background: #FBF0E1; color: #96601a; }
+.cy-st.s-published { background: #E9F5EF; color: #2b7a54; }
+.cy-st.s-closed { background: #f0e6e6; color: #7d2027; }
+
+.cy-detail { border: 1px solid var(--line); border-radius: 9px; padding: 18px 20px; min-height: 260px; }
+.cy-dhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.cy-dhead h3 { font-size: 16px; font-weight: 800; color: var(--navy); margin: 0 0 5px; }
+.cy-dsub { font-size: 12px; color: var(--sub); display: flex; align-items: center; gap: 6px; }
+.cy-dbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* 진행 현황 */
+.cy-prog { margin-bottom: 16px; }
+.cy-prog-bar { height: 7px; background: #eef0f3; border-radius: 99px; overflow: hidden; }
+.cy-prog-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width .2s; }
+.cy-prog-txt { font-size: 12px; color: var(--sub); margin-top: 6px; }
+.cy-prog-txt b { color: var(--navy); }
+.cy-warn { color: var(--amber); font-weight: 700; }
+.cy-done { color: var(--green); font-weight: 700; }
+
+.cy-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cy-table th, .cy-table td { border-bottom: 1px solid var(--line); padding: 9px 8px; text-align: left; vertical-align: middle; }
+.cy-table th { background: var(--card); color: var(--navy); font-weight: 700; font-size: 12px; white-space: nowrap; }
+.cy-table td { color: var(--sub); }
+.cy-table td b { color: var(--ink); font-weight: 600; }
+.cy-table tr.sent td { background: #fbfdfc; }
+.cy-dim { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cy-acts { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.cy-sub { font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 99px; white-space: nowrap; }
+.cy-sub.b-draft { background: #eef0f3; color: #6b7480; }
+.cy-sub.b-submitted { background: var(--tint); color: var(--blue); }
+.cy-sub.b-returned { background: #fdf0f0; color: #7d2027; }
+.cy-sub.b-approved { background: #E9F5EF; color: #2b7a54; }
+
+.cy-mini {
+  border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 4px 10px;
+  font-size: 12px; cursor: pointer; font-family: inherit; color: var(--ink); white-space: nowrap;
+}
+.cy-mini:hover:not(:disabled) { background: var(--card); }
+.cy-mini.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
+.cy-mini.danger { color: var(--red); border-color: #f0d6d6; }
+.cy-mini:disabled { opacity: .45; cursor: not-allowed; }
+
+.cy-empty { text-align: center; color: var(--muted); padding: 44px 12px; font-size: 13px; white-space: pre-line; line-height: 1.7; }
+.cy-foot { font-size: 11.5px; color: var(--muted); margin: 16px 0 0; line-height: 1.6; }
+.cy-foot b { color: var(--sub); }
+
+/* 라이브러리 상단의 '회차' 버튼 — 기본 '새 이북' 버튼과 구분되게 흰 배경으로. */
+.lib-new.ghost {
+  background: #fff;
+  color: #1c2433;
+  border: 1px solid #e6e8ee;
+}
+.lib-new.ghost:hover { background: #f6f8fc; border-color: #c6d5ff; color: #2462EB; }

@@ -9,7 +9,7 @@ import { setActiveProjectId } from './session'
 import { setAutosaveHydrated, markAutosaveHydrated, useAutosave, flushSave, cancelPendingSave } from './autosave'
 import { migrateLegacyDraftOnce } from './legacyMigration'
 
-export type LibView = 'library' | 'editor'
+export type LibView = 'library' | 'editor' | 'cycles'
 
 function emptySnapshot(): DraftStateSnapshot {
   return { title: '제목 없음', orientation: 'portrait', theme: 'light', font: 'auto', size: 'm', selectedPageId: null, pages: [] }
@@ -51,6 +51,7 @@ interface ProjectsState {
   renameProject: (id: string, name: string) => Promise<void>
   deleteProject: (id: string) => Promise<void>
   duplicateProject: (id: string) => Promise<void>
+  showCycles: () => void
 }
 
 export const useProjects = create<ProjectsState>((set, get) => ({
@@ -142,4 +143,6 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     await apiDuplicateProject(id)
     await get().loadList()
   },
+
+  showCycles: () => set({ view: 'cycles' }),
 }))
