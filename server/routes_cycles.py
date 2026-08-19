@@ -6,10 +6,11 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from server import auth as auth_store
+from server import cycle_decks as decks_store
 from server import cycles as cycles_store
 from server import permissions as perm
 from server import projects as projects_store
@@ -35,6 +36,17 @@ class DistributeIn(BaseModel):
 
 class SubmitIn(BaseModel):
     status: str                          # draft | submitted | returned | approved
+
+
+class SlideAssign(BaseModel):
+    slide: int                           # 0부터
+    user_id: str
+
+
+class DeckDistributeIn(BaseModel):
+    assignments: list[SlideAssign]
+    # 표지·목차처럼 모두에게 앞에 붙일 슬라이드. 없으면 각자 담당분만.
+    common: Optional[list[int]] = None
 
 
 def _visible_cycles(user: dict) -> list[dict]:
@@ -146,6 +158,79 @@ def project_submit(pid: str, req: SubmitIn, user: dict = Depends(require_active)
         raise HTTPException(status_code=400, detail=str(e))
     auth_store.audit(user["id"], "submit_status", pid, "→ %s" % req.status)
     return out
+
+
+# ─────────────── 실물 PPT 업로드 · 슬라이드별 배부 ───────────────
+@router.post("/{cid}/deck")
+async def cycle_deck_upload(cid: str, file: UploadFile = File(...),
+                            user: dict = Depends(require_active)):
+    """실물 PPT 를 회차에 붙인다(관리자만).
+
+    파일을 통째로 메모리에 읽되 **상한보다 1바이트만 더 읽는다.**
+    상한 없이 read() 하면 큰 파일 하나로 서버 메모리가 바닥난다(UDS-107 §6).
+    """
+    from server import pptx_import
+
+    require_action(user, perm.CYCLE_MANAGE)
+    limit = pptx_import.MAX_UPLOAD_BYTES
+    data = await file.read(limit + 1)
+    if len(data) > limit:
+        raise HTTPException(status_code=413,
+                            detail="파일이 너무 큽니다 — 최대 %dMB 입니다."
+                                   % (limit // (1024 * 1024)))
+    try:
+        deck = decks_store.save_deck(cid, file.filename or "upload.pptx", data, user["id"])
+    except pptx_import.PptxImportError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except cycles_store.CycleError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "deck_upload", cid,
+                     "%s · %d장" % (deck["filename"], deck["slide_count"]))
+    return {"ok": True, "deck": deck}
+
+
+@router.get("/{cid}/deck")
+def cycle_deck_get(cid: str, user: dict = Depends(require_active)):
+    require_action(user, perm.CYCLE_MANAGE)
+    deck = decks_store.get_deck(cid)
+    if not deck:
+        raise HTTPException(status_code=404, detail="이 회차에 올린 PPT 가 없습니다.")
+    return {"deck": deck}
+
+
+@router.delete("/{cid}/deck")
+def cycle_deck_delete(cid: str, user: dict = Depends(require_active)):
+    require_action(user, perm.CYCLE_MANAGE)
+    ok = decks_store.delete_deck(cid)
+    if not ok:
+        raise HTTPException(status_code=404, detail="이 회차에 올린 PPT 가 없습니다.")
+    auth_store.audit(user["id"], "deck_delete", cid, "")
+    return {"ok": True}
+
+
+@router.post("/{cid}/deck/distribute")
+def cycle_deck_distribute(cid: str, req: DeckDistributeIn,
+                          user: dict = Depends(require_active)):
+    """슬라이드마다 담당자를 지정해 배부한다(관리자만)."""
+    require_action(user, perm.CYCLE_MANAGE)
+    wanted = {a.user_id for a in req.assignments}
+    people = [u for u in auth_store.list_users("active") if u["id"] in wanted]
+    missing = wanted - {u["id"] for u in people}
+    if missing:
+        raise HTTPException(status_code=400,
+                            detail="승인되지 않았거나 없는 계정이 있습니다: %d건" % len(missing))
+    try:
+        result = decks_store.distribute_slides(
+            cid,
+            [{"slide": a.slide, "user_id": a.user_id} for a in req.assignments],
+            [{"id": u["id"], "name": u["name"], "dept": u["dept"]} for u in people],
+            req.common,
+        )
+    except cycles_store.CycleError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "deck_distribute", cid,
+                     "신규 %d · 기존 %d" % (result["created_count"], result["skipped_count"]))
+    return {"ok": True, **result}
 
 
 @router.get("/templates/list")
