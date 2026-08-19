@@ -6,7 +6,7 @@ import { useBuilder } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
 import { mkFreeEl, pushSnap, FCOLORS } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
-import { coveredSet, mergeCovering } from './tableOps'
+import { coveredSet, mergeCovering, sizeTracks } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount } from '../template/slots'
 import '../template/template.css'
 import ColorPicker from '../builder/chrome/ColorPicker'
@@ -556,7 +556,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                   const ts = (tableSel && tableSel.elId === el.id) ? tableSel : null
                   const inSel = (r: number, c: number) => !!ts && r >= Math.min(ts.r0, ts.r1) && r <= Math.max(ts.r0, ts.r1) && c >= Math.min(ts.c0, ts.c1) && c <= Math.max(ts.c0, ts.c1)
                   return (
-                    <div className="feltable" style={{ display: 'grid', gridTemplateColumns: `repeat(${C}, 1fr)`, gridTemplateRows: `repeat(${R}, 1fr)`, width: '100%', height: '100%', position: 'relative' }}>
+                    <div className="feltable" style={{ display: 'grid', gridTemplateColumns: sizeTracks(el.colw, C), gridTemplateRows: sizeTracks(el.rowh, R), width: '100%', height: '100%', position: 'relative' }}>
                       {Array.from({ length: R * C }).map((_, k) => {
                         const r = Math.floor(k / C), c = k % C
                         if (cov.has(r + '_' + c)) return null

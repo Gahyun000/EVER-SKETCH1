@@ -34,6 +34,30 @@ export function coveredSet(merges: Merge[] | undefined): Set<string> {
   return s
 }
 
+// 열 너비·행 높이는 **비율(가중치) 배열**이다. px 가 아니다.
+// px 로 두면 표 전체 크기를 바꾸는 순간 칸 합이 표 폭과 어긋나 마지막 칸이 잘린다.
+// 길이가 열/행 수와 다르면(구 문서·잘못된 입력) 균등 분할로 되돌린다 — 조용히 어긋난 폭을
+// 유지하는 것보다 눈에 띄게 균등해지는 편이 고치기 쉽다.
+export function sizeTracks(arr: number[] | undefined, n: number): string {
+  const ok = !!arr && arr.length === n && arr.every((v) => typeof v === 'number' && v > 0 && isFinite(v))
+  return ok ? (arr as number[]).map((v) => v + 'fr').join(' ') : `repeat(${n}, 1fr)`
+}
+
+// 새 행/열의 크기는 **바로 그 자리에 있던 것과 같게** 잡는다(끝에 붙이면 마지막 것과 같게).
+// 1 로 고정하면 넓은 '구분' 열 옆에 열을 넣었을 때 그 칸만 좁아져 표가 어긋나 보인다.
+function insertSize(arr: number[] | undefined, at: number, n: number): number[] | undefined {
+  if (!arr || arr.length !== n) return undefined
+  const out = arr.slice()
+  out.splice(at, 0, arr[Math.min(Math.max(at, 0), arr.length - 1)] || 1)
+  return out
+}
+function removeSize(arr: number[] | undefined, at: number, n: number): number[] | undefined {
+  if (!arr || arr.length !== n) return undefined
+  const out = arr.slice()
+  out.splice(at, 1)
+  return out.length ? out : undefined
+}
+
 // 행·열이 늘거나 줄면 셀 좌표가 통째로 밀린다. 좌표를 키로 쓰는 맵은 전부 다시 매핑해야 한다.
 //
 // **이 함수를 호출하지 않는 셀 맵을 새로 추가하면, 행을 하나 추가하는 순간
@@ -58,7 +82,7 @@ export function addRow(el: FreeEl, at: number): Partial<FreeEl> {
   const move = (r: number, c: number): [number, number] => [r >= at ? r + 1 : r, c]
   const calign = remapCells(el.calign, move)
   const cbg = remapCells(el.cbg, move)
-  return { rows: R + 1, cells: nc, merges, calign, cbg }
+  return { rows: R + 1, cells: nc, merges, calign, cbg, rowh: insertSize(el.rowh, at, R) }
 }
 
 export function delRow(el: FreeEl, at: number): Partial<FreeEl> {
@@ -75,7 +99,7 @@ export function delRow(el: FreeEl, at: number): Partial<FreeEl> {
   const move = (r: number, c: number): [number, number] | null => (r === at ? null : [r > at ? r - 1 : r, c])
   const calign = remapCells(el.calign, move)
   const cbg = remapCells(el.cbg, move)
-  return { rows: R - 1, cells: nc, merges, calign, cbg }
+  return { rows: R - 1, cells: nc, merges, calign, cbg, rowh: removeSize(el.rowh, at, R) }
 }
 
 export function addCol(el: FreeEl, at: number): Partial<FreeEl> {
@@ -86,7 +110,7 @@ export function addCol(el: FreeEl, at: number): Partial<FreeEl> {
   const move = (r: number, c: number): [number, number] => [r, c >= at ? c + 1 : c]
   const calign = remapCells(el.calign, move)
   const cbg = remapCells(el.cbg, move)
-  return { cols: C + 1, cells: nc, merges, calign, cbg }
+  return { cols: C + 1, cells: nc, merges, calign, cbg, colw: insertSize(el.colw, at, C) }
 }
 
 export function delCol(el: FreeEl, at: number): Partial<FreeEl> {
@@ -103,7 +127,7 @@ export function delCol(el: FreeEl, at: number): Partial<FreeEl> {
   const move = (r: number, c: number): [number, number] | null => (c === at ? null : [r, c > at ? c - 1 : c])
   const calign = remapCells(el.calign, move)
   const cbg = remapCells(el.cbg, move)
-  return { cols: C - 1, cells: nc, merges, calign, cbg }
+  return { cols: C - 1, cells: nc, merges, calign, cbg, colw: removeSize(el.colw, at, C) }
 }
 
 export function mergeRange(el: FreeEl, r0: number, c0: number, r1: number, c1: number): Partial<FreeEl> {
