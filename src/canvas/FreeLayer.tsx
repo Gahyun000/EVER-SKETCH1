@@ -609,9 +609,17 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                             contentEditable={canEdit}
                             onPointerDown={(e) => {
                               if (editingThis) { e.stopPropagation(); return }
-                              // 첫 클릭은 표를 고르는 데 쓴다 — 여기서 막지 않고 onElDown 으로 흘려보낸다.
-                              if (!tableActive) return
+                              // Shift+클릭은 요소 다중 선택에 쓴다 — 표가 아직 안 골라졌으면 흘려보낸다.
+                              if (e.shiftKey && !tableActive) return
                               e.stopPropagation()
+                              // **첫 누름도 칸 선택으로 시작한다.**
+                              //
+                              // 예전에는 첫 누름을 표 고르는 데만 쓰고 onElDown 으로 흘려보냈다.
+                              // 그러면 누르자마자 끄는 사람에게는 **표가 통째로 움직인다** —
+                              // 실제로 126px 밀렸고, 칸을 고르려던 사람 눈에는 '드래그가 안 되는'
+                              // 것으로 보였다. 표를 이 자리에서 옮기는 일은 거의 없고,
+                              // 칸을 고르는 일은 매번 있다. 표 이동은 ⠿ 손잡이가 맡는다.
+                              if (!tableActive) setSel(el.id)
                               if (e.shiftKey && ts) { setTableSel({ elId: el.id, r0: ts.r0, c0: ts.c0, r1: r, c1: c }); return }
                               setTableSel({ elId: el.id, r0: r, c0: c, r1: r, c1: c })
                               startCellDrag(el.id, r, c, e.currentTarget)

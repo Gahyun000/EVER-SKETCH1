@@ -10,7 +10,9 @@ import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
 const dir = dirname(fileURLToPath(import.meta.url))
-const PORT = process.env.PORT || '8899'
+// 기본 포트(8899)를 쓰면 앞선 실행이 남아 있을 때 새 모의 서버가 조용히 죽고,
+// 테스트는 **엉뚱한 설정의 서버**에 붙어 이상한 곳에서 실패한다. 실행마다 포트를 바꾼다.
+const PORT = process.env.PORT || String(8900 + (process.pid % 900))
 
 const SUITES = [
   { name: '로그인 · 비밀번호 보기', file: 'login_password_smoke.mjs', env: { ANON: '1' } },
@@ -26,7 +28,20 @@ async function runOne(suite) {
     env: { ...process.env, ...suite.env, PORT },
     stdio: 'ignore',
   })
-  await wait(1500)
+  // 뜰 때까지 기다린다 — 안 뜨면 그 사실을 여기서 말한다(테스트 안에서 헤매지 않게).
+  let up = false
+  for (let i = 0; i < 40 && !up; i++) {
+    await wait(150)
+    try {
+      const r = await fetch(`http://127.0.0.1:${PORT}/api/auth/me`)
+      up = r.ok
+    } catch { /* 아직 안 떴다 */ }
+  }
+  if (!up) {
+    console.log(`  ✗ 모의 서버가 뜨지 않았습니다 (포트 ${PORT})`)
+    mock.kill()
+    return 1
+  }
   const code = await new Promise((resolve) => {
     const t = spawn(process.execPath, [join(dir, suite.file)], {
       env: { ...process.env, URL: `http://127.0.0.1:${PORT}/` },

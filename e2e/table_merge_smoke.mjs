@@ -40,11 +40,43 @@ await roadmap.waitFor({ timeout: 10000 })
 const cellCountBefore = await p.locator('.stage .feltd').count()
 ok('표가 칸으로 그려진다(이미지가 아니다)', cellCountBefore > 50, `${cellCountBefore}칸`)
 
-// ── 1) 첫 클릭은 표를 고른다 ──
+// ── 1) 첫 클릭이 표를 고르고 그 칸에 커서를 놓는다 ──
 await cell(2, 2).click()
 await p.waitForTimeout(120)
 ok('첫 클릭으로 표가 선택된다', await p.locator('.stage .fel.sel').count() === 1)
-ok('첫 클릭만으로는 칸이 선택되지 않는다', await p.locator('.stage .feltd.cellsel').count() === 0)
+ok('첫 클릭이 그 칸을 고른다(엑셀처럼)',
+   await p.locator('.stage .feltd.cellsel').count() === 1)
+
+// ── 1-b) **선택하지 않은 표에서 곧바로 끌어도 칸이 선택된다** ──
+// 예전에는 첫 누름을 표 고르는 데만 쓰고 흘려보내서, 누르자마자 끄는 사람에게는
+// 표가 통째로 움직였다(실측 126px). 칸을 고르려던 사람 눈에는 '드래그가 안 되는' 것이었다.
+// 빈 곳을 눌러 선택 해제 — 종이 아래쪽 여백(요소가 없는 자리)을 쓴다.
+const clearSel = async () => {
+  const lb = await p.locator('.stage .freelayer').first().boundingBox()
+  await p.mouse.click(lb.x + lb.width / 2, lb.y + lb.height - 14)
+  await p.waitForTimeout(150)
+}
+await clearSel()
+{
+  const t0 = await p.locator('.stage .fel.table').first().boundingBox()
+  const a0 = await cell(3, 2).boundingBox()
+  const z0 = await cell(3, 5).boundingBox()
+  await p.mouse.move(a0.x + a0.width / 2, a0.y + a0.height / 2)
+  await p.mouse.down()
+  await p.mouse.move(a0.x + a0.width / 2 + 10, a0.y + a0.height / 2 + 3, { steps: 3 })
+  await p.mouse.move(z0.x + z0.width / 2, z0.y + z0.height / 2, { steps: 12 })
+  await p.mouse.up()
+  await p.waitForTimeout(200)
+  const t1 = await p.locator('.stage .fel.table').first().boundingBox()
+  ok('한 번에 누르고 끌어도 칸이 선택된다',
+     await p.locator('.stage .feltd.cellsel').count() === 4,
+     `${await p.locator('.stage .feltd.cellsel').count()}칸`)
+  ok('그때 표가 움직이지 않는다', Math.abs(t1.x - t0.x) < 2 && Math.abs(t1.y - t0.y) < 2,
+     `이동 ${Math.round(t1.x - t0.x)},${Math.round(t1.y - t0.y)}`)
+}
+await clearSel()
+await cell(2, 2).click()
+await p.waitForTimeout(120)
 
 // ── 2) 드래그로 칸 범위 선택 ──
 const a = await cell(2, 2).boundingBox()

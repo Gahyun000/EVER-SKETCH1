@@ -22,8 +22,10 @@ const MIME = {
 //     json.dump(T.build_template_state('2026-10','홍길동','SI개발본부'), \
 //     open('e2e/fixture_template_state.json','w'), ensure_ascii=False)"
 // 정본 사양이 바뀌면 위 명령으로 다시 뜨면 된다.
-const state = JSON.parse(
-  await readFile(new URL('./fixture_template_state.json', import.meta.url), 'utf-8'))
+// REAL=1 이면 실물 PPT 에서 변환된 페이지를 그대로 쓴다(현장 재현용).
+const state = JSON.parse(await readFile(new URL(
+  process.env.REAL ? './fixture_real_slide3.json' : './fixture_template_state.json',
+  import.meta.url), 'utf-8'))
 
 // ADMIN=1 이면 관리자로 로그인된 상태 — 회차·배부·회수 화면을 볼 수 있다.
 const ADMIN = !!process.env.ADMIN
