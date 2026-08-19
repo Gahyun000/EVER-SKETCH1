@@ -210,3 +210,13 @@
   display: inline-block; font-size: 12px; font-weight: 700; color: var(--blue);
   background: var(--tint); border-radius: 99px; padding: 3px 10px;
 }
+
+/* 보내기 전 요약 — 누가 몇 장 받는지. */
+.cy-plan {
+  margin-top: 12px; padding: 10px 14px; border-radius: 9px;
+  background: var(--tint); border: 1px solid #d7e3ff; font-size: 12.5px; color: var(--sub);
+}
+.cy-plan > b { color: var(--navy); }
+.cy-plan ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.75; }
+.cy-plan li b { color: var(--ink); }
+.cy-plan .cy-plan-n { color: var(--blue); }

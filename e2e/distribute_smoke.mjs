@@ -84,11 +84,21 @@ ok('지정하면 버튼이 열리고 인원수가 뜬다',
    (await sendBtn.isEnabled()) && (await sendBtn.innerText()).includes('2명'),
    await sendBtn.innerText())
 
-// 공통 장은 담당자 지정 대상에서 빠진다
+// 공통 장은 담당자 지정 대상에서 빠지고, '모두에게' 로 표시된다
+ok('공통 전에는 각자 1장이다',
+   (await p.locator('.cy-plan').innerText()).includes('1장'),
+   (await p.locator('.cy-plan').innerText()).replace(/\n/g, ' ').slice(0, 90))
+
 await p.locator('.cy-slides tbody tr').nth(0).locator('input[type="checkbox"]').check()
-await p.waitForTimeout(150)
-ok('공통으로 표시한 장은 담당자 칸이 잠긴다',
-   await p.locator('.cy-slides tbody tr').nth(0).locator('select').isDisabled())
+await p.waitForTimeout(200)
+ok('공통으로 표시하면 담당자 칸이 「모두에게」가 된다',
+   (await p.locator('.cy-slides tbody tr').nth(0).locator('.cy-allto').count()) === 1)
+
+// **이게 핵심** — 공통을 체크했는데 장 수가 안 늘면, 표지가 빠진 채로 나간다.
+// 실제로 그렇게 나가서 '공통이 안 됐다' 는 신고를 받았다.
+const plan = (await p.locator('.cy-plan').innerText()).replace(/\n/g, ' ')
+ok('공통을 체크하면 받는 장 수가 늘어난다', plan.includes('= 2장'), plan.slice(0, 110))
+ok('공통 장 수를 따로 보여준다', plan.includes('공통 1장'), plan.slice(0, 110))
 
 await sendBtn.click()
 await p.waitForTimeout(500)
@@ -98,6 +108,43 @@ ok('담당자를 지정한 2장만 보낸다', sent.assignments?.length === 2)
 ok('공통 장을 함께 보낸다', Array.isArray(sent.common) && sent.common.includes(0))
 ok('공통 장은 담당 배정에 중복해 넣지 않는다',
    !sent.assignments?.some((a) => a.slide === 0))
+
+
+// ── 6) 이미 배부된 회차: 원본만 잠기고 추가 배부는 열려 있어야 한다 ──
+// 예전에는 하나라도 배부됐으면 창 전체가 잠겼다. 표준 양식 한 장이 나간 회차에서
+// PPT 담당자 칸까지 회색이 됐고, '모두에게 보내는 게 잠긴 거냐' 는 질문을 받았다.
+await (await p.request.get(URL + '__setDistributed?n=1')).json()
+await p.reload({ waitUntil: 'networkidle' })
+await p.locator('button', { hasText: '회차' }).first().click()
+await p.waitForSelector('.cy-detail', { timeout: 15000 })
+await p.locator('.cy-dbtns .cy-btn', { hasText: '배부하기' }).click()
+await p.locator('.cy-pick').waitFor()
+await p.locator('.cy-pickcard', { hasText: '실물 PPT' }).click()
+await p.locator('.cy-slides').waitFor({ timeout: 10000 })
+
+const lockMsg = await p.locator('.cy-msg.warn').allInnerTexts()
+ok('이미 배부한 회차라고 알려준다', lockMsg.some((t) => t.includes('이미 배부한 회차')),
+   lockMsg.join(' | ').slice(0, 80))
+ok('무엇이 잠겼는지 말한다', lockMsg.some((t) => t.includes('원본')))
+ok('무엇은 되는지도 말한다', lockMsg.some((t) => t.includes('추가 배부는 그대로')))
+ok('푸는 방법을 알려준다', lockMsg.some((t) => t.includes('배부 취소')))
+
+ok('원본 다시 올리기는 잠긴다',
+   await p.locator('.cy-mini', { hasText: '다시 올리기' }).isDisabled())
+ok('담당자 지정은 잠기지 않는다',
+   await p.locator('.cy-slides tbody tr').nth(1).locator('select').isEnabled())
+await p.locator('.cy-slides tbody tr').nth(1).locator('select').selectOption({ index: 1 })
+await p.waitForTimeout(150)
+ok('배부된 회차에서도 추가 배부 버튼이 열린다',
+   await p.locator('.cy-modal-btns .cy-btn.primary').isEnabled())
+
+// 공통 체크는 잠금이 아니라 '모두에게' 로 보인다
+await p.locator('.cy-slides tbody tr').nth(0).locator('input[type="checkbox"]').check()
+await p.waitForTimeout(150)
+ok('공통으로 표시하면 담당자 칸이 「모두에게」로 바뀐다',
+   (await p.locator('.cy-slides tbody tr').nth(0).locator('.cy-allto').count()) === 1)
+ok('공통 행에는 잠긴 입력칸이 남지 않는다',
+   (await p.locator('.cy-slides tbody tr').nth(0).locator('select').count()) === 0)
 
 ok('페이지 오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '))
 

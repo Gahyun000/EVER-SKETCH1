@@ -78,6 +78,8 @@ const REVOKE_PREVIEW = {
 // 테스트가 들여다볼 수 있게 마지막 회수 요청을 기억해 둔다.
 let lastRevoke = null
 let lastDistribute = null
+// 테스트에서 '이미 배부된 회차' 상태를 만들기 위한 스위치.
+let forcedProjects = null
 // DECK=1 로 띄우면 이미 PPT 를 올려둔 상태에서 시작한다.
 let hasDeck = !!process.env.DECK
 const DECK = {
@@ -125,7 +127,10 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/cycles' && req.method === 'GET') return json(res, { cycles: [CYCLE] })
   if (url === '/api/cycles/c_test' && req.method === 'GET') {
     return json(res, {
-      cycle: CYCLE, projects: CYCLE_PROJECTS,
+      cycle: CYCLE,
+      projects: forcedProjects == null ? CYCLE_PROJECTS
+        : [{ id: 'p_test', name: '표준 양식 — 홍길동', owner_id: 'u_test',
+             submit_status: 'draft', updated_at: Date.now(), page_count: 1 }].slice(0, forcedProjects),
       progress: process.env.EMPTY
         ? { total: 0, counts: { draft: 0, submitted: 0, returned: 0, approved: 0 }, submitted: 0 }
         : { total: 2, counts: { draft: 1, submitted: 1, returned: 0, approved: 0 }, submitted: 1 },
@@ -150,7 +155,15 @@ const server = http.createServer(async (req, res) => {
     return json(res, { ok: true, created_count: 2, skipped_count: 0, created: [] })
   }
   if (url === '/__lastDistribute') return json(res, lastDistribute || {})
-  if (url === '/__resetDistribute') { lastDistribute = null; hasDeck = !!process.env.DECK; return json(res, { ok: true }) }
+  if (url.startsWith('/__setDistributed')) {
+    const n = Number(((req.url || '').split('n=')[1] || '0'))
+    forcedProjects = n
+    return json(res, { ok: true, n })
+  }
+  if (url === '/__resetDistribute') {
+    lastDistribute = null; hasDeck = !!process.env.DECK; forcedProjects = null
+    return json(res, { ok: true })
+  }
   if (url === '/api/cycles/c_test/preview') {
     const q = (req.url || '').split('?')[1] || ''
     const m = /(?:^|&)slide=(\d+)/.exec(q)

@@ -280,7 +280,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                 <DistributeDialog
                   cycleId={cyc.id}
                   writers={users}
-                  distributed={mine.length > 0}
+                  distributedCount={mine.length}
                   onClose={() => setDistributing(false)}
                   onDone={(m) => { setDistributing(false); setMsg(m); setErr(''); void load(cyc.id) }}
                 />
