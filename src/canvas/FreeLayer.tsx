@@ -7,6 +7,8 @@ import { useCanvasUI } from '../state/canvasUI'
 import { mkFreeEl, pushSnap, FCOLORS } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, mergeCovering } from './tableOps'
+import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount } from '../template/slots'
+import '../template/template.css'
 import ColorPicker from '../builder/chrome/ColorPicker'
 
 interface Props { page: Page; W: number; H: number; SC: number; interactive: boolean }
@@ -531,11 +533,13 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                   const cov = coveredSet(el.merges)
                   const border = el.borderColor || '#cfd5e2', bw = el.borderWidth ?? 1
                   const head = el.headRow !== false
+                  // 템플릿 슬롯이면 헤더가 여러 행일 수 있다(로드맵은 연도 행 + 월 행 = 2).
+                  const headRows = isSlotEl(el.slot) ? lockedRowCount(el.slot) : (head ? 1 : 0)
                   const tableActive = selEls.includes(el.id)
                   const ts = (tableSel && tableSel.elId === el.id) ? tableSel : null
                   const inSel = (r: number, c: number) => !!ts && r >= Math.min(ts.r0, ts.r1) && r <= Math.max(ts.r0, ts.r1) && c >= Math.min(ts.c0, ts.c1) && c <= Math.max(ts.c0, ts.c1)
                   return (
-                    <div className="feltable" style={{ display: 'grid', gridTemplateColumns: `repeat(${C}, 1fr)`, gridTemplateRows: `repeat(${R}, 1fr)`, width: '100%', height: '100%' }}>
+                    <div className="feltable" style={{ display: 'grid', gridTemplateColumns: `repeat(${C}, 1fr)`, gridTemplateRows: `repeat(${R}, 1fr)`, width: '100%', height: '100%', position: 'relative' }}>
                       {Array.from({ length: R * C }).map((_, k) => {
                         const r = Math.floor(k / C), c = k % C
                         if (cov.has(r + '_' + c)) return null
@@ -543,18 +547,32 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                         const val = (el.cells && el.cells[r] && el.cells[r][c]) || ''
                         const al = (el.calign && el.calign[r + '_' + c]) || undefined
                         const sel = inSel(r, c)
+                        const isHead = r < headRows
+                        // 셀 배경색 — 로드맵 진행 셀. 선택 하이라이트가 항상 우선한다.
+                        const bg = el.cbg && el.cbg[r + '_' + c]
+                        const cellBg = sel ? '#dbe7ff'
+                          : (bg ? cellBackground(bg) : (isHead ? '#f2f5fa' : '#fff'))
+                        // 헤더 행과 자동 채번 열은 편집 불가(사양 §5).
+                        const canEdit = editingThis && cellEditable(el.slot, r, c)
                         return (
-                          <div key={k} className={'feltd' + (sel ? ' cellsel' : '')} suppressContentEditableWarning
-                            style={{ border: bw + 'px solid ' + border, fontSize: el.fs, padding: '3px 5px', overflow: 'hidden', background: sel ? '#dbe7ff' : (head && r === 0 ? '#f2f5fa' : '#fff'), fontWeight: head && r === 0 ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}` }}
-                            contentEditable={editingThis}
+                          <div key={k} className={'feltd' + (sel ? ' cellsel' : '') + (editingThis && !canEdit ? ' cell-locked' : '')} suppressContentEditableWarning
+                            title={editingThis && !canEdit ? '이 칸은 표준 양식이라 수정할 수 없어요' : undefined}
+                            style={{ border: bw + 'px solid ' + border, fontSize: el.fs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}` }}
+                            contentEditable={canEdit}
                             onPointerDown={(e) => {
                               if (editingThis) { e.stopPropagation(); return }
                               if (tableActive) { e.stopPropagation(); if (e.shiftKey && ts) setTableSel({ elId: el.id, r0: ts.r0, c0: ts.c0, r1: r, c1: c }); else setTableSel({ elId: el.id, r0: r, c0: c, r1: r, c1: c }) }
                             }}
-                            onBlur={editingThis ? (e) => { const cells = (el.cells || []).map((row) => row.slice()); while (cells.length < R) cells.push([]); while (cells[r].length < C) cells[r].push(''); cells[r][c] = e.currentTarget.textContent || ''; updateEl(page.id, el.id, { cells }) } : undefined}
+                            onBlur={canEdit ? (e) => { const cells = (el.cells || []).map((row) => row.slice()); while (cells.length < R) cells.push([]); while (cells[r].length < C) cells[r].push(''); cells[r][c] = e.currentTarget.textContent || ''; updateEl(page.id, el.id, { cells }) } : undefined}
                           >{val}</div>
                         )
                       })}
+                      {/* Today 마커 — 회차 기준월. 사용자가 옮기지 않는다(회차에서 계산). */}
+                      {el.today != null && el.today >= 0 && el.today < C ? (
+                        <div className="fel-today"
+                          style={{ gridColumn: `${el.today + 1}`, gridRow: `1 / span ${R}` }}
+                          aria-label="이번 달" />
+                      ) : null}
                     </div>
                   )
                 })()

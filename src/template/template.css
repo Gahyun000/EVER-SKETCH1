@@ -1,0 +1,67 @@
+/* 표준 템플릿 렌더 — 슬롯 잠금 표시와 Today 마커.
+   FreeLayer 의 표 셀은 인라인 스타일로 그려지므로, 여기에는 인라인으로 두기 어려운 것만 둔다. */
+
+/* 편집 모드에서 손댈 수 없는 칸 — 왜 안 되는지 보이게 한다.
+   그냥 안 먹기만 하면 사용자는 '고장났다'고 생각한다. */
+.feltd.cell-locked {
+  cursor: not-allowed;
+  position: relative;
+}
+.feltd.cell-locked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(15, 27, 61, 0.05) 0 3px,
+    transparent 3px 7px
+  );
+  pointer-events: none;
+}
+
+/* Today 마커 — 회차 기준월 열 위에 세로 점선.
+   표 격자 위에 겹쳐 그리므로 클릭을 가로채지 않는다. */
+.fel-today {
+  pointer-events: none;
+  border-left: 2px dashed #D98A2A;
+  margin-left: -1px;
+  position: relative;
+  z-index: 3;
+}
+.fel-today::after {
+  content: 'TODAY';
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #D98A2A;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 99px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* 셀 색 팔레트 (서식 툴바) */
+.es-cbg-row { display: inline-flex; align-items: center; gap: 4px; }
+.es-cbg {
+  width: 22px; height: 20px; border-radius: 4px; cursor: pointer;
+  border: 1px solid rgba(15, 27, 61, .14); padding: 0;
+}
+.es-cbg.on { outline: 2px solid #2462EB; outline-offset: 1px; }
+.es-cbg.clear {
+  background: #fff; font-size: 11px; color: #6b7480; width: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.es-cbg-label { font-size: 11px; color: #6b7480; margin-right: 2px; }
+
+/* 오른쪽 패널 안내 문구 — 왜 어떤 버튼이 없는지 알려준다. */
+.insp-note {
+  background: #EAF1FE; border: 1px solid #c6d5ff; color: #1a4fc4;
+  border-radius: 6px; padding: 8px 10px; font-size: 11.5px; line-height: 1.55;
+  margin: 4px 0 10px;
+}
+.insp-hint { font-size: 11px; color: #98a1b2; margin: 4px 0 8px; line-height: 1.5; }

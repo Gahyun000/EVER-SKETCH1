@@ -10,7 +10,9 @@ import { PAPER_OPTIONS } from '../../cards/paper'
 import { FCOLORS } from '../../canvas/model'
 import { pushSnap } from '../../canvas/model'
 import type { FreeEl } from '../../state/store'
-import { addRow, delRow, addCol, delCol, mergeRange, unmergeAt, setAlignRange } from '../../canvas/tableOps'
+import { addRow, delRow, addCol, delCol, mergeRange, unmergeAt, setAlignRange, setCellBgRange } from '../../canvas/tableOps'
+import { CBG_LABEL, cbgPalette, cellBackground, isSlotEl, lockedRowCount, slotAllows } from '../../template/slots'
+import '../../template/template.css'
 
 const TRANS: [string, string][] = [['', '없음'], ['fade', '페이드'], ['slide', '밀기'], ['zoom', '확대'], ['flip', '넘기기']]
 const cap: React.CSSProperties = { fontSize: 11, color: '#98a1b2', display: 'block', marginTop: 6 }
@@ -107,6 +109,19 @@ export default function RightPanel() {
   }
   const ts = (tableSel && el && tableSel.elId === el.id) ? tableSel : null
   const ar = ts ? ts.r1 : 0, ac = ts ? ts.c1 : 0
+  // 템플릿 슬롯이면 편집 범위가 제한된다(사양 §5). 서버도 같은 정책으로 거부한다 —
+  // 여기서 버튼을 숨기는 것은 '왜 안 되는지' 알려주기 위한 UX다.
+  const slot = el?.slot
+  const inTemplate = isSlotEl(slot)
+  const canRow = !inTemplate || slotAllows(slot, 'row')
+  const canCol = !inTemplate || slotAllows(slot, 'col')
+  const canMerge = !inTemplate || slotAllows(slot, 'merge')
+  const canCbg = !inTemplate || slotAllows(slot, 'cbg')
+  const palette = cbgPalette(slot)
+  const headLocked = lockedRowCount(slot)
+  // 헤더 행이 선택돼 있으면 행 삭제를 막는다 — 표준 양식이 깨진다.
+  const headRowSelected = inTemplate && ts != null && Math.min(ts.r0, ts.r1) < headLocked
+  const curBg = (el?.cbg && ts) ? el.cbg[Math.min(ts.r0, ts.r1) + '_' + Math.min(ts.c0, ts.c1)] : undefined
 
   return (
     <div className="ax-inspector">
@@ -121,23 +136,54 @@ export default function RightPanel() {
           <div className="insp-body">
             {tab === 'table' && el.type === 'table' && (<>
               <div className="insp-sec">활성 셀 {ts ? `(${Math.min(ts.r0, ts.r1) + 1}행, ${Math.min(ts.c0, ts.c1) + 1}열)` : '— 표에서 셀 클릭'}</div>
+
+              {inTemplate && (
+                <div className="insp-note">
+                  표준 양식 표입니다. 칸 내용·행 추가·셀 색만 바꿀 수 있어요.
+                  <br />열 구성과 머리글은 회차 취합을 위해 고정됩니다.
+                </div>
+              )}
+
+              {canCbg && palette && (<>
+                <div className="insp-sec">진행 표시</div>
+                <div className="insp-row es-cbg-row">
+                  {palette.map((color) => (
+                    <button key={color} type="button"
+                      className={'es-cbg' + (curBg === color ? ' on' : '')}
+                      style={{ background: cellBackground(color) }}
+                      title={CBG_LABEL[color] || color}
+                      disabled={!ts}
+                      onClick={() => { if (ts) patchTable(setCellBgRange(el, ts.r0, ts.c0, ts.r1, ts.c1, color)) }} />
+                  ))}
+                  <button type="button" className="es-cbg clear" title="색 지우기" disabled={!ts}
+                    onClick={() => { if (ts) patchTable(setCellBgRange(el, ts.r0, ts.c0, ts.r1, ts.c1, null)) }}>✕</button>
+                </div>
+                <div className="insp-hint">셀을 드래그해 여러 칸을 한 번에 칠할 수 있어요.</div>
+              </>)}
+
               <div className="insp-sec">행</div>
               <div className="insp-row">
-                <button className="insp-pill" onClick={() => patchTable(addRow(el, ar))}>↑ 위에 추가</button>
-                <button className="insp-pill" onClick={() => patchTable(addRow(el, ar + 1))}>↓ 아래 추가</button>
-                <button className="insp-pill danger" onClick={() => patchTable(delRow(el, ar))}>🗑 행 삭제</button>
+                <button className="insp-pill" disabled={!canRow} onClick={() => patchTable(addRow(el, Math.max(ar, headLocked)))}>↑ 위에 추가</button>
+                <button className="insp-pill" disabled={!canRow} onClick={() => patchTable(addRow(el, ar + 1))}>↓ 아래 추가</button>
+                <button className="insp-pill danger" disabled={!canRow || headRowSelected}
+                  title={headRowSelected ? '머리글 행은 삭제할 수 없어요' : undefined}
+                  onClick={() => patchTable(delRow(el, ar))}>🗑 행 삭제</button>
               </div>
-              <div className="insp-sec">열</div>
-              <div className="insp-row">
-                <button className="insp-pill" onClick={() => patchTable(addCol(el, ac))}>← 왼쪽 추가</button>
-                <button className="insp-pill" onClick={() => patchTable(addCol(el, ac + 1))}>→ 오른쪽 추가</button>
-                <button className="insp-pill danger" onClick={() => patchTable(delCol(el, ac))}>🗑 열 삭제</button>
-              </div>
-              <div className="insp-sec">셀 병합</div>
-              <div className="insp-row">
-                <button className="insp-pill" disabled={!ts || (ts.r0 === ts.r1 && ts.c0 === ts.c1)} onClick={() => { if (ts) patchTable(mergeRange(el, ts.r0, ts.c0, ts.r1, ts.c1)) }}>⤢ 병합</button>
-                <button className="insp-pill" onClick={() => patchTable(unmergeAt(el, ar, ac))}>병합 해제</button>
-              </div>
+              {canCol ? (<>
+                <div className="insp-sec">열</div>
+                <div className="insp-row">
+                  <button className="insp-pill" onClick={() => patchTable(addCol(el, ac))}>← 왼쪽 추가</button>
+                  <button className="insp-pill" onClick={() => patchTable(addCol(el, ac + 1))}>→ 오른쪽 추가</button>
+                  <button className="insp-pill danger" onClick={() => patchTable(delCol(el, ac))}>🗑 열 삭제</button>
+                </div>
+              </>) : null}
+              {canMerge ? (<>
+                <div className="insp-sec">셀 병합</div>
+                <div className="insp-row">
+                  <button className="insp-pill" disabled={!ts || (ts.r0 === ts.r1 && ts.c0 === ts.c1)} onClick={() => { if (ts) patchTable(mergeRange(el, ts.r0, ts.c0, ts.r1, ts.c1)) }}>⤢ 병합</button>
+                  <button className="insp-pill" onClick={() => patchTable(unmergeAt(el, ar, ac))}>병합 해제</button>
+                </div>
+              </>) : null}
               <div className="insp-sec">셀 정렬</div>
               <div className="insp-row seg">
                 <button onClick={() => patchTable(setAlignRange(el, ts ? ts.r0 : ar, ts ? ts.c0 : ac, ar, ac, 'left'))}>⇤</button>
