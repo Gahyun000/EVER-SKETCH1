@@ -29,14 +29,18 @@ DELETE = "delete"
 COMMENT_READ = "comment_read"
 COMMENT_WRITE = "comment_write"
 COMMENT_RESOLVE = "comment_resolve"
-CYCLE_MANAGE = "cycle_manage"     # 회차 개설·마감·발행
+CYCLE_MANAGE = "cycle_manage"     # 회차 개설·마감
 USER_MANAGE = "user_manage"       # 가입 승인·레벨 변경·비활성화
 TEMPLATE_MANAGE = "template_manage"
+SETTINGS_MANAGE = "settings_manage"   # LLM 설정 — API 키를 다룬다(UDS-107 §5)
+PUBLISH = "publish"               # 이북 발행 — L1 전원에게 공개된다. 되돌리기 어렵다
+AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작성 도구이므로 L2 이상
 
 ALL_ACTIONS = (
     READ, WRITE, DELETE,
     COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE,
     CYCLE_MANAGE, USER_MANAGE, TEMPLATE_MANAGE,
+    SETTINGS_MANAGE, PUBLISH, AI_USE,
 )
 
 
@@ -79,18 +83,26 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
         return True           # 전체 권한
 
     # ── 관리 액션은 L3 전용 ────────────────────
-    if action in (CYCLE_MANAGE, USER_MANAGE, TEMPLATE_MANAGE):
+    # PUBLISH 가 여기 있는 이유 — 발행하면 L1 열람자 전원에게 공개된다.
+    # 작성자가 초안을 실수로 발행하면 되돌릴 수 없다(이미 본 사람은 본 것이다).
+    if action in (CYCLE_MANAGE, USER_MANAGE, TEMPLATE_MANAGE, SETTINGS_MANAGE, PUBLISH):
         return False
 
     # ── L1 열람자 ─────────────────────────────
     if actor.level == L1:
         # 발행된 회차 결과물만, 읽기만.
         # 메모는 존재 자체를 노출하지 않는다(확정 사항) — 읽기도 쓰기도 불가.
+        # AI 도구도 불가 — 열람자에게 작성 보조가 필요할 이유가 없고,
+        # LLM 호출은 비용과 외부 전송을 수반한다(UDS-107 §3).
         if action == READ:
             return bool(res and res.published)
         return False
 
     # ── L2 작성자 ─────────────────────────────
+    # AI 도구는 특정 이북에 매이지 않는다 — 리소스 없이 판정한다.
+    if action == AI_USE:
+        return True
+
     # 소유 기반: '내 것'만. 소유자 판정이 불가능하면 거부.
     if res is None or res.owner_id is None:
         return False

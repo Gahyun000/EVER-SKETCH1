@@ -231,3 +231,66 @@ def test_UDS107_6_오류_응답에_내부_경로가_없다():
     body = r.text
     for leak in ("/Users/", "/home/", "Traceback", "sqlite3", "SELECT ", ".py"):
         assert leak not in body, "응답에 %s 가 노출됨: %s" % (leak, body[:200])
+
+
+# ══════════ 신규 액션 판정 (W2 착수 조건) ══════════
+from server.permissions import (  # noqa: E402
+    Actor, Resource, decide, AI_USE, SETTINGS_MANAGE, PUBLISH,
+)
+
+_PEND = Actor(id="p", level=0, status="pending")
+_L1 = Actor(id="a", level=1, status="active")
+_L2 = Actor(id="b", level=2, status="active")
+_L3 = Actor(id="c", level=3, status="active")
+
+
+def test_LLM설정은_L3만_판정():
+    """API 키를 다루는 설정 — base_url 을 바꾸면 이후 모든 대화가 그쪽으로 간다."""
+    assert decide(_L3, SETTINGS_MANAGE) is True
+    for a in (_L2, _L1, _PEND, None):
+        assert decide(a, SETTINGS_MANAGE) is False
+
+
+def test_발행은_L3만_판정():
+    """발행하면 L1 전원에게 공개된다. 작성자가 초안을 실수로 내보내면 되돌릴 수 없다."""
+    assert decide(_L3, PUBLISH) is True
+    for a in (_L2, _L1, _PEND, None):
+        assert decide(a, PUBLISH) is False
+
+
+def test_AI도구는_L2_이상():
+    """L1 은 열람자다 — 작성 보조가 필요 없고, LLM 호출은 비용과 외부 전송을 수반한다."""
+    assert decide(_L2, AI_USE) is True
+    assert decide(_L3, AI_USE) is True
+    assert decide(_L1, AI_USE) is False
+    assert decide(_PEND, AI_USE) is False
+    assert decide(None, AI_USE) is False
+
+
+def test_AI도구는_리소스_없이도_판정된다():
+    """챗봇은 특정 이북에 매이지 않는다. Resource 를 요구하면 항상 거부되어 버린다."""
+    assert decide(_L2, AI_USE, None) is True
+    assert decide(_L2, AI_USE, Resource(owner_id=None)) is True
+
+
+def test_대화가_사용자별로_분리된다():
+    """임원 A가 대화 id 만 알면 임원 B의 챗봇 대화를 읽던 문제."""
+    from server import conversations as conv
+    conv.append("cid_a", "user", "A의 비밀 이야기", user_id="u_a")
+    conv.append("cid_b", "user", "B의 비밀 이야기", user_id="u_b")
+    assert {c["id"] for c in conv.list_all("u_a")} == {"cid_a"}
+    assert {c["id"] for c in conv.list_all("u_b")} == {"cid_b"}
+    assert conv.owner_of("cid_a") == "u_a"
+    # 관리자(user_id=None)는 전부 본다
+    assert len(conv.list_all(None)) == 2
+
+
+def test_주인_없는_대화는_최초_사용자에게_귀속된다():
+    """단일 사용자 시절 대화(user_id 없음)를 다중 사용자 환경으로 넘길 때."""
+    from server import conversations as conv
+    conv.append("legacy", "user", "예전 대화")          # user_id 없이 생성
+    assert conv.owner_of("legacy") is None
+    conv.claim("legacy", "u_first")
+    assert conv.owner_of("legacy") == "u_first"
+    conv.claim("legacy", "u_second")                    # 이미 주인이 있으면 안 바뀐다
+    assert conv.owner_of("legacy") == "u_first"

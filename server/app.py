@@ -10,7 +10,7 @@ import urllib.request
 import urllib.error
 from typing import List, Optional
 
-from fastapi import FastAPI, Response, UploadFile, File, Form
+from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,10 +20,13 @@ from server.settings_store import (
     init_db, load_llm_settings, save_llm_settings, mask_key, llm_endpoint, llm_configured,
 )
 from server import chat as chat_engine
+from server import conversations as conversations_store
 from server import projects as projects_store
 from server import auth as auth_store
 from server.routes_auth import router as auth_router
 from server.routes_projects import router as projects_router
+from server import permissions as perm
+from server.authdeps import require_action, require_active
 
 HERE = pathlib.Path(__file__).resolve().parent
 EBOOK_HTML = HERE.parent
@@ -74,11 +77,15 @@ def dataurl_bytes(d: str) -> bytes:
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "generator": str(GEN_PY), "generator_exists": GEN_PY.exists(), "ebooks_dir": str(EBOOKS)}
+    # 인증 없이 열려 있는 유일한 엔드포인트(기동 확인용).
+    # 내부 절대 경로를 돌려주던 것을 존재 여부만으로 줄였다(UDS-107 §6 — 내부 경로 미노출).
+    return {"ok": True, "generator_exists": GEN_PY.exists(), "ebooks_ready": EBOOKS.exists()}
 
 
 @app.post("/api/build")
-def build(req: BuildReq):
+def build(req: BuildReq, user: dict = Depends(require_active)):
+    # 발행은 L3만. 발행하는 순간 L1 열람자 전원에게 공개되고, 본 사람은 되돌릴 수 없다.
+    require_action(user, perm.PUBLISH)
     if not GEN_PY.exists():
         return {"ok": False, "error": "generator.py 없음: %s" % GEN_PY}
     ts = time.strftime("%Y%m%d_%H%M%S")
@@ -132,7 +139,9 @@ def build(req: BuildReq):
 
 # ───────────────────────── HTML → 덱 변환 (html_pdf_agent 이식) ─────────────────────────
 @app.post("/api/deck")
-async def deck(file: UploadFile = File(...), theme: str = Form("light"), summarize: bool = Form(False)):
+async def deck(file: UploadFile = File(...), theme: str = Form("light"), summarize: bool = Form(False),
+               user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
     """HTML 가져오기 → 편집 가능한 덱 PPTX(+PDF·썸네일). 결과 파일은 /deck_out 로 서빙."""
     try:
         from server.deck.convert import convert
@@ -191,7 +200,9 @@ def _deck_summarizer():
 
 
 @app.post("/api/deck/stream")
-async def deck_stream(file: UploadFile = File(...), theme: str = Form("light"), summarize: bool = Form(False)):
+async def deck_stream(file: UploadFile = File(...), theme: str = Form("light"), summarize: bool = Form(False),
+                      user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
     """HTML → 덱 변환을 SSE 로. 추출/빌드/PDF/슬라이드별 렌더 진행을 실시간 전송(data: JSON)."""
     raw = await file.read()
     html = raw.decode("utf-8", "ignore")
@@ -248,12 +259,18 @@ def _coalesce(incoming: dict, current: dict, key: str, default=None):
 
 
 @app.get("/api/settings/llm")
-def get_llm():
+def get_llm(user: dict = Depends(require_active)):
+    # LLM 설정은 API 키를 다룬다(UDS-107 §5 비밀정보). 키는 마스킹해 내보내지만
+    # base_url·model 같은 내부 구성도 기밀에 해당하므로 L3만 본다.
+    require_action(user, perm.SETTINGS_MANAGE)
     return _effective_payload(load_llm_settings())
 
 
 @app.put("/api/settings/llm")
-def put_llm(payload: LlmSettingsIn):
+def put_llm(payload: LlmSettingsIn, user: dict = Depends(require_active)):
+    # 읽기보다 쓰기가 더 위험하다 — base_url 을 공격자 서버로 바꾸면
+    # 이후 모든 챗봇 대화가 그쪽으로 전송된다.
+    require_action(user, perm.SETTINGS_MANAGE)
     save_llm_settings(payload.model_dump(exclude_unset=True), updated_by="local")
     return _effective_payload(load_llm_settings())
 
@@ -297,7 +314,10 @@ def _llm_test_call(provider: str, url: str, user_id: str, api_key: str, model: s
 
 
 @app.post("/api/settings/llm/test")
-def test_llm(payload: LlmSettingsIn):
+def test_llm(payload: LlmSettingsIn, user: dict = Depends(require_active)):
+    # 이 엔드포인트는 payload 의 base_url 로 서버가 직접 요청을 보낸다 = SSRF 경로.
+    # UDS-107 §6 이 SSRF 를 위협 모델에 포함하도록 명시한다. L3 로 제한한다.
+    require_action(user, perm.SETTINGS_MANAGE)
     current = load_llm_settings()
     inc = payload.model_dump(exclude_unset=True)
     provider = str(_coalesce(inc, current, "provider", "self") or "self").lower()
@@ -348,8 +368,38 @@ class ChatIn(BaseModel):
     book_state: Optional[dict] = None
 
 
+def _require_own_conversation(user: dict, cid: str) -> None:
+    """대화는 만든 사람 것이다. 단일 사용자 시절 대화(user_id 없음)는 L3 만 볼 수 있다.
+
+    이게 없으면 임원 A가 대화 id 만 알면 임원 B의 챗봇 대화를 그대로 읽는다.
+    """
+    if user["level"] == 3:
+        return
+    owner = conversations_store.owner_of(cid)
+    if owner != user["id"]:
+        raise HTTPException(status_code=403, detail="권한이 없습니다.")
+
+
+def _own_or_claim_conversation(user: dict, cid: Optional[str]) -> None:
+    """대화를 쓰기 전 소유를 확정한다.
+
+    세션 id 는 클라이언트가 만들어 보낸다. 남의 id 를 그대로 넣으면 그 대화에
+    메시지를 덧붙일 수 있으므로, 주인이 없을 때만 귀속시키고 있으면 대조한다.
+    """
+    if not cid:
+        return
+    owner = conversations_store.owner_of(cid)
+    if owner is None:
+        conversations_store.claim(cid, user["id"])
+        return
+    if owner != user["id"] and user["level"] != 3:
+        raise HTTPException(status_code=403, detail="권한이 없습니다.")
+
+
 @app.post("/api/chat/v2")
-def chat_v2(req: ChatIn):
+def chat_v2(req: ChatIn, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
+    _own_or_claim_conversation(user, req.session_id)
     return chat_engine.respond(req.message, req.session_id, req.confirm, req.confirm_action_id, req.book_state)
 
 
@@ -358,27 +408,38 @@ class ResetIn(BaseModel):
 
 
 @app.post("/api/chat/reset")
-def chat_reset(req: ResetIn):
+def chat_reset(req: ResetIn, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
+    _own_or_claim_conversation(user, req.session_id)
     return chat_engine.reset_session(req.session_id)
 
 
 @app.get("/api/chat/conversations")
-def chat_conversations():
-    return {"conversations": chat_engine.list_conversations()}
+def chat_conversations(user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
+    # 본인 대화만. 예전 단일 사용자 시절 대화(user_id 없음)는 L3 에게만 보인다.
+    scope = None if user["level"] == 3 else user["id"]
+    return {"conversations": conversations_store.list_all(scope)}
 
 
 @app.get("/api/chat/conversations/{cid}")
-def chat_conversation(cid: str):
+def chat_conversation(cid: str, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
+    _require_own_conversation(user, cid)
     return chat_engine.get_conversation(cid)
 
 
 @app.delete("/api/chat/conversations/{cid}")
-def chat_conversation_delete(cid: str):
+def chat_conversation_delete(cid: str, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
+    _require_own_conversation(user, cid)
     return chat_engine.delete_conversation(cid)
 
 
 @app.post("/api/chat/v2/stream")
-def chat_v2_stream(req: ChatIn):
+def chat_v2_stream(req: ChatIn, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
+    _own_or_claim_conversation(user, req.session_id)
     return StreamingResponse(
         chat_engine.sse_stream(req.message, req.session_id, req.confirm, req.confirm_action_id, req.book_state),
         media_type="text/event-stream",
@@ -392,7 +453,8 @@ class DocxIn(BaseModel):
 
 
 @app.post("/api/export/docx")
-def export_docx(req: DocxIn):
+def export_docx(req: DocxIn, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
     try:
         from docx import Document  # python-docx
     except Exception:
@@ -487,7 +549,8 @@ _SUMM_SYS = (
 
 
 @app.post("/api/summarize")
-def summarize(req: SummReq):
+def summarize(req: SummReq, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
     results = []
     for sec in req.sections:
         user = "[제목] %s\n[내용]\n%s\n\n위 섹션을 슬라이드 1장으로 요약해 JSON으로만 답하라." % (
@@ -519,7 +582,8 @@ class PlanIn(BaseModel):
 
 
 @app.post("/api/plan")
-def plan(req: PlanIn):
+def plan(req: PlanIn, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
     """브리프 → 검증된 BookPlan(JSON). 서버 설정 LLM을 llm_fn 으로 감싸 planner 하네스에 주입한다.
     적용(카드 생성)은 G4 프론트 브리지에서. 여기서는 계획만 만든다."""
     from server.intent import planner
@@ -541,7 +605,8 @@ class EditIn(BaseModel):
 
 
 @app.post("/api/edit")
-def edit(req: EditIn):
+def edit(req: EditIn, user: dict = Depends(require_active)):
+    require_action(user, perm.AI_USE)
     """편집 명령(이 장 다듬어/톤 통일/N장 추가) → 검증된 편집 계획. detect_edit 로 op 판정 후 make_edits.
     적용(스토어 반영)은 프론트 브리지(apply_page_edits)에서. 여기서는 계획만 만든다."""
     from server.intent import editor
