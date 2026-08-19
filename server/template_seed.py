@@ -70,11 +70,16 @@ PAGE_W = 1040
 PAGE_H = 720
 MARGIN = 24
 CONTENT_W = PAGE_W - MARGIN * 2      # 992
-ROADMAP_ROW_H = 30
-LIST_ROW_H = 28
+# 행 높이는 실물 비율에서 역산한다.
+#   로드맵 3.1in / 7.5in x 720px = 298px, 7행 -> 약 42px
+#   하단 블록 1.9in / 7.5in x 720px = 182px, 5행 -> 약 36px
+# 처음엔 30/28 로 잡았다가 종이 아래쪽 200px 가 통째로 비는 걸 미리보기에서 봤다.
+# 칸이 낮으면 진행 구간 라벨('설계·구축')이 한 줄에 안 들어가 잘린다.
+ROADMAP_ROW_H = 40
+LIST_ROW_H = 34
 LIST_GAP = 14
 ROADMAP_Y = 94          # 로드맵 표 시작 y
-BLOCK_GAP = 40          # 로드맵 표 ~ 하단 블록 사이
+BLOCK_GAP = 34          # 로드맵 표 ~ 하단 블록 사이
 FOOT_GAP = 18           # 하단 블록 ~ 꼬리말 사이
 FOOT_H = 16
 BOTTOM_PAD = 16         # 꼬리말 아래 여백
