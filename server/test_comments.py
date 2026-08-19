@@ -1,0 +1,242 @@
+"""앵커 메모 — 문서의 그 자리에 붙는 검토 의견.
+
+지키려는 것
+  1. 관리자는 남의 배부본에 지적할 수 있고, 작성자는 자기 것에만, 열람자는 못 단다
+  2. 지적은 **가리키는 곳**을 잃지 않는다(페이지·요소·칸)
+  3. 해결은 스레드 단위 — 답글마다 상태가 따로 놀면 처리 여부를 아무도 못 본다
+  4. 남의 지적을 함부로 지울 수 없다(반려 사유가 조용히 사라지면 안 된다)
+  5. 자료를 회수하면 지적도 함께 사라진다(죽은 id 를 가리킨 채 남지 않는다)
+"""
+import os
+import pathlib
+import tempfile
+
+_tmp = tempfile.mkdtemp()
+os.environ["EVER_SKETCH_DB"] = str(pathlib.Path(_tmp) / "comments.db")
+
+import pytest  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from server import auth as auth_store  # noqa: E402
+from server import comments as comments_store  # noqa: E402
+from server import projects as projects_store  # noqa: E402
+from server.routes_auth import router as auth_router  # noqa: E402
+from server.routes_projects import router as proj_router  # noqa: E402
+
+_DB = str(pathlib.Path(_tmp) / "comments.db")
+
+
+def make_app() -> FastAPI:
+    app = FastAPI()
+    app.include_router(auth_router)
+    app.include_router(proj_router)
+    return app
+
+
+@pytest.fixture()
+def ctx():
+    os.environ["EVER_SKETCH_DB"] = _DB
+    for suffix in ("", "-wal", "-shm"):
+        f = pathlib.Path(_DB + suffix)
+        if f.exists():
+            f.unlink()
+
+    auth_store.ensure_seed_admin("adminpw12345")
+    admin = [u for u in auth_store.list_users() if u["login_id"] == "admin"][0]
+
+    def mk(login, role, name):
+        u = auth_store.signup(login, "password123", name, "본부", "writer")
+        if role:
+            auth_store.approve(admin["id"], u["id"], role)
+        return auth_store.get_user(u["id"])
+
+    writer = mk("exec1", "writer", "홍길동")
+    other = mk("exec2", "writer", "이순신")
+    viewer = mk("view1", "viewer", "열람자")
+
+    proj = projects_store.create_project(
+        name="홍길동 배부본", state={"pages": [{"id": 1, "els": []}]}, owner_id=writer["id"])
+
+    def as_user(login, pw="password123"):
+        c = TestClient(make_app())
+        assert c.post("/api/auth/login", json={"login_id": login, "password": pw}).status_code == 200
+        return c
+
+    return {"admin": admin, "writer": writer, "other": other, "viewer": viewer,
+            "pid": proj["id"], "as_user": as_user,
+            "as_admin": lambda: as_user("admin", "adminpw12345"),
+            "anon": TestClient(make_app())}
+
+
+def _add(client, pid, body="여기 수치가 실제와 다릅니다", **kw):
+    payload = {"body": body, "page_id": 1}
+    payload.update(kw)
+    return client.post("/api/projects/%s/comments" % pid, json=payload)
+
+
+# ══════════ 권한 ══════════
+def test_관리자는_남의_배부본에_지적할_수_있다(ctx):
+    r = _add(ctx["as_admin"](), ctx["pid"], el_id=100006, cell="3_5")
+    assert r.status_code == 200, r.text
+    assert r.json()["comment"]["cell"] == "3_5"
+
+
+def test_작성자는_자기_것에_달_수_있다(ctx):
+    assert _add(ctx["as_user"]("exec1"), ctx["pid"]).status_code == 200
+
+
+def test_다른_작성자는_남의_것에_못_단다(ctx):
+    assert _add(ctx["as_user"]("exec2"), ctx["pid"]).status_code == 403
+
+
+def test_열람자는_못_단다(ctx):
+    assert _add(ctx["as_user"]("view1"), ctx["pid"]).status_code == 403
+
+
+def test_비로그인은_못_단다(ctx):
+    assert _add(ctx["anon"], ctx["pid"]).status_code == 401
+
+
+def test_다른_작성자는_지적을_읽지도_못한다(ctx):
+    """지적에는 남의 자료 내용이 그대로 인용된다."""
+    _add(ctx["as_admin"](), ctx["pid"])
+    assert ctx["as_user"]("exec2").get(
+        "/api/projects/%s/comments" % ctx["pid"]).status_code == 403
+
+
+# ══════════ 앵커 ══════════
+def test_가리키는_곳이_그대로_남는다(ctx):
+    _add(ctx["as_admin"](), ctx["pid"], el_id=42, cell="2_7", page_id=1)
+    t = ctx["as_user"]("exec1").get("/api/projects/%s/comments" % ctx["pid"]).json()["comments"][0]
+    assert (t["page_id"], t["el_id"], t["cell"]) == (1, 42, "2_7")
+
+
+def test_페이지에만_붙일_수도_있다(ctx):
+    """'이 장 전체' 에 대한 의견도 있다."""
+    r = _add(ctx["as_admin"](), ctx["pid"])
+    assert r.json()["comment"]["el_id"] is None
+
+
+def test_빈_내용은_거부한다(ctx):
+    assert _add(ctx["as_admin"](), ctx["pid"], body="   ").status_code == 400
+
+
+def test_너무_긴_메모는_거부한다(ctx):
+    r = _add(ctx["as_admin"](), ctx["pid"], body="가" * (comments_store.MAX_BODY + 1))
+    assert r.status_code == 400
+
+
+# ══════════ 스레드 ══════════
+def test_답글은_같은_스레드에_같은_자리를_가리킨다(ctx):
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"], el_id=42, cell="2_7").json()["comment"]
+    # 작성자가 답한다 — 답글에는 자리를 안 적어도 뿌리와 같은 곳을 가리켜야 한다.
+    r = ctx["as_user"]("exec1").post(
+        "/api/projects/%s/comments" % ctx["pid"],
+        json={"body": "확인해서 고쳤습니다", "page_id": 99, "reply_to": root["id"]})
+    assert r.status_code == 200, r.text
+    reply = r.json()["comment"]
+    assert reply["thread_id"] == root["id"]
+    assert (reply["page_id"], reply["el_id"], reply["cell"]) == (1, 42, "2_7"), \
+        "답글이 뿌리와 다른 곳을 가리키면 스레드가 두 곳을 가리키게 된다."
+
+    threads = c.get("/api/projects/%s/comments" % ctx["pid"]).json()["comments"]
+    assert len(threads) == 1 and len(threads[0]["replies"]) == 1
+
+
+def test_다른_문서의_메모에는_답글을_달_수_없다(ctx):
+    """허용하면 그 문서를 볼 권한이 없는 사람이 남의 스레드에 글을 남길 수 있다."""
+    c = ctx["as_admin"]()
+    other = projects_store.create_project(name="남의 것", state={"pages": []},
+                                          owner_id=ctx["other"]["id"])
+    root = _add(c, other["id"]).json()["comment"]
+    r = c.post("/api/projects/%s/comments" % ctx["pid"],
+               json={"body": "끼어들기", "page_id": 1, "reply_to": root["id"]})
+    assert r.status_code == 400
+
+
+# ══════════ 해결 ══════════
+def test_해결은_스레드_단위다(ctx):
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    reply = c.post("/api/projects/%s/comments" % ctx["pid"],
+                   json={"body": "답", "page_id": 1, "reply_to": root["id"]}).json()["comment"]
+    # 답글 id 로 해결해도 뿌리에 적용된다
+    r = c.post("/api/comments/%s/resolve" % reply["id"], json={"resolved": True})
+    assert r.status_code == 200, r.text
+    assert r.json()["comment"]["id"] == root["id"]
+    assert r.json()["comment"]["resolved_at"] is not None
+
+
+def test_작성자도_자기_자료의_지적을_해결할_수_있다(ctx):
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    r = ctx["as_user"]("exec1").post("/api/comments/%s/resolve" % root["id"],
+                                     json={"resolved": True})
+    assert r.status_code == 200
+
+
+def test_다시_열_수_있다(ctx):
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    c.post("/api/comments/%s/resolve" % root["id"], json={"resolved": True})
+    r = c.post("/api/comments/%s/resolve" % root["id"], json={"resolved": False})
+    assert r.json()["comment"]["resolved_at"] is None
+
+
+def test_미해결_수를_센다(ctx):
+    c = ctx["as_admin"]()
+    a = _add(c, ctx["pid"], body="첫째").json()["comment"]
+    _add(c, ctx["pid"], body="둘째")
+    assert comments_store.unresolved_count(ctx["pid"]) == 2
+    c.post("/api/comments/%s/resolve" % a["id"], json={"resolved": True})
+    assert comments_store.unresolved_count(ctx["pid"]) == 1
+
+
+def test_여러_자료의_미해결_수를_한_번에_센다(ctx):
+    """회차 화면에서 20명분을 한 줄씩 물어보면 화면이 뜨지 않는다."""
+    c = ctx["as_admin"]()
+    _add(c, ctx["pid"])
+    other = projects_store.create_project(name="다른 것", state={"pages": []},
+                                          owner_id=ctx["other"]["id"])
+    counts = comments_store.counts_for([ctx["pid"], other["id"]])
+    assert counts == {ctx["pid"]: 1}
+
+
+# ══════════ 삭제 ══════════
+def test_남의_지적은_함부로_못_지운다(ctx):
+    """읽고 쓸 수 있다고 남의 지적을 지울 수 있으면 반려 사유가 조용히 사라진다."""
+    root = _add(ctx["as_admin"](), ctx["pid"]).json()["comment"]
+    r = ctx["as_user"]("exec1").delete("/api/comments/%s" % root["id"])
+    assert r.status_code == 403
+    assert comments_store.get(root["id"]) is not None
+
+
+def test_자기가_쓴_것은_지울_수_있다(ctx):
+    c = ctx["as_user"]("exec1")
+    mine = _add(c, ctx["pid"], body="내 메모").json()["comment"]
+    assert c.delete("/api/comments/%s" % mine["id"]).status_code == 200
+    assert comments_store.get(mine["id"]) is None
+
+
+def test_뿌리를_지우면_스레드가_통째로_사라진다(ctx):
+    """답글만 남으면 무엇에 대한 답인지 알 수 없는 글이 된다."""
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    reply = c.post("/api/projects/%s/comments" % ctx["pid"],
+                   json={"body": "답", "page_id": 1, "reply_to": root["id"]}).json()["comment"]
+    c.delete("/api/comments/%s" % root["id"])
+    assert comments_store.get(reply["id"]) is None
+
+
+def test_자료를_지우면_지적도_함께_사라진다(ctx):
+    """죽은 project_id 를 가리킨 채 남으면, 회수했는데 지적 내용은 DB 에 남는다."""
+    _add(ctx["as_admin"](), ctx["pid"])
+    projects_store.delete_project(ctx["pid"])
+    assert comments_store.list_for_project(ctx["pid"]) == []
+
+
+def test_없는_메모는_404(ctx):
+    assert ctx["as_admin"]().post("/api/comments/없는거/resolve",
+                                  json={"resolved": True}).status_code == 404

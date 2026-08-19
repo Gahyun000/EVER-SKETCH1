@@ -8,6 +8,7 @@ import { mkFreeEl, pushSnap, FCOLORS } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, mergeCovering, sizeTracks } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount } from '../template/slots'
+import { pinsOfPage, useComments } from '../comments/store'
 import '../template/template.css'
 import ColorPicker from '../builder/chrome/ColorPicker'
 
@@ -158,6 +159,34 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [interactive, setSel, setConnSrc, setTool, setSelConn, removeConn, page])
   const active = interactive
+
+  // 검토 의견 핀 — 지적이 붙은 자리를 문서 위에서 바로 가리킨다.
+  // 목록만 있으면 "3번째 줄" 을 눈으로 찾아야 한다. 그게 이 기능을 만든 이유다.
+  const cmtThreads = useComments((s) => s.threads)
+  const cmtShowResolved = useComments((s) => s.showResolved)
+  const cmtFocusId = useComments((s) => s.focusId)
+  const cmtFocus = useComments((s) => s.focus)
+  const pagePins = pinsOfPage(cmtThreads, page.id, cmtShowResolved)
+  const pinByEl = new Map<number, typeof pagePins>()
+  const pinByCell = new Map<string, typeof pagePins>()
+  for (const t of pagePins) {
+    if (t.el_id == null) continue
+    const key = t.cell ? t.el_id + '_' + t.cell : null
+    const bucket = key ? pinByCell : pinByEl
+    const k = (key ?? t.el_id) as never
+    const cur = (bucket as Map<unknown, typeof pagePins>).get(k) || []
+    ;(bucket as Map<unknown, typeof pagePins>).set(k, [...cur, t])
+  }
+  const Pin = ({ list }: { list: typeof pagePins }) => (
+    <div className={'cmt-pin' + (list.every((t) => t.resolved_at) ? ' done' : '')
+      + (list.some((t) => t.id === cmtFocusId) ? ' on' : '')}
+      title={list.map((t) => t.body).join('\n').slice(0, 120)}
+      onPointerDown={(e) => { e.stopPropagation(); cmtFocus(list[0].id) }}
+      onClick={(e) => e.stopPropagation()}>
+      {list.length}
+    </div>
+  )
+
   // 페이지가 작업창보다 크면 Preview 가 CSS 로 축소해 그린다(맞춤 배율).
   // 그때 마우스가 지나간 **화면 픽셀은 페이지 좌표보다 크다.** 배율로 나누지 않으면
   // 드래그·크기조절·회전이 전부 커서보다 덜 움직인다(1040px 페이지를 800px 창에 넣으면 23% 어긋난다).
@@ -637,7 +666,12 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                               requestAnimationFrame(() => requestAnimationFrame(() => node.focus()))
                             }}
                             onBlur={canEdit ? (e) => { const cells = (el.cells || []).map((row) => row.slice()); while (cells.length < R) cells.push([]); while (cells[r].length < C) cells[r].push(''); cells[r][c] = e.currentTarget.textContent || ''; updateEl(page.id, el.id, { cells }) } : undefined}
-                          >{val}</div>
+                          >{val}
+                            {(() => {
+                              const ps = pinByCell.get(el.id + '_' + r + '_' + c)
+                              return ps ? <Pin list={ps} /> : null
+                            })()}
+                          </div>
                         )
                       })}
                       {/* 이동 손잡이 — 표가 선택되면 셀 클릭이 드래그 선택으로 바뀌어서
@@ -666,6 +700,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                       onBlur={(e) => { updateEl(page.id, el.id, { text: e.currentTarget.textContent || '' }); setEditing(null) }}>{el.text}</div>
                   : <div className="feltext" style={txtStyle}>{el.text}</div>)}
             {active && isNote && editingThis ? <div className="note-drag" title="드래그해서 이동">⠿</div> : null}
+            {(() => { const ps = pinByEl.get(el.id); return ps ? <Pin list={ps} /> : null })()}
           </div>
         )
       })}

@@ -19,6 +19,7 @@ const SUITES = [
   { name: '표 셀 드래그 · 병합', file: 'table_merge_smoke.mjs', env: {} },
   { name: '배부 창구 · 미리보기', file: 'distribute_smoke.mjs', env: { ADMIN: '1', DECK: '1', EMPTY: '1' } },
   { name: '배부 회수', file: 'revoke_smoke.mjs', env: { ADMIN: '1' } },
+  { name: '앵커 메모(검토 의견)', file: 'comments_smoke.mjs', env: { COMMENTS: '1' } },
 ]
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))

@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from server import auth as auth_store
+from server import comments as comments_store
 from server import notes as notes_store
 from server import permissions as perm
 from server import projects as projects_store
@@ -46,6 +47,18 @@ class VersionSaveIn(BaseModel):
 class VersionPatchIn(BaseModel):
     label: Optional[str] = None
     pinned: Optional[bool] = None
+
+
+class CommentIn(BaseModel):
+    body: str
+    page_id: int = 1
+    el_id: Optional[int] = None       # 없으면 페이지 전체에 붙는다
+    cell: Optional[str] = None        # 'r_c' — 표의 한 칸
+    reply_to: Optional[str] = None
+
+
+class ResolveIn(BaseModel):
+    resolved: bool = True
 
 
 # ─────────────────────── 프로젝트 ───────────────────────
@@ -194,3 +207,65 @@ def project_version_delete(pid: str, vid: str, user: dict = Depends(require_acti
     result = projects_store.delete_version(vid)
     auth_store.audit(user["id"], "delete_version", vid, "project=%s" % pid)
     return result
+
+
+# ─────────────────────── 앵커 메모 ───────────────────────
+# 의견은 **가리키는 대상과 함께** 있어야 한 번에 통한다.
+# 권한은 프로젝트 단위로 판정한다 — 남의 배부본에 다는 것은 관리자만,
+# 작성자는 자기 것에만, 열람자는 아예 못 단다(permissions.decide).
+@router.get("/api/projects/{pid}/comments")
+def comments_list(pid: str, user: dict = Depends(require_active)):
+    require_project(user, pid, perm.COMMENT_READ)
+    return {"comments": comments_store.list_for_project(pid)}
+
+
+@router.post("/api/projects/{pid}/comments")
+def comments_add(pid: str, req: CommentIn, user: dict = Depends(require_active)):
+    require_project(user, pid, perm.COMMENT_WRITE)
+    try:
+        item = comments_store.add(
+            pid, user["id"], req.body, req.page_id, req.el_id, req.cell, req.reply_to)
+    except comments_store.CommentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "comment_add", pid,
+                     "page=%s el=%s cell=%s" % (req.page_id, req.el_id, req.cell))
+    return {"ok": True, "comment": item}
+
+
+def _comment_or_404(cid: str) -> dict:
+    item = comments_store.get(cid)
+    if not item:
+        raise HTTPException(status_code=404, detail="메모를 찾을 수 없습니다.")
+    return item
+
+
+@router.post("/api/comments/{cid}/resolve")
+def comment_resolve(cid: str, req: ResolveIn, user: dict = Depends(require_active)):
+    """해결 표시 — 스레드 단위."""
+    item = _comment_or_404(cid)
+    require_project(user, item["project_id"], perm.COMMENT_RESOLVE)
+    try:
+        out = comments_store.set_resolved(cid, req.resolved, user["id"])
+    except comments_store.CommentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "comment_resolve", item["project_id"],
+                     "%s → %s" % (cid, "해결" if req.resolved else "다시 열기"))
+    return {"ok": True, "comment": out}
+
+
+@router.delete("/api/comments/{cid}")
+def comment_delete(cid: str, user: dict = Depends(require_active)):
+    """지우는 것은 **쓴 사람**과 관리자만.
+
+    읽고 쓸 수 있다고 남의 지적을 지울 수 있으면, 반려 사유가 조용히 사라진다.
+    """
+    item = _comment_or_404(cid)
+    require_project(user, item["project_id"], perm.COMMENT_READ)
+    if item["author_id"] != user["id"]:
+        require_action(user, perm.COMMENT_RESOLVE)
+    try:
+        out = comments_store.remove(cid)
+    except comments_store.CommentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "comment_delete", item["project_id"], cid)
+    return out

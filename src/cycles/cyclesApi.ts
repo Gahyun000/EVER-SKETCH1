@@ -26,6 +26,8 @@ export interface CycleProject {
   submit_status: SubmitStatus
   updated_at: number
   page_count: number
+  /** 아직 해결되지 않은 검토 의견 수. 반려된 사람이 무엇을 고쳐야 하는지 바로 보이게. */
+  unresolved?: number
 }
 
 export interface CycleProgress {

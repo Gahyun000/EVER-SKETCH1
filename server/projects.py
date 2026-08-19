@@ -264,11 +264,12 @@ def delete_project(pid: str) -> dict:
     try:
         c.execute("DELETE FROM Projects WHERE id=?", (pid,))
         c.execute("DELETE FROM ProjectVersions WHERE project_id=?", (pid,))
-        # Notes 는 notes.py 가 만드는 표다. 아직 없을 수 있으므로 존재를 확인한다.
-        have = c.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Notes'").fetchone()
-        if have:
-            c.execute("DELETE FROM Notes WHERE project_id=?", (pid,))
+        # Notes·Comments 는 다른 모듈이 만드는 표다. 아직 없을 수 있으므로 존재를 확인한다.
+        for tbl in ("Notes", "Comments"):
+            have = c.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (tbl,)).fetchone()
+            if have:
+                c.execute("DELETE FROM %s WHERE project_id=?" % tbl, (pid,))
         c.commit()
     finally:
         c.close()

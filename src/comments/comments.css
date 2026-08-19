@@ -1,0 +1,73 @@
+/* 검토 의견 — 오른쪽 패널과 캔버스 핀. */
+.cmt-tab {
+  position: fixed; right: 0; top: 46%; z-index: 40;
+  border: 1px solid #e6e8ee; border-right: 0; background: #fff; cursor: pointer;
+  border-radius: 9px 0 0 9px; padding: 10px 8px; font-size: 12px; font-family: inherit;
+  color: #1c2433; writing-mode: vertical-rl; box-shadow: 0 2px 10px rgba(15,27,61,.10);
+}
+.cmt-tab.has { border-color: #f0d6c4; color: #96601a; font-weight: 700; }
+.cmt-count {
+  writing-mode: horizontal-tb; display: inline-block; margin-top: 6px;
+  background: #D98A2A; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 800;
+  min-width: 16px; padding: 0 4px; text-align: center;
+}
+
+.cmt-panel {
+  position: fixed; right: 0; top: 0; bottom: 0; width: 320px; z-index: 45;
+  background: #fff; border-left: 1px solid #e6e8ee; display: flex; flex-direction: column;
+  font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  box-shadow: -6px 0 22px rgba(15,27,61,.10);
+}
+.cmt-head {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 12px 14px; border-bottom: 1px solid #e6e8ee;
+}
+.cmt-head b { font-size: 13.5px; color: #0F1B3D; }
+.cmt-dim { font-size: 11.5px; color: #98a1b2; }
+.cmt-toggle { font-size: 11.5px; color: #5b6270; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.cmt-x { margin-left: auto; border: 0; background: none; cursor: pointer; color: #98a1b2; font-size: 14px; }
+.cmt-err { margin: 10px 14px 0; padding: 8px 10px; border-radius: 7px; background: #fdf0f0; border: 1px solid #f0d6d6; color: #7d2027; font-size: 12px; }
+
+.cmt-list { flex: 1; overflow: auto; padding: 10px 12px; }
+.cmt-empty { color: #98a1b2; font-size: 12.5px; line-height: 1.7; white-space: pre-line; text-align: center; padding: 30px 8px; }
+.cmt-item { border: 1px solid #e6e8ee; border-radius: 9px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
+.cmt-item:hover { border-color: #c6d5ff; }
+.cmt-item.on { border-color: #2462EB; background: #f7faff; }
+.cmt-item.done { opacity: .62; }
+.cmt-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11.5px; color: #98a1b2; }
+.cmt-meta b { color: #0F1B3D; font-size: 12.5px; }
+.cmt-anchor { background: #EAF1FE; color: #2462EB; border-radius: 99px; padding: 1px 7px; font-weight: 700; }
+.cmt-done-tag { background: #E9F5EF; color: #2b7a54; border-radius: 99px; padding: 1px 7px; font-weight: 800; }
+.cmt-body { margin: 6px 0 0; font-size: 12.5px; color: #1c2433; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+.cmt-reply { margin: 8px 0 0 10px; padding-left: 10px; border-left: 2px solid #e6e8ee; font-size: 11.5px; color: #98a1b2; }
+.cmt-reply b { color: #5b6270; font-size: 12px; }
+.cmt-acts { display: flex; gap: 5px; margin-top: 9px; }
+.cmt-mini { border: 1px solid #e6e8ee; background: #fff; border-radius: 6px; padding: 3px 9px; font-size: 11.5px; cursor: pointer; font-family: inherit; color: #1c2433; }
+.cmt-mini:hover:not(:disabled) { background: #f6f8fc; }
+.cmt-mini.danger { color: #b4232a; border-color: #f0d6d6; }
+.cmt-mini:disabled { opacity: .45; cursor: not-allowed; }
+
+.cmt-new { border-top: 1px solid #e6e8ee; padding: 10px 12px; }
+.cmt-replying { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #96601a; margin-bottom: 6px; }
+.cmt-new textarea {
+  width: 100%; border: 1px solid #e6e8ee; border-radius: 8px; padding: 8px 10px;
+  font-size: 12.5px; font-family: inherit; color: #1c2433; resize: vertical; box-sizing: border-box;
+}
+.cmt-new textarea:focus { outline: none; border-color: #2462EB; box-shadow: 0 0 0 3px rgba(36,98,235,.12); }
+.cmt-send {
+  width: 100%; margin-top: 7px; border: 0; border-radius: 8px; background: #2462EB; color: #fff;
+  font-weight: 700; font-size: 12.5px; padding: 8px 0; cursor: pointer; font-family: inherit;
+}
+.cmt-send:disabled { opacity: .45; cursor: not-allowed; }
+
+/* 캔버스 핀 — 지적이 붙은 자리를 문서 위에서 바로 가리킨다. */
+.cmt-pin {
+  position: absolute; top: -8px; right: -8px; z-index: 7;
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px;
+  background: #D98A2A; color: #fff; font-size: 10px; font-weight: 800;
+  display: grid; place-items: center; cursor: pointer; pointer-events: auto;
+  box-shadow: 0 1px 4px rgba(15,27,61,.35); border: 1.5px solid #fff;
+}
+.cmt-pin.done { background: #3E9E6E; }
+.cmt-pin.on { outline: 2px solid #2462EB; outline-offset: 1px; }
+.feltd { position: relative; }

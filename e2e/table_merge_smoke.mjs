@@ -58,6 +58,19 @@ const clearSel = async () => {
 }
 await clearSel()
 {
+  // **툴바 높이는 변하면 안 된다.** 표를 고르는 순간 병합 도구가 새로 생기면
+  // 툴바가 그만큼 높아지고, 아래 문서가 통째로 내려간다(실측 37px = 표 한 줄).
+  // 손가락은 가만히 있는데 문서가 내려오니 한 줄 아래까지 골라진다.
+  // 위의 '표가 움직이지 않는다' 로도 잡히지만, 원인을 여기서 이름으로 말해 둔다.
+  const tbH = async () => (await p.locator('.ax-tb').first().boundingBox()).height
+  const hIdle = await tbH()
+  await cell(3, 2).click()
+  await p.waitForTimeout(150)
+  const hSel = await tbH()
+  ok('표를 골라도 툴바 높이가 그대로다', Math.abs(hSel - hIdle) < 2, `${hIdle} → ${hSel}`)
+  await clearSel()
+}
+{
   const t0 = await p.locator('.stage .fel.table').first().boundingBox()
   const a0 = await cell(3, 2).boundingBox()
   const z0 = await cell(3, 5).boundingBox()
@@ -74,11 +87,10 @@ await clearSel()
   ok('그때 표가 움직이지 않는다', Math.abs(t1.x - t0.x) < 2 && Math.abs(t1.y - t0.y) < 2,
      `이동 ${Math.round(t1.x - t0.x)},${Math.round(t1.y - t0.y)}`)
 }
-await clearSel()
-await cell(2, 2).click()
-await p.waitForTimeout(120)
-
 // ── 2) 드래그로 칸 범위 선택 ──
+// 앞 단계의 선택이 남아 있으면 시작점이 달라져 엉뚱한 범위가 잡힌다.
+// 검사 하나가 앞 검사의 뒷정리에 기대면, 실패했을 때 어디가 원인인지 알 수 없다.
+await clearSel()
 const a = await cell(2, 2).boundingBox()
 const z = await cell(2, 5).boundingBox()
 await p.mouse.move(a.x + a.width / 2, a.y + a.height / 2)

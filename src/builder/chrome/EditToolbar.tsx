@@ -11,6 +11,8 @@ import { PAPER_OPTIONS } from '../../cards/paper'
 import type { FreeEl } from '../../state/store'
 import { mergeCovering, mergeRange, unmergeAt } from '../../canvas/tableOps'
 import { isSlotEl, slotAllows } from '../../template/slots'
+import { useComments } from '../../comments/store'
+import { useBuilder as useBuilderStore } from '../../state/store'
 
 let FMT: Partial<FreeEl> | null = null
 
@@ -96,6 +98,48 @@ function ShapeTool() {
  * '가로 병합 + 단계 이름' 이다 — 병합을 못 찾으면 로드맵을 그릴 수가 없다.
  * 제품의 핵심 조작이 발견되지 않는 곳에 있었다.
  */
+/**
+ * 「의견 달기」 — 지금 고른 요소(또는 표의 칸)에 검토 의견을 붙인다.
+ *
+ * 목록에만 쓰면 "3번째 줄 진행 구간" 같은 말이 되고, 받는 사람은 그 줄을
+ * 찾는 것부터 해야 한다. 짚어서 달 수 있어야 한 번에 통한다.
+ */
+function CommentTool() {
+  const { el } = useSelEl()
+  const tableSel = useCanvasUI((s) => s.tableSel)
+  const selectedPageId = useBuilderStore((s) => s.selectedPageId)
+  const add = useComments((s) => s.add)
+  const setOpen = useComments((s) => s.setOpen)
+  const projectId = useComments((s) => s.projectId)
+  const [busy, setBusy] = useState(false)
+  if (!projectId) return null
+
+  const ts = el && tableSel && tableSel.elId === el.id ? tableSel : null
+  const cell = ts ? `${Math.min(ts.r0, ts.r1)}_${Math.min(ts.c0, ts.c1)}` : null
+  const where = !el ? '이 장' : cell ? `표 ${Math.min(ts!.r0, ts!.r1) + 1}행 ${Math.min(ts!.c0, ts!.c1) + 1}열` : '고른 요소'
+
+  const run = async () => {
+    const body = window.prompt(`${where}에 달 의견을 쓰세요`, '')
+    if (body == null || !body.trim()) return
+    setBusy(true)
+    try {
+      await add({ body, page_id: selectedPageId ?? 1, el_id: el ? el.id : null, cell })
+      setOpen(true)
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : '의견을 달지 못했어요.')
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <span className="ax-grp gs">
+      <span className="lab">검토</span>
+      <button className="tbtn" disabled={busy} title={`${where}에 의견을 답니다`}
+        onClick={() => void run()}>💬 의견 달기</button>
+      <span className="tbtn-hint">{where}</span>
+    </span>
+  )
+}
+
 function TableTools() {
   const { el, patch } = useSelEl()
   const tableSel = useCanvasUI((s) => s.tableSel)
@@ -130,7 +174,7 @@ function TableTools() {
         onClick={() => { if (ts) patch(unmergeAt(el, ts.r1, ts.c1)) }}>⤡ 해제</button>
       <span className={'tbtn-hint' + (blankRoadmap ? ' teach' : '')}>
         {blankRoadmap
-          ? '진행 구간: 칸을 끌어 고르고 ⤢ 병합 → 단계 이름을 쓰세요'
+          ? '끌어 고른 뒤 ⤢ 병합 → 단계 이름'
           : ts ? (ranged ? `${rows}×${cols} 선택` : `${Math.min(ts.r0, ts.r1) + 1}행 ${Math.min(ts.c0, ts.c1) + 1}열`)
           : '칸을 끌어서 선택'}
       </span>
@@ -210,7 +254,14 @@ export default function EditToolbar() {
         <button className="ib" title="이모지·아이콘·이미지" onClick={openPicker}>😀</button>
       </span>
 
-      <TableTools />
+      {/* 상황별 도구는 **늘 있는 둘째 줄**에 둔다. 이유는 chrome.css 의 .ax-tbrow2 주석. */}
+      <div className="ax-tbrow2">
+        <TableTools />
+        <CommentTool />
+        {(!el || el.type !== 'table') && (
+          <span className="tb-ph">표 안의 칸을 고르면 병합 도구가 여기에 나옵니다</span>
+        )}
+      </div>
 
       <span className="ax-grp gs note-grp">
         <span className="lab">노트</span>

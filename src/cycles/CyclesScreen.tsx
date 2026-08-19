@@ -228,6 +228,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                       {admin && <th style={{ width: 130 }}>작성자</th>}
                       <th>자료</th>
                       <th style={{ width: 92 }}>상태</th>
+                      <th style={{ width: 78 }} title="아직 해결되지 않은 검토 의견">의견</th>
                       <th style={{ width: 128 }}>최종 수정</th>
                       <th style={{ width: 170 }}>작업</th>
                     </tr>
@@ -241,6 +242,11 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                           {admin && <td>{who ? `${who.name}${who.dept ? ` · ${who.dept}` : ''}` : '—'}</td>}
                           <td><b>{p.name}</b></td>
                           <td><span className={'cy-sub b-' + p.submit_status}>{SUBMIT_LABEL[p.submit_status]}</span></td>
+                          <td>
+                            {p.unresolved ? (
+                              <span className="cy-unres" title="미해결 검토 의견">미해결 {p.unresolved}</span>
+                            ) : <span className="cy-dim">—</span>}
+                          </td>
                           <td className="cy-dim">{fmtKst(p.updated_at)}</td>
                           <td className="cy-acts">
                             <button className="cy-mini" onClick={() => void openProject(p.id)}>열기</button>

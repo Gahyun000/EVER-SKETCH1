@@ -82,6 +82,14 @@ let lastRevoke = null
 let lastDistribute = null
 // 테스트에서 '이미 배부된 회차' 상태를 만들기 위한 스위치.
 let forcedProjects = null
+// 검토 의견 — COMMENTS=1 이면 미해결 하나가 이미 달려 있는 상태로 시작한다.
+let cmtSeq = 100
+const comments = process.env.COMMENTS ? [{
+  id: 'cm1', project_id: 'p_test', thread_id: 'cm1', page_id: 1,
+  el_id: 100006, cell: '3_5', body: '5월 진행 구간이 실제와 다릅니다.',
+  author_id: 'u_admin', created_at: Date.now(), resolved_at: null, resolved_by: null,
+  replies: [],
+}] : []
 // DECK=1 로 띄우면 이미 PPT 를 올려둔 상태에서 시작한다.
 let hasDeck = !!process.env.DECK
 const DECK = {
@@ -126,6 +134,52 @@ const server = http.createServer(async (req, res) => {
     return
   }
   if (url === '/api/auth/users') return json(res, { users: WRITERS })
+
+  // ── 검토 의견 ──
+  if (url === '/api/projects/p_test/comments' && req.method === 'GET') {
+    return json(res, { comments })
+  }
+  if (url === '/api/projects/p_test/comments' && req.method === 'POST') {
+    let body = ''
+    req.on('data', (c) => { body += c })
+    req.on('end', () => {
+      let b = {}
+      try { b = JSON.parse(body) } catch { /* 무시 */ }
+      const id = 'cm' + (++cmtSeq)
+      const root = b.reply_to ? comments.find((t) => t.id === b.reply_to) : null
+      const item = {
+        id, project_id: 'p_test', thread_id: root ? root.id : id,
+        page_id: root ? root.page_id : (b.page_id || 1),
+        el_id: root ? root.el_id : (b.el_id ?? null),
+        cell: root ? root.cell : (b.cell ?? null),
+        body: b.body || '', author_id: ME.id, created_at: Date.now(),
+        resolved_at: null, resolved_by: null,
+      }
+      if (root) root.replies.push(item)
+      else comments.push({ ...item, replies: [] })
+      json(res, { ok: true, comment: item })
+    })
+    return
+  }
+  if (/^\/api\/comments\/[^/]+\/resolve$/.test(url) && req.method === 'POST') {
+    const id = url.split('/')[3]
+    let body = ''
+    req.on('data', (c) => { body += c })
+    req.on('end', () => {
+      let b = {}
+      try { b = JSON.parse(body) } catch { /* 무시 */ }
+      const t = comments.find((x) => x.id === id || x.replies.some((r) => r.id === id))
+      if (t) { t.resolved_at = b.resolved ? Date.now() : null }
+      json(res, { ok: true, comment: t || {} })
+    })
+    return
+  }
+  if (/^\/api\/comments\/[^/]+$/.test(url) && req.method === 'DELETE') {
+    const id = url.split('/')[3]
+    const i = comments.findIndex((x) => x.id === id)
+    if (i >= 0) comments.splice(i, 1)
+    return json(res, { ok: true })
+  }
   if (url === '/api/cycles' && req.method === 'GET') return json(res, { cycles: [CYCLE] })
   if (url === '/api/cycles/c_test' && req.method === 'GET') {
     return json(res, {

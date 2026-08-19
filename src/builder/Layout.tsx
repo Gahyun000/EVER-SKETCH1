@@ -18,18 +18,26 @@ import Hotkeys from './Hotkeys'
 import SettingsPage from '../settings/SettingsPage'
 import ChatPanel from '../chat/ChatPanel'
 import NotesPanel from '../notes/NotesPanel'
+import CommentsPanel from '../comments/CommentsPanel'
+import { useComments } from '../comments/store'
 import { applyUiAction } from '../chat/actions'
 import DemoPlayer from './DemoPlayer'
 import InsertPicker from './InsertPicker'
 import AiCleanup from './AiCleanup'
 import { useRef, useEffect } from 'react'
 import { useBuilder } from '../state/store'
+import { useProjects } from '../persistence/projects'
 import { hasUnsavedChanges, useAutosave } from '../persistence/autosave'
 import ConfirmSaveModal from '../persistence/ConfirmSaveModal'
 import type { ConfirmSaveRequest } from '../persistence/ConfirmSaveModal'
 
 export default function Layout() {
   useCanvasCommands()
+  // 편집 중인 자료가 바뀌면 검토 의견도 그 자료 것으로 바꾼다.
+  // 안 바꾸면 앞 사람 문서의 지적이 다음 문서 위에 핀으로 뜬다.
+  const activePid = useProjects((s) => s.activeId)
+  const loadComments = useComments((s) => s.load)
+  useEffect(() => { if (activePid) void loadComments(activePid) }, [activePid, loadComments])
   const [help, setHelp] = useState(false)
   const [present, setPresent] = useState(false)
   const [tutorial, setTutorial] = useState(false)
@@ -138,6 +146,7 @@ export default function Layout() {
     {!chat ? <button className="chat-fab" onClick={() => setChat(true)}>💬 챗봇</button> : null}
     <ChatPanel isOpen={chat} onClose={() => setChat(false)} screenContext={{ page: 'builder' }} onUiAction={applyUiAction} />
     <NotesPanel />
+    <CommentsPanel />
     <DemoPlayer open={demo} onClose={() => setDemo(false)} />
     <InsertPicker />
     <AiCleanup open={ai} onClose={() => setAi(false)} />

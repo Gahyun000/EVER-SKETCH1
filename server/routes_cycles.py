@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from server import auth as auth_store
 from server import cycle_decks as decks_store
+from server import comments as comments_store
 from server import cycles as cycles_store
 from server import permissions as perm
 from server import projects as projects_store
@@ -109,6 +110,11 @@ def cycle_get(cid: str, user: dict = Depends(require_active)):
         mine = [p for p in cycles_store.list_cycle_projects(cid)
                 if p["owner_id"] == user["id"]]
         out["projects"] = mine
+    # 미해결 지적 수를 함께 내려준다 — 이게 없으면 반려된 사람이 '무엇을 고쳐야
+    # 하는지' 를 알려면 자료를 하나하나 열어봐야 한다. 20명분을 한 번에 센다.
+    counts = comments_store.counts_for([p["id"] for p in out["projects"]])
+    for p in out["projects"]:
+        p["unresolved"] = counts.get(p["id"], 0)
     return out
 
 
