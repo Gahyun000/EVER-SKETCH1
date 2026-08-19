@@ -342,3 +342,29 @@ def test_작성자는_미리보기를_볼_수_없다(ctx):
     """전 슬라이드가 담길 수 있는 창구다 — 남의 자료가 새면 안 된다."""
     assert ctx["as_user"]("exec1").get(
         "/api/cycles/%s/preview" % ctx["cid"]).status_code == 403
+
+
+# ══════════ 서버에 모듈이 없을 때 ══════════
+def test_모듈이_없으면_503과_고치는_법을_돌려준다(ctx, deck_bytes, monkeypatch):
+    """운영 중에 실제로 난 사고를 화면 문구까지 못 박는다.
+
+    python-pptx 가 venv 에 없어서 업로드가 죽었는데, 화면에는 'HTTP 500' 만 떴다.
+    사용자는 자기 파일이 잘못된 줄 알고 몇 번이나 다시 저장해 올렸다.
+    500(원인 불명)도 400(당신 파일 잘못)도 아닌 503(서버가 덜 갖춰짐)이어야 하고,
+    무엇을 설치하면 되는지까지 문구에 있어야 한다.
+    """
+    import builtins
+
+    real_import = builtins.__import__
+
+    def no_pptx(name, *a, **kw):
+        if name == "pptx" or name.startswith("pptx."):
+            raise ImportError("No module named 'pptx'")
+        return real_import(name, *a, **kw)
+
+    monkeypatch.setattr(builtins, "__import__", no_pptx)
+    r = _upload(ctx["as_admin"](), ctx["cid"], deck_bytes)
+    assert r.status_code == 503, r.status_code
+    detail = r.json()["detail"]
+    assert "python-pptx" in detail
+    assert "pip install" in detail

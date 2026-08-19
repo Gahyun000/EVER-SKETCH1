@@ -217,3 +217,44 @@ def test_slide_index_out_of_range(data):
     prs = pi.open_presentation(data)
     with pytest.raises(pi.PptxImportError):
         pi.convert_slide(prs, 99)
+
+
+# ── 8. 서버에 모듈이 없을 때 ────────────────────────────
+def test_모듈이_없으면_원인을_말한다(monkeypatch, data):
+    """운영 중에 실제로 난 사고 — python-pptx 가 venv 에 없어서 업로드가 죽었다.
+
+    그런데 화면에는 'HTTP 500' 만 떴다. 사용자는 자기 파일이 잘못된 줄 알고
+    몇 번이나 다시 저장해 올렸다. 원인을 감추는 오류 처리가 실제 피해를 만든다.
+    """
+    import builtins
+
+    real_import = builtins.__import__
+
+    def no_pptx(name, *a, **kw):
+        if name == "pptx" or name.startswith("pptx."):
+            raise ImportError("No module named 'pptx'")
+        return real_import(name, *a, **kw)
+
+    monkeypatch.setattr(builtins, "__import__", no_pptx)
+    with pytest.raises(pi.PptxDependencyError) as ex:
+        pi.open_presentation(data)
+    msg = str(ex.value)
+    assert "python-pptx" in msg, "무엇이 없는지 이름을 말해야 한다"
+    assert "pip install" in msg, "어떻게 고치는지 알려줘야 한다"
+
+
+def test_모듈_없음은_파일_잘못과_구분된다():
+    """둘 다 PptxImportError 로 잡히지만, 라우터는 다르게 답해야 한다
+    (파일 잘못 400 / 서버 미비 503)."""
+    assert issubclass(pi.PptxDependencyError, pi.PptxImportError)
+    assert not issubclass(pi.PptxImportError, pi.PptxDependencyError)
+
+
+def test_검증은_모듈_없이도_돈다(data):
+    """업로드 검증은 python-pptx 를 쓰지 않는다 — 모듈이 없어도 나쁜 파일은 먼저 걸러진다."""
+    import builtins
+
+    real_import = builtins.__import__
+    with pytest.raises(pi.PptxImportError):
+        pi.validate_upload("a.txt", data)
+    assert builtins.__import__ is real_import

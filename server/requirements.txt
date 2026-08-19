@@ -1,0 +1,25 @@
+# EVER-SKETCH 서버 의존성
+#
+# 이 파일이 생긴 이유: 실물 PPT 업로드가 운영 중에 HTTP 500 으로 죽었다.
+# 원인은 python-pptx 가 venv 에 없었던 것 — 코드는 멀쩡했고, 설치가 빠져 있었다.
+# 무엇이 필요한지 어디에도 적혀 있지 않으면 다음 서버에서 또 같은 일이 난다.
+#
+# 설치:  server/.venv/bin/pip install -r server/requirements.txt
+
+# ── 웹 ──
+fastapi
+uvicorn[standard]
+python-multipart        # 파일 업로드(UploadFile). 없으면 업로드가 500 으로 죽는다
+python-dotenv
+
+# ── 문서 읽기·쓰기 ──
+python-pptx             # 실물 PPT 배부 (server/pptx_import.py) — 이게 빠져 있었다
+python-docx
+pymupdf                 # PDF
+beautifulsoup4          # HTML 임포트
+lxml
+pillow
+
+# ── 테스트 ──
+# pytest
+# httpx                 # fastapi TestClient

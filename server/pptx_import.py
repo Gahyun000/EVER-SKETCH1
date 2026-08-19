@@ -44,6 +44,14 @@ class PptxImportError(ValueError):
     """사용자에게 그대로 보여줄 수 있는 문구만 담는다."""
 
 
+class PptxDependencyError(PptxImportError):
+    """읽기 모듈이 서버에 없다 — **올린 파일 잘못이 아니다.**
+
+    이걸 PptxImportError 와 구분하는 이유: 400(당신 파일이 잘못됐다)으로 답하면
+    사용자는 멀쩡한 파일을 몇 번씩 다시 저장해 보게 된다. 실제로는 서버를 고쳐야 한다.
+    """
+
+
 @dataclass
 class SlideConversion:
     page: dict
@@ -91,7 +99,17 @@ def validate_upload(filename: str, data: bytes) -> None:
 
 
 def open_presentation(data: bytes):
-    from pptx import Presentation  # 무거운 의존성 — 검증을 통과한 뒤에만 부른다
+    # 무거운 의존성 — 검증을 통과한 뒤에만 부른다.
+    # **없을 때 그냥 터뜨리면 화면에는 'HTTP 500' 만 뜬다.** 무엇이 잘못됐는지
+    # 알 수 없어서, 사용자는 멀쩡한 파일을 계속 다시 올려 보게 된다.
+    # (가입이 통째로 막혔을 때 원인을 감췄던 것과 같은 실수다.)
+    try:
+        from pptx import Presentation
+    except ImportError as e:
+        raise PptxDependencyError(
+            "서버에 PowerPoint 읽기 모듈(python-pptx)이 설치돼 있지 않습니다. "
+            "서버에서 다음을 실행한 뒤 다시 시도해 주세요: "
+            "server/.venv/bin/pip install python-pptx  (%s)" % e)
     try:
         prs = Presentation(io.BytesIO(data))
     except Exception:

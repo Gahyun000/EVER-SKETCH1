@@ -190,10 +190,22 @@ async def cycle_deck_upload(cid: str, file: UploadFile = File(...),
                                    % (limit // (1024 * 1024)))
     try:
         deck = decks_store.save_deck(cid, file.filename or "upload.pptx", data, user["id"])
+    except pptx_import.PptxDependencyError as e:
+        # 서버가 덜 갖춰진 것이지 올린 파일이 잘못된 게 아니다.
+        # 400 으로 답하면 사용자는 멀쩡한 파일을 몇 번씩 다시 저장해 보게 된다.
+        raise HTTPException(status_code=503, detail=str(e))
     except pptx_import.PptxImportError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except cycles_store.CycleError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        # 여기까지 온 것은 우리가 예상하지 못한 오류다. 그래도 'HTTP 500' 만
+        # 던지지 않는다 — 관리자가 서버 로그를 뒤지지 않고도 신고할 수 있어야 한다.
+        auth_store.audit(user["id"], "deck_upload_error", cid, "%s: %s" % (type(e).__name__, e))
+        raise HTTPException(
+            status_code=500,
+            detail="파일을 읽는 중 예상치 못한 오류가 났습니다 (%s). "
+                   "관리자에게 이 문구를 알려 주세요." % type(e).__name__)
     auth_store.audit(user["id"], "deck_upload", cid,
                      "%s · %d장" % (deck["filename"], deck["slide_count"]))
     return {"ok": True, "deck": deck}
