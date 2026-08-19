@@ -368,3 +368,66 @@ def test_모듈이_없으면_503과_고치는_법을_돌려준다(ctx, deck_byte
     detail = r.json()["detail"]
     assert "python-pptx" in detail
     assert "pip install" in detail
+
+
+# ══════════ 변환기 판 · 낡은 자료 표시 ══════════
+def test_올린_자료에_변환기_판이_남는다(ctx, deck_bytes):
+    from server import pptx_import
+
+    _upload(ctx["as_admin"](), ctx["cid"], deck_bytes)
+    deck = decks_store.get_deck(ctx["cid"])
+    assert deck["converter"] == pptx_import.CONVERTER_VERSION
+    assert deck["stale"] is False
+
+
+def test_예전_판으로_읽은_자료는_낡음으로_표시된다(ctx, deck_bytes):
+    """이게 없어서 같은 확인을 세 번 반복했다.
+
+    표 크기·표지 배경·제목 뽑기를 고쳤는데 화면에는 예전에 변환된 자료가 그대로
+    떠 있었다. 고쳤다고 말했는데 사용자 눈에는 똑같이 보였고, 무엇이 잘못됐는지
+    사용자도 나도 알 수 없었다. 판을 남겨 두면 화면이 그 사실을 말해 준다.
+    """
+    import sqlite3
+
+    _upload(ctx["as_admin"](), ctx["cid"], deck_bytes)
+    conn = sqlite3.connect(decks_store.cycles_store.projects_store._db_path())
+    try:
+        conn.execute("UPDATE CycleDecks SET converter='v0.9' WHERE cycle_id=?", (ctx["cid"],))
+        conn.commit()
+    finally:
+        conn.close()
+
+    deck = decks_store.get_deck(ctx["cid"])
+    assert deck["stale"] is True
+    assert deck["converter"] == "v0.9"
+
+
+def test_판이_비어_있는_옛_자료도_낡음이다(ctx, deck_bytes):
+    """판을 기록하기 전에 올린 자료 — 화면에서 다시 올리라고 알려야 한다."""
+    import sqlite3
+
+    _upload(ctx["as_admin"](), ctx["cid"], deck_bytes)
+    conn = sqlite3.connect(decks_store.cycles_store.projects_store._db_path())
+    try:
+        conn.execute("UPDATE CycleDecks SET converter='' WHERE cycle_id=?", (ctx["cid"],))
+        conn.commit()
+    finally:
+        conn.close()
+    assert decks_store.get_deck(ctx["cid"])["stale"] is True
+
+
+def test_변환_결과가_바뀌면_판을_올려야_한다():
+    """판을 안 올리고 변환기를 고치면, 낡은 자료가 최신인 척한다.
+
+    사람이 기억할 일이 아니라 목록이 기억할 일이다 — 판마다 무엇이 바뀌었는지
+    pptx_import.py 주석에 적혀 있어야 한다.
+    """
+    import re
+    from pathlib import Path
+
+    src = Path(decks_store.__file__).with_name("pptx_import.py").read_text(encoding="utf-8")
+    from server import pptx_import
+
+    ver = pptx_import.CONVERTER_VERSION
+    assert re.search(r"^#\s+%s\s+\S" % re.escape(ver), src, re.M), \
+        "CONVERTER_VERSION=%s 의 변경 내용이 주석 목록에 없습니다." % ver

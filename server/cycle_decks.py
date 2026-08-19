@@ -46,6 +46,10 @@ def _conn() -> sqlite3.Connection:
         "slide_count INTEGER NOT NULL, slides TEXT NOT NULL, pages TEXT NOT NULL, "
         "warnings TEXT NOT NULL, uploaded_by TEXT, uploaded_at REAL NOT NULL)"
     )
+    # 변환기 판을 함께 남긴다. 이미 만들어진 DB 도 있으므로 없으면 붙인다.
+    cols = {r[1] for r in c.execute("PRAGMA table_info(CycleDecks)").fetchall()}
+    if "converter" not in cols:
+        c.execute("ALTER TABLE CycleDecks ADD COLUMN converter TEXT DEFAULT ''")
     c.commit()
     return c
 
@@ -79,10 +83,11 @@ def save_deck(cid: str, filename: str, data: bytes, uploaded_by: str) -> dict:
         c.execute("DELETE FROM CycleDecks WHERE cycle_id=?", (cid,))
         c.execute(
             "INSERT INTO CycleDecks(id,cycle_id,filename,slide_count,slides,pages,"
-            "warnings,uploaded_by,uploaded_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            "warnings,uploaded_by,uploaded_at,converter) VALUES(?,?,?,?,?,?,?,?,?,?)",
             (("d" + uuid.uuid4().hex[:12]), cid, filename, len(result["pages"]),
              json.dumps(result["slides"], ensure_ascii=False), pages_json,
-             json.dumps(result["warnings"], ensure_ascii=False), uploaded_by, _now()),
+             json.dumps(result["warnings"], ensure_ascii=False), uploaded_by, _now(),
+             pptx_import.CONVERTER_VERSION),
         )
         c.commit()
     finally:
@@ -99,15 +104,22 @@ def get_deck(cid: str) -> Optional[dict]:
     c = _conn()
     try:
         r = c.execute(
-            "SELECT id,cycle_id,filename,slide_count,slides,warnings,uploaded_by,uploaded_at "
-            "FROM CycleDecks WHERE cycle_id=?", (cid,)).fetchone()
+            "SELECT id,cycle_id,filename,slide_count,slides,warnings,uploaded_by,"
+            "uploaded_at,converter FROM CycleDecks WHERE cycle_id=?", (cid,)).fetchone()
     finally:
         c.close()
     if not r:
         return None
+    from server import pptx_import      # 가벼운 상수만 쓴다(pptx 를 불러오지 않는다)
+
+    converter = r[8] or ""
     return {"id": r[0], "cycle_id": r[1], "filename": r[2], "slide_count": r[3],
             "slides": json.loads(r[4]), "warnings": json.loads(r[5]),
-            "uploaded_by": r[6], "uploaded_at": r[7]}
+            "uploaded_by": r[6], "uploaded_at": r[7],
+            "converter": converter,
+            # 예전 변환기로 읽은 자료다 — 그때의 버그가 그대로 남아 있다.
+            # 화면이 이걸 말해 주지 않으면, 고쳐도 사용자 눈에는 똑같이 보인다.
+            "stale": converter != pptx_import.CONVERTER_VERSION}
 
 
 def get_deck_pages(cid: str) -> list[dict]:

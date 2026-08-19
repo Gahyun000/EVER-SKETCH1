@@ -104,6 +104,10 @@ export interface Deck {
   slides: SlideInfo[]
   warnings: string[]
   uploaded_at: number
+  /** 이 자료를 읽어들인 변환기 판. */
+  converter: string
+  /** 예전 변환기로 읽은 자료 — 그때의 버그가 그대로 남아 있다. */
+  stale: boolean
 }
 
 /** 파일 업로드는 JSON 이 아니다 — Content-Type 을 브라우저가 정하게 둬야

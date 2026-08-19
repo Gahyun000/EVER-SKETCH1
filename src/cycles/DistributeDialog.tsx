@@ -230,6 +230,15 @@ export default function DistributeDialog({
               </div>
             </div>
 
+            {deck.stale && (
+              <div className="cy-msg warn">
+                <b>예전 변환기로 읽은 자료입니다.</b> 그동안 고친 것들
+                (표 크기·표지 배경·슬라이드 제목)이 이 자료에는 반영돼 있지 않습니다.
+                <b> 「다시 올리기」</b>를 눌러 주세요.
+                <span className="cy-dim"> (읽은 판 {deck.converter || '알 수 없음'})</span>
+              </div>
+            )}
+
             {deck.warnings.length > 0 && (
               <div className="cy-msg warn">
                 <b>가져오지 못한 것이 있습니다.</b>
