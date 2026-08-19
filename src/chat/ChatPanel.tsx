@@ -3,6 +3,7 @@ import { Check, ChevronRight, Copy, FileDown, HelpCircle, Loader2, Menu, PanelRi
 import { API_BASE } from './config';
 import MarkdownView from './MarkdownView';
 import { getBookState } from './bookState';
+import { copyText } from '../lib/copyText';
 
 // 채팅 답변을 DOCX 로 내려받는다(백엔드 /export/docx, 인증 포함 blob).
 async function downloadAnswerDocx(content: string) {
@@ -164,13 +165,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose, screenContext, o
   const [docxBusyIdx, setDocxBusyIdx] = useState<number | null>(null);
 
   const copyAnswer = async (text: string, idx: number) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedIdx(idx);
-      setTimeout(() => setCopiedIdx((cur) => (cur === idx ? null : cur)), 1500);
-    } catch {
-      /* clipboard 미지원 시 무시 */
+    // http + 사내 IP 는 secure context 가 아니라 navigator.clipboard 가 없다.
+    // copyText 가 execCommand 폴백까지 처리하고, 실패하면 사용자에게 알린다.
+    const ok = await copyText(text);
+    if (!ok) {
+      window.alert('복사에 실패했어요. 텍스트를 직접 선택해 Ctrl+C(\u2318+C) 로 복사해 주세요.');
+      return;
     }
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx((cur) => (cur === idx ? null : cur)), 1500);
   };
 
   const exportDocx = async (text: string, idx: number) => {

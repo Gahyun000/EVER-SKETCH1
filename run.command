@@ -49,6 +49,9 @@ fi
 
 # 3) 서버 실행 (프론트 dist + /api/build 동시 서빙)
 PORT="${PORT:-8820}"
+# 바인딩 주소 — 기본 0.0.0.0(같은 망의 다른 PC에서 접속 가능).
+# 내 PC에서만 쓰려면: HOST=127.0.0.1 ./run.command
+HOST="${HOST:-0.0.0.0}"
 URL="http://127.0.0.1:${PORT}"
 
 # 포트 충돌 확인 (UDS-105 §6): 이미 사용 중이면 명확히 안내하고 중단
@@ -57,8 +60,12 @@ if curl -s -o /dev/null --max-time 1 "${URL}/"; then
   exit 1
 fi
 
-echo "▶ 서버 시작: ${URL}  (EVER-FOLIO: http://127.0.0.1:${FOLIO_PORT})"
+echo "▶ 서버 시작: ${URL}  (바인딩 ${HOST}:${PORT} · EVER-FOLIO: http://127.0.0.1:${FOLIO_PORT})"
+if [ "${HOST}" = "0.0.0.0" ]; then
+  LANIP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "")
+  [ -n "${LANIP}" ] && echo "   같은 망에서 접속: http://${LANIP}:${PORT}"
+fi
 echo "   로그는 이 창에 출력됩니다. 종료: Ctrl+C"
 # 브라우저 자동 오픈 — AUTO_OPEN=0 이면 생략
 if [ "${AUTO_OPEN:-1}" != "0" ]; then ( sleep 2; open "${URL}" >/dev/null 2>&1 ) & fi
-exec python -m uvicorn server.app:app --host 127.0.0.1 --port "${PORT}"
+exec python -m uvicorn server.app:app --host "${HOST}" --port "${PORT}"

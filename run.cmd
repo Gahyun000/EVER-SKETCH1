@@ -38,6 +38,8 @@ if exist "%FOLIO_DIR%\serve.py" (
 
 rem 3) 서버 실행 (프론트 dist + /api 동시 서빙) — 기본 포트 8820
 if not defined PORT set "PORT=8820"
+rem 바인딩 주소 - 기본 0.0.0.0(같은 망의 다른 PC에서 접속 가능). 내 PC 전용: set HOST=127.0.0.1
+if not defined HOST set "HOST=0.0.0.0"
 set "URL=http://127.0.0.1:%PORT%"
 netstat -ano | findstr LISTENING | findstr ":%PORT% " >nul 2>&1 && (
   echo [!] 포트 %PORT% 이^(가^) 이미 사용 중입니다. 기존 프로세스를 종료하거나 다른 포트로 실행하세요.  예: set PORT=8830 ^&^& run.cmd
@@ -46,7 +48,7 @@ netstat -ano | findstr LISTENING | findstr ":%PORT% " >nul 2>&1 && (
 echo == 서버 시작: %URL%   ^(EVER-FOLIO: http://127.0.0.1:%FOLIO_PORT%^) ==
 echo    로그는 이 창에 출력됩니다.  종료: 이 창에서 Ctrl+C
 if not "%AUTO_OPEN%"=="0" start "" cmd /c "timeout /t 2 >nul & start "" %URL%"
-python -m uvicorn server.app:app --host 127.0.0.1 --port %PORT%
+python -m uvicorn server.app:app --host %HOST% --port %PORT%
 goto :end
 
 :err
