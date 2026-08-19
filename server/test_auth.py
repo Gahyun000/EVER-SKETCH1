@@ -9,7 +9,7 @@ os.environ["EVER_SKETCH_DB"] = str(pathlib.Path(_tmp) / "t.db")
 import pytest  # noqa: E402
 
 from server import auth  # noqa: E402
-from server.permissions import can_grant_level, decide, USER_MANAGE  # noqa: E402
+from server.permissions import can_grant_role, decide, USER_MANAGE  # noqa: E402
 
 
 _DB = str(pathlib.Path(_tmp) / "t.db")
@@ -31,15 +31,15 @@ def clean_db():
     yield
 
 
-def mk(login, level_req=2, pw="password123"):
-    return auth.signup(login, pw, "홍길동", "사업본부", level_req)
+def mk(login, want="writer", pw="password123"):
+    return auth.signup(login, pw, "홍길동", "사업본부", want)
 
 
-def promote(uid, level=2):
+def promote(uid, role="writer"):
     """테스트 편의 — 시드 관리자로 승인."""
     admin_pw = auth.ensure_seed_admin("adminpw12345")
     admin = [u for u in auth.list_users() if u["login_id"] == "admin"][0]
-    auth.approve(admin["id"], uid, level)
+    auth.approve(admin["id"], uid, role)
     return admin, admin_pw
 
 
@@ -64,16 +64,16 @@ def test_깨진_해시는_검증_실패():
 
 # ── 가입 ─────────────────────────────
 def test_가입하면_승인대기_실권한_0():
-    """희망 레벨 3을 골라도 실권한은 0이어야 한다. 이 테스트가 깨지면 권한이 뚫린 것."""
-    u = mk("execA", level_req=3)
+    """희망 역할이 관리자여도 실권한은 비어 있어야 한다. 이 테스트가 깨지면 권한이 뚫린 것."""
+    u = mk("execA", want="admin")
     row = auth.get_user(u["id"])
-    assert row["requested_level"] == 3
-    assert row["level"] == 0
+    assert row["requested_role"] == "admin"
+    assert row["role"] == ""
     assert row["status"] == "pending"
 
 
 def test_가입_직후_계정은_아무것도_못한다():
-    u = mk("execB", level_req=3)
+    u = mk("execB", want="admin")
     actor = auth.actor_of(auth.get_user(u["id"]))
     assert decide(actor, "read", None) is False
     assert decide(actor, USER_MANAGE) is False
@@ -91,16 +91,17 @@ def test_아이디는_대소문자_구분하지_않는다():
         mk("mixedcase")
 
 
-@pytest.mark.parametrize("login,pw,name,lv", [
-    ("ab", "password123", "홍", 2),        # 아이디 짧음
-    ("okid", "short", "홍", 2),            # 비밀번호 짧음
-    ("okid2", "password123", "  ", 2),     # 이름 없음
-    ("okid3", "password123", "홍", 0),     # 레벨 범위 밖
-    ("okid4", "password123", "홍", 4),
+@pytest.mark.parametrize("login,pw,name,want", [
+    ("ab", "password123", "홍", "writer"),      # 아이디 짧음
+    ("okid", "short", "홍", "writer"),          # 비밀번호 짧음
+    ("okid2", "password123", "  ", "writer"),   # 이름 없음
+    ("okid3", "password123", "홍", ""),         # 역할 미지정
+    ("okid4", "password123", "홍", "superuser"),  # 없는 역할
+    ("okid5", "password123", "홍", "ADMIN"),    # 대소문자 불일치
 ])
-def test_잘못된_가입_입력_거부(login, pw, name, lv):
+def test_잘못된_가입_입력_거부(login, pw, name, want):
     with pytest.raises(auth.AuthError):
-        auth.signup(login, pw, name, "", lv)
+        auth.signup(login, pw, name, "", want)
 
 
 # ── 로그인 · 세션 ─────────────────────────────
@@ -108,7 +109,7 @@ def test_승인전에도_로그인은_된다():
     """대기 화면을 보여줘야 하므로 로그인 자체는 허용한다."""
     mk("pendA")
     token, user = auth.login("pendA", "password123")
-    assert token and user["status"] == "pending" and user["level"] == 0
+    assert token and user["status"] == "pending" and user["role"] == ""
 
 
 def test_틀린_비밀번호_거부():
@@ -158,33 +159,33 @@ def test_로그아웃하면_토큰이_죽는다():
 
 # ── 승인 · 레벨 변경 ─────────────────────────────
 def test_승인하면_실권한이_부여된다():
-    u = mk("apprA", level_req=2)
-    promote(u["id"], 2)
+    u = mk("apprA", want="writer")
+    promote(u["id"], "writer")
     row = auth.get_user(u["id"])
-    assert row["level"] == 2 and row["status"] == "active"
+    assert row["role"] == "writer" and row["status"] == "active"
     assert row["approved_at"] and row["approved_by"]
 
 
-def test_승인은_희망레벨과_다르게_줄_수_있다():
-    """L3를 희망했어도 관리자가 L2로 낮춰 승인할 수 있어야 한다."""
-    u = mk("apprB", level_req=3)
-    promote(u["id"], 1)
-    assert auth.get_user(u["id"])["level"] == 1
+def test_승인은_희망역할과_다르게_줄_수_있다():
+    """관리자를 희망했어도 승인하는 쪽이 열람자로 낮출 수 있어야 한다."""
+    u = mk("apprB", want="admin")
+    promote(u["id"], "viewer")
+    assert auth.get_user(u["id"])["role"] == "viewer"
 
 
-def test_레벨_변경하면_기존_세션이_끊긴다():
+def test_역할_변경하면_기존_세션이_끊긴다():
     """강등된 사용자가 기존 토큰으로 옛 권한을 계속 쓰지 못하게 하는 방어선."""
-    u = mk("demoA", level_req=3)
-    admin, _ = promote(u["id"], 3)
+    u = mk("demoA", want="admin")
+    admin, _ = promote(u["id"], "admin")
     token, _ = auth.login("demoA", "password123")
-    assert auth.user_by_token(token)["level"] == 3
-    auth.approve(admin["id"], u["id"], 1)          # L3 → L1 강등
+    assert auth.user_by_token(token)["role"] == "admin"
+    auth.approve(admin["id"], u["id"], "viewer")          # L3 → L1 강등
     assert auth.user_by_token(token) is None       # 세션이 끊겨야 한다
 
 
 def test_비활성화하면_세션이_끊기고_로그인_불가():
     u = mk("disA")
-    admin, _ = promote(u["id"], 2)
+    admin, _ = promote(u["id"], "writer")
     token, _ = auth.login("disA", "password123")
     auth.set_status(admin["id"], u["id"], "disabled")
     assert auth.user_by_token(token) is None
@@ -198,7 +199,7 @@ def test_마지막_관리자는_비활성화_불가():
     assert admin_pw
     admin = [u for u in auth.list_users() if u["login_id"] == "admin"][0]
     other = mk("other")
-    auth.approve(admin["id"], other["id"], 2)      # L2 — 관리자 아님
+    auth.approve(admin["id"], other["id"], "writer")      # L2 — 관리자 아님
     with pytest.raises(auth.AuthError) as e:
         auth.set_status(other["id"], admin["id"], "disabled")
     assert "마지막 관리자" in str(e.value)
@@ -208,7 +209,7 @@ def test_관리자가_둘이면_한쪽_비활성화_가능():
     auth.ensure_seed_admin("adminpw12345")
     admin = [u for u in auth.list_users() if u["login_id"] == "admin"][0]
     second = mk("admin2")
-    auth.approve(admin["id"], second["id"], 3)
+    auth.approve(admin["id"], second["id"], "admin")
     auth.set_status(admin["id"], second["id"], "disabled")
     assert auth.get_user(second["id"])["status"] == "disabled"
 
@@ -220,11 +221,11 @@ def test_자기_자신은_상태_변경_불가():
         auth.set_status(admin["id"], admin["id"], "disabled")
 
 
-def test_자기_자신은_레벨_변경_불가_판정():
+def test_자기_자신은_역할_변경_불가_판정():
     auth.ensure_seed_admin("adminpw12345")
     admin = [u for u in auth.list_users() if u["login_id"] == "admin"][0]
     actor = auth.actor_of(admin)
-    ok, why = can_grant_level(actor, admin["id"], 1)
+    ok, why = can_grant_role(actor, admin["id"], "viewer")
     assert ok is False and "자기 자신" in why
 
 
@@ -259,7 +260,7 @@ def test_시드_관리자는_한_번만_생긴다():
     assert pw2 is None                      # 멱등 — 두 번째는 아무것도 안 함
     admins = [u for u in auth.list_users() if u["login_id"] == "admin"]
     assert len(admins) == 1
-    assert admins[0]["level"] == 3 and admins[0]["status"] == "active"
+    assert admins[0]["role"] == "admin" and admins[0]["status"] == "active"
 
 
 def test_시드_관리자는_비밀번호_변경_강제():
@@ -273,7 +274,7 @@ def test_시드_관리자는_비밀번호_변경_강제():
 # ── 감사로그 ─────────────────────────────
 def test_로그인_승인_실패가_기록된다():
     u = mk("audA")
-    admin, _ = promote(u["id"], 2)
+    admin, _ = promote(u["id"], "writer")
     auth.login("audA", "password123")
     try:
         auth.login("audA", "wrongpass123")
@@ -290,7 +291,7 @@ def test_로그인_승인_실패가_기록된다():
 def test_대기자_목록_필터():
     a = mk("listA")
     mk("listB")
-    promote(a["id"], 2)
+    promote(a["id"], "writer")
     pending = auth.list_users(status="pending")
     logins = {u["login_id"] for u in pending}       # 저장 시 소문자로 정규화된다
     assert "listb" in logins and "lista" not in logins

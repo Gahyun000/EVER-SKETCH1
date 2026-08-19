@@ -1,6 +1,6 @@
 """FastAPI 의존성 — 세션 쿠키 → 사용자 → 권한 판정.
 
-라우터는 여기 있는 헬퍼만 쓴다. `if level >= 2` 같은 판정을 라우터에 직접 쓰지 않는다.
+라우터는 여기 있는 헬퍼만 쓴다. `if role == 'admin'` 같은 판정을 라우터에 직접 쓰지 않는다.
 실제 허용/거부 규칙은 전부 `permissions.decide()` 에 있고, 이 파일은 그걸 HTTP로 옮기는 얇은 층이다.
 """
 from __future__ import annotations
@@ -89,8 +89,8 @@ def require_project(user: dict, pid: str, action: str) -> perm.Resource:
     """
     res = _resource_of(pid)
     if res is None:
-        # 없는 id — 전체를 볼 수 있는 사람(L3)에게만 404를 알려준다.
-        # L2에게 404를 주면 "그 id는 없다"가 확인되어 id 열거가 가능해진다.
+        # 없는 id — 전체를 볼 수 있는 사람(관리자)에게만 404를 알려준다.
+        # 작성자에게 404를 주면 "그 id는 없다"가 확인되어 id 열거가 가능해진다.
         if perm.visible_project_filter(auth_store.actor_of(user)) == "all":
             raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
         raise HTTPException(status_code=403, detail="권한이 없습니다.")

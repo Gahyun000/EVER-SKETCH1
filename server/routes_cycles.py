@@ -112,12 +112,12 @@ def cycle_distribute(cid: str, req: DistributeIn, user: dict = Depends(require_a
             raise HTTPException(status_code=400,
                                 detail="승인되지 않았거나 없는 계정이 있습니다: %d건" % len(missing))
     else:
-        # 기본 대상 = 활성 L2 전원(작성자). L1 열람자와 L3 관리자는 작성 대상이 아니다.
-        people = [u for u in auth_store.list_users("active") if u["level"] == 2]
+        # 기본 대상 = 활성 작성자 전원. 열람자와 관리자는 작성 대상이 아니다.
+        people = [u for u in auth_store.list_users("active") if u["role"] == perm.WRITER]
 
     if not people:
         raise HTTPException(status_code=400,
-                            detail="배부할 작성자(L2)가 없습니다. 먼저 가입을 승인해 주세요.")
+                            detail="배부할 작성자가 없습니다. 먼저 가입을 승인해 주세요.")
     try:
         result = cycles_store.distribute(
             cid, [{"id": u["id"], "name": u["name"], "dept": u["dept"]} for u in people])

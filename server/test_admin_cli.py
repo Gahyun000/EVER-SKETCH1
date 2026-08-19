@@ -31,7 +31,7 @@ def test_초기_비밀번호를_놓쳐도_복구된다(capsys):
     out = capsys.readouterr().out
     newpw = [l for l in out.splitlines() if "새 비밀번호" in l][0].split(":")[1].strip()
     token, user = auth_store.login("admin", newpw)
-    assert token and user["level"] == 3
+    assert token and user["role"] == "admin"
     assert user["must_change_pw"] is True        # 다시 바꾸도록 강제
 
 
@@ -65,13 +65,13 @@ def test_비활성_계정도_재발급으로_되살아난다():
 
 
 def test_관리자가_0명이어도_승격으로_복구():
-    """L3가 아무도 없는 상태 — 화면으로는 승인할 사람이 없어 잠긴다."""
-    u = auth_store.signup("rescue", "password123", "구조", "", 2)
+    """관리자가 아무도 없는 상태 — 화면으로는 승인할 사람이 없어 잠긴다."""
+    auth_store.signup("rescue", "password123", "구조", "", "writer")
     assert auth_store.count_active_admins() == 0
-    admin_cli.cmd_promote("rescue", 3)
+    admin_cli.cmd_promote("rescue", "admin")
     assert auth_store.count_active_admins() == 1
     _, user = auth_store.login("rescue", "password123")
-    assert user["level"] == 3 and user["status"] == "active"
+    assert user["role"] == "admin" and user["status"] == "active"
 
 
 def test_없는_사용자는_명확히_실패():
@@ -79,23 +79,30 @@ def test_없는_사용자는_명확히_실패():
     with pytest.raises(SystemExit):
         admin_cli.cmd_reset_pw("nosuchuser", None)
     with pytest.raises(SystemExit):
-        admin_cli.cmd_promote("nosuchuser", 3)
+        admin_cli.cmd_promote("nosuchuser", "admin")
 
 
-def test_범위_밖_레벨_거부():
-    auth_store.signup("rangeuser", "password123", "범위", "", 2)
-    for lv in (0, 4, -1):
+def test_없는_역할_거부():
+    auth_store.signup("rangeuser", "password123", "범위", "", "writer")
+    for bad in ("", "superuser", "관리자", "3", "admin2"):
         with pytest.raises(SystemExit):
-            admin_cli.cmd_promote("rangeuser", lv)
+            admin_cli.cmd_promote("rangeuser", bad)
+
+
+def test_역할은_대소문자와_공백을_흡수한다():
+    """콘솔에서 손으로 치는 값이다. 'Admin ' 을 거부하면 담당자만 헤맨다."""
+    auth_store.signup("caseuser", "password123", "대소", "", "writer")
+    admin_cli.cmd_promote("caseuser", "  Admin ")
+    assert auth_store.count_active_admins() == 1
 
 
 def test_목록_출력(capsys):
     auth_store.ensure_seed_admin("adminpw12345")
-    auth_store.signup("waiting", "password123", "대기자", "본부", 3)
+    auth_store.signup("waiting", "password123", "대기자", "본부", "admin")
     admin_cli.cmd_list()
     out = capsys.readouterr().out
     assert "admin" in out and "waiting" in out
-    assert "희망 L3" in out            # 승인 담당자가 무엇을 신청했는지 봐야 한다
+    assert "희망 Lv1 관리자" in out     # 승인 담당자가 무엇을 신청했는지 봐야 한다
     assert "활성 관리자 1명" in out
 
 

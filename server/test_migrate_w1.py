@@ -83,10 +83,10 @@ def test_이관_후_L2에게는_여전히_안_보인다():
     projects_store.create_project("레거시", {"pages": []}, owner_id=None)
     rep = migrate_w1.run()
     from server.permissions import visible_project_filter, Actor
-    l2 = Actor(id="u_l2", level=2, status="active")
+    l2 = Actor(id="u_l2", role="writer", status="active")
     vis = visible_project_filter(l2)
     rows = projects_store.list_projects(vis, "u_l2")
     assert rows == []
     # 관리자는 본다
-    admin = Actor(id=rep["admin_id"], level=3, status="active")
+    admin = Actor(id=rep["admin_id"], role="admin", status="active")
     assert len(projects_store.list_projects(visible_project_filter(admin), admin.id)) == 1

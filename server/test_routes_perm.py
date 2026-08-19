@@ -44,16 +44,16 @@ def ctx():
     auth_store.ensure_seed_admin("adminpw12345")
     admin = [u for u in auth_store.list_users() if u["login_id"] == "admin"][0]
 
-    def mk(login, level):
-        u = auth_store.signup(login, "password123", login, "본부", 2)
-        if level:
-            auth_store.approve(admin["id"], u["id"], level)
+    def mk(login, role):
+        u = auth_store.signup(login, "password123", login, "본부", "writer")
+        if role:
+            auth_store.approve(admin["id"], u["id"], role)
         return auth_store.get_user(u["id"])
 
-    pend = mk("pend", 0)
-    l1 = mk("viewer", 1)
-    l2 = mk("writer", 2)
-    l2b = mk("writer2", 2)
+    pend = mk("pend", "")
+    l1 = mk("viewer", "viewer")
+    l2 = mk("writer", "writer")
+    l2b = mk("writer2", "writer")
 
     own = projects_store.create_project("작성자 이북", {"pages": [{"id": 1}]}, owner_id=l2["id"])
     other = projects_store.create_project("타인 이북", {"pages": [{"id": 1}]}, owner_id=l2b["id"])
@@ -91,11 +91,11 @@ def test_가입해도_실권한은_안_나간다(ctx):
     c = ctx["anon"]
     r = c.post("/api/auth/signup", json={
         "login_id": "sneaky", "password": "password123", "name": "침입자",
-        "dept": "", "requested_level": 3,          # L3를 희망해도
+        "dept": "", "requested_role": "admin",          # L3를 희망해도
     })
     assert r.status_code == 200 and r.json()["status"] == "pending"
     u = [x for x in auth_store.list_users() if x["login_id"] == "sneaky"][0]
-    assert u["level"] == 0 and u["status"] == "pending"
+    assert u["role"] == "" and u["status"] == "pending"
 
     # 로그인은 되지만 아무것도 못 본다
     c2 = ctx["as_user"]("sneaky")
@@ -147,20 +147,20 @@ def test_승인대기는_전부_403(ctx):
 
 
 # ═══════════ L1 열람자 ═══════════
-def test_L1은_발행본만_목록에_보인다(ctx):
+def test_열람자는_발행본만_목록에_보인다(ctx):
     c = ctx["as_user"]("viewer")
     ids = {p["id"] for p in c.get("/api/projects").json()["projects"]}
     assert ids == {ctx["pub"]}
 
 
-def test_L1은_미발행_이북을_못_연다(ctx):
+def test_열람자는_미발행_이북을_못_연다(ctx):
     c = ctx["as_user"]("viewer")
     assert c.get("/api/projects/%s" % ctx["pub"]).status_code == 200
     assert c.get("/api/projects/%s" % ctx["own"]).status_code == 403
     assert c.get("/api/projects/%s" % ctx["other"]).status_code == 403
 
 
-def test_L1은_편집_삭제_불가(ctx):
+def test_열람자는_편집_삭제_불가(ctx):
     c = ctx["as_user"]("viewer")
     assert c.put("/api/projects/%s" % ctx["pub"], json={"state": {}}).status_code == 403
     assert c.patch("/api/projects/%s" % ctx["pub"], json={"name": "x"}).status_code == 403
@@ -168,7 +168,7 @@ def test_L1은_편집_삭제_불가(ctx):
     assert c.post("/api/projects", json={"name": "새것"}).status_code == 403
 
 
-def test_L1은_메모를_읽지도_쓰지도_못한다(ctx):
+def test_열람자는_메모를_읽지도_쓰지도_못한다(ctx):
     """확정 사항 — L1에게는 메모 존재 자체를 노출하지 않는다. 빈 목록이 아니라 403."""
     c = ctx["as_user"]("viewer")
     assert c.get("/api/notes?project_id=%s" % ctx["pub"]).status_code == 403
@@ -176,7 +176,7 @@ def test_L1은_메모를_읽지도_쓰지도_못한다(ctx):
     assert r.status_code == 403
 
 
-def test_L1은_발행본_버전도_읽지만_수정_불가(ctx):
+def test_열람자는_발행본_버전도_읽지만_수정_불가(ctx):
     c = ctx["as_user"]("viewer")
     assert c.get("/api/projects/%s/versions" % ctx["pub"]).status_code == 200
     assert c.post("/api/projects/%s/versions" % ctx["pub"],
@@ -184,28 +184,28 @@ def test_L1은_발행본_버전도_읽지만_수정_불가(ctx):
 
 
 # ═══════════ L2 작성자 ═══════════
-def test_L2_목록은_본인_것과_발행본만(ctx):
+def test_작성자_목록은_본인_것과_발행본만(ctx):
     c = ctx["as_user"]("writer")
     ids = {p["id"] for p in c.get("/api/projects").json()["projects"]}
     assert ids == {ctx["own"], ctx["pub"]}
     assert ctx["other"] not in ids
 
 
-def test_L2는_타인_이북에_접근_불가(ctx):
+def test_작성자는_타인_이북에_접근_불가(ctx):
     c = ctx["as_user"]("writer")
     assert c.get("/api/projects/%s" % ctx["other"]).status_code == 403
     assert c.put("/api/projects/%s" % ctx["other"], json={"state": {}}).status_code == 403
     assert c.patch("/api/projects/%s" % ctx["other"], json={"name": "x"}).status_code == 403
 
 
-def test_L2는_본인_이북을_수정한다(ctx):
+def test_작성자는_본인_이북을_수정한다(ctx):
     c = ctx["as_user"]("writer")
     assert c.get("/api/projects/%s" % ctx["own"]).status_code == 200
     assert c.put("/api/projects/%s" % ctx["own"],
                  json={"state": {"pages": [{"id": 1}]}}).status_code == 200
 
 
-def test_L2는_본인_것도_삭제_불가(ctx):
+def test_작성자는_본인_것도_삭제_불가(ctx):
     """회차 자료 유실 방지 — 삭제는 L3만."""
     c = ctx["as_user"]("writer")
     assert c.delete("/api/projects/%s" % ctx["own"]).status_code == 403
@@ -213,14 +213,14 @@ def test_L2는_본인_것도_삭제_불가(ctx):
     assert c.delete("/api/projects/%s/versions/%s" % (ctx["own"], ctx["ver"])).status_code == 403
 
 
-def test_L2가_만든_이북은_본인_소유(ctx):
+def test_작성자가_만든_이북은_본인_소유(ctx):
     c = ctx["as_user"]("writer")
     r = c.post("/api/projects", json={"name": "새 이북", "state": {"pages": []}})
     assert r.status_code == 200
     assert r.json()["owner_id"] == ctx["l2"]["id"]
 
 
-def test_L2는_본인_이북_메모만(ctx):
+def test_작성자는_본인_이북_메모만(ctx):
     c = ctx["as_user"]("writer")
     assert c.get("/api/notes?project_id=%s" % ctx["own"]).status_code == 200
     assert c.get("/api/notes?project_id=%s" % ctx["other"]).status_code == 403
@@ -230,7 +230,7 @@ def test_L2는_본인_이북_메모만(ctx):
     assert r.status_code == 403
 
 
-def test_L2는_타인_메모를_삭제할_수_없다(ctx):
+def test_작성자는_타인_메모를_삭제할_수_없다(ctx):
     """메모 id 만 알아도 지워지면 안 된다 — 소속 이북 기준으로 판정해야 한다."""
     admin = ctx["as_admin"]()
     admin.post("/api/notes", json={"project_id": ctx["other"], "id": "victim", "blocks": []})
@@ -238,11 +238,11 @@ def test_L2는_타인_메모를_삭제할_수_없다(ctx):
     assert c.delete("/api/notes/victim").status_code == 403
 
 
-def test_L2는_사용자관리_불가(ctx):
+def test_작성자는_사용자관리_불가(ctx):
     c = ctx["as_user"]("writer")
     assert c.get("/api/auth/users").status_code == 403
     assert c.post("/api/auth/users/%s/approve" % ctx["pend"]["id"],
-                  json={"level": 3}).status_code == 403
+                  json={"role": "admin"}).status_code == 403
     assert c.post("/api/auth/users/%s/status" % ctx["l1"]["id"],
                   json={"status": "disabled"}).status_code == 403
 
@@ -267,38 +267,38 @@ def test_본인_버전은_정상_조회(ctx):
 
 
 # ═══════════ L3 관리자 ═══════════
-def test_L3는_전부_본다(ctx):
+def test_관리자는_전부_본다(ctx):
     c = ctx["as_admin"]()
     ids = {p["id"] for p in c.get("/api/projects").json()["projects"]}
     assert {ctx["own"], ctx["other"], ctx["pub"]} <= ids
 
 
-def test_L3는_타인_이북_수정_삭제_가능(ctx):
+def test_관리자는_타인_이북_수정_삭제_가능(ctx):
     c = ctx["as_admin"]()
     assert c.put("/api/projects/%s" % ctx["other"],
                  json={"state": {"pages": []}}).status_code == 200
     assert c.delete("/api/projects/%s" % ctx["other"]).status_code == 200
 
 
-def test_L3_승인_흐름(ctx):
+def test_관리자_승인_흐름(ctx):
     c = ctx["as_admin"]()
-    r = c.post("/api/auth/users/%s/approve" % ctx["pend"]["id"], json={"level": 2})
-    assert r.status_code == 200 and r.json()["user"]["level"] == 2
+    r = c.post("/api/auth/users/%s/approve" % ctx["pend"]["id"], json={"role": "writer"})
+    assert r.status_code == 200 and r.json()["user"]["role"] == "writer"
     c2 = ctx["as_user"]("pend")
     assert c2.get("/api/projects").status_code == 200      # 이제 들어온다
 
 
-def test_L3는_자기_레벨을_못_바꾼다(ctx):
+def test_관리자는_자기_레벨을_못_바꾼다(ctx):
     c = ctx["as_admin"]()
-    r = c.post("/api/auth/users/%s/approve" % ctx["admin"]["id"], json={"level": 1})
+    r = c.post("/api/auth/users/%s/approve" % ctx["admin"]["id"], json={"role": "viewer"})
     assert r.status_code == 403 and "자기 자신" in r.json()["detail"]
 
 
 def test_마지막_관리자_비활성화_거부(ctx):
     c = ctx["as_admin"]()
-    other_admin = auth_store.signup("admin2", "password123", "관리자2", "", 3)
+    other_admin = auth_store.signup("admin2", "password123", "관리자2", "", "admin")
     r = c.post("/api/auth/users/%s/status" % other_admin["id"], json={"status": "disabled"})
-    assert r.status_code == 200          # 아직 L3가 아니므로 그냥 비활성
+    assert r.status_code == 200          # 아직 승인 전이라 관리자가 아니다 — 그냥 비활성
     # 시드 관리자를 본인이 끄려 하면 자기 자신이라 거부
     r = c.post("/api/auth/users/%s/status" % ctx["admin"]["id"], json={"status": "disabled"})
     assert r.status_code == 400
@@ -306,10 +306,10 @@ def test_마지막_관리자_비활성화_거부(ctx):
 
 # ═══════════ 강등 즉시 반영 ═══════════
 def test_강등하면_기존_세션이_즉시_끊긴다(ctx):
-    """L2로 로그인해 둔 세션이, 관리자가 L1으로 내리는 순간 무효가 되어야 한다."""
+    """작성자로 로그인해 둔 세션이, 관리자가 열람자로 내리는 순간 무효가 되어야 한다."""
     c = ctx["as_user"]("writer")
     assert c.get("/api/projects/%s" % ctx["own"]).status_code == 200
-    ctx["as_admin"]().post("/api/auth/users/%s/approve" % ctx["l2"]["id"], json={"level": 1})
+    ctx["as_admin"]().post("/api/auth/users/%s/approve" % ctx["l2"]["id"], json={"role": "viewer"})
     assert c.get("/api/projects/%s" % ctx["own"]).status_code == 401     # 세션 소멸
 
 
@@ -322,7 +322,7 @@ def test_비활성화하면_기존_세션이_끊긴다(ctx):
 
 
 # ═══════════ 소유자 없는 레거시 데이터 ═══════════
-def test_소유자_없는_이북은_L2에게_안_보인다(ctx):
+def test_소유자_없는_이북은_작성자에게_안_보인다(ctx):
     """이관 전 레거시 프로젝트가 L2에게 노출되지 않아야 한다."""
     orphan = projects_store.create_project("레거시", {"pages": []}, owner_id=None)
     c = ctx["as_user"]("writer")
@@ -335,7 +335,7 @@ def test_소유자_없는_이북은_L2에게_안_보인다(ctx):
 
 
 # ═══════════ 존재하지 않는 id ═══════════
-def test_없는_프로젝트는_L2에게_403_L3에게_404(ctx):
+def test_없는_프로젝트는_작성자에게_403_관리자에게_404(ctx):
     """id 존재 여부가 권한 없는 사용자에게 새어나가지 않도록."""
     assert ctx["as_user"]("writer").get("/api/projects/p_nonexistent").status_code == 403
     assert ctx["as_admin"]().get("/api/projects/p_nonexistent").status_code == 404

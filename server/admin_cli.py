@@ -11,7 +11,7 @@
     python3 -m server.admin_cli reset-pw                 # admin 비밀번호 재발급
     python3 -m server.admin_cli reset-pw --login 홍길동id
     python3 -m server.admin_cli reset-pw --password 직접지정할비밀번호
-    python3 -m server.admin_cli promote --login 사번 --level 3
+    python3 -m server.admin_cli promote --login 사번 --role admin
     python3 -m server.admin_cli unlock --login 사번        # 로그인 잠금 해제
 """
 from __future__ import annotations
@@ -20,6 +20,7 @@ import argparse
 import secrets
 
 from server import auth as auth_store
+from server import permissions as perm
 
 
 def _find(login_id: str) -> dict:
@@ -35,16 +36,17 @@ def cmd_list() -> None:
     if not users:
         print("등록된 사용자가 없습니다. 서버를 한 번 기동하면 admin 계정이 생깁니다.")
         return
-    print("%-16s %-14s %-6s %-10s %s" % ("아이디", "이름", "레벨", "상태", "비고"))
-    print("-" * 70)
+    print("%-16s %-14s %-12s %-10s %s" % ("아이디", "이름", "권한", "상태", "비고"))
+    print("-" * 74)
     for u in users:
         note = []
         if u["must_change_pw"]:
             note.append("비밀번호 변경 필요")
         if u["status"] == "pending":
-            note.append("희망 L%d" % u["requested_level"])
-        print("%-16s %-14s %-6s %-10s %s" % (
-            u["login_id"], u["name"], "L%d" % u["level"] if u["level"] else "-",
+            note.append("희망 %s" % perm.role_label(u["requested_role"]))
+        print("%-16s %-14s %-12s %-10s %s" % (
+            u["login_id"], u["name"],
+            perm.role_label(u["role"]) if u["role"] else "-",
             u["status"], " · ".join(note)))
     print("-" * 70)
     print("활성 관리자 %d명" % auth_store.count_active_admins())
@@ -69,21 +71,23 @@ def cmd_reset_pw(login_id: str, password: str | None) -> None:
     print("=" * 60)
 
 
-def cmd_promote(login_id: str, level: int) -> None:
-    """화면 없이 레벨을 올린다. 관리자가 0명이 된 상황의 탈출구."""
-    if level not in (1, 2, 3):
-        raise SystemExit("레벨은 1~3 중에서 지정하세요.")
+def cmd_promote(login_id: str, role: str) -> None:
+    """화면 없이 역할을 지정한다. 관리자가 0명이 된 상황의 탈출구."""
+    role = (role or "").strip().lower()
+    if role not in perm.ROLES:
+        raise SystemExit("역할은 admin · writer · viewer 중에서 지정하세요.")
     user = _find(login_id)
     c = auth_store._conn()
     try:
-        c.execute("UPDATE Users SET level=?, status='active', approved_at=? WHERE id=?",
-                  (level, auth_store._now(), user["id"]))
+        c.execute("UPDATE Users SET role=?, status='active', approved_at=? WHERE id=?",
+                  (role, auth_store._now(), user["id"]))
         c.commit()
     finally:
         c.close()
     auth_store._kill_sessions(user["id"])
-    auth_store.audit(None, "promote_cli", user["id"], "level=%d (콘솔)" % level)
-    print("%s 를 L%d 로 지정했습니다. 다시 로그인해야 적용됩니다." % (user["login_id"], level))
+    auth_store.audit(None, "promote_cli", user["id"], "role=%s (콘솔)" % role)
+    print("%s 를 %s 로 지정했습니다. 다시 로그인해야 적용됩니다."
+          % (user["login_id"], perm.role_label(role)))
 
 
 def cmd_unlock(login_id: str) -> None:
@@ -114,9 +118,9 @@ def main() -> None:
     p = sub.add_parser("unlock", help="로그인 시도 제한 해제")
     p.add_argument("--login", required=True)
 
-    p = sub.add_parser("promote", help="레벨 지정")
+    p = sub.add_parser("promote", help="역할 지정")
     p.add_argument("--login", required=True)
-    p.add_argument("--level", type=int, required=True)
+    p.add_argument("--role", required=True, choices=list(perm.ROLES))
 
     args = ap.parse_args()
     if args.cmd == "list":
@@ -126,7 +130,7 @@ def main() -> None:
     elif args.cmd == "unlock":
         cmd_unlock(args.login)
     elif args.cmd == "promote":
-        cmd_promote(args.login, args.level)
+        cmd_promote(args.login, args.role)
 
 
 if __name__ == "__main__":

@@ -78,9 +78,9 @@
 }
 .es-chip b { color: #0F1B3D; font-weight: 700; }
 .es-lv { font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 99px; }
-.es-lv.l3 { background: #EAF1FE; color: #2462EB; }
-.es-lv.l2 { background: #E9F5EF; color: #3E9E6E; }
-.es-lv.l1 { background: #eef0f3; color: #6b7480; }
+.es-lv.r-admin  { background: #EAF1FE; color: #2462EB; }
+.es-lv.r-writer { background: #E9F5EF; color: #3E9E6E; }
+.es-lv.r-viewer { background: #eef0f3; color: #6b7480; }
 .es-linkbtn {
   background: rgba(255, 255, 255, .92); border: 1px solid #e6e8ee; border-radius: 99px;
   padding: 4px 11px; font-size: 12px; color: #1c2433; cursor: pointer; font-family: inherit;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ApiError, apiApprove, apiListUsers, apiSetStatus, LEVEL_LABEL, type Me } from './authApi'
+import { ApiError, apiApprove, apiListUsers, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
 import { useAuth } from './useAuth'
 
 type Tab = 'pending' | 'active' | 'all'
@@ -17,10 +17,10 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
   // 중요 작업(관리자 권한 부여 · 계정 중지)은 한 번 더 확인받는다.
   // 클릭 한 번으로 임원 계정이 끊기거나 관리자가 늘어나면 사고가 조용히 지나간다.
   const [confirm, setConfirm] = useState<
-    { kind: 'grant3' | 'disable'; user: Me; level?: 1 | 2 | 3 } | null
+    { kind: 'grantAdmin' | 'disable'; user: Me } | null
   >(null)
-  // 승인 시 부여할 레벨. 기본값은 본인이 신청한 레벨이지만 관리자가 낮출 수 있다.
-  const [grant, setGrant] = useState<Record<string, 1 | 2 | 3>>({})
+  // 승인 시 부여할 역할. 기본값은 본인이 신청한 역할이지만 관리자가 낮출 수 있다.
+  const [grant, setGrant] = useState<Record<string, Role>>({})
 
   const load = async () => {
     setLoading(true); setErr('')
@@ -29,7 +29,7 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
       setUsers(list)
       setGrant((g) => {
         const next = { ...g }
-        for (const u of list) if (!next[u.id]) next[u.id] = u.requested_level
+        for (const u of list) if (!next[u.id]) next[u.id] = u.requested_role || 'writer' 
         return next
       })
     } catch (e) {
@@ -60,9 +60,9 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
       <div className="es-card wide" onClick={(e) => e.stopPropagation()}>
         <div className="es-admin-head">
           <div>
-            <div className="es-brand"><b>사용자 관리</b><span>L3 관리자 전용</span></div>
+            <div className="es-brand"><b>사용자 관리</b><span>관리자 전용</span></div>
             <p className="es-lede" style={{ margin: '4px 0 0' }}>
-              가입 신청을 승인하고 권한 레벨을 정합니다. <b>승인해야 실제 권한이 부여됩니다.</b>
+              가입 신청을 승인하고 권한을 정합니다. <b>승인해야 실제 권한이 부여됩니다.</b>
             </p>
           </div>
           <button className="es-mini" onClick={onClose}>닫기</button>
@@ -103,27 +103,27 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
                     <td><span className={`es-st ${u.status}`}>{
                       u.status === 'active' ? '사용 중' : u.status === 'pending' ? '대기' : '중지'
                     }</span></td>
-                    <td>{u.level ? LEVEL_LABEL[u.level] : <span style={{ color: '#98a1b2' }}>미부여</span>}
+                    <td>{u.role ? ROLE_LABEL[u.role] : <span style={{ color: '#98a1b2' }}>미부여</span>}
                       {u.status === 'pending' && (
-                        <div style={{ fontSize: 11, color: '#98a1b2' }}>신청: {LEVEL_LABEL[u.requested_level]}</div>
+                        <div style={{ fontSize: 11, color: '#98a1b2' }}>신청: {ROLE_LABEL[u.requested_role]}</div>
                       )}
                     </td>
                     <td>
-                      <select value={grant[u.id] ?? u.requested_level} disabled={self || busy}
-                        onChange={(e) => setGrant({ ...grant, [u.id]: Number(e.target.value) as 1 | 2 | 3 })}>
-                        <option value={1}>L1 열람자</option>
-                        <option value={2}>L2 작성자</option>
-                        <option value={3}>L3 관리자</option>
+                      <select value={grant[u.id] ?? u.requested_role ?? 'writer'} disabled={self || busy}
+                        onChange={(e) => setGrant({ ...grant, [u.id]: e.target.value as Role })}>
+                        {ROLE_ORDER.map((r) => (
+                          <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                        ))}
                       </select>
                     </td>
                     <td style={{ display: 'flex', gap: 6 }}>
                       <button className="es-mini primary" disabled={self || busy}
                         title={self ? '자기 자신의 권한은 바꿀 수 없습니다' : ''}
                         onClick={() => {
-                          const lv = grant[u.id] ?? u.requested_level
-                          // L3(관리자) 부여는 되돌리기 어려운 권한 상승이다 — 확인을 받는다.
-                          if (lv === 3) { setConfirm({ kind: 'grant3', user: u, level: lv }); return }
-                          void act(() => apiApprove(u.id, lv), u.id)
+                          const r = grant[u.id] ?? u.requested_role ?? 'writer'
+                          // 관리자 부여는 되돌리기 어려운 권한 상승이다 — 확인을 받는다.
+                          if (r === 'admin') { setConfirm({ kind: 'grantAdmin', user: u }); return }
+                          void act(() => apiApprove(u.id, r), u.id)
                         }}>
                         {u.status === 'pending' ? '승인' : '변경'}
                       </button>
@@ -147,12 +147,12 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
           <div className="es-confirm" onClick={() => setConfirm(null)}>
             <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
               <div className="es-confirm-title">
-                {confirm.kind === 'grant3' ? '관리자 권한 부여' : '계정 사용 중지'}
+                {confirm.kind === 'grantAdmin' ? '관리자 권한 부여' : '계정 사용 중지'}
               </div>
               <div className="es-confirm-msg">
-                {confirm.kind === 'grant3' ? (
+                {confirm.kind === 'grantAdmin' ? (
                   <>
-                    <b>{confirm.user.name}({confirm.user.login_id})</b> 님에게 <b>L3 관리자</b> 권한을 부여합니다.
+                    <b>{confirm.user.name}({confirm.user.login_id})</b> 님에게 <b>Lv1 관리자</b> 권한을 부여합니다.
                     <br /><br />
                     관리자는 <b>모든 임원의 자료를 열람·수정·삭제</b>할 수 있고, 다른 사람의 가입을 승인하고
                     회차를 발행할 수 있습니다.
@@ -172,10 +172,10 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
                   onClick={() => {
                     const c = confirm
                     setConfirm(null)
-                    if (c.kind === 'grant3') void act(() => apiApprove(c.user.id, 3), c.user.id)
+                    if (c.kind === 'grantAdmin') void act(() => apiApprove(c.user.id, 'admin'), c.user.id)
                     else void act(() => apiSetStatus(c.user.id, 'disabled'), c.user.id)
                   }}>
-                  {confirm.kind === 'grant3' ? '관리자로 지정' : '중지'}
+                  {confirm.kind === 'grantAdmin' ? '관리자로 지정' : '중지'}
                 </button>
               </div>
             </div>

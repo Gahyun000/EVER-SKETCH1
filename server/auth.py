@@ -1,11 +1,13 @@
 """계정·세션 저장소 — SQLite.
 
 가입은 자유롭게, 권한은 승인제로.
-`requested_level`(본인이 고른 희망 레벨)과 `level`(실권한)을 **다른 컬럼으로 둔다.**
-가입 시점에는 requested_level 만 채우고 level=0 / status='pending'.
-L3가 승인할 때 비로소 level 이 채워진다.
+`requested_role`(본인이 고른 희망 역할)과 `role`(실권한)을 **다른 컬럼으로 둔다.**
+가입 시점에는 requested_role 만 채우고 role='' / status='pending'.
+관리자가 승인할 때 비로소 role 이 채워진다.
 
-이 분리가 없으면 링크를 아는 누구나 L3를 골라 임원 자료 전체를 열람·삭제할 수 있다.
+이 분리가 없으면 링크를 아는 누구나 관리자를 골라 임원 자료 전체를 열람·삭제할 수 있다.
+
+권한은 숫자가 아니라 **역할명**(admin/writer/viewer)으로 저장한다 — 이유는 permissions.py 참조.
 
 시간 단위는 밀리초로 통일한다(기존 Projects/ProjectVersions 와 동일. Notes 만 초라서 이관 시 ×1000).
 """
@@ -22,7 +24,7 @@ import time
 import uuid
 from typing import Optional
 
-from server.permissions import Actor
+from server.permissions import ADMIN, Actor, ROLES, VIEWER, WRITER
 
 _HERE = pathlib.Path(__file__).resolve().parent
 
@@ -68,12 +70,19 @@ def _conn() -> sqlite3.Connection:
     c.execute(
         "CREATE TABLE IF NOT EXISTS Users("
         "id TEXT PRIMARY KEY, login_id TEXT NOT NULL UNIQUE, pw_hash TEXT NOT NULL, "
-        "name TEXT NOT NULL, dept TEXT, requested_level INTEGER NOT NULL, "
-        "level INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pending', "
+        "name TEXT NOT NULL, dept TEXT, requested_role TEXT NOT NULL DEFAULT 'writer', "
+        "role TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending', "
         "must_change_pw INTEGER NOT NULL DEFAULT 0, "
         "created_at REAL NOT NULL, approved_at REAL, approved_by TEXT, last_login_at REAL)"
     )
     c.execute("CREATE INDEX IF NOT EXISTS idx_users_status ON Users(status)")
+    # 구 스키마(level/requested_level 숫자)에서 올라온 DB 호환 — 컬럼만 덧붙인다.
+    # 값 변환은 migrate_role.py 가 한다(백업 후 일괄).
+    have = {r[1] for r in c.execute("PRAGMA table_info(Users)").fetchall()}
+    if "role" not in have:
+        c.execute("ALTER TABLE Users ADD COLUMN role TEXT NOT NULL DEFAULT ''")
+    if "requested_role" not in have:
+        c.execute("ALTER TABLE Users ADD COLUMN requested_role TEXT NOT NULL DEFAULT 'writer'")
     c.execute(
         "CREATE TABLE IF NOT EXISTS Sessions("
         "token TEXT PRIMARY KEY, user_id TEXT NOT NULL, created_at REAL NOT NULL, "
@@ -129,8 +138,8 @@ class AuthError(Exception):
     pass
 
 
-def signup(login_id: str, pw: str, name: str, dept: str, requested_level: int) -> dict:
-    """자가가입. **실권한은 부여하지 않는다** — level=0, status='pending'."""
+def signup(login_id: str, pw: str, name: str, dept: str, requested_role: str) -> dict:
+    """자가가입. **실권한은 부여하지 않는다** — role='', status='pending'."""
     login_id = (login_id or "").strip().lower()
     name = (name or "").strip()
     dept = (dept or "").strip()
@@ -149,38 +158,38 @@ def signup(login_id: str, pw: str, name: str, dept: str, requested_level: int) -
         raise AuthError("이름은 %d자 이하여야 합니다." % MAX_NAME)
     if len(dept) > MAX_DEPT:
         raise AuthError("부서는 %d자 이하여야 합니다." % MAX_DEPT)
-    if requested_level not in (1, 2, 3):
-        raise AuthError("희망 권한은 1~3 중에서 골라주세요.")
+    if requested_role not in ROLES:
+        raise AuthError("희망 권한은 관리자·작성자·열람자 중에서 골라주세요.")
 
     uid = _new_id("u")
     c = _conn()
     try:
         try:
             c.execute(
-                "INSERT INTO Users(id,login_id,pw_hash,name,dept,requested_level,level,status,"
-                "must_change_pw,created_at) VALUES(?,?,?,?,?,?,0,'pending',0,?)",
-                (uid, login_id, hash_pw(pw), name, dept, requested_level, _now()),
+                "INSERT INTO Users(id,login_id,pw_hash,name,dept,requested_role,role,status,"
+                "must_change_pw,created_at) VALUES(?,?,?,?,?,?,'','pending',0,?)",
+                (uid, login_id, hash_pw(pw), name, dept, requested_role, _now()),
             )
             c.commit()
         except sqlite3.IntegrityError:
             raise AuthError("이미 사용 중인 아이디입니다.")
     finally:
         c.close()
-    audit(uid, "signup", uid, "requested_level=%d" % requested_level)
-    return {"id": uid, "login_id": login_id, "status": "pending", "requested_level": requested_level}
+    audit(uid, "signup", uid, "requested_role=%s" % requested_role)
+    return {"id": uid, "login_id": login_id, "status": "pending", "requested_role": requested_role}
 
 
 # ── 로그인 · 세션 ─────────────────────────────────────────
 def _row_to_user(r) -> dict:
     return {
         "id": r[0], "login_id": r[1], "name": r[2], "dept": r[3],
-        "requested_level": r[4], "level": r[5], "status": r[6],
+        "requested_role": r[4], "role": r[5], "status": r[6],
         "must_change_pw": bool(r[7]), "created_at": r[8],
         "approved_at": r[9], "approved_by": r[10], "last_login_at": r[11],
     }
 
 
-_USER_COLS = ("id,login_id,name,dept,requested_level,level,status,must_change_pw,"
+_USER_COLS = ("id,login_id,name,dept,requested_role,role,status,must_change_pw,"
               "created_at,approved_at,approved_by,last_login_at")
 
 
@@ -292,7 +301,7 @@ def actor_of(user: Optional[dict]) -> Optional[Actor]:
     """dict → 권한 판정용 Actor. permissions.decide() 는 이것만 받는다."""
     if not user:
         return None
-    return Actor(id=user["id"], level=int(user["level"]), status=user["status"])
+    return Actor(id=user["id"], role=user.get("role") or "", status=user["status"])
 
 
 def _kill_sessions(user_id: str) -> None:
@@ -328,34 +337,36 @@ def count_active_admins(exclude: Optional[str] = None) -> int:
     try:
         if exclude:
             r = c.execute(
-                "SELECT COUNT(*) FROM Users WHERE level=3 AND status='active' AND id<>?", (exclude,)
+                "SELECT COUNT(*) FROM Users WHERE role=? AND status='active' AND id<>?",
+                (ADMIN, exclude),
             ).fetchone()
         else:
-            r = c.execute("SELECT COUNT(*) FROM Users WHERE level=3 AND status='active'").fetchone()
+            r = c.execute("SELECT COUNT(*) FROM Users WHERE role=? AND status='active'",
+                          (ADMIN,)).fetchone()
     finally:
         c.close()
     return int(r[0]) if r else 0
 
 
-def approve(actor_id: str, target_id: str, level: int) -> dict:
-    """가입 승인 · 레벨 변경. 호출 전에 permissions.can_grant_level 로 판정해야 한다."""
-    if level not in (1, 2, 3):
-        raise AuthError("레벨은 1~3만 지정할 수 있습니다.")
+def approve(actor_id: str, target_id: str, role: str) -> dict:
+    """가입 승인 · 역할 변경. 호출 전에 permissions.can_grant_role 로 판정해야 한다."""
+    if role not in ROLES:
+        raise AuthError("역할은 관리자·작성자·열람자 중에서 지정할 수 있습니다.")
     target = get_user(target_id)
     if not target:
         raise AuthError("대상 사용자를 찾을 수 없습니다.")
     c = _conn()
     try:
         c.execute(
-            "UPDATE Users SET level=?, status='active', approved_at=?, approved_by=? WHERE id=?",
-            (level, _now(), actor_id, target_id),
+            "UPDATE Users SET role=?, status='active', approved_at=?, approved_by=? WHERE id=?",
+            (role, _now(), actor_id, target_id),
         )
         c.commit()
     finally:
         c.close()
-    # 강등일 수 있으므로 기존 세션을 끊는다. 재로그인하면 새 레벨이 적용된다.
+    # 강등일 수 있으므로 기존 세션을 끊는다. 재로그인하면 새 역할이 적용된다.
     _kill_sessions(target_id)
-    audit(actor_id, "approve", target_id, "level=%d (was %d)" % (level, target["level"]))
+    audit(actor_id, "approve", target_id, "role=%s (was %s)" % (role, target["role"] or "none"))
     result = get_user(target_id)
     assert result is not None
     return result
@@ -370,7 +381,7 @@ def set_status(actor_id: str, target_id: str, status: str) -> dict:
         raise AuthError("대상 사용자를 찾을 수 없습니다.")
     if actor_id == target_id:
         raise AuthError("자기 자신의 상태는 변경할 수 없습니다.")
-    if status == "disabled" and target["level"] == 3 and target["status"] == "active":
+    if status == "disabled" and target["role"] == ADMIN and target["status"] == "active":
         if count_active_admins(exclude=target_id) == 0:
             raise AuthError("마지막 관리자는 비활성화할 수 없습니다.")
     c = _conn()
@@ -423,9 +434,9 @@ def ensure_seed_admin(initial_pw: Optional[str] = None) -> Optional[str]:
     c = _conn()
     try:
         c.execute(
-            "INSERT INTO Users(id,login_id,pw_hash,name,dept,requested_level,level,status,"
-            "must_change_pw,created_at,approved_at) VALUES(?,?,?,?,?,3,3,'active',1,?,?)",
-            (uid, _SEED_ADMIN_LOGIN, hash_pw(pw), "시스템 관리자", "", now, now),
+            "INSERT INTO Users(id,login_id,pw_hash,name,dept,requested_role,role,status,"
+            "must_change_pw,created_at,approved_at) VALUES(?,?,?,?,?,?,?,'active',1,?,?)",
+            (uid, _SEED_ADMIN_LOGIN, hash_pw(pw), "시스템 관리자", "", ADMIN, ADMIN, now, now),
         )
         c.commit()
     finally:

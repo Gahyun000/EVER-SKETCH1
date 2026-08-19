@@ -51,7 +51,7 @@ class VersionPatchIn(BaseModel):
 # ─────────────────────── 프로젝트 ───────────────────────
 @router.get("/api/projects")
 def projects_list(user: dict = Depends(require_active)):
-    vis = perm.visible_project_filter(perm.Actor(user["id"], user["level"], user["status"]))
+    vis = perm.visible_project_filter(auth_store.actor_of(user))
     return {"projects": projects_store.list_projects(vis, user["id"])}
 
 
@@ -85,7 +85,7 @@ def projects_rename(pid: str, req: ProjectRenameIn, user: dict = Depends(require
 
 @router.delete("/api/projects/{pid}")
 def projects_delete(pid: str, user: dict = Depends(require_active)):
-    # 삭제는 L3만. L2는 본인 것도 지우지 못한다(회차 자료 유실 방지).
+    # 삭제는 관리자만. 작성자는 본인 것도 지우지 못한다(회차 자료 유실 방지).
     require_project(user, pid, perm.DELETE)
     meta = projects_store.get_project_meta(pid)
     result = projects_store.delete_project(pid)
@@ -117,7 +117,7 @@ class NoteIn(BaseModel):
 
 @router.get("/api/notes")
 def notes_list(project_id: str, user: dict = Depends(require_active)):
-    # L1은 메모의 존재 자체를 알 수 없다 — 빈 목록이 아니라 403으로 막는다.
+    # 열람자는 메모의 존재 자체를 알 수 없다 — 빈 목록이 아니라 403으로 막는다.
     require_project(user, project_id, perm.COMMENT_READ)
     return {"notes": notes_store.list_notes(project_id)}
 
@@ -188,7 +188,7 @@ def project_version_patch(pid: str, vid: str, req: VersionPatchIn,
 
 @router.delete("/api/projects/{pid}/versions/{vid}")
 def project_version_delete(pid: str, vid: str, user: dict = Depends(require_active)):
-    # 버전 삭제도 삭제다 — L3만.
+    # 버전 삭제도 삭제다 — 관리자만.
     require_project(user, pid, perm.DELETE)
     _require_version_in_project(pid, vid)
     result = projects_store.delete_version(vid)

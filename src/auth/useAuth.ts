@@ -21,7 +21,8 @@ function phaseOf(me: Me | null): AuthPhase {
   if (!me) return 'anon'
   // 비밀번호 강제 변경이 승인 상태보다 먼저다 — 시드 관리자가 초기 비밀번호로 돌아다니면 안 된다.
   if (me.must_change_pw) return 'must_change_pw'
-  if (me.status !== 'active') return 'pending'
+  // 역할이 비어 있으면 승인 전이다. status 만 보면 '승인됐는데 역할이 없는' 상태를 통과시킨다.
+  if (me.status !== 'active' || !me.role) return 'pending'
   return 'ready'
 }
 

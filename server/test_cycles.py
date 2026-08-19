@@ -43,16 +43,16 @@ def ctx():
     auth_store.ensure_seed_admin("adminpw12345")
     admin = [u for u in auth_store.list_users() if u["login_id"] == "admin"][0]
 
-    def mk(login, level, name, dept="사업본부"):
-        u = auth_store.signup(login, "password123", name, dept, 2)
-        if level:
-            auth_store.approve(admin["id"], u["id"], level)
+    def mk(login, role, name, dept="사업본부"):
+        u = auth_store.signup(login, "password123", name, dept, "writer")
+        if role:
+            auth_store.approve(admin["id"], u["id"], role)
         return auth_store.get_user(u["id"])
 
-    # 임원 5인(L2) + 열람자 1 + 대기 1
-    execs = [mk("exec%d" % i, 2, "임원%d" % i, "제%d본부" % i) for i in range(1, 6)]
-    viewer = mk("viewer", 1, "열람자")
-    pending = mk("pend", 0, "대기자")
+    # 임원 5인(작성자) + 열람자 1 + 대기 1
+    execs = [mk("exec%d" % i, "writer", "임원%d" % i, "제%d본부" % i) for i in range(1, 6)]
+    viewer = mk("viewer", "viewer", "열람자")
+    pending = mk("pend", "", "대기자")
 
     def as_user(login, pw="password123"):
         c = TestClient(make_app())
@@ -75,7 +75,7 @@ def test_게이트_가상회차_1건_5인_배부_성공(ctx):
 
     r = c.post("/api/cycles/%s/distribute" % cid, json={})
     assert r.status_code == 200, r.text
-    assert r.json()["created_count"] == 5          # L2 5인에게만
+    assert r.json()["created_count"] == 5          # 작성자 5인에게만
     assert r.json()["skipped_count"] == 0
 
     rows = cycles_store.list_cycle_projects(cid)
@@ -112,7 +112,7 @@ def test_배부는_멱등하다(ctx):
     assert len(cycles_store.list_cycle_projects(cid)) == 5      # 10장이 되지 않는다
 
 
-def test_L1과_승인대기는_배부_대상이_아니다(ctx):
+def test_열람자와_승인대기는_배부_대상이_아니다(ctx):
     c = ctx["as_admin"]()
     cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
     c.post("/api/cycles/%s/distribute" % cid, json={})

@@ -21,11 +21,16 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 def _public(u: dict) -> dict:
     """클라이언트에 내보내는 사용자 정보. 해시·승인자 id 같은 건 빼지 않지만 pw는 애초에 없다."""
+    role = u.get("role") or ""
+    req = u.get("requested_role") or ""
     return {
         "id": u["id"], "login_id": u["login_id"], "name": u["name"], "dept": u["dept"],
-        "level": u["level"], "status": u["status"],
-        "requested_level": u["requested_level"], "must_change_pw": u["must_change_pw"],
-        "level_name": perm.LEVEL_NAMES.get(u["level"], "?"),
+        "status": u["status"], "must_change_pw": u["must_change_pw"],
+        # 역할이 진실. 등급(grade)과 라벨은 화면 표시용으로 함께 내려준다.
+        "role": role, "requested_role": req,
+        "grade": perm.grade_of(role), "requested_grade": perm.grade_of(req),
+        "role_label": perm.role_label(role),
+        "requested_role_label": perm.role_label(req),
     }
 
 
@@ -34,13 +39,13 @@ class SignupIn(BaseModel):
     password: str
     name: str
     dept: str = ""
-    requested_level: int = 2
+    requested_role: str = "writer"       # admin | writer | viewer
 
 
 @router.post("/signup")
 def signup(req: SignupIn):
     try:
-        auth_store.signup(req.login_id, req.password, req.name, req.dept, req.requested_level)
+        auth_store.signup(req.login_id, req.password, req.name, req.dept, req.requested_role)
     except auth_store.AuthError as e:
         raise HTTPException(status_code=400, detail=str(e))
     # 가입만으로는 로그인시키지 않는다. 승인 대기임을 명확히 보여준다.
@@ -98,7 +103,7 @@ def change_password(req: ChangePwIn, response: Response, user: dict = Depends(re
     return {"ok": True, "message": "비밀번호를 바꿨습니다. 다시 로그인해 주세요."}
 
 
-# ── 사용자 관리 (L3) ─────────────────────────────
+# ── 사용자 관리 (관리자 전용) ─────────────────────────────
 @router.get("/users")
 def list_users(status: Optional[str] = None, user: dict = Depends(require_login)):
     require_action(user, perm.USER_MANAGE)
@@ -106,16 +111,16 @@ def list_users(status: Optional[str] = None, user: dict = Depends(require_login)
 
 
 class ApproveIn(BaseModel):
-    level: int
+    role: str                            # admin | writer | viewer
 
 
 @router.post("/users/{uid}/approve")
 def approve(uid: str, req: ApproveIn, user: dict = Depends(require_login)):
-    ok, why = perm.can_grant_level(auth_store.actor_of(user), uid, req.level)
+    ok, why = perm.can_grant_role(auth_store.actor_of(user), uid, req.role)
     if not ok:
         raise HTTPException(status_code=403, detail=why)
     try:
-        updated = auth_store.approve(user["id"], uid, req.level)
+        updated = auth_store.approve(user["id"], uid, req.role)
     except auth_store.AuthError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True, "user": _public(updated)}

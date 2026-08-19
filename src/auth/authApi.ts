@@ -4,19 +4,28 @@ import { notifyUnauthorized } from './session'
 
 const API = '/api/auth'
 
-export type Level = 0 | 1 | 2 | 3
+// 권한은 역할명이 진실이다. 숫자 등급(grade)은 화면 표시용 —
+// 등급 체계가 바뀌어도 이 타입과 판정 코드는 그대로다. (server/permissions.py 참조)
+export type Role = 'admin' | 'writer' | 'viewer' | ''
+export type Grade = 1 | 2 | 3
 
 export interface Me {
   id: string
   login_id: string
   name: string
   dept: string
-  level: Level
   status: 'pending' | 'active' | 'disabled'
-  requested_level: 1 | 2 | 3
   must_change_pw: boolean
-  level_name: string
+  role: Role
+  requested_role: Role
+  grade: Grade | null
+  requested_grade: Grade | null
+  role_label: string
+  requested_role_label: string
 }
+
+export const isAdmin = (me: Me | null | undefined): boolean =>
+  !!me && me.status === 'active' && me.role === 'admin' 
 
 /** 서버가 준 detail 을 그대로 사용자에게 보여준다 — "HTTP 400" 보다 훨씬 쓸모 있다. */
 export class ApiError extends Error {
@@ -60,7 +69,7 @@ export async function apiLogin(login_id: string, password: string): Promise<Me> 
 }
 
 export async function apiSignup(input: {
-  login_id: string; password: string; name: string; dept: string; requested_level: 1 | 2 | 3
+  login_id: string; password: string; name: string; dept: string; requested_role: Role
 }): Promise<{ message: string }> {
   return req<{ ok: boolean; status: string; message: string }>('/signup', {
     method: 'POST', body: JSON.stringify(input),
@@ -84,9 +93,9 @@ export async function apiListUsers(status?: string): Promise<Me[]> {
   return d.users || []
 }
 
-export async function apiApprove(uid: string, level: 1 | 2 | 3): Promise<Me> {
+export async function apiApprove(uid: string, role: Role): Promise<Me> {
   const d = await req<{ ok: boolean; user: Me }>(`/users/${uid}/approve`, {
-    method: 'POST', body: JSON.stringify({ level }),
+    method: 'POST', body: JSON.stringify({ role }),
   })
   return d.user
 }
@@ -98,12 +107,19 @@ export async function apiSetStatus(uid: string, status: 'active' | 'disabled'): 
   return d.user
 }
 
-export const LEVEL_LABEL: Record<number, string> = {
-  0: '미부여', 1: 'L1 열람자', 2: 'L2 작성자', 3: 'L3 관리자',
+// 화면 표시. 1등급이 최고 권한(사내 표기 관례, 확정 2026-08-19).
+// 서버가 role_label 을 함께 내려주지만, 목록·선택지처럼 클라이언트가 직접 그릴 때 쓴다.
+export const ROLE_ORDER: Exclude<Role, ''>[] = ['admin', 'writer', 'viewer']
+
+export const ROLE_LABEL: Record<Role, string> = {
+  admin: 'Lv1 관리자',
+  writer: 'Lv2 작성자',
+  viewer: 'Lv3 열람자',
+  '': '미부여',
 }
 
-export const LEVEL_DESC: Record<number, string> = {
-  1: '발행된 회차 자료를 봅니다. 편집은 하지 않습니다.',
-  2: '내 이북을 작성·수정하고 받은 메모에 답합니다. (임원·부서 담당자)',
-  3: '전체 관리 — 회차 개설, 가입 승인, 메모 작성, 최종 발행. (회의 주관)',
+export const ROLE_DESC: Record<string, string> = {
+  admin: '전체 관리 — 회차 개설, 가입 승인, 메모 작성, 최종 발행. (회의 주관)',
+  writer: '내 이북을 작성·수정하고 받은 메모에 답합니다. (임원·부서 담당자)',
+  viewer: '발행된 회차 자료를 봅니다. 편집은 하지 않습니다.',
 }

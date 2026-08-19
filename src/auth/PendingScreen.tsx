@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LEVEL_LABEL } from './authApi'
+import { ROLE_LABEL } from './authApi'
 import { useAuth } from './useAuth'
 
 /** 승인 대기 화면 — 로그인은 됐지만 아직 어떤 자료에도 접근할 수 없는 상태. */
@@ -45,7 +45,7 @@ export default function PendingScreen() {
         <dl className="es-kv" style={{ textAlign: 'left' }}>
           <div><dt>아이디</dt><dd>{me.login_id}</dd></div>
           <div><dt>이름</dt><dd>{me.name}{me.dept ? ` · ${me.dept}` : ''}</dd></div>
-          <div><dt>신청 권한</dt><dd>{LEVEL_LABEL[me.requested_level]}</dd></div>
+          <div><dt>신청 권한</dt><dd>{ROLE_LABEL[me.requested_role]}</dd></div>
         </dl>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>

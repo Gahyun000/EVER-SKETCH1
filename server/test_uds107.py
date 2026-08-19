@@ -51,9 +51,9 @@ def test_UDS107_4_서버가_UI숨김과_별개로_권한을_검증한다():
     """프런트를 거치지 않고 API 를 직접 불러도 막혀야 한다."""
     admin_pw = auth_store.ensure_seed_admin("adminpw12345")
     assert admin_pw
-    u = auth_store.signup("writer", "password123", "작성자", "본부", 2)
+    u = auth_store.signup("writer", "password123", "작성자", "본부", "writer")
     admin = [x for x in auth_store.list_users() if x["login_id"] == "admin"][0]
-    auth_store.approve(admin["id"], u["id"], 2)
+    auth_store.approve(admin["id"], u["id"], "writer")
     other = projects_store.create_project("타인", {"pages": []}, owner_id="u_other")
 
     c = app_client()
@@ -65,9 +65,9 @@ def test_UDS107_4_서버가_UI숨김과_별개로_권한을_검증한다():
 
 def test_UDS107_4_관리자와_일반_사용자_권한이_분리된다():
     auth_store.ensure_seed_admin("adminpw12345")
-    u = auth_store.signup("plain", "password123", "일반", "", 2)
+    u = auth_store.signup("plain", "password123", "일반", "", "writer")
     admin = [x for x in auth_store.list_users() if x["login_id"] == "admin"][0]
-    auth_store.approve(admin["id"], u["id"], 2)
+    auth_store.approve(admin["id"], u["id"], "writer")
     c = app_client()
     c.post("/api/auth/login", json={"login_id": "plain", "password": "password123"})
     assert c.get("/api/auth/users").status_code == 403
@@ -99,9 +99,9 @@ def test_UDS107_4_버전_삭제도_감사로그에_남는다():
 
 def test_UDS107_4_권한변경이_감사로그에_남는다():
     auth_store.ensure_seed_admin("adminpw12345")
-    u = auth_store.signup("target", "password123", "대상", "", 2)
+    u = auth_store.signup("target", "password123", "대상", "", "writer")
     admin = [x for x in auth_store.list_users() if x["login_id"] == "admin"][0]
-    auth_store.approve(admin["id"], u["id"], 2)
+    auth_store.approve(admin["id"], u["id"], "writer")
     auth_store.set_status(admin["id"], u["id"], "disabled")
     acts = audit_actions()
     assert "approve" in acts and "disable" in acts
@@ -109,7 +109,7 @@ def test_UDS107_4_권한변경이_감사로그에_남는다():
 
 # ══════════ §5 비밀정보 ══════════
 def test_UDS107_5_비밀번호가_평문으로_저장되지_않는다():
-    auth_store.signup("secret", "MySecretPw123", "비밀", "", 2)
+    auth_store.signup("secret", "MySecretPw123", "비밀", "", "writer")
     c = auth_store._conn()
     try:
         row = c.execute("SELECT pw_hash FROM Users WHERE login_id='secret'").fetchone()
@@ -121,7 +121,7 @@ def test_UDS107_5_비밀번호가_평문으로_저장되지_않는다():
 
 def test_UDS107_5_비밀번호가_감사로그에_남지_않는다():
     """로그도 데이터 분류 대상이다(§3). 인증정보가 흘러들면 안 된다."""
-    auth_store.signup("logtest", "MySecretPw123", "로그", "", 2)
+    auth_store.signup("logtest", "MySecretPw123", "로그", "", "writer")
     try:
         auth_store.login("logtest", "MySecretPw123")
     except auth_store.AuthError:
@@ -147,32 +147,32 @@ def test_UDS107_5_비밀번호가_감사로그에_남지_않는다():
 ])
 def test_UDS107_6_아이디_형식과_길이를_검증한다(login_id):
     with pytest.raises(auth_store.AuthError):
-        auth_store.signup(login_id, "password123", "이름", "", 2)
+        auth_store.signup(login_id, "password123", "이름", "", "writer")
 
 
 def test_UDS107_6_비밀번호_길이_상한이_있다():
     """PBKDF2 는 입력 길이에 비례해 CPU를 쓴다. 상한이 없으면 연산 DoS 가 된다."""
     with pytest.raises(auth_store.AuthError):
-        auth_store.signup("dosuser", "x" * 100_000, "이름", "", 2)
+        auth_store.signup("dosuser", "x" * 100_000, "이름", "", "writer")
 
 
 def test_UDS107_6_로그인도_길이_상한을_먼저_적용한다():
     """검증 전에 잘라내야 한다 — 해시 계산까지 가면 이미 CPU를 쓴 뒤다."""
-    auth_store.signup("victim", "password123", "이름", "", 2)
+    auth_store.signup("victim", "password123", "이름", "", "writer")
     with pytest.raises(auth_store.AuthError):
         auth_store.login("victim", "x" * 100_000)
 
 
 def test_UDS107_6_이름_부서_길이_상한():
     with pytest.raises(auth_store.AuthError):
-        auth_store.signup("nameuser", "password123", "이" * 41, "", 2)
+        auth_store.signup("nameuser", "password123", "이" * 41, "", "writer")
     with pytest.raises(auth_store.AuthError):
-        auth_store.signup("deptuser", "password123", "이름", "부" * 41, 2)
+        auth_store.signup("deptuser", "password123", "이름", "부" * 41, "writer")
 
 
 def test_UDS107_6_SQL_인젝션이_먹히지_않는다():
     """파라미터 바인딩을 쓰므로 문자열이 그대로 값으로 처리된다."""
-    auth_store.signup("normal", "password123", "정상", "", 2)
+    auth_store.signup("normal", "password123", "정상", "", "writer")
     # 형식 검증에 먼저 걸리지만, 통과하더라도 값으로만 쓰인다는 것을 확인
     with pytest.raises(auth_store.AuthError):
         auth_store.login("'; DROP TABLE Users; --", "password123")
@@ -181,7 +181,7 @@ def test_UDS107_6_SQL_인젝션이_먹히지_않는다():
 
 def test_UDS107_6_로그인_시도_제한():
     """권한 상승을 위협 모델에 포함 — 무차별 대입을 막는다."""
-    auth_store.signup("bruteforce", "password123", "대상", "", 2)
+    auth_store.signup("bruteforce", "password123", "대상", "", "writer")
     for _ in range(auth_store.LOGIN_MAX_FAILS):
         with pytest.raises(auth_store.AuthError):
             auth_store.login("bruteforce", "wrongpassword")
@@ -194,8 +194,8 @@ def test_UDS107_6_로그인_시도_제한():
 
 def test_UDS107_6_잠금은_계정별로_분리된다():
     """한 계정이 잠겼다고 다른 사람이 못 들어오면 안 된다."""
-    auth_store.signup("locked", "password123", "잠김", "", 2)
-    auth_store.signup("innocent", "password123", "정상", "", 2)
+    auth_store.signup("locked", "password123", "잠김", "", "writer")
+    auth_store.signup("innocent", "password123", "정상", "", "writer")
     for _ in range(auth_store.LOGIN_MAX_FAILS):
         with pytest.raises(auth_store.AuthError):
             auth_store.login("locked", "wrongpassword")
@@ -205,7 +205,7 @@ def test_UDS107_6_잠금은_계정별로_분리된다():
 
 def test_UDS107_6_성공하면_잠금_카운터가_비워진다():
     """9번 틀리고 맞춘 사람이 다음날 1번만 틀려도 잠기면 안 된다."""
-    auth_store.signup("recover", "password123", "복구", "", 2)
+    auth_store.signup("recover", "password123", "복구", "", "writer")
     for _ in range(auth_store.LOGIN_MAX_FAILS - 1):
         with pytest.raises(auth_store.AuthError):
             auth_store.login("recover", "wrongpassword")
@@ -215,7 +215,7 @@ def test_UDS107_6_성공하면_잠금_카운터가_비워진다():
 
 def test_UDS107_6_콘솔로_잠금을_해제할_수_있다():
     from server import admin_cli
-    auth_store.signup("stuck", "password123", "잠김", "", 2)
+    auth_store.signup("stuck", "password123", "잠김", "", "writer")
     for _ in range(auth_store.LOGIN_MAX_FAILS):
         with pytest.raises(auth_store.AuthError):
             auth_store.login("stuck", "wrongpassword")
@@ -238,10 +238,10 @@ from server.permissions import (  # noqa: E402
     Actor, Resource, decide, AI_USE, SETTINGS_MANAGE, PUBLISH,
 )
 
-_PEND = Actor(id="p", level=0, status="pending")
-_L1 = Actor(id="a", level=1, status="active")
-_L2 = Actor(id="b", level=2, status="active")
-_L3 = Actor(id="c", level=3, status="active")
+_PEND = Actor(id="p", role="", status="pending")
+_L1 = Actor(id="a", role="viewer", status="active")
+_L2 = Actor(id="b", role="writer", status="active")
+_L3 = Actor(id="c", role="admin", status="active")
 
 
 def test_LLM설정은_L3만_판정():

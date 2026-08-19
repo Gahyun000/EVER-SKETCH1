@@ -374,7 +374,7 @@ def _require_own_conversation(user: dict, cid: str) -> None:
 
     이게 없으면 임원 A가 대화 id 만 알면 임원 B의 챗봇 대화를 그대로 읽는다.
     """
-    if user["level"] == 3:
+    if perm.is_admin(auth_store.actor_of(user)):
         return
     owner = conversations_store.owner_of(cid)
     if owner != user["id"]:
@@ -393,7 +393,7 @@ def _own_or_claim_conversation(user: dict, cid: Optional[str]) -> None:
     if owner is None:
         conversations_store.claim(cid, user["id"])
         return
-    if owner != user["id"] and user["level"] != 3:
+    if owner != user["id"] and not perm.is_admin(auth_store.actor_of(user)):
         raise HTTPException(status_code=403, detail="권한이 없습니다.")
 
 
@@ -419,7 +419,7 @@ def chat_reset(req: ResetIn, user: dict = Depends(require_active)):
 def chat_conversations(user: dict = Depends(require_active)):
     require_action(user, perm.AI_USE)
     # 본인 대화만. 예전 단일 사용자 시절 대화(user_id 없음)는 L3 에게만 보인다.
-    scope = None if user["level"] == 3 else user["id"]
+    scope = None if perm.is_admin(auth_store.actor_of(user)) else user["id"]
     return {"conversations": conversations_store.list_all(scope)}
 
 

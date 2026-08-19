@@ -77,7 +77,7 @@ def test_모든_엔드포인트가_권한을_판정한다(method, path, body):
         return   # 로그인 전이거나 본인 계정 조작 — 레벨과 무관
     # 목록 계열은 permissions 의 가시성 판정 함수를 쓴다(라우터가 레벨을 직접 비교하면 안 된다).
     assert ("require_action" in body or "require_project" in body
-            or "can_grant_level" in body or "visible_project_filter" in body
+            or "can_grant_role" in body or "visible_project_filter" in body
             or "_visible_cycles" in body), \
         "%s %s 가 권한을 판정하지 않습니다" % (method, path)
 
@@ -110,3 +110,62 @@ def test_대화_조회는_소유를_확인한다():
             assert "_require_own_conversation" in body, "%s %s 가 대화 소유를 확인하지 않습니다" % (m, p)
         if p in ("/api/chat/v2", "/api/chat/v2/stream", "/api/chat/reset"):
             assert "_own_or_claim_conversation" in body, "%s %s 가 대화 소유를 확정하지 않습니다" % (m, p)
+
+
+# ══════════ 권한을 숫자로 판정하지 않는다 ══════════
+def _perm_sources():
+    """권한 판정에 관여하는 서버 파일들."""
+    names = ["permissions.py", "authdeps.py", "auth.py", "app.py",
+             "routes_auth.py", "routes_projects.py", "routes_cycles.py", "admin_cli.py"]
+    return [(n, (SRC_DIR / n).read_text(encoding="utf-8")) for n in names
+            if (SRC_DIR / n).exists()]
+
+
+def test_권한을_숫자_레벨로_비교하지_않는다():
+    """`if level == 3` 류가 되살아나면 등급 체계를 바꿀 때 조용히 반대로 동작한다.
+
+    권한은 역할명(admin/writer/viewer)으로만 판정한다.
+    표시용 등급(DISPLAY_GRADE)은 화면 라벨에만 쓴다.
+    """
+    import re
+    bad = re.compile(r'\[["\']level["\']\]\s*[=!<>]=|\blevel\s*[=!<>]=\s*[0-9]|'
+                     r'\blevel\s*[<>]\s*[0-9]')
+    hits = []
+    for name, src in _perm_sources():
+        in_doc = False
+        for i, line in enumerate(src.split("\n"), 1):
+            stripped = line.strip()
+            # 독스트링 블록은 통째로 건너뛴다 — 설명 문장에 예시 코드가 들어 있다.
+            if stripped.count('"""') == 1:
+                in_doc = not in_doc
+                continue
+            if in_doc or stripped.startswith("#") or stripped.startswith('"""'):
+                continue
+            if "add_heading" in line:
+                continue          # python-docx 의 제목 수준 — 권한과 무관
+            if bad.search(line):
+                hits.append("%s:%d  %s" % (name, i, stripped[:80]))
+    assert not hits, "권한을 숫자로 판정하는 코드가 있습니다:\n" + "\n".join(hits)
+
+
+def test_표시용_등급이_판정_경로에_없다():
+    """DISPLAY_GRADE·grade_of 가 라우터나 판정에 쓰이면 전환의 의미가 사라진다."""
+    for name, src in _perm_sources():
+        if name in ("permissions.py", "routes_auth.py", "admin_cli.py"):
+            continue      # 정의부와 화면 응답 조립부는 예외
+        for token in ("DISPLAY_GRADE", "grade_of(", "role_of_grade("):
+            assert token not in src, "%s 가 표시용 등급을 참조합니다: %s" % (name, token)
+
+
+def test_프런트도_숫자_레벨을_쓰지_않는다():
+    import re
+    root = SRC_DIR.parent / "src" / "auth"
+    if not root.exists():
+        pytest.skip("src/auth 없음")
+    bad = re.compile(r'\.level\b|\[["\']level["\']\]|LEVEL_LABEL|requested_level')
+    hits = []
+    for f in list(root.glob("*.ts")) + list(root.glob("*.tsx")):
+        for i, line in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+            if bad.search(line):
+                hits.append("%s:%d  %s" % (f.name, i, line.strip()[:80]))
+    assert not hits, "프런트에 숫자 레벨이 남아 있습니다:\n" + "\n".join(hits)

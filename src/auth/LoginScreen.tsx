@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { clearRememberedId, loadRememberedId, saveRememberedId } from './rememberId'
-import { ApiError, apiSignup, LEVEL_DESC } from './authApi'
+import { ApiError, apiSignup, ROLE_DESC, ROLE_LABEL, ROLE_ORDER, type Role } from './authApi'
 import { useAuth } from './useAuth'
 
 type Mode = 'login' | 'signup'
@@ -18,7 +18,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [dept, setDept] = useState('')
-  const [level, setLevel] = useState<1 | 2 | 3>(2)
+  // 기본은 작성자 — 임원·부서 담당자가 대다수다.
+  const [role, setRole] = useState<Role>('writer')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [done, setDone] = useState('')
@@ -38,7 +39,7 @@ export default function LoginScreen() {
         if (remember) saveRememberedId(loginId)
         else clearRememberedId()
       } else {
-        const r = await apiSignup({ login_id: loginId, password, name, dept, requested_level: level })
+        const r = await apiSignup({ login_id: loginId, password, name, dept, requested_role: role })
         setDone(r.message)
         setMode('login')
         setPassword('')
@@ -108,13 +109,13 @@ export default function LoginScreen() {
                 <input id="es-dept" value={dept} onChange={(e) => setDept(e.target.value)} placeholder="사업본부" />
               </div>
               <div className="es-field">
-                <label htmlFor="es-level">희망 권한</label>
-                <select id="es-level" value={level} onChange={(e) => setLevel(Number(e.target.value) as 1 | 2 | 3)}>
-                  <option value={1}>L1 열람자</option>
-                  <option value={2}>L2 작성자</option>
-                  <option value={3}>L3 관리자</option>
+                <label htmlFor="es-role">희망 권한</label>
+                <select id="es-role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+                  {ROLE_ORDER.map((r) => (
+                    <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                  ))}
                 </select>
-                <div className="es-hint">{LEVEL_DESC[level]}</div>
+                <div className="es-hint">{ROLE_DESC[role]}</div>
                 <div className="es-hint">
                   신청한 권한은 <b>관리자 승인 시 확정</b>됩니다. 승인 전에는 자료에 접근할 수 없습니다.
                 </div>
