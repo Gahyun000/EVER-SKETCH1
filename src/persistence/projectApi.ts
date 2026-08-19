@@ -1,5 +1,6 @@
 // 프로젝트(내 이북) + 버전 서버 API 클라이언트. IndexedDB를 대체하는 단일 진실 소스.
 import type { DraftStateSnapshot } from './draftStorage'
+import { checkAuth } from '../auth/session'
 
 const API = '/api'
 
@@ -10,6 +11,9 @@ export interface ProjectMeta {
   updated_at: number   // ms
   published_id: string | null
   page_count: number
+  owner_id?: string | null
+  cycle_id?: string | null
+  submit_status?: string
 }
 export interface ProjectFull extends ProjectMeta {
   state: DraftStateSnapshot
@@ -29,7 +33,21 @@ export interface DocVersionFull extends DocVersion {
 }
 
 async function j<T>(res: Response): Promise<T> {
-  if (!res.ok) throw new Error('API ' + res.status + ' ' + res.statusText)
+  // 401 이면 세션이 끊긴 것 — 화면을 로그인으로 되돌린다.
+  // 관리자가 권한을 바꾸거나 계정을 중지하면 서버가 그 즉시 토큰을 지우므로,
+  // 이 처리가 없으면 사용자는 '저장이 안 되는데 이유를 모르는' 상태가 된다.
+  checkAuth(res)
+  if (!res.ok) {
+    let detail = ''
+    try {
+      const body = await res.clone().json()
+      detail = typeof body?.detail === 'string' ? body.detail : ''
+    } catch {
+      /* JSON 이 아니면 무시 */
+    }
+    if (res.status === 403) throw new Error(detail || '권한이 없습니다.')
+    throw new Error(detail || 'API ' + res.status + ' ' + res.statusText)
+  }
   return res.json() as Promise<T>
 }
 
