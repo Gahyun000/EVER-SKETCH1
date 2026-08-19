@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import re
 import os
 import pathlib
 import secrets
@@ -28,6 +29,23 @@ _HERE = pathlib.Path(__file__).resolve().parent
 PBKDF2_ROUNDS = 200_000
 SESSION_TTL_MS = 12 * 60 * 60 * 1000        # 12시간
 _SEED_ADMIN_LOGIN = "admin"
+
+# 입력 길이 상한 (UDS-107 §6 — 형식·길이·범위 검증).
+# 상한이 없으면 두 가지가 터진다.
+#  · 비밀번호: PBKDF2 는 입력 길이에 비례해 시간을 쓴다. 10MB 비밀번호를 반복 전송하면
+#    로그인 하나가 서버 CPU를 통째로 먹는다(연산 DoS).
+#  · 아이디·이름: 무제한이면 DB와 화면·감사로그가 그대로 오염된다.
+MAX_LOGIN_ID = 32
+MIN_LOGIN_ID = 3
+MAX_PASSWORD = 128
+MIN_PASSWORD = 8
+MAX_NAME = 40
+MAX_DEPT = 40
+
+# 로그인 시도 제한 (UDS-107 §6 — 권한 상승을 위협 모델에 포함).
+LOGIN_WINDOW_MS = 10 * 60 * 1000     # 10분 동안
+LOGIN_MAX_FAILS = 10                 # 10회 실패하면 잠금
+_LOGIN_ID_RE = re.compile(r"^[a-z0-9._-]+$")
 
 
 def _db_path() -> str:
@@ -114,12 +132,23 @@ class AuthError(Exception):
 def signup(login_id: str, pw: str, name: str, dept: str, requested_level: int) -> dict:
     """자가가입. **실권한은 부여하지 않는다** — level=0, status='pending'."""
     login_id = (login_id or "").strip().lower()
-    if not login_id or len(login_id) < 3:
-        raise AuthError("아이디는 3자 이상이어야 합니다.")
-    if not pw or len(pw) < 8:
-        raise AuthError("비밀번호는 8자 이상이어야 합니다.")
-    if not (name or "").strip():
+    name = (name or "").strip()
+    dept = (dept or "").strip()
+    if len(login_id) < MIN_LOGIN_ID or len(login_id) > MAX_LOGIN_ID:
+        raise AuthError("아이디는 %d~%d자여야 합니다." % (MIN_LOGIN_ID, MAX_LOGIN_ID))
+    if not _LOGIN_ID_RE.match(login_id):
+        # 공백·제어문자·따옴표가 섞인 아이디는 로그와 화면을 오염시킨다.
+        raise AuthError("아이디는 영문 소문자, 숫자, . _ - 만 쓸 수 있습니다.")
+    if not pw or len(pw) < MIN_PASSWORD:
+        raise AuthError("비밀번호는 %d자 이상이어야 합니다." % MIN_PASSWORD)
+    if len(pw) > MAX_PASSWORD:
+        raise AuthError("비밀번호는 %d자 이하여야 합니다." % MAX_PASSWORD)
+    if not name:
         raise AuthError("이름을 입력해 주세요.")
+    if len(name) > MAX_NAME:
+        raise AuthError("이름은 %d자 이하여야 합니다." % MAX_NAME)
+    if len(dept) > MAX_DEPT:
+        raise AuthError("부서는 %d자 이하여야 합니다." % MAX_DEPT)
     if requested_level not in (1, 2, 3):
         raise AuthError("희망 권한은 1~3 중에서 골라주세요.")
 
@@ -130,8 +159,7 @@ def signup(login_id: str, pw: str, name: str, dept: str, requested_level: int) -
             c.execute(
                 "INSERT INTO Users(id,login_id,pw_hash,name,dept,requested_level,level,status,"
                 "must_change_pw,created_at) VALUES(?,?,?,?,?,?,0,'pending',0,?)",
-                (uid, login_id, hash_pw(pw), name.strip(), (dept or "").strip(),
-                 requested_level, _now()),
+                (uid, login_id, hash_pw(pw), name, dept, requested_level, _now()),
             )
             c.commit()
         except sqlite3.IntegrityError:
@@ -165,12 +193,40 @@ def get_user(uid: str) -> Optional[dict]:
     return _row_to_user(r) if r else None
 
 
+def recent_login_fails(login_id: str) -> int:
+    """최근 LOGIN_WINDOW_MS 안의 실패 횟수. 감사로그를 그대로 카운터로 쓴다(별도 테이블 불필요)."""
+    since = _now() - LOGIN_WINDOW_MS
+    c = _conn()
+    try:
+        r = c.execute(
+            "SELECT COUNT(*) FROM AuditLogs WHERE action='login_fail' AND target=? AND ts>=?",
+            (login_id, since),
+        ).fetchone()
+    finally:
+        c.close()
+    return int(r[0]) if r else 0
+
+
 def login(login_id: str, pw: str, ip: str = "", ua: str = "") -> tuple[str, dict]:
     """성공하면 (세션 토큰, 사용자). 승인 대기 계정도 **로그인은 된다** — 대기 화면을 보여줘야 하므로.
 
     실패 사유를 아이디/비밀번호로 구분해서 알려주지 않는다(계정 존재 여부 노출 방지).
     """
     login_id = (login_id or "").strip().lower()
+
+    # 길이 상한 — PBKDF2 는 입력에 비례해 CPU를 쓴다. 검증 전에 먼저 잘라낸다.
+    if len(login_id) > MAX_LOGIN_ID or len(pw or "") > MAX_PASSWORD:
+        audit(None, "login_fail", login_id[:MAX_LOGIN_ID], "입력 길이 초과")
+        raise AuthError("아이디 또는 비밀번호가 올바르지 않습니다.")
+
+    # 시도 제한 — 사내망이라 외부 무차별 대입은 없지만, 같은 망 안에서의 시도는 막아야 한다.
+    if recent_login_fails(login_id) >= LOGIN_MAX_FAILS:
+        audit(None, "login_locked", login_id, "%d분 내 %d회 실패" % (LOGIN_WINDOW_MS // 60000, LOGIN_MAX_FAILS))
+        raise AuthError(
+            "로그인 시도가 너무 많습니다. %d분 후 다시 시도하거나 관리자에게 문의해 주세요."
+            % (LOGIN_WINDOW_MS // 60000)
+        )
+
     c = _conn()
     try:
         r = c.execute("SELECT id,pw_hash,status FROM Users WHERE login_id=?", (login_id,)).fetchone()
@@ -193,6 +249,9 @@ def login(login_id: str, pw: str, ip: str = "", ua: str = "") -> tuple[str, dict
             (token, uid, now, now + SESSION_TTL_MS, ip, ua),
         )
         c.execute("UPDATE Users SET last_login_at=? WHERE id=?", (now, uid))
+        # 성공했으면 실패 기록을 잠금 계산에서 제외한다(이력 자체는 남긴다).
+        c.execute("UPDATE AuditLogs SET action='login_fail_cleared' "
+                  "WHERE action='login_fail' AND target=?", (login_id,))
         c.commit()
     finally:
         c.close()

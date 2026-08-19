@@ -13,6 +13,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from server import auth as auth_store
 from server import notes as notes_store
 from server import permissions as perm
 from server import projects as projects_store
@@ -86,7 +87,13 @@ def projects_rename(pid: str, req: ProjectRenameIn, user: dict = Depends(require
 def projects_delete(pid: str, user: dict = Depends(require_active)):
     # 삭제는 L3만. L2는 본인 것도 지우지 못한다(회차 자료 유실 방지).
     require_project(user, pid, perm.DELETE)
-    return projects_store.delete_project(pid)
+    meta = projects_store.get_project_meta(pid)
+    result = projects_store.delete_project(pid)
+    # 되돌릴 수 없는 작업이므로 누가 무엇을 지웠는지 반드시 남긴다(UDS-107 §4).
+    auth_store.audit(user["id"], "delete_project", pid,
+                     "name=%s owner=%s" % (meta.get("name") if meta else "?",
+                                           meta.get("owner_id") if meta else "?"))
+    return result
 
 
 @router.post("/api/projects/{pid}/duplicate")
@@ -184,4 +191,6 @@ def project_version_delete(pid: str, vid: str, user: dict = Depends(require_acti
     # 버전 삭제도 삭제다 — L3만.
     require_project(user, pid, perm.DELETE)
     _require_version_in_project(pid, vid)
-    return projects_store.delete_version(vid)
+    result = projects_store.delete_version(vid)
+    auth_store.audit(user["id"], "delete_version", vid, "project=%s" % pid)
+    return result

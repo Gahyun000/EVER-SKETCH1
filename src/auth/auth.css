@@ -119,3 +119,18 @@
 .es-st.active { background: #E9F5EF; color: #2b7a54; }
 .es-st.pending { background: #FBF0E1; color: #96601a; }
 .es-st.disabled { background: #eef0f3; color: #6b7480; }
+
+/* 중요 작업 확인 (UDS-107 §4 — 중요 작업은 추가 확인) */
+.es-confirm {
+  position: fixed; inset: 0; z-index: 4200; background: rgba(15, 27, 61, .34);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.es-confirm-box {
+  background: #fff; border-radius: 11px; max-width: 400px; width: 100%;
+  padding: 22px 24px 18px; box-shadow: 0 12px 40px rgba(15, 27, 61, .22);
+}
+.es-confirm-title { font-size: 15.5px; font-weight: 800; color: #0F1B3D; margin-bottom: 10px; }
+.es-confirm-msg { font-size: 13px; color: #5b6270; line-height: 1.65; margin-bottom: 18px; }
+.es-confirm-msg b { color: #1c2433; }
+.es-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.es-confirm-actions .es-mini { padding: 7px 16px; font-size: 13px; }

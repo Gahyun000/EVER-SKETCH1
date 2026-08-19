@@ -122,6 +122,9 @@ def build(req: BuildReq):
     if req.project_id and eid:
         try:
             projects_store.set_published(req.project_id, eid)
+            # 발행은 배포에 해당한다 — 감사로그 대상(UDS-107 §4).
+            # 인증 배선은 W2에서 이 엔드포인트에도 붙인다. 지금은 행위 자체만 남긴다.
+            auth_store.audit(None, "publish", req.project_id, "ebook=%s" % eid)
         except Exception:
             pass
     return {"ok": True, "id": eid, "path": out_path, "url": ("/ebooks/%s/index.html" % eid) if eid else None, "log": proc.stdout[-1500:]}

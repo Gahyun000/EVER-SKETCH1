@@ -1,0 +1,233 @@
+"""UDS-107 보안 및 개인정보 표준 준수 검증.
+
+각 테스트는 표준 조항에 1:1로 대응한다. 조항이 바뀌면 여기를 먼저 고친다.
+"""
+import os
+import pathlib
+import tempfile
+
+_tmp = tempfile.mkdtemp()
+os.environ["EVER_SKETCH_DB"] = str(pathlib.Path(_tmp) / "uds107.db")
+
+import pytest  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from server import auth as auth_store  # noqa: E402
+from server import projects as projects_store  # noqa: E402
+from server.routes_auth import router as auth_router  # noqa: E402
+from server.routes_projects import router as proj_router  # noqa: E402
+
+_DB = str(pathlib.Path(_tmp) / "uds107.db")
+
+
+@pytest.fixture(autouse=True)
+def clean():
+    os.environ["EVER_SKETCH_DB"] = _DB
+    for suffix in ("", "-wal", "-shm"):
+        f = pathlib.Path(_DB + suffix)
+        if f.exists():
+            f.unlink()
+    yield
+
+
+def app_client() -> TestClient:
+    app = FastAPI()
+    app.include_router(auth_router)
+    app.include_router(proj_router)
+    return TestClient(app)
+
+
+def audit_actions() -> list[str]:
+    c = auth_store._conn()
+    try:
+        return [r[0] for r in c.execute("SELECT action FROM AuditLogs").fetchall()]
+    finally:
+        c.close()
+
+
+# ══════════ §4 인증과 권한 ══════════
+def test_UDS107_4_서버가_UI숨김과_별개로_권한을_검증한다():
+    """프런트를 거치지 않고 API 를 직접 불러도 막혀야 한다."""
+    admin_pw = auth_store.ensure_seed_admin("adminpw12345")
+    assert admin_pw
+    u = auth_store.signup("writer", "password123", "작성자", "본부", 2)
+    admin = [x for x in auth_store.list_users() if x["login_id"] == "admin"][0]
+    auth_store.approve(admin["id"], u["id"], 2)
+    other = projects_store.create_project("타인", {"pages": []}, owner_id="u_other")
+
+    c = app_client()
+    c.post("/api/auth/login", json={"login_id": "writer", "password": "password123"})
+    # 화면에 버튼이 없어도 API 는 열려 있을 수 있다 — 서버가 막아야 한다.
+    assert c.get(f"/api/projects/{other['id']}").status_code == 403
+    assert c.delete(f"/api/projects/{other['id']}").status_code == 403
+
+
+def test_UDS107_4_관리자와_일반_사용자_권한이_분리된다():
+    auth_store.ensure_seed_admin("adminpw12345")
+    u = auth_store.signup("plain", "password123", "일반", "", 2)
+    admin = [x for x in auth_store.list_users() if x["login_id"] == "admin"][0]
+    auth_store.approve(admin["id"], u["id"], 2)
+    c = app_client()
+    c.post("/api/auth/login", json={"login_id": "plain", "password": "password123"})
+    assert c.get("/api/auth/users").status_code == 403
+
+
+def test_UDS107_4_삭제가_감사로그에_남는다():
+    """되돌릴 수 없는 작업 — 누가 무엇을 지웠는지 반드시 추적 가능해야 한다."""
+    auth_store.ensure_seed_admin("adminpw12345")
+    p = projects_store.create_project("지울 것", {"pages": []}, owner_id="u_x")
+    c = app_client()
+    c.post("/api/auth/login", json={"login_id": "admin", "password": "adminpw12345"})
+    c.post("/api/auth/password", json={"old_password": "adminpw12345", "new_password": "realpw123456"})
+    c.post("/api/auth/login", json={"login_id": "admin", "password": "realpw123456"})
+    assert c.delete(f"/api/projects/{p['id']}").status_code == 200
+    assert "delete_project" in audit_actions()
+
+
+def test_UDS107_4_버전_삭제도_감사로그에_남는다():
+    auth_store.ensure_seed_admin("adminpw12345")
+    p = projects_store.create_project("이북", {"pages": [{"id": 1}]}, owner_id="u_x")
+    v = projects_store.save_version(p["id"], {"pages": [{"id": 1}]}, label="v1")
+    c = app_client()
+    c.post("/api/auth/login", json={"login_id": "admin", "password": "adminpw12345"})
+    c.post("/api/auth/password", json={"old_password": "adminpw12345", "new_password": "realpw123456"})
+    c.post("/api/auth/login", json={"login_id": "admin", "password": "realpw123456"})
+    assert c.delete(f"/api/projects/{p['id']}/versions/{v['id']}").status_code == 200
+    assert "delete_version" in audit_actions()
+
+
+def test_UDS107_4_권한변경이_감사로그에_남는다():
+    auth_store.ensure_seed_admin("adminpw12345")
+    u = auth_store.signup("target", "password123", "대상", "", 2)
+    admin = [x for x in auth_store.list_users() if x["login_id"] == "admin"][0]
+    auth_store.approve(admin["id"], u["id"], 2)
+    auth_store.set_status(admin["id"], u["id"], "disabled")
+    acts = audit_actions()
+    assert "approve" in acts and "disable" in acts
+
+
+# ══════════ §5 비밀정보 ══════════
+def test_UDS107_5_비밀번호가_평문으로_저장되지_않는다():
+    auth_store.signup("secret", "MySecretPw123", "비밀", "", 2)
+    c = auth_store._conn()
+    try:
+        row = c.execute("SELECT pw_hash FROM Users WHERE login_id='secret'").fetchone()
+    finally:
+        c.close()
+    assert "MySecretPw123" not in row[0]
+    assert row[0].startswith("pbkdf2$")
+
+
+def test_UDS107_5_비밀번호가_감사로그에_남지_않는다():
+    """로그도 데이터 분류 대상이다(§3). 인증정보가 흘러들면 안 된다."""
+    auth_store.signup("logtest", "MySecretPw123", "로그", "", 2)
+    try:
+        auth_store.login("logtest", "MySecretPw123")
+    except auth_store.AuthError:
+        pass
+    c = auth_store._conn()
+    try:
+        rows = c.execute("SELECT target, detail FROM AuditLogs").fetchall()
+    finally:
+        c.close()
+    blob = " ".join(str(x) for row in rows for x in row)
+    assert "MySecretPw123" not in blob
+
+
+# ══════════ §6 안전한 구현 ══════════
+@pytest.mark.parametrize("login_id", [
+    "ab",                       # 너무 짧음
+    "x" * 33,                   # 너무 김
+    "hong gildong",             # 공백
+    "admin'--",                 # SQL 흉내
+    "<script>alert(1)</script>",  # HTML 주입 흉내
+    "관리자",                    # 비ASCII
+    "a\nb",                     # 제어문자
+])
+def test_UDS107_6_아이디_형식과_길이를_검증한다(login_id):
+    with pytest.raises(auth_store.AuthError):
+        auth_store.signup(login_id, "password123", "이름", "", 2)
+
+
+def test_UDS107_6_비밀번호_길이_상한이_있다():
+    """PBKDF2 는 입력 길이에 비례해 CPU를 쓴다. 상한이 없으면 연산 DoS 가 된다."""
+    with pytest.raises(auth_store.AuthError):
+        auth_store.signup("dosuser", "x" * 100_000, "이름", "", 2)
+
+
+def test_UDS107_6_로그인도_길이_상한을_먼저_적용한다():
+    """검증 전에 잘라내야 한다 — 해시 계산까지 가면 이미 CPU를 쓴 뒤다."""
+    auth_store.signup("victim", "password123", "이름", "", 2)
+    with pytest.raises(auth_store.AuthError):
+        auth_store.login("victim", "x" * 100_000)
+
+
+def test_UDS107_6_이름_부서_길이_상한():
+    with pytest.raises(auth_store.AuthError):
+        auth_store.signup("nameuser", "password123", "이" * 41, "", 2)
+    with pytest.raises(auth_store.AuthError):
+        auth_store.signup("deptuser", "password123", "이름", "부" * 41, 2)
+
+
+def test_UDS107_6_SQL_인젝션이_먹히지_않는다():
+    """파라미터 바인딩을 쓰므로 문자열이 그대로 값으로 처리된다."""
+    auth_store.signup("normal", "password123", "정상", "", 2)
+    # 형식 검증에 먼저 걸리지만, 통과하더라도 값으로만 쓰인다는 것을 확인
+    with pytest.raises(auth_store.AuthError):
+        auth_store.login("'; DROP TABLE Users; --", "password123")
+    assert auth_store.list_users()          # 테이블이 살아 있다
+
+
+def test_UDS107_6_로그인_시도_제한():
+    """권한 상승을 위협 모델에 포함 — 무차별 대입을 막는다."""
+    auth_store.signup("bruteforce", "password123", "대상", "", 2)
+    for _ in range(auth_store.LOGIN_MAX_FAILS):
+        with pytest.raises(auth_store.AuthError):
+            auth_store.login("bruteforce", "wrongpassword")
+    # 이제 올바른 비밀번호로도 막힌다
+    with pytest.raises(auth_store.AuthError) as e:
+        auth_store.login("bruteforce", "password123")
+    assert "너무 많습니다" in str(e.value)
+    assert "login_locked" in audit_actions()
+
+
+def test_UDS107_6_잠금은_계정별로_분리된다():
+    """한 계정이 잠겼다고 다른 사람이 못 들어오면 안 된다."""
+    auth_store.signup("locked", "password123", "잠김", "", 2)
+    auth_store.signup("innocent", "password123", "정상", "", 2)
+    for _ in range(auth_store.LOGIN_MAX_FAILS):
+        with pytest.raises(auth_store.AuthError):
+            auth_store.login("locked", "wrongpassword")
+    token, _ = auth_store.login("innocent", "password123")
+    assert token
+
+
+def test_UDS107_6_성공하면_잠금_카운터가_비워진다():
+    """9번 틀리고 맞춘 사람이 다음날 1번만 틀려도 잠기면 안 된다."""
+    auth_store.signup("recover", "password123", "복구", "", 2)
+    for _ in range(auth_store.LOGIN_MAX_FAILS - 1):
+        with pytest.raises(auth_store.AuthError):
+            auth_store.login("recover", "wrongpassword")
+    assert auth_store.login("recover", "password123")[0]
+    assert auth_store.recent_login_fails("recover") == 0
+
+
+def test_UDS107_6_콘솔로_잠금을_해제할_수_있다():
+    from server import admin_cli
+    auth_store.signup("stuck", "password123", "잠김", "", 2)
+    for _ in range(auth_store.LOGIN_MAX_FAILS):
+        with pytest.raises(auth_store.AuthError):
+            auth_store.login("stuck", "wrongpassword")
+    admin_cli.cmd_unlock("stuck")
+    assert auth_store.login("stuck", "password123")[0]
+
+
+def test_UDS107_6_오류_응답에_내부_경로가_없다():
+    """오류 응답에 내부 경로, 스택, 쿼리, 비밀정보를 노출하지 않는다."""
+    auth_store.ensure_seed_admin("adminpw12345")
+    c = app_client()
+    r = c.post("/api/auth/login", json={"login_id": "nosuch", "password": "wrongpassword"})
+    body = r.text
+    for leak in ("/Users/", "/home/", "Traceback", "sqlite3", "SELECT ", ".py"):
+        assert leak not in body, "응답에 %s 가 노출됨: %s" % (leak, body[:200])

@@ -14,6 +14,11 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [busyId, setBusyId] = useState('')
+  // 중요 작업(관리자 권한 부여 · 계정 중지)은 한 번 더 확인받는다.
+  // 클릭 한 번으로 임원 계정이 끊기거나 관리자가 늘어나면 사고가 조용히 지나간다.
+  const [confirm, setConfirm] = useState<
+    { kind: 'grant3' | 'disable'; user: Me; level?: 1 | 2 | 3 } | null
+  >(null)
   // 승인 시 부여할 레벨. 기본값은 본인이 신청한 레벨이지만 관리자가 낮출 수 있다.
   const [grant, setGrant] = useState<Record<string, 1 | 2 | 3>>({})
 
@@ -114,7 +119,12 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
                     <td style={{ display: 'flex', gap: 6 }}>
                       <button className="es-mini primary" disabled={self || busy}
                         title={self ? '자기 자신의 권한은 바꿀 수 없습니다' : ''}
-                        onClick={() => void act(() => apiApprove(u.id, grant[u.id] ?? u.requested_level), u.id)}>
+                        onClick={() => {
+                          const lv = grant[u.id] ?? u.requested_level
+                          // L3(관리자) 부여는 되돌리기 어려운 권한 상승이다 — 확인을 받는다.
+                          if (lv === 3) { setConfirm({ kind: 'grant3', user: u, level: lv }); return }
+                          void act(() => apiApprove(u.id, lv), u.id)
+                        }}>
                         {u.status === 'pending' ? '승인' : '변경'}
                       </button>
                       {u.status === 'disabled' ? (
@@ -123,7 +133,7 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
                       ) : (
                         <button className="es-mini danger" disabled={self || busy}
                           title={self ? '자기 자신은 중지할 수 없습니다' : ''}
-                          onClick={() => void act(() => apiSetStatus(u.id, 'disabled'), u.id)}>중지</button>
+                          onClick={() => setConfirm({ kind: 'disable', user: u })}>중지</button>
                       )}
                     </td>
                   </tr>
@@ -131,6 +141,45 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
               })}
             </tbody>
           </table>
+        )}
+
+        {confirm && (
+          <div className="es-confirm" onClick={() => setConfirm(null)}>
+            <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
+              <div className="es-confirm-title">
+                {confirm.kind === 'grant3' ? '관리자 권한 부여' : '계정 사용 중지'}
+              </div>
+              <div className="es-confirm-msg">
+                {confirm.kind === 'grant3' ? (
+                  <>
+                    <b>{confirm.user.name}({confirm.user.login_id})</b> 님에게 <b>L3 관리자</b> 권한을 부여합니다.
+                    <br /><br />
+                    관리자는 <b>모든 임원의 자료를 열람·수정·삭제</b>할 수 있고, 다른 사람의 가입을 승인하고
+                    회차를 발행할 수 있습니다.
+                  </>
+                ) : (
+                  <>
+                    <b>{confirm.user.name}({confirm.user.login_id})</b> 님의 계정을 중지합니다.
+                    <br /><br />
+                    지금 접속 중이라면 <b>즉시 로그아웃</b>되고 다시 로그인할 수 없습니다.
+                    작성 중이던 내용이 저장되지 않을 수 있습니다.
+                  </>
+                )}
+              </div>
+              <div className="es-confirm-actions">
+                <button className="es-mini" onClick={() => setConfirm(null)}>취소</button>
+                <button className={`es-mini ${confirm.kind === 'disable' ? 'danger' : 'primary'}`}
+                  onClick={() => {
+                    const c = confirm
+                    setConfirm(null)
+                    if (c.kind === 'grant3') void act(() => apiApprove(c.user.id, 3), c.user.id)
+                    else void act(() => apiSetStatus(c.user.id, 'disabled'), c.user.id)
+                  }}>
+                  {confirm.kind === 'grant3' ? '관리자로 지정' : '중지'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         <div className="es-msg info" style={{ marginTop: 18, marginBottom: 0 }}>

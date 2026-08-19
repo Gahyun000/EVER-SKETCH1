@@ -12,6 +12,7 @@
     python3 -m server.admin_cli reset-pw --login 홍길동id
     python3 -m server.admin_cli reset-pw --password 직접지정할비밀번호
     python3 -m server.admin_cli promote --login 사번 --level 3
+    python3 -m server.admin_cli unlock --login 사번        # 로그인 잠금 해제
 """
 from __future__ import annotations
 
@@ -85,6 +86,21 @@ def cmd_promote(login_id: str, level: int) -> None:
     print("%s 를 L%d 로 지정했습니다. 다시 로그인해야 적용됩니다." % (user["login_id"], level))
 
 
+def cmd_unlock(login_id: str) -> None:
+    """로그인 시도 제한 해제. 임원이 비밀번호를 여러 번 틀려 잠긴 경우의 탈출구."""
+    user = _find(login_id)
+    n = auth_store.recent_login_fails(user["login_id"])
+    c = auth_store._conn()
+    try:
+        c.execute("UPDATE AuditLogs SET action='login_fail_cleared' "
+                  "WHERE action='login_fail' AND target=?", (user["login_id"],))
+        c.commit()
+    finally:
+        c.close()
+    auth_store.audit(None, "unlock_cli", user["id"], "최근 실패 %d회 해제" % n)
+    print("%s 의 로그인 잠금을 해제했습니다 (최근 실패 %d회)." % (user["login_id"], n))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="EVER-SKETCH 관리자 콘솔 도구")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -95,6 +111,9 @@ def main() -> None:
     p.add_argument("--login", default="admin", help="대상 아이디 (기본: admin)")
     p.add_argument("--password", default=None, help="직접 지정 (생략하면 무작위 발급)")
 
+    p = sub.add_parser("unlock", help="로그인 시도 제한 해제")
+    p.add_argument("--login", required=True)
+
     p = sub.add_parser("promote", help="레벨 지정")
     p.add_argument("--login", required=True)
     p.add_argument("--level", type=int, required=True)
@@ -104,6 +123,8 @@ def main() -> None:
         cmd_list()
     elif args.cmd == "reset-pw":
         cmd_reset_pw(args.login, args.password)
+    elif args.cmd == "unlock":
+        cmd_unlock(args.login)
     elif args.cmd == "promote":
         cmd_promote(args.login, args.level)
 
