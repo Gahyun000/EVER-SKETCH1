@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -14,6 +15,7 @@ from server import cycle_decks as decks_store
 from server import cycles as cycles_store
 from server import permissions as perm
 from server import projects as projects_store
+from server import template_seed
 from server.authdeps import require_action, require_active, require_project
 
 router = APIRouter(prefix="/api/cycles", tags=["cycles"])
@@ -239,6 +241,45 @@ def cycle_deck_distribute(cid: str, req: DeckDistributeIn,
     auth_store.audit(user["id"], "deck_distribute", cid,
                      "신규 %d · 기존 %d" % (result["created_count"], result["skipped_count"]))
     return {"ok": True, **result}
+
+
+@router.get("/{cid}/preview")
+def cycle_distribute_preview(cid: str, slide: Optional[int] = None,
+                             user: dict = Depends(require_active)):
+    """배부 전 미리보기 — **실제로 나갈 그 장**을 그대로 돌려준다.
+
+    왜 필요한가
+      정본 좌표계가 어긋나 배부본이 종이 밖에 그려진 적이 있다. 테스트는 전부
+      통과했는데 화면에는 빈 종이가 갔다 — 아무도 눈으로 확인하지 않았기 때문이다.
+      배부는 되돌리기 비싼 조작이므로, 누르기 전에 한 번은 보게 한다.
+
+    slide 를 주면 올린 PPT 의 그 장, 안 주면 표준 양식 한 장.
+    """
+    require_action(user, perm.CYCLE_MANAGE)
+    cycle = cycles_store.get_cycle(cid)
+    if not cycle:
+        raise HTTPException(status_code=404, detail="회차를 찾을 수 없습니다.")
+
+    if slide is not None:
+        pages = decks_store.get_deck_pages(cid)
+        if not pages:
+            raise HTTPException(status_code=404, detail="이 회차에 올린 PPT 가 없습니다.")
+        if not (0 <= slide < len(pages)):
+            raise HTTPException(status_code=400,
+                                detail="%d번째 슬라이드가 없습니다." % (slide + 1))
+        return {"mode": "deck", "page": pages[slide], "slide": slide}
+
+    due_label = ""
+    if cycle["due_at"]:
+        due_label = time.strftime("%m/%d", time.localtime(cycle["due_at"] / 1000))
+    try:
+        page = template_seed.build_template_page(
+            cycle["period_ym"], user.get("name") or "", user.get("dept") or "", due_label)
+    except template_seed.TemplateError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    # 이름·부서는 받는 사람마다 달라진다. 미리보기는 누른 사람 기준으로 채워 보여준다.
+    return {"mode": "template", "page": page,
+            "template_version": template_seed.TEMPLATE_VERSION}
 
 
 # ─────────────── 배부 회수 ───────────────

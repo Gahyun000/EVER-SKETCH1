@@ -161,3 +161,43 @@
 .cy-modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .cy-btn.danger-solid { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; }
 .cy-btn.danger-solid:hover:not(:disabled) { opacity: .9; background: var(--red); }
+
+/* 배부 창구 — 방식 고르기 · 배정 · 미리보기가 한 창 안에 있다. */
+.cy-modal.wide { width: min(1080px, 96vw); }
+.cy-modal-spacer { flex: 1; min-width: 0; }
+.cy-modal-spacer .cy-hint { display: block; }
+
+.cy-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 760px) { .cy-pick { grid-template-columns: 1fr; } }
+.cy-pickcard {
+  position: relative; text-align: left; font-family: inherit; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 11px; background: #fff;
+  padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 7px;
+}
+.cy-pickcard:hover { border-color: var(--blue); background: var(--tint); }
+.cy-pickcard b { font-size: 14.5px; color: var(--navy); }
+.cy-pickcard p { margin: 0; font-size: 12.5px; color: var(--sub); line-height: 1.65; }
+.cy-pick-tag {
+  position: absolute; top: 14px; right: 14px;
+  font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 99px;
+  background: var(--tint); color: var(--blue);
+}
+
+/* 좌: 명단·배정표 / 우: 미리보기 */
+.cy-two { display: grid; grid-template-columns: 1fr 576px; gap: 16px; align-items: start; }
+@media (max-width: 1000px) { .cy-two { grid-template-columns: 1fr; } }
+.cy-rv-list.tall { max-height: 330px; }
+.cy-slides tbody tr { cursor: pointer; }
+.cy-slides tbody tr.cy-row-on td { background: var(--tint); }
+
+.cy-prevbox { border: 1px solid var(--line); border-radius: 9px; padding: 10px 8px 8px; background: var(--card); }
+.cy-prevhead { font-size: 12px; font-weight: 700; color: var(--navy); margin: 0 0 8px 4px; }
+.cy-prevhead .cy-dim { font-weight: 400; }
+.cy-prev { overflow: hidden; border-radius: 6px; margin: 0 auto; background: #fff; }
+.cy-prev-load { height: 200px; display: grid; place-items: center; color: var(--muted); font-size: 12.5px; }
+
+.cy-drop {
+  border: 1px dashed #c6d5ff; border-radius: 11px; background: var(--card);
+  padding: 30px 20px; text-align: center;
+}
+.cy-drop .cy-hint { margin-top: 10px; }

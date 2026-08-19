@@ -57,7 +57,9 @@ const CYCLE = {
   due_at: null, template_id: 't1', created_at: Date.now(),
   published_at: null, closed_at: null,
 }
-const CYCLE_PROJECTS = [
+// EMPTY=1 이면 아직 아무것도 배부되지 않은 회차 — 배부 창구를 테스트할 때 쓴다.
+// (이미 배부된 회차에서는 원본 교체·재배정이 잠긴다. 그게 정상 동작이다.)
+const CYCLE_PROJECTS = process.env.EMPTY ? [] : [
   { id: 'p_test', name: '2026년 10월 임원회의 — 홍길동', owner_id: 'u_test',
     submit_status: 'submitted', updated_at: Date.now(), page_count: 1 },
   { id: 'p_lee', name: '2026년 10월 임원회의 — 이순신', owner_id: 'u_lee',
@@ -66,15 +68,27 @@ const CYCLE_PROJECTS = [
 const REVOKE_PREVIEW = {
   cycle_id: 'c_test',
   items: [
-    { project_id: 'p_test', owner_id: 'u_test', name: CYCLE_PROJECTS[0].name,
+    { project_id: 'p_test', owner_id: 'u_test', name: '2026년 10월 임원회의 — 홍길동',
       submit_status: 'submitted', updated_at: Date.now(), filled_cells: 12, page_count: 1 },
-    { project_id: 'p_lee', owner_id: 'u_lee', name: CYCLE_PROJECTS[1].name,
+    { project_id: 'p_lee', owner_id: 'u_lee', name: '2026년 10월 임원회의 — 이순신',
       submit_status: 'draft', updated_at: Date.now(), filled_cells: 0, page_count: 1 },
   ],
   total: 2, with_content: 1, submitted: 1,
 }
 // 테스트가 들여다볼 수 있게 마지막 회수 요청을 기억해 둔다.
 let lastRevoke = null
+let lastDistribute = null
+// DECK=1 로 띄우면 이미 PPT 를 올려둔 상태에서 시작한다.
+let hasDeck = !!process.env.DECK
+const DECK = {
+  id: 'd_test', cycle_id: 'c_test', filename: '수행전략회의_2026.pptx', slide_count: 3,
+  slides: [
+    { index: 0, title: '표지 — 2026년 수행전략회의', tables: 0, texts: 2, images: 0 },
+    { index: 1, title: '곽두섭 상무 로드맵', tables: 3, texts: 1, images: 0 },
+    { index: 2, title: '이순신 상무 로드맵', tables: 3, texts: 1, images: 0 },
+  ],
+  warnings: [], uploaded_at: Date.now(),
+}
 const META = {
   id: 'p_test', name: '2026년 10월 임원회의 — 홍길동',
   created_at: Date.now(), updated_at: Date.now(),
@@ -112,10 +126,41 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/cycles/c_test' && req.method === 'GET') {
     return json(res, {
       cycle: CYCLE, projects: CYCLE_PROJECTS,
-      progress: { total: 2, counts: { draft: 1, submitted: 1, returned: 0, approved: 0 }, submitted: 1 },
+      progress: process.env.EMPTY
+        ? { total: 0, counts: { draft: 0, submitted: 0, returned: 0, approved: 0 }, submitted: 0 }
+        : { total: 2, counts: { draft: 1, submitted: 1, returned: 0, approved: 0 }, submitted: 1 },
     })
   }
-  if (url === '/api/cycles/c_test/deck') return json(res, { detail: '없음' }, 404)
+  if (url === '/api/cycles/c_test/deck') {
+    if (req.method === 'DELETE') { hasDeck = false; return json(res, { ok: true }) }
+    if (req.method === 'POST') { hasDeck = true; return json(res, { ok: true, deck: DECK }) }
+    return hasDeck ? json(res, { deck: DECK }) : json(res, { detail: '없음' }, 404)
+  }
+  if (url === '/api/cycles/c_test/deck/distribute' && req.method === 'POST') {
+    let body = ''
+    req.on('data', (c) => { body += c })
+    req.on('end', () => {
+      try { lastDistribute = JSON.parse(body) } catch { lastDistribute = { parseError: body } }
+      json(res, { ok: true, created_count: 2, skipped_count: 0, created: [] })
+    })
+    return
+  }
+  if (url === '/api/cycles/c_test/distribute' && req.method === 'POST') {
+    lastDistribute = { standard: true }
+    return json(res, { ok: true, created_count: 2, skipped_count: 0, created: [] })
+  }
+  if (url === '/__lastDistribute') return json(res, lastDistribute || {})
+  if (url === '/__resetDistribute') { lastDistribute = null; hasDeck = !!process.env.DECK; return json(res, { ok: true }) }
+  if (url === '/api/cycles/c_test/preview') {
+    const q = (req.url || '').split('?')[1] || ''
+    const m = /(?:^|&)slide=(\d+)/.exec(q)
+    if (m) {
+      const i = Number(m[1])
+      if (i >= DECK.slide_count) return json(res, { detail: '없는 슬라이드' }, 400)
+      return json(res, { mode: 'deck', slide: i, page: state.pages[0] })
+    }
+    return json(res, { mode: 'template', page: state.pages[0] })
+  }
   if (url === '/api/cycles/c_test/revoke-preview') return json(res, REVOKE_PREVIEW)
   if (url === '/api/cycles/c_test/revoke' && req.method === 'POST') {
     let body = ''

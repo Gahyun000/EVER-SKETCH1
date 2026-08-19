@@ -304,3 +304,41 @@ def test_담당자를_아무도_지정하지_않으면_거부한다(ctx, deck_by
     _upload(c, ctx["cid"], deck_bytes)
     r = c.post("/api/cycles/%s/deck/distribute" % ctx["cid"], json={"assignments": []})
     assert r.status_code == 400
+
+
+# ══════════ 배부 전 미리보기 ══════════
+def test_미리보기는_표준_양식_한_장을_돌려준다(ctx):
+    """배부 전에 눈으로 확인하게 한다 — 좌표계가 어긋나 빈 종이가 나간 적이 있다."""
+    r = ctx["as_admin"]().get("/api/cycles/%s/preview" % ctx["cid"])
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["mode"] == "template"
+    assert body["page"]["cardKey"] == "slide"
+    tables = [e for e in body["page"]["els"] if e["type"] == "table"]
+    assert len(tables) == 3
+
+
+def test_미리보기가_올린_PPT의_그_장을_돌려준다(ctx, deck_bytes):
+    c = ctx["as_admin"]()
+    _upload(c, ctx["cid"], deck_bytes)
+    r = c.get("/api/cycles/%s/preview?slide=0" % ctx["cid"])
+    assert r.status_code == 200, r.text
+    assert r.json()["mode"] == "deck"
+    assert len([e for e in r.json()["page"]["els"] if e["type"] == "table"]) == 3
+
+
+def test_없는_슬라이드_미리보기는_거부한다(ctx, deck_bytes):
+    c = ctx["as_admin"]()
+    _upload(c, ctx["cid"], deck_bytes)
+    assert c.get("/api/cycles/%s/preview?slide=99" % ctx["cid"]).status_code == 400
+
+
+def test_PPT를_안_올렸는데_슬라이드_미리보기를_요청하면_404(ctx):
+    assert ctx["as_admin"]().get(
+        "/api/cycles/%s/preview?slide=0" % ctx["cid"]).status_code == 404
+
+
+def test_작성자는_미리보기를_볼_수_없다(ctx):
+    """전 슬라이드가 담길 수 있는 창구다 — 남의 자료가 새면 안 된다."""
+    assert ctx["as_user"]("exec1").get(
+        "/api/cycles/%s/preview" % ctx["cid"]).status_code == 403

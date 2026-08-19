@@ -153,6 +153,16 @@ export async function apiDistributeSlides(cycleId: string, input: {
   })
 }
 
+// ── 배부 전 미리보기 ──
+/** 실제로 나갈 그 장을 그대로 받아온다. slide 를 주면 올린 PPT 의 그 장. */
+export async function apiPreviewPage(cycleId: string, slide?: number): Promise<{
+  mode: 'deck' | 'template'
+  page: unknown
+}> {
+  const q = slide == null ? '' : `?slide=${slide}`
+  return req(`/${cycleId}/preview${q}`)
+}
+
 // ── 배부 회수 ──
 export interface RevokeItem {
   project_id: string

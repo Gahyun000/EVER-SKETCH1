@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, apiListUsers, isAdmin, type Me } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { useProjects } from '../persistence/projects'
-import DeckPanel from './DeckPanel'
+import DistributeDialog from './DistributeDialog'
 import RevokeDialog from './RevokeDialog'
 import {
   apiCreateCycle, apiDistribute, apiGetCycle, apiListCycles, apiSetCycleStatus,
@@ -37,6 +37,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
   // 회수 확인창 — null 이면 닫힘. { projectId } 가 있으면 개인별, 없으면 회차 전체.
   const [revoking, setRevoking] = useState<
     { projectId: string; ownerId: string } | 'all' | null>(null)
+  const [distributing, setDistributing] = useState(false)
 
   const load = useCallback(async (keepId?: string) => {
     setLoading(true); setErr('')
@@ -179,16 +180,12 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                 </div>
                 {admin && (
                   <div className="cy-dbtns">
-                    <button className="cy-btn primary" disabled={busy === 'dist' || cyc.status === 'closed'}
-                      title={users.length ? `활성 작성자 ${users.length}명에게 배부` : '배부할 작성자가 없습니다'}
-                      onClick={() => void run('dist', async () => {
-                        const r = await apiDistribute(cyc.id)
-                        setMsg(r.created_count > 0
-                          ? `${r.created_count}명에게 배부했습니다.${r.skipped_count ? ` (이미 받은 ${r.skipped_count}명 제외)` : ''}`
-                          : '모두 이미 배부받았습니다. 새로 만든 장은 없습니다.')
-                      })}>
-                      {busy === 'dist' ? '배부 중…' : `표준 양식 배부${users.length ? ` (${users.length}명)` : ''}`}
-                    </button>
+                    {/* 배부 창구는 하나다. 예전엔 '표준 양식 배부'(파란 버튼)와
+                        'PPT 올리기'(아래 패널)가 따로 있어서, 실물 PPT 를 배부하려던
+                        사람이 눈에 먼저 띄는 파란 버튼을 눌러 빈 양식을 배부했다. */}
+                    <button className="cy-btn primary" disabled={!!busy || cyc.status === 'closed'}
+                      title="실물 PPT 또는 표준 양식 중에 고릅니다"
+                      onClick={() => setDistributing(true)}>배부하기</button>
                     {mine.length > 0 && cyc.status !== 'closed' && (
                       <button className="cy-btn danger" disabled={!!busy}
                         title="이 회차에 나간 배부본을 모두 지웁니다"
@@ -217,11 +214,6 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                     {notYet > 0 ? <span className="cy-warn"> · 미제출 {notYet}명</span> : <span className="cy-done"> · 전원 제출</span>}
                   </div>
                 </div>
-              )}
-
-              {admin && (
-                <DeckPanel cycleId={cyc.id} writers={users} distributed={mine.length > 0}
-                  onDistributed={() => void load(cyc.id)} />
               )}
 
               {mine.length === 0 ? (
@@ -282,6 +274,16 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                     })}
                   </tbody>
                 </table>
+              )}
+
+              {admin && distributing && (
+                <DistributeDialog
+                  cycleId={cyc.id}
+                  writers={users}
+                  distributed={mine.length > 0}
+                  onClose={() => setDistributing(false)}
+                  onDone={(m) => { setDistributing(false); setMsg(m); setErr(''); void load(cyc.id) }}
+                />
               )}
 
               {admin && revoking && (
