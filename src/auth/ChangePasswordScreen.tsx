@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ApiError, apiChangePassword } from './authApi'
+import PasswordField from './PasswordField'
 import { useAuth } from './useAuth'
 
 /**
@@ -63,24 +64,17 @@ export default function ChangePasswordScreen() {
         {err && <div className="es-msg err">{err}</div>}
 
         <form onSubmit={submit}>
-          <div className="es-field">
-            <label htmlFor="es-old">현재 비밀번호</label>
-            <input id="es-old" type="password" value={oldPw} autoComplete="current-password" autoFocus
-              onChange={(e) => setOldPw(e.target.value)} />
-          </div>
-          <div className="es-field">
-            <label htmlFor="es-new">새 비밀번호</label>
-            <input id="es-new" type="password" value={newPw} autoComplete="new-password"
-              onChange={(e) => setNewPw(e.target.value)} placeholder="8자 이상" />
-            {tooShort && <div className="es-hint" style={{ color: '#b4232a' }}>8자 이상이어야 합니다.</div>}
-            {sameAsOld && <div className="es-hint" style={{ color: '#b4232a' }}>현재 비밀번호와 다르게 정해 주세요.</div>}
-          </div>
-          <div className="es-field">
-            <label htmlFor="es-confirm">새 비밀번호 확인</label>
-            <input id="es-confirm" type="password" value={confirm} autoComplete="new-password"
-              onChange={(e) => setConfirm(e.target.value)} />
-            {mismatch && <div className="es-hint" style={{ color: '#b4232a' }}>입력한 두 비밀번호가 다릅니다.</div>}
-          </div>
+          <PasswordField id="es-old" label="현재 비밀번호" value={oldPw} onChange={setOldPw}
+            autoComplete="current-password" autoFocus />
+          <PasswordField id="es-new" label="새 비밀번호" value={newPw} onChange={setNewPw}
+            autoComplete="new-password" placeholder="8자 이상"
+            hint={<>
+              {tooShort && <div className="es-hint" style={{ color: '#b4232a' }}>8자 이상이어야 합니다.</div>}
+              {sameAsOld && <div className="es-hint" style={{ color: '#b4232a' }}>현재 비밀번호와 다르게 정해 주세요.</div>}
+            </>} />
+          <PasswordField id="es-confirm" label="새 비밀번호 확인" value={confirm} onChange={setConfirm}
+            autoComplete="new-password"
+            hint={mismatch ? <div className="es-hint" style={{ color: '#b4232a' }}>입력한 두 비밀번호가 다릅니다.</div> : undefined} />
           <button className="es-btn" type="submit" disabled={!canSubmit}>
             {busy ? '변경 중…' : '비밀번호 바꾸기'}
           </button>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { clearRememberedId, loadRememberedId, saveRememberedId } from './rememberId'
 import { ApiError, apiSignup, ROLE_DESC, ROLE_LABEL, ROLE_ORDER, type Role } from './authApi'
+import PasswordField from './PasswordField'
 import { useAuth } from './useAuth'
 
 type Mode = 'login' | 'signup'
@@ -78,13 +79,15 @@ export default function LoginScreen() {
               onChange={(e) => setLoginId(e.target.value)} placeholder="사내 아이디" />
           </div>
 
-          <div className="es-field">
-            <label htmlFor="es-pw">비밀번호</label>
-            <input id="es-pw" type="password" value={password}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              autoFocus={!!remembered && mode === 'login'}
-              onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'signup' ? '8자 이상' : ''} />
-          </div>
+          <PasswordField
+            id="es-pw"
+            label="비밀번호"
+            value={password}
+            onChange={setPassword}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            autoFocus={!!remembered && mode === 'login'}
+            placeholder={mode === 'signup' ? '8자 이상' : ''}
+          />
 
           {mode === 'login' && (
             <label className="es-check">

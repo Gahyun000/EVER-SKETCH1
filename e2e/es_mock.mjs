@@ -48,7 +48,14 @@ const server = http.createServer(async (req, res) => {
   const url = (req.url || '/').split('?')[0]
 
   // authApi.apiMe 는 { user: Me } 를 기대한다(값만 돌려주면 로그인 화면으로 떨어진다).
-  if (url === '/api/auth/me') return json(res, { user: ME })
+  // ANON=1 로 띄우면 로그아웃 상태 — 로그인 화면 자체를 테스트할 때 쓴다.
+  if (url === '/api/auth/me') return json(res, { user: process.env.ANON ? null : ME })
+  if (url === '/api/auth/login' && req.method === 'POST') {
+    let body = ''
+    req.on('data', (c) => { body += c })
+    req.on('end', () => json(res, { user: ME }))
+    return
+  }
   if (url === '/api/projects' && req.method === 'GET') return json(res, { projects: [META] })
   if (url === '/api/projects/p_test' && req.method === 'GET') return json(res, { ...META, state })
   if (url.startsWith('/api/projects/p_test') && (req.method === 'PUT' || req.method === 'PATCH')) {
