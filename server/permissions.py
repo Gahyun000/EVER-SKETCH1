@@ -140,6 +140,24 @@ def visible_project_filter(actor: Optional[Actor]) -> str:
     return "none"
 
 
+def visible_cycle_filter(actor: Optional[Actor]) -> str:
+    """회차 목록에서 무엇을 보여줄지. 'all' | 'mine_or_published' | 'published' | 'none'
+
+    프로젝트와 마찬가지로 목록 필터를 라우터가 따로 판단하지 않는다.
+    L1 열람자는 **진행 중인 회차의 존재 자체를 알 필요가 없다** —
+    아직 정리되지 않은 회차가 있다는 사실도 정보다.
+    """
+    if actor is None or not actor.is_active:
+        return "none"
+    if actor.level == L3:
+        return "all"
+    if actor.level == L2:
+        return "mine_or_published"
+    if actor.level == L1:
+        return "published"
+    return "none"
+
+
 def can_grant_level(actor: Optional[Actor], target_user_id: str, new_level: int) -> tuple[bool, str]:
     """레벨 부여·변경 가능 여부. (허용, 사유) 를 돌려준다.
 

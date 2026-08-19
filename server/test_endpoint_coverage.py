@@ -42,6 +42,7 @@ ALL_ROUTES = (
     _routes("app.py", "app")
     + _routes("routes_projects.py", "router")
     + _routes("routes_auth.py", "router", prefix="/api/auth")   # APIRouter(prefix=...)
+    + _routes("routes_cycles.py", "router", prefix="/api/cycles")
 )
 
 
@@ -74,8 +75,10 @@ def test_모든_엔드포인트가_권한을_판정한다(method, path, body):
     if path in ("/api/auth/login", "/api/auth/signup", "/api/auth/logout",
                 "/api/auth/me", "/api/auth/password"):
         return   # 로그인 전이거나 본인 계정 조작 — 레벨과 무관
+    # 목록 계열은 permissions 의 가시성 판정 함수를 쓴다(라우터가 레벨을 직접 비교하면 안 된다).
     assert ("require_action" in body or "require_project" in body
-            or "can_grant_level" in body or "visible_project_filter" in body), \
+            or "can_grant_level" in body or "visible_project_filter" in body
+            or "_visible_cycles" in body), \
         "%s %s 가 권한을 판정하지 않습니다" % (method, path)
 
 
