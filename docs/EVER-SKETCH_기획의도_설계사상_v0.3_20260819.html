@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EVER-SKETCH — 기획의도 · 설계사상 · 실행계획 v0.2 (26.08.18)</title>
+<title>EVER-SKETCH — 기획의도 · 설계사상 · 실행계획 v0.3 (26.08.19)</title>
 <style>
   :root{
     --ink:#111418; --ink2:#3d4650; --ink3:#6b7480; --line:#e3e7ec;
@@ -43,9 +43,9 @@
   th{background:var(--soft); font-weight:700; color:var(--ink); white-space:nowrap}
   td{color:var(--ink2)}
   .tag{display:inline-block; font-size:12px; font-weight:700; padding:1px 8px; border-radius:99px; line-height:1.7; white-space:nowrap}
-  .t-l3{background:var(--accent-soft); color:var(--accent)}
-  .t-l2{background:var(--ok-soft); color:var(--ok)}
-  .t-l1{background:#eef0f3; color:var(--ink3)}
+  .t-admin{background:var(--accent-soft); color:var(--accent)}
+  .t-writer{background:var(--ok-soft); color:var(--ok)}
+  .t-viewer{background:#eef0f3; color:var(--ink3)}
   .t-new{background:var(--warn-soft); color:var(--warn)}
   .t-have{background:var(--ok-soft); color:var(--ok)}
   .t-cut{background:var(--red-soft); color:var(--red)}
@@ -74,7 +74,7 @@
 <div class="wrap">
 
 <header class="doc">
-  <p class="date">26.08.18<span class="ver">v0.2 결정 반영</span></p>
+  <p class="date">26.08.19<span class="ver">v0.3 권한 모델 개정</span></p>
   <p class="title">EVER-SKETCH — 월간 임원회의 자료 협업 플랫폼 기획의도 · 설계사상 · 실행계획</p>
   <p class="meta">저장소: <code>/Users/kimgahyun/Desktop/git/EVER-SKETCH</code> &nbsp;|&nbsp; 통합: <b>ebook_html</b>(통째 복사·확장) + <b>uniever_ebook</b>(생성기 호출) + <b>default_skill</b>(개발표준) &nbsp;|&nbsp; 유니에버 AI팀</p>
 </header>
@@ -89,11 +89,13 @@
   <ul>
     <li><b>표준 템플릿 정본</b> — 로드맵/마일스톤 표 + 진행현황 + 향후계획 + 이슈리스트 양식을 <b>그대로 정본으로 확정</b></li>
     <li><b>저장소</b> — <code>EVER-SKETCH</code> 신규 생성, <b>ebook_html을 통째로 복사한 뒤 확장</b> (구조 재편 없음)</li>
-    <li><b>계정</b> — 사내 서버 + 자체 ID/PW. <b>자가가입 시 본인이 희망 레벨 선택 → 관리자 승인 후 실권한 부여</b></li>
-    <li><b>권한</b> — L3 관리자(삭제·수정·작성·사용자관리) / L2 작성자(작성·수정) / L1 열람자(읽기 전용)</li>
-    <li><b>메모 노출</b> — 피드백 내역은 <b>작성자(L2 본인)와 관리자(L3)에게만</b>. L1 열람자에게는 보이지 않음</li>
+    <li><b>계정</b> — 사내 서버 + 자체 ID/PW. <b>자가가입 시 본인이 희망 역할 선택 → 관리자 승인 후 실권한 부여</b></li>
+    <li><b>권한</b> — Lv1 관리자(삭제·수정·작성·사용자관리) / Lv2 작성자(작성·수정) / Lv3 열람자(읽기 전용)</li>
+    <li><b>메모 노출</b> — 피드백 내역은 <b>작성자(작성자 본인)와 관리자에게만</b>. Lv3 열람자에게는 보이지 않음</li>
     <li><b>파일럿</b> — <b>9월 내부 리허설 → 10월 임원회의 실전 투입</b></li>
-    <li><b>미결</b> — 서버 위치·도메인·백업 정책 (9월 첫째 주까지 결정 필요)</li>
+    <li><b>배포</b> — 사내망 사설 IP + <b>기존 사내 VPN</b>. 포트포워딩 없음, HTTP 유지 <b>(8/19 확정)</b></li>
+    <li><b>권한 표기</b> — <b>Lv1 관리자 · Lv2 작성자 · Lv3 열람자</b>(1등급이 최고). 저장·판정은 역할명 <b>(8/19 확정)</b></li>
+    <li><b>미결</b> — 서버 장비·사설 IP 확정(W2), 백업 정책(10월 배포 전)</li>
   </ul>
 </div>
 
@@ -158,7 +160,7 @@
   <tr><td><b>① 원본은 하나다</b><br><span style="font-size:12.5px;color:var(--ink3)">Single Source of Truth</span></td>
       <td>문서는 이동하지 않는다. 사람이 링크로 온다. 파일 첨부는 <b>최종 발행 단계에서만</b> 발생한다. 버전은 서버가 자동 기록한다.</td></tr>
   <tr><td><b>② 권한은 화면이 아니라 데이터에 붙는다</b></td>
-      <td>버튼을 숨기는 것은 UX이고, 막는 것은 API다. 모든 읽기·쓰기·삭제는 서버에서 소유자·레벨을 검증한다. 프런트 가드는 보조 수단일 뿐이다.</td></tr>
+      <td>버튼을 숨기는 것은 UX이고, 막는 것은 API다. 모든 읽기·쓰기·삭제는 서버에서 소유자·역할을 검증한다. 프런트 가드는 보조 수단일 뿐이다.</td></tr>
   <tr><td><b>③ 피드백은 문서 안에서 닫힌다</b></td>
       <td>메모는 반드시 <b>페이지(또는 셀)에 앵커</b>된다. 남기기 → 보기 → 고치기 → 해결까지 한 화면에서 끝난다. 문서 밖으로 나가는 코멘트는 만들지 않는다.</td></tr>
   <tr><td><b>④ 자유도는 의도적으로 제한한다</b></td>
@@ -197,67 +199,67 @@
       <td>개발표준·게이트(G0~G6)·UI 표준·검증 증적 규약 (ebook_html의 <code>skills/</code>에 이미 이식본 존재)</td>
       <td><span class="tag t-have">승계</span></td></tr>
   <tr><td><b>EVER-SKETCH</b><br>(신규 개발)</td>
-      <td><b>계정·가입승인·권한(L1~L3)</b>, <b>사용자 관리 화면</b>, <b>회차 모델</b>, <b>표준 템플릿 정본 배부</b>, <b>앵커 메모 피드백</b>, <b>회차 취합·발행</b></td>
+      <td><b>계정·가입승인·권한(관리자·작성자·열람자)</b>, <b>사용자 관리 화면</b>, <b>회차 모델</b>, <b>표준 템플릿 정본 배부</b>, <b>앵커 메모 피드백</b>, <b>회차 취합·발행</b></td>
       <td><span class="tag t-new">신규</span></td></tr>
 </table>
 <p class="note"><b>핵심 판단:</b> 편집기·표 편집·내보내기는 이미 만들어져 있다. 이번에 실제로 새로 만드는 것은 <b>"사람 · 권한 · 회차"</b> 계층이다. 편집 기능 재개발에 시간을 쓰지 않는다 — 이것이 10월 실전이 가능한 이유다.</p>
 
-<h2>4. 핵심 기능 ① — 가입 · 승인 · 권한 3레벨</h2>
+<h2>4. 핵심 기능 ① — 가입 · 승인 · 권한 3역할</h2>
 
 <h3>가입 흐름 (확정)</h3>
 <div class="flow">
   <span class="step">사내 사용자 자가가입</span><span class="arw">→</span>
-  <span class="step on">희망 레벨 본인 선택<br>(L1 / L2 / L3)</span><span class="arw">→</span>
+  <span class="step on">희망 역할 본인 선택<br>(열람자 / 작성자 / 관리자)</span><span class="arw">→</span>
   <span class="step stop">승인 대기 상태<br>= 아무것도 못 봄</span><span class="arw">→</span>
-  <span class="step on">L3 관리자 승인·레벨 확정</span><span class="arw">→</span>
+  <span class="step on">Lv1 관리자 승인·역할 확정</span><span class="arw">→</span>
   <span class="step">실권한 부여</span>
 </div>
 <div class="danger">
-  <b>왜 승인 단계가 반드시 필요한가.</b> 가입 즉시 본인이 고른 레벨이 그대로 적용되면, 링크를 아는 누구나 L3를 골라 <b>임원 자료 전체를 열람하고 삭제</b>할 수 있다.
-  그래서 "본인이 고른다"는 사용자 경험은 그대로 두되, 그것을 <b>신청(희망 레벨)</b>으로 처리하고 <b>실권한은 관리자 승인 시점에</b> 부여한다.
-  승인 전 계정은 로그인은 되지만 "승인 대기" 화면만 보이고, 어떤 이북에도 접근하지 못한다. <b>L3 승인은 기존 L3만 가능</b>하며, 최초 관리자 1명은 시드 계정으로 생성한다.
+  <b>왜 승인 단계가 반드시 필요한가.</b> 가입 즉시 본인이 고른 역할이 그대로 적용되면, 링크를 아는 누구나 관리자를 골라 <b>임원 자료 전체를 열람하고 삭제</b>할 수 있다.
+  그래서 "본인이 고른다"는 사용자 경험은 그대로 두되, 그것을 <b>신청(희망 역할)</b>으로 처리하고 <b>실권한은 관리자 승인 시점에</b> 부여한다.
+  승인 전 계정은 로그인은 되지만 "승인 대기" 화면만 보이고, 어떤 이북에도 접근하지 못한다. <b>관리자 승인은 기존 관리자만 가능</b>하며, 최초 관리자 1명은 시드 계정으로 생성한다.
 </div>
 
 <h3>권한 매트릭스</h3>
 <table>
-  <tr><th style="width:150px">레벨</th><th>대상</th><th>권한</th><th style="width:150px">보이는 범위</th></tr>
+  <tr><th style="width:150px">권한</th><th>대상</th><th>권한</th><th style="width:150px">보이는 범위</th></tr>
   <tr>
-    <td><span class="tag t-l3">L3 관리자</span></td><td>회의 주관·기획 담당</td>
-    <td><b>작성 · 수정 · 삭제</b> + 가입 승인·레벨 변경·비활성화 + 회차 개설/마감 + 템플릿 배부 + 전체 이북 열람 + 메모 작성·해결 + 최종 발행</td>
+    <td><span class="tag t-admin">Lv1 관리자</span></td><td>회의 주관·기획 담당</td>
+    <td><b>작성 · 수정 · 삭제</b> + 가입 승인·권한 변경·비활성화 + 회차 개설/마감 + 템플릿 배부 + 전체 이북 열람 + 메모 작성·해결 + 최종 발행</td>
     <td>전체</td>
   </tr>
   <tr>
-    <td><span class="tag t-l2">L2 작성자</span></td><td>임원 · 부서 담당자</td>
+    <td><span class="tag t-writer">Lv2 작성자</span></td><td>임원 · 부서 담당자</td>
     <td><b>작성 · 수정</b>(본인 이북) + <b>본인 이북의 메모 확인·답글·해결요청</b>. 삭제 불가, 타인 이북 접근 불가</td>
     <td>본인 이북 + 발행본</td>
   </tr>
   <tr>
-    <td><span class="tag t-l1">L1 열람자</span></td><td>일반 참석자·공유 대상</td>
+    <td><span class="tag t-viewer">Lv3 열람자</span></td><td>일반 참석자·공유 대상</td>
     <td><b>읽기 전용.</b> 편집·삭제 불가, <b>메모 작성·열람 모두 불가</b></td>
     <td>발행된 회차 결과물</td>
   </tr>
 </table>
 <ul>
-  <li><b>소유 기반</b> — 모든 이북에 <code>owner_id</code>. L2는 "내 것"만, L3는 "전부". 판정은 서버 미들웨어 <b>한 곳</b>에서 한다.</li>
-  <li><b>삭제는 L3만</b> — L2의 삭제 요청은 "삭제 요청" 상태로 남기고 실제 삭제는 L3가 승인(회차 자료 유실 방지). <span class="tag t-cut">v1.1로 이월</span></li>
-  <li><b>회귀 테스트 고정</b> — 모든 엔드포인트에 L1/L2/L3 + 승인대기 4개 계정 자동 테스트를 스위트로 박는다.</li>
+  <li><b>소유 기반</b> — 모든 이북에 <code>owner_id</code>. 작성자는 "내 것"만, 관리자는 "전부". 판정은 서버 미들웨어 <b>한 곳</b>에서 한다.</li>
+  <li><b>삭제는 관리자만</b> — 작성자의 삭제 요청은 "삭제 요청" 상태로 남기고 실제 삭제는 관리자가 승인(회차 자료 유실 방지). <span class="tag t-cut">v1.1로 이월</span></li>
+  <li><b>회귀 테스트 고정</b> — 모든 엔드포인트에 관리자·작성자·열람자 + 승인대기 4개 계정 자동 테스트를 스위트로 박는다.</li>
 </ul>
 
 <h2>5. 핵심 기능 ② — 메모 피드백 루프</h2>
 <p>현재 ebook_html의 메모는 <b>프로젝트 단위 메모장</b>(<code>Notes</code> 테이블)이다. 이를 <b>페이지·셀에 붙는 코멘트</b>로 확장하고 상태를 부여한다.</p>
 <div class="flow">
-  <span class="step on">L3: 페이지·셀에 메모</span><span class="arw">→</span>
-  <span class="step">L2 작성자에게 배지 알림</span><span class="arw">→</span>
+  <span class="step on">관리자: 페이지·셀에 메모</span><span class="arw">→</span>
+  <span class="step">Lv2 작성자에게 배지 알림</span><span class="arw">→</span>
   <span class="step on">그 자리에서 즉시 수정</span><span class="arw">→</span>
   <span class="step">"수정함" 표시</span><span class="arw">→</span>
-  <span class="step on">L3 확인 → 해결(closed)</span>
+  <span class="step on">관리자 확인 → 해결(closed)</span>
 </div>
 <table>
   <tr><th style="width:150px">항목</th><th>정의</th></tr>
   <tr><td>앵커</td><td>이북 &gt; 페이지 &gt; (선택)요소·셀 좌표. 클릭하면 해당 위치로 스크롤·하이라이트</td></tr>
-  <tr><td>상태</td><td><code>열림</code> → <code>수정함</code> → <code>해결</code> (해결 권한은 메모 작성자 또는 L3)</td></tr>
-  <tr><td><b>노출 범위</b></td><td><b>L3 전원 + 해당 이북의 L2 소유자에게만.</b> L1 열람자에게는 메모 존재 자체를 노출하지 않는다 <b>(확정)</b></td></tr>
-  <tr><td>작성 권한</td><td>L3는 모든 이북에, L2는 본인 이북에 답글. L1은 불가</td></tr>
+  <tr><td>상태</td><td><code>열림</code> → <code>수정함</code> → <code>해결</code> (해결 권한은 메모 작성자 또는 관리자)</td></tr>
+  <tr><td><b>노출 범위</b></td><td><b>관리자 전원 + 해당 이북의 작성자 소유자에게만.</b> Lv3 열람자에게는 메모 존재 자체를 노출하지 않는다 <b>(확정)</b></td></tr>
+  <tr><td>작성 권한</td><td>관리자는 모든 이북에, 작성자는 본인 이북에 답글. 열람자는 불가</td></tr>
   <tr><td>알림</td><td>1단계는 화면 내 배지 + 미해결 목록(폴링). 메일·메신저 연동은 <span class="tag t-cut">v1.1로 이월</span></td></tr>
   <tr><td>이력</td><td>메모·답글·해결은 삭제해도 이력에 남는다. 회차 마감 시 "미해결 N건" 요약</td></tr>
 </table>
@@ -266,18 +268,18 @@
 <p><b>정본 확정:</b> 회차가 열리면 임원 1인당 아래 4블록으로 구성된 표준 템플릿 <b>1장</b>이 자동 부여된다.</p>
 <table>
   <tr><th style="width:200px">블록</th><th>구성</th><th style="width:150px">편집 주체</th></tr>
-  <tr><td><b>① 로드맵 / 마일스톤 표</b></td><td>Project 구분 × 월별(1~12월) 진행 셀 + 연도 확장열 + 계획 M/M · 투입 M/M · 비고, Today 마커, 주요 마일스톤</td><td>L2 (셀 내용·병합)</td></tr>
-  <tr><td><b>② 진행 현황</b></td><td>당월 기준 사업/과제별 진행 항목 목록</td><td>L2</td></tr>
-  <tr><td><b>③ 향후 계획</b></td><td>익월 기준 계획 항목 목록</td><td>L2</td></tr>
-  <tr><td><b>④ 이슈 리스트</b></td><td>미해결 이슈·리스크 목록</td><td>L2</td></tr>
+  <tr><td><b>① 로드맵 / 마일스톤 표</b></td><td>Project 구분 × 월별(1~12월) 진행 셀 + 연도 확장열 + 계획 M/M · 투입 M/M · 비고, Today 마커, 주요 마일스톤</td><td>작성자 (셀 내용·병합)</td></tr>
+  <tr><td><b>② 진행 현황</b></td><td>당월 기준 사업/과제별 진행 항목 목록</td><td>작성자</td></tr>
+  <tr><td><b>③ 향후 계획</b></td><td>익월 기준 계획 항목 목록</td><td>작성자</td></tr>
+  <tr><td><b>④ 이슈 리스트</b></td><td>미해결 이슈·리스크 목록</td><td>작성자</td></tr>
 </table>
 <h3>편집 허용 범위</h3>
 <table>
   <tr><th style="width:120px">구분</th><th>허용</th><th>차단</th></tr>
-  <tr><td>표</td><td>셀 내용 입력, <b>셀 병합·해제</b>, <b>행·열 추가·삭제</b>, 셀 정렬, 셀 배경색</td><td>표 자체 삭제, 표준 헤더 행 변경(L3만)</td></tr>
+  <tr><td>표</td><td>셀 내용 입력, <b>셀 병합·해제</b>, <b>행·열 추가·삭제</b>, 셀 정렬, 셀 배경색</td><td>표 자체 삭제, 표준 헤더 행 변경(관리자만)</td></tr>
   <tr><td>글자</td><td>크기, <b>굵게</b>, 기울임, 밑줄, 색, 정렬 — 한글(HWP)식 즉시 서식</td><td>임의 폰트 교체(브랜드 폰트 세트 내 선택만)</td></tr>
-  <tr><td>레이아웃</td><td>지정 영역 내 요소 이동·크기 조절</td><td>페이지 규격·표지·목차 구조 변경(L3만)</td></tr>
-  <tr><td>페이지</td><td>—</td><td>페이지 추가·삭제 (1인 1장 원칙, 예외는 L3 승인)</td></tr>
+  <tr><td>레이아웃</td><td>지정 영역 내 요소 이동·크기 조절</td><td>페이지 규격·표지·목차 구조 변경(관리자만)</td></tr>
+  <tr><td>페이지</td><td>—</td><td>페이지 추가·삭제 (1인 1장 원칙, 예외는 관리자 승인)</td></tr>
 </table>
 <p class="note"><b>이미 있는 것:</b> 셀 병합/해제, 행·열 추가·삭제, 셀 정렬은 <code>src/canvas/tableOps.ts</code>에 순수 함수로 존재하고 서식 툴바도 동작한다. 이번 작업은 새 구현이 아니라 <b>"표준 템플릿 위에서의 권한별 잠금 모드" 추가</b>다.</p>
 
@@ -300,17 +302,17 @@
       <td>EVER-SKETCH 생성, ebook_html 통째 복사, 빌드·기존 테스트 그린 확인, 표준 템플릿 정본 4블록 사양 확정, 데이터 모델 확정</td>
       <td>복사본이 원본과 동일 동작</td></tr>
   <tr><td><span class="wk">W1</span><br>8/25~8/29</td><td>계정 · 가입승인 · 권한</td>
-      <td>Users/Sessions, 로그인·자가가입(희망 레벨 선택), 승인 대기 화면, 관리자 승인·레벨변경·비활성화 화면, 서버 권한 가드 단일화, Projects에 owner_id 부여 및 기존 데이터 이관</td>
-      <td>4개 계정(대기·L1·L2·L3) 시나리오 테스트 통과</td></tr>
+      <td>Users/Sessions, 로그인·자가가입(희망 역할 선택), 승인 대기 화면, 관리자 승인·레벨변경·비활성화 화면, 서버 권한 가드 단일화, Projects에 owner_id 부여 및 기존 데이터 이관</td>
+      <td>4개 계정(대기·관리자·작성자·열람자) 시나리오 테스트 통과</td></tr>
   <tr><td><span class="wk">W2</span><br>9/1~9/5</td><td>회차 · 템플릿 배부</td>
       <td>Cycles 모델, 표준 템플릿 정본 등록, 회차 개설 시 대상자별 1장 자동 생성·배부, "내 이북" 소유 필터, 제출 상태(작성중·제출·반려)</td>
       <td>가상 회차 1건 → 5인 배부 성공<br><b>※ 서버 위치 결정 마감</b></td></tr>
   <tr><td><span class="wk">W3</span><br>9/8~9/12</td><td>앵커 메모 피드백</td>
-      <td>페이지·셀 앵커 코멘트, 상태 전이(열림→수정함→해결), 미해결 배지·목록, 답글, L1 노출 차단</td>
+      <td>페이지·셀 앵커 코멘트, 상태 전이(열림→수정함→해결), 미해결 배지·목록, 답글, 열람자 노출 차단</td>
       <td>메모 → 수정 → 해결 왕복 1건 무결</td></tr>
   <tr><td><span class="wk">W4</span><br>9/15~9/19</td><td>편집 제한 · 취합 발행</td>
       <td>템플릿 잠금 영역 적용(표·서식 허용 / 구조 차단), 회차 마감 → 자동 병합 → 이북(PNG→generator.py)·PPTX·PDF 산출</td>
-      <td>L2 금지동작 차단 확인 + 발행 1건 무오류</td></tr>
+      <td>작성자 금지동작 차단 확인 + 발행 1건 무오류</td></tr>
   <tr><td><span class="wk">W5</span><br>9/22~9/26</td><td><b>내부 리허설 1차</b></td>
       <td>AI팀 내부에서 가상 회차 완주(가입→승인→작성→메모→수정→발행), 이슈 수집·수정, 성능·오류 점검</td>
       <td>완주 1회 + 치명 이슈 0건</td></tr>
@@ -330,7 +332,7 @@
 <span class="tag t-cut">이월</span> SSO/AD 연동 &nbsp;·&nbsp;
 <span class="tag t-cut">이월</span> PostgreSQL 전환 &nbsp;·&nbsp;
 <span class="tag t-cut">이월</span> 동시 편집(실시간 커서) &nbsp;·&nbsp;
-<span class="tag t-cut">이월</span> L1 공개 포털 고도화 &nbsp;·&nbsp;
+<span class="tag t-cut">이월</span> 열람자 공개 포털 고도화 &nbsp;·&nbsp;
 <span class="tag t-cut">이월</span> AI 보조(변경점 요약·이슈 초안)
 </p>
 <p>이월 항목은 <b>10월 실전 회고 후 우선순위를 다시 매긴다.</b> 파일럿에서 실제로 아쉬웠던 것만 v1.1에 넣는다.</p>
@@ -368,7 +370,10 @@
   EVER-SKETCH 기획의도·설계사상·실행계획 <b>v0.2</b> · 2026-08-18 · 유니에버(주) AI팀<br>
   근거 자산: <code>ebook_html</code>(React+TS+Vite / FastAPI+SQLite, 카드·자유캔버스 편집기, tableOps, 버전관리, PPTX·PDF 내보내기) ·
   <code>uniever_ebook</code>(이북 생성기·덱 빌더·브랜드 자산) · <code>default_skill</code>(표준스킬 43종, G0~G6 개발표준)<br>
-  변경 이력: v0.1(초안) → <b>v0.2</b> 템플릿 정본 확정 · 저장소 EVER-SKETCH 확정 · 가입 승인제 도입 · L1 메모 차단 확정 · 9월 리허설/10월 실전 일정 반영
+  변경 이력: v0.1(초안) → v0.2 템플릿 정본 확정 · 저장소 EVER-SKETCH 확정 · 가입 승인제 도입 · 열람자 메모 차단 확정 · 9월 리허설/10월 실전 일정 반영<br>
+  → <b>v0.3</b>(8/19) 권한 표기를 <b>Lv1 관리자 · Lv2 작성자 · Lv3 열람자</b>로 개정(1등급이 최고, 사내 관례).
+  저장·판정은 숫자가 아닌 <b>역할명</b>(admin/writer/viewer)으로 전환 — 숫자만 뒤집으면 <code>if level == 3</code> 류 7군데가
+  조용히 반대로 동작한다. 확장열 4칸·상태칩 4종·시드 관리자 admin·사내 VPN 배포 확정 반영
 </footer>
 
 </div>
