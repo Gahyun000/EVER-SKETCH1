@@ -339,3 +339,51 @@ def test_pale_text_without_background_is_warned():
     assert pi._is_pale("#1c2433") is False
     assert pi._is_pale(None) is False
     assert pi._is_pale("white") is False
+
+
+# ── 10. 레이아웃의 장식(제목 뒤 색 띠) ────────────────────
+@pytest.fixture(scope="module")
+def banded() -> dict:
+    return pi.pptx_to_pages(fx.build_with_layout_band(), "band.pptx")
+
+
+def test_layout_decoration_is_imported(banded):
+    """제목 뒤 색 띠는 슬라이드가 아니라 **레이아웃**에 있다.
+
+    실물 자료가 그랬다 — 제목은 흰 글자로 멀쩡히 들어왔는데, 뒤를 받치는 띠가
+    없어서 흰 종이 위에서 통째로 사라졌다. PowerPoint 는 마스터 → 레이아웃 →
+    슬라이드 순으로 그린다. 우리도 그래야 한다.
+    """
+    els = banded["pages"][0]["els"]
+    bands = [e for e in els if e["type"] == "box" and e.get("color") == "#" + fx.BAND_BG]
+    assert bands, "레이아웃의 색 띠를 가져오지 못했습니다: %s" % [
+        (e["type"], e.get("color")) for e in els]
+
+
+def test_layout_decoration_is_behind_the_title(banded):
+    """그리는 순서가 뒤바뀌면 띠가 제목을 덮는다."""
+    els = banded["pages"][0]["els"]
+    band_i = next(i for i, e in enumerate(els)
+                  if e["type"] == "box" and e.get("color") == "#" + fx.BAND_BG)
+    title_i = next(i for i, e in enumerate(els) if "영업 추진 현황" in (e.get("text") or ""))
+    assert band_i < title_i, "색 띠가 제목보다 뒤에 그려집니다(제목을 덮습니다)."
+
+
+def test_layout_decoration_is_locked(banded):
+    """장식은 본문이 아니다 — 작성자가 실수로 끌고 다니면 안 된다."""
+    band = next(e for e in banded["pages"][0]["els"]
+                if e["type"] == "box" and e.get("color") == "#" + fx.BAND_BG)
+    assert band.get("locked") is True
+
+
+def test_layout_placeholder_text_is_not_imported(banded):
+    """레이아웃 자리표시자에는 '마스터 제목 스타일 편집' 같은 안내가 들어 있다.
+
+    그대로 옮기면 종이에 그 글자가 찍힌다.
+    """
+    texts = " ".join((e.get("text") or "") for e in banded["pages"][0]["els"])
+    assert "마스터" not in texts and "스타일 편집" not in texts, texts
+
+
+def test_no_pale_warning_when_a_band_backs_the_title(banded):
+    assert not any("보이지 않을" in w for w in banded["warnings"]), banded["warnings"]

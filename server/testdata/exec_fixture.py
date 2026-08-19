@@ -57,6 +57,38 @@ def _fill(cell, hexstr: str) -> None:
 
 COVER_BG = "1F3864"          # 표지 배경(진한 남색)
 COVER_TITLE = "유니에버㈜ 수행전략회의"
+BAND_BG = "1F3864"           # 제목 뒤를 받치는 색 띠 — **레이아웃에 있다**
+BAND_H_IN = 0.9
+MASTER_NOTE = "마스터 제목 스타일 편집"   # 레이아웃 자리표시자의 안내 문구(가져오면 안 된다)
+
+
+def _move_shape_to_layout(shape, layout) -> None:
+    """도형을 슬라이드에서 레이아웃으로 옮긴다.
+
+    python-pptx 의 LayoutShapes 에는 add_shape 가 없다(레이아웃은 편집 대상이
+    아니라고 보기 때문이다). 그래서 슬라이드에 만든 뒤 XML 요소를 통째로 옮긴다.
+    """
+    el = shape._element
+    el.getparent().remove(el)
+    layout.shapes._spTree.append(el)
+
+
+def _add_layout_band(slide, prs) -> None:
+    """제목 뒤 색 띠를 **레이아웃에** 넣는다.
+
+    실물 자료가 이 구조였다 — 제목은 흰 글자(tcolor #FFFFFF)이고, 그 뒤를 받치는
+    색 띠는 슬라이드가 아니라 레이아웃에 있었다. 슬라이드 도형만 가져오면
+    흰 글자가 흰 종이 위에 남아 통째로 사라진다.
+    """
+    from pptx.enum.shapes import MSO_SHAPE
+
+    band = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Emu(int(Inches(BAND_H_IN))))
+    band.fill.solid()
+    band.fill.fore_color.rgb = RGBColor.from_string(BAND_BG)
+    band.line.fill.background()
+    band.text_frame.text = ""
+    _move_shape_to_layout(band, slide.slide_layout)
 
 
 def _set_solid_background(slide, hexstr: str) -> None:
@@ -77,6 +109,25 @@ def _set_solid_background(slide, hexstr: str) -> None:
     etree.SubElement(bgpr, qn("a:effectLst"))
     csld.insert(0, bg) if False else None
     _ = nsmap
+
+
+def build_with_layout_band() -> bytes:
+    """제목 띠가 레이아웃에 있는 한 장짜리 파일."""
+    from pptx.util import Pt as _Pt
+
+    prs = Presentation()
+    prs.slide_width = Inches(SLIDE_W_IN)
+    prs.slide_height = Inches(SLIDE_H_IN)
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    _add_layout_band(slide, prs)
+    tb = slide.shapes.add_textbox(Inches(0.6), Inches(0.2), Inches(8.0), Inches(0.5))
+    run = tb.text_frame.paragraphs[0].add_run()
+    run.text = "2026년 08월 영업 추진 현황"
+    run.font.size = _Pt(22)
+    run.font.color.rgb = RGBColor.from_string("FFFFFF")
+    buf = io.BytesIO()
+    prs.save(buf)
+    return buf.getvalue()
 
 
 def build_cover() -> bytes:

@@ -201,3 +201,12 @@
   padding: 30px 20px; text-align: center;
 }
 .cy-drop .cy-hint { margin-top: 10px; }
+
+/* 아직 해야 할 일이 남았을 때의 안내 — 잠긴 버튼 옆에서 이유를 말한다. */
+.cy-hint.cy-need { color: #96601a; font-weight: 600; }
+
+/* 공통 장의 '담당자' 자리 — 잠긴 입력칸이 아니라 결과를 보여준다. */
+.cy-allto {
+  display: inline-block; font-size: 12px; font-weight: 700; color: var(--blue);
+  background: var(--tint); border-radius: 99px; padding: 3px 10px;
+}

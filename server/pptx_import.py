@@ -46,7 +46,9 @@ ALLOWED_SUFFIX = ".pptx"
 #   v1.1  표 크기를 행·열 합에서 계산(도형에 적힌 ext 는 자주 낡아 있다)
 #         슬라이드 번호·바닥글 자리표시자 제외
 #   v1.2  슬라이드 배경(단색·그림) 가져오기, 슬라이드 제목은 가장 위 글자
-CONVERTER_VERSION = "v1.2"
+#   v1.3  레이아웃·마스터의 장식 도형 가져오기(제목 뒤 색 띠 등).
+#         이게 없으면 흰 제목이 흰 종이 위에서 사라진다.
+CONVERTER_VERSION = "v1.3"
 
 EMU_PER_PT = 12700
 DEFAULT_FONT_PT = 11.0
@@ -368,12 +370,20 @@ def text_to_el(shape, fr: Frame, el_id: int) -> Optional[dict]:
 
 
 # ── 6. 슬라이드 한 장 ─────────────────────────────────────
-def _walk(shapes, fr: Frame, out: list[dict], warnings: list[str], next_id) -> None:
+def _walk(shapes, fr: Frame, out: list[dict], warnings: list[str], next_id,
+          chrome: bool = False) -> None:
+    """`chrome=True` 면 레이아웃·마스터에서 가져온 장식이다 — 잠가서 넣는다.
+
+    자리표시자는 건너뛴다. 레이아웃의 자리표시자에는 '마스터 제목 스타일 편집'
+    같은 안내 문구가 들어 있어서, 옮기면 종이에 그 글자가 그대로 찍힌다.
+    """
     from pptx.enum.shapes import MSO_SHAPE_TYPE
     for shape in shapes:
+        if chrome and getattr(shape, "is_placeholder", False):
+            continue
         st = shape.shape_type
         if st == MSO_SHAPE_TYPE.GROUP:
-            _walk(shape.shapes, fr, out, warnings, next_id)
+            _walk(shape.shapes, fr, out, warnings, next_id, chrome)
             continue
         if getattr(shape, "has_table", False):
             out.append(table_to_el(shape, fr, next_id(), warnings))
@@ -384,6 +394,8 @@ def _walk(shapes, fr: Frame, out: list[dict], warnings: list[str], next_id) -> N
         if st == MSO_SHAPE_TYPE.PICTURE:
             el = picture_to_el(shape, fr, next_id(), warnings)
             if el:
+                if chrome:
+                    el["locked"] = True
                 out.append(el)
             continue
         if st == MSO_SHAPE_TYPE.LINE or shape.__class__.__name__ == "Connector":
@@ -396,8 +408,12 @@ def _walk(shapes, fr: Frame, out: list[dict], warnings: list[str], next_id) -> N
         if getattr(shape, "has_text_frame", False):
             el = text_to_el(shape, fr, next_id())
             if el:
+                if chrome:
+                    el["locked"] = True
                 out.append(el)
             continue
+        if chrome:
+            continue        # 장식은 못 가져와도 경고하지 않는다 — 본문이 아니다
         warnings.append("가져오지 못한 개체가 있습니다(%s)." % (st,))
 
 
@@ -479,6 +495,26 @@ def convert_slide(prs, index: int, page_id: int = 1) -> SlideConversion:
         return counter["n"]
 
     slide = slides[index]
+
+    # 레이아웃·마스터의 장식을 **먼저** 넣는다 — PowerPoint 가 그리는 순서와 같다
+    # (마스터 → 레이아웃 → 슬라이드). 여기 있는 색 띠가 제목 뒤를 받친다.
+    #
+    # 이걸 빼먹어서 흰 제목이 흰 종이 위에서 통째로 사라졌다. 글자는 멀쩡히
+    # 들어와 있었고(tcolor=#FFFFFF), 뒤를 받치던 띠만 없었다.
+    chrome_count = 0
+    if _shows_master_shapes(slide):
+        layout = getattr(slide, "slide_layout", None)
+        master = getattr(layout, "slide_master", None) if layout is not None else None
+        for owner in (master, layout):
+            if owner is None:
+                continue
+            before = len(els)
+            try:
+                _walk(owner.shapes, fr, els, warnings, next_id, chrome=True)
+            except Exception:
+                pass        # 장식을 못 읽는다고 본문까지 못 가져오면 안 된다
+            chrome_count += len(els) - before
+
     _walk(slide.shapes, fr, els, warnings, next_id)
     if not els:
         warnings.append("가져올 내용이 없는 슬라이드입니다.")
@@ -507,7 +543,7 @@ def convert_slide(prs, index: int, page_id: int = 1) -> SlideConversion:
 
     # 배경을 못 가져왔는데 흰 글자가 있으면 그 글자는 화면에서 사라진다.
     # 조용히 두면 "글자가 없어졌다" 로만 보인다 — 무엇이 일어났는지 말해 준다.
-    if not page_bg and not (bg and bg.get("image")):
+    if _is_pale(page_bg or "#FFFFFF") and not (bg and bg.get("image")) and chrome_count == 0:
         if any(_is_pale(e.get("tcolor")) for e in els if e["type"] in ("text", "box")):
             warnings.append(
                 "배경을 가져오지 못했습니다. 흰색 글자가 흰 종이 위에서 보이지 않을 수 있습니다 "
@@ -519,6 +555,14 @@ def convert_slide(prs, index: int, page_id: int = 1) -> SlideConversion:
         "bg": page_bg, "role": "content",
     }
     return SlideConversion(page=page, warnings=_dedupe(warnings))
+
+
+def _shows_master_shapes(slide) -> bool:
+    """슬라이드가 '배경 그래픽 숨기기' 로 설정돼 있으면 장식을 넣지 않는다."""
+    try:
+        return slide._element.get("showMasterSp") not in ("0", "false")
+    except Exception:
+        return True
 
 
 def _is_pale(hexs: Optional[str]) -> bool:

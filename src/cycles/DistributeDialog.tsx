@@ -251,7 +251,8 @@ export default function DistributeDialog({
                 <table className="cy-table cy-slides">
                   <thead>
                     <tr>
-                      <th style={{ width: 46 }} title="표지·목차처럼 모두에게 앞에 붙일 장">공통</th>
+                      <th style={{ width: 46 }}
+                title="표지·목차처럼 담당자 없이 모두에게 붙일 장. 받는 사람은 아래 '담당자'에서 정해집니다.">공통</th>
                       <th style={{ width: 40 }}>장</th>
                       <th>내용</th>
                       <th style={{ width: 152 }}>담당자</th>
@@ -274,17 +275,24 @@ export default function DistributeDialog({
                           <td className="cy-dim">{s.index + 1}</td>
                           <td><b>{s.title}</b></td>
                           <td>
-                            <select className="cy-sel" value={assign[s.index] || ''}
-                              disabled={distributed || isCommon}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => setAssign((a) => ({ ...a, [s.index]: e.target.value }))}>
-                              <option value="">— 배부 안 함 —</option>
-                              {writers.map((u) => (
-                                <option key={u.id} value={u.id}>
-                                  {u.name}{u.dept ? ` · ${u.dept}` : ''}
-                                </option>
-                              ))}
-                            </select>
+                            {/* 공통으로 표시한 장은 담당자가 필요 없다 — 모두에게 가니까.
+                                예전에는 회색으로 잠긴 select 를 그대로 뒀는데,
+                                '체크했더니 막혔다' 로 읽혔다. 잠금이 아니라 결과를 보여준다. */}
+                            {isCommon ? (
+                              <span className="cy-allto">모두에게</span>
+                            ) : (
+                              <select className="cy-sel" value={assign[s.index] || ''}
+                                disabled={distributed}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => setAssign((a) => ({ ...a, [s.index]: e.target.value }))}>
+                                <option value="">— 배부 안 함 —</option>
+                                {writers.map((u) => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.name}{u.dept ? ` · ${u.dept}` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </td>
                         </tr>
                       )
@@ -304,9 +312,16 @@ export default function DistributeDialog({
           )}
           <span className="cy-modal-spacer">
             {step === 'deck' && deck && (
-              <span className="cy-hint">
-                담당자를 지정한 장만 나갑니다.
-                {common.length > 0 && ` 공통 ${common.length}장은 ${people.size}명 모두의 맨 앞에 붙습니다.`}
+              /* 잠긴 버튼이 이유를 말하지 않으면, 사용자는 엉뚱한 곳(경고 문구 등)을
+                 원인으로 짚는다. 실제로 '가져오지 못한 게 있어서 배부가 안 되냐' 는
+                 질문을 받았다 — 관계없는 경고였다. 무엇이 모자란지 여기서 말한다. */
+              <span className={'cy-hint' + (assignments.length === 0 ? ' cy-need' : '')}>
+                {assignments.length === 0
+                  ? (common.length > 0
+                    ? '공통 장은 「받는 사람」이 정해져야 나갑니다. 담당자를 한 명 이상 지정해 주세요.'
+                    : '담당자를 한 명 이상 지정해야 배부할 수 있습니다. 위 표의 「담당자」에서 고르세요.')
+                  : `${people.size}명에게 담당분 ${assignments.length}장이 나갑니다.`}
+                {common.length > 0 && ` 공통 ${common.length}장은 ${people.size || '받는'}${people.size ? '명' : ' 사람'} 모두의 맨 앞에 붙습니다.`}
               </span>
             )}
           </span>
@@ -320,6 +335,9 @@ export default function DistributeDialog({
           {step === 'deck' && deck && (
             <button className="cy-btn primary"
               disabled={!!busy || distributed || assignments.length === 0}
+              title={distributed ? '이미 배부한 회차입니다. 먼저 회수해 주세요.'
+                : assignments.length === 0 ? '담당자를 한 명 이상 지정해 주세요'
+                : `${people.size}명에게 배부합니다`}
               onClick={() => void sendDeck()}>
               {busy === 'dist' ? '배부 중…' : `슬라이드별 배부 (${people.size}명)`}
             </button>
