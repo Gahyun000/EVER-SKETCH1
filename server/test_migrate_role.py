@@ -102,12 +102,29 @@ def test_전환_후_권한_판정이_그대로다():
 
 # ══════════ 안전장치 ══════════
 def test_멱등하다():
+    """재실행이 안전해야 운영 중에도 마음 놓고 돌린다.
+
+    첫 실행이 구 컬럼까지 지우므로 두 번째는 '전환할 것이 없다'로 끝난다 —
+    데이터는 그대로다.
+    """
     make_legacy_db([("boss", 3, 3, "active")])
     first = migrate_role.run()
     second = migrate_role.run()
     assert len(first["converted"]) == 1
-    assert len(second["converted"]) == 0 and second["already"] == 1
+    assert second["no_legacy_column"] is True and second["converted"] == []
     assert roles_now()["boss"] == perm.ADMIN
+
+
+def test_컬럼이_남아_있으면_재실행이_건너뛴다():
+    """구형 SQLite 라 DROP 이 안 되는 환경 — 이미 전환된 행을 다시 건드리지 않는다."""
+    make_legacy_db([("boss", 3, 3, "active")])
+    c = sqlite3.connect(_DB)
+    c.execute("ALTER TABLE Users ADD COLUMN role TEXT NOT NULL DEFAULT ''")
+    c.execute("ALTER TABLE Users ADD COLUMN requested_role TEXT NOT NULL DEFAULT 'writer'")
+    c.execute("UPDATE Users SET role=? WHERE login_id='boss'", (perm.ADMIN,))
+    c.commit(); c.close()
+    rep = migrate_role.run()
+    assert rep["already"] == 1 and rep["converted"] == []
 
 
 def test_모의_실행은_아무것도_바꾸지_않는다():
@@ -191,3 +208,70 @@ def test_등급표는_판정에_쓰이지_않는다():
     body = src.split("def decide(")[1].split("\ndef ")[0]
     for banned in ("DISPLAY_GRADE", "grade_of", "role_of_grade"):
         assert banned not in body, "decide() 가 표시용 등급을 참조합니다: %s" % banned
+
+
+# ══════════ 전환 후에도 가입이 되는가 (실제로 막혔던 버그) ══════════
+def test_전환_후_신규_가입이_된다():
+    """구 컬럼 requested_level 이 NOT NULL 인 채로 남으면 **가입이 통째로 막힌다.**
+
+    실제로 그랬다 — 화면에는 '이미 사용 중인 아이디입니다'가 떴고,
+    사용자는 아이디만 바꿔가며 헤맸다. 진짜 원인은
+    `NOT NULL constraint failed: Users.requested_level` 이었다.
+    """
+    make_legacy_db([("boss", 3, 3, "active")])
+    migrate_role.run()
+    u = auth_store.signup("newbie", "password123", "신규", "본부", perm.WRITER)
+    row = auth_store.get_user(u["id"])
+    assert row["role"] == "" and row["status"] == "pending"
+    assert row["requested_role"] == perm.WRITER
+
+
+def test_전환하지_않은_DB에서도_가입이_된다():
+    """마이그레이션을 깜빡했더라도 가입은 되어야 한다 — 구 컬럼에 기본값을 함께 넣는다."""
+    make_legacy_db([("boss", 3, 3, "active")])
+    u = auth_store.signup("newbie2", "password123", "신규", "본부", perm.WRITER)
+    assert auth_store.get_user(u["id"])["requested_role"] == perm.WRITER
+
+
+def test_전환_후_시드_관리자도_만들어진다():
+    make_legacy_db([("someone", 2, 2, "active")])
+    migrate_role.run()
+    pw = auth_store.ensure_seed_admin("adminpw12345")
+    assert pw
+    admin = [u for u in auth_store.list_users() if u["login_id"] == "admin"][0]
+    assert admin["role"] == perm.ADMIN
+
+
+def test_전환하면_구_컬럼이_사라진다():
+    make_legacy_db([("boss", 3, 3, "active")])
+    rep = migrate_role.run()
+    assert set(rep["dropped"]) == {"requested_level", "level"}
+    c = sqlite3.connect(_DB)
+    cols = {r[1] for r in c.execute("PRAGMA table_info(Users)").fetchall()}
+    c.close()
+    assert "requested_level" not in cols and "level" not in cols
+
+
+def test_중복_아이디는_여전히_정확한_메시지를_준다():
+    """스키마 오류를 '중복 아이디'로 뭉개면 안 되지만, 진짜 중복은 그렇게 알려야 한다."""
+    auth_store.signup("dupuser", "password123", "중복", "", perm.WRITER)
+    with pytest.raises(auth_store.AuthError) as e:
+        auth_store.signup("dupuser", "password123", "중복2", "", perm.WRITER)
+    assert "이미 사용 중인 아이디" in str(e.value)
+
+
+def test_스키마_오류는_중복_아이디로_보고하지_않는다():
+    """원인을 감추면 사용자는 엉뚱한 곳(아이디)만 계속 고친다."""
+    import sqlite3 as sq
+    make_legacy_db([("boss", 3, 3, "active")])
+    c = auth_store._conn(); c.close()
+    # 채울 수 없는 NOT NULL 컬럼을 하나 심어 INSERT 를 강제로 실패시킨다.
+    c = sq.connect(_DB)
+    c.execute("ALTER TABLE Users ADD COLUMN mandatory TEXT NOT NULL DEFAULT ''")
+    c.execute("CREATE TRIGGER force_fail BEFORE INSERT ON Users BEGIN "
+              "SELECT RAISE(ABORT, 'CHECK constraint failed: forced'); END")
+    c.commit(); c.close()
+    with pytest.raises(auth_store.AuthError) as e:
+        auth_store.signup("victim", "password123", "피해자", "", perm.WRITER)
+    assert "이미 사용 중인 아이디" not in str(e.value)
+    assert "계정을 만들지 못했습니다" in str(e.value)

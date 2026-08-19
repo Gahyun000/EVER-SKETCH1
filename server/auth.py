@@ -76,8 +76,8 @@ def _conn() -> sqlite3.Connection:
         "created_at REAL NOT NULL, approved_at REAL, approved_by TEXT, last_login_at REAL)"
     )
     c.execute("CREATE INDEX IF NOT EXISTS idx_users_status ON Users(status)")
-    # 구 스키마(level/requested_level 숫자)에서 올라온 DB 호환 — 컬럼만 덧붙인다.
-    # 값 변환은 migrate_role.py 가 한다(백업 후 일괄).
+    # 구 스키마(숫자 level)에서 올라온 DB — 역할 컬럼을 덧붙인다.
+    # 값 변환은 migrate_role.py 가 하고, 구 컬럼 제거도 거기서 한다.
     have = {r[1] for r in c.execute("PRAGMA table_info(Users)").fetchall()}
     if "role" not in have:
         c.execute("ALTER TABLE Users ADD COLUMN role TEXT NOT NULL DEFAULT ''")
@@ -95,7 +95,53 @@ def _conn() -> sqlite3.Connection:
         "target TEXT, ts REAL NOT NULL, detail TEXT)"
     )
     c.execute("CREATE INDEX IF NOT EXISTS idx_audit_ts ON AuditLogs(ts)")
+    c.commit()
     return c
+
+
+# 구 숫자 레벨 컬럼 → 신규 INSERT 시 채워 넣을 값.
+# 마이그레이션 전 DB 에서도 가입이 되게 하려는 것이다.
+_LEGACY_DEFAULT = {"requested_level": 2, "level": 0}
+
+
+def legacy_level_columns(c: sqlite3.Connection) -> list[str]:
+    """아직 남아 있는 구 숫자 컬럼.
+
+    `requested_level` 은 NOT NULL 인데 기본값이 없다. 이 컬럼이 남은 채로
+    새 INSERT 를 하면 **가입이 통째로 막힌다** — 실제로 그렇게 막혔다.
+    그래서 INSERT 마다 확인해 값을 함께 넣는다.
+    """
+    have = {r[1] for r in c.execute("PRAGMA table_info(Users)").fetchall()}
+    return [x for x in ("requested_level", "level") if x in have]
+
+
+def drop_legacy_level_columns(c: sqlite3.Connection) -> list[str]:
+    """구 숫자 컬럼을 제거한다(migrate_role 이 값 변환을 마친 뒤 호출).
+
+    SQLite 3.35+ 는 DROP COLUMN 을 지원한다. 구형이면 조용히 남겨두고,
+    legacy_level_columns() 쪽 방어로 계속 동작한다.
+    """
+    dropped = []
+    for col in legacy_level_columns(c):
+        try:
+            c.execute("ALTER TABLE Users DROP COLUMN %s" % col)
+            dropped.append(col)
+        except sqlite3.OperationalError:
+            break
+    if dropped:
+        c.commit()
+    return dropped
+
+
+def _insert_user_sql(c: sqlite3.Connection, cols: list[str], vals: list) -> tuple[str, list]:
+    """구 컬럼이 남아 있으면 기본값을 끼워 넣은 INSERT 를 만든다."""
+    cols = list(cols)
+    vals = list(vals)
+    for col in legacy_level_columns(c):
+        cols.append(col)
+        vals.append(_LEGACY_DEFAULT[col])
+    sql = "INSERT INTO Users(%s) VALUES(%s)" % (",".join(cols), ",".join("?" * len(cols)))
+    return sql, vals
 
 
 # ── 비밀번호 ─────────────────────────────────────────
@@ -165,14 +211,25 @@ def signup(login_id: str, pw: str, name: str, dept: str, requested_role: str) ->
     c = _conn()
     try:
         try:
-            c.execute(
-                "INSERT INTO Users(id,login_id,pw_hash,name,dept,requested_role,role,status,"
-                "must_change_pw,created_at) VALUES(?,?,?,?,?,?,'','pending',0,?)",
-                (uid, login_id, hash_pw(pw), name, dept, requested_role, _now()),
+            sql, vals = _insert_user_sql(
+                c,
+                ["id", "login_id", "pw_hash", "name", "dept", "requested_role",
+                 "role", "status", "must_change_pw", "created_at"],
+                [uid, login_id, hash_pw(pw), name, dept, requested_role,
+                 "", "pending", 0, _now()],
             )
+            c.execute(sql, vals)
             c.commit()
-        except sqlite3.IntegrityError:
-            raise AuthError("이미 사용 중인 아이디입니다.")
+        except sqlite3.IntegrityError as e:
+            # IntegrityError 를 통째로 '중복 아이디'로 뭉개면 안 된다.
+            # 스키마 문제(구 NOT NULL 컬럼 잔존 등)까지 같은 문구가 나가면
+            # 사용자는 아이디만 계속 바꿔가며 헤매고 진짜 원인은 드러나지 않는다.
+            msg = str(e)
+            if "UNIQUE" in msg and "login_id" in msg:
+                raise AuthError("이미 사용 중인 아이디입니다.")
+            raise AuthError(
+                "계정을 만들지 못했습니다. 관리자에게 문의해 주세요. (%s)" % msg[:120]
+            )
     finally:
         c.close()
     audit(uid, "signup", uid, "requested_role=%s" % requested_role)
@@ -433,11 +490,14 @@ def ensure_seed_admin(initial_pw: Optional[str] = None) -> Optional[str]:
     now = _now()
     c = _conn()
     try:
-        c.execute(
-            "INSERT INTO Users(id,login_id,pw_hash,name,dept,requested_role,role,status,"
-            "must_change_pw,created_at,approved_at) VALUES(?,?,?,?,?,?,?,'active',1,?,?)",
-            (uid, _SEED_ADMIN_LOGIN, hash_pw(pw), "시스템 관리자", "", ADMIN, ADMIN, now, now),
+        sql, vals = _insert_user_sql(
+            c,
+            ["id", "login_id", "pw_hash", "name", "dept", "requested_role", "role",
+             "status", "must_change_pw", "created_at", "approved_at"],
+            [uid, _SEED_ADMIN_LOGIN, hash_pw(pw), "시스템 관리자", "", ADMIN, ADMIN,
+             "active", 1, now, now],
         )
+        c.execute(sql, vals)
         c.commit()
     finally:
         c.close()

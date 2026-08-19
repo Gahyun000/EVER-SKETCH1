@@ -37,7 +37,7 @@ LEVEL_TO_ROLE = {3: perm.ADMIN, 2: perm.WRITER, 1: perm.VIEWER, 0: ""}
 def run(dry_run: bool = False) -> dict:
     db_path = auth_store._db_path()
     report: dict = {"db": db_path, "dry_run": dry_run, "converted": [], "already": 0,
-                    "no_legacy_column": False}
+                    "no_legacy_column": False, "dropped": []}
 
     if not dry_run:
         report["backup"] = backup_db(db_path)
@@ -76,6 +76,11 @@ def run(dry_run: bool = False) -> dict:
             conn.commit()
             auth_store.audit(None, "migrate_role", "",
                              "%d명 역할 전환" % len(report["converted"]))
+
+        # 값 변환이 끝났으면 구 숫자 컬럼을 없앤다.
+        # 남겨두면 requested_level(NOT NULL, 기본값 없음) 때문에 **신규 가입이 통째로 막힌다.**
+        if not dry_run:
+            report["dropped"] = auth_store.drop_legacy_level_columns(conn)
 
         # 전환 후 관리자가 0명이면 시스템이 잠긴다. 반드시 확인한다.
         admins = conn.execute(
@@ -116,6 +121,8 @@ def main() -> None:
             print("  %-18s L%-7s → %s" % (r["login_id"], r["level"], label))
     print("-" * 66)
     admins = rep.get("active_admins", 0)
+    if rep.get("dropped"):
+        print("  구 컬럼 제거   : %s" % ", ".join(rep["dropped"]))
     print("  전환 후 활성 관리자: %d명" % admins)
     if admins == 0:
         print("  ⚠ 관리자가 없습니다. 아무도 승인할 수 없게 됩니다.")
