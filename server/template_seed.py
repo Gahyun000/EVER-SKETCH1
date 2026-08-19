@@ -37,9 +37,40 @@ ROADMAP_COLS = 20
 ROADMAP_HEADER_ROWS = 2
 DEFAULT_DATA_ROWS = 6    # 잠정값 — W5 리허설에서 실측 후 확정 (사양 §7.2)
 
+# ── 페이지 기하 ────────────────────────────────────────
+# **캔버스 좌표계다.** src/cards/sizing.ts 의 DECK_W/DECK_H 와 반드시 같아야 한다.
+# 다르면 배부된 양식이 종이 밖으로 나가 화면에 아무것도 안 보인다.
+# (test_template_geometry.py 가 두 값의 일치와 요소가 종이 안에 있는지를 검사한다.)
+PAGE_W = 1040
+PAGE_H = 720
+MARGIN = 24
+CONTENT_W = PAGE_W - MARGIN * 2      # 992
+ROADMAP_ROW_H = 30
+LIST_ROW_H = 28
+LIST_GAP = 14
+ROADMAP_Y = 94          # 로드맵 표 시작 y
+BLOCK_GAP = 40          # 로드맵 표 ~ 3단 목록 사이
+FOOT_GAP = 18           # 목록 ~ 꼬리말 사이
+FOOT_H = 16
+BOTTOM_PAD = 16         # 꼬리말 아래 여백
+
 # 목록 표 (사양 §4)
 LIST_COLS = 3
 LIST_DEFAULT_ROWS = 5    # 헤더 1 + 데이터 4
+
+def _max_data_rows() -> int:
+    """한 장에 들어가는 로드맵 데이터 행의 상한.
+
+    종이 높이에서 아래 블록들이 쓰는 높이를 빼고 남는 만큼이다.
+    상한을 넘겨도 조용히 그리면 표 아랫부분이 종이 밖으로 나가 **아무도 못 본다.**
+    그래서 넘으면 만들지 않고 실패시킨다.
+    """
+    used = (ROADMAP_Y + BLOCK_GAP + LIST_ROW_H * LIST_DEFAULT_ROWS
+            + FOOT_GAP + FOOT_H + BOTTOM_PAD)
+    return max(1, (PAGE_H - used) // ROADMAP_ROW_H - ROADMAP_HEADER_ROWS)
+
+
+MAX_DATA_ROWS = _max_data_rows()
 
 STATUS_CHOICES = ("완료", "진행", "지연", "보류")
 SEVERITY_CHOICES = ("높음", "중간", "낮음")
@@ -71,6 +102,10 @@ def _blank_grid(rows: int, cols: int) -> list[list[str]]:
 def build_roadmap_el(el_id: int, period_ym: str, data_rows: int = DEFAULT_DATA_ROWS) -> dict:
     """① 로드맵 / 마일스톤 표."""
     year, month = parse_period(period_ym)
+    if data_rows > MAX_DATA_ROWS:
+        raise TemplateError(
+            "로드맵 행이 너무 많습니다 — 한 장에 최대 %d행입니다 (요청 %d행). "
+            "행을 줄이거나 장을 나눠 주세요." % (MAX_DATA_ROWS, data_rows))
     rows = ROADMAP_HEADER_ROWS + max(1, data_rows)
     cells = _blank_grid(rows, ROADMAP_COLS)
 
@@ -107,7 +142,7 @@ def build_roadmap_el(el_id: int, period_ym: str, data_rows: int = DEFAULT_DATA_R
 
     return {
         "id": el_id, "type": "table", "slot": "SLOT-A",
-        "x": 24, "y": 96, "w": 1180, "h": 26 * rows,
+        "x": MARGIN, "y": 94, "w": CONTENT_W, "h": ROADMAP_ROW_H * rows,
         "text": "", "color": "transparent", "fs": 11.5,
         "rows": rows, "cols": ROADMAP_COLS, "cells": cells,
         "merges": merges, "calign": calign, "cbg": {},
@@ -129,7 +164,7 @@ def build_list_el(el_id: int, slot: str, title_col: str, third_col: str,
     calign.update({"%d_2" % r: "center" for r in range(rows)})
     return {
         "id": el_id, "type": "table", "slot": slot,
-        "x": x, "y": y, "w": w, "h": 24 * rows,
+        "x": x, "y": y, "w": w, "h": LIST_ROW_H * rows,
         "text": "", "color": "transparent", "fs": 11.5,
         "rows": rows, "cols": LIST_COLS, "cells": cells,
         "merges": [], "calign": calign, "cbg": {},
@@ -163,34 +198,34 @@ def build_template_page(period_ym: str, owner_name: str = "", dept: str = "",
     who = " · ".join([x for x in (owner_name, dept) if x])
     els: list[dict] = [
         _text_el(nid(), "head", "%d년 %d월 임원회의 — 진행보고" % (year, month),
-                 24, 28, 760, 34, 19, bold=True),
+                 MARGIN, 24, 620, 32, 19, bold=True),
         _text_el(nid(), "head",
                  ("작성 %s" % who) if who else "작성자",
-                 800, 30, 404, 18, 12, align="right", tcolor="#5b6270"),
+                 PAGE_W - MARGIN - 348, 26, 348, 18, 12, align="right", tcolor="#5b6270"),
         _text_el(nid(), "head",
                  "회차 %s%s" % (period_ym, ("  ·  제출기한 %s" % due_label) if due_label else ""),
-                 800, 50, 404, 18, 12, align="right", tcolor="#98a1b2"),
+                 PAGE_W - MARGIN - 348, 46, 348, 18, 12, align="right", tcolor="#98a1b2"),
 
-        _text_el(nid(), "SLOT-A", "① 로드맵 / 마일스톤", 24, 74, 400, 20, 13, bold=True),
+        _text_el(nid(), "SLOT-A", "① 로드맵 / 마일스톤", MARGIN, 72, 400, 18, 13, bold=True),
         build_roadmap_el(nid(), period_ym, data_rows),
     ]
 
     # 3단 하단 블록
-    list_y = 96 + 26 * (ROADMAP_HEADER_ROWS + max(1, data_rows)) + 34
-    col_w = 380
-    gap = 12
+    list_y = 94 + ROADMAP_ROW_H * (ROADMAP_HEADER_ROWS + max(1, data_rows)) + 40
+    col_w = (CONTENT_W - LIST_GAP * 2) // 3
+    gap = LIST_GAP
     for i, (slot, head, title_col, third_col) in enumerate([
         ("SLOT-B", "② 진행 현황  (당월)", "사업 / 과제", "상태"),
         ("SLOT-C", "③ 향후 계획  (익월)", "계획 항목", "목표일"),
         ("SLOT-D", "④ 이슈 리스트  (미해결)", "이슈 · 리스크 / 필요 지원", "심각도"),
     ]):
-        x = 24 + i * (col_w + gap)
+        x = MARGIN + i * (col_w + gap)
         els.append(_text_el(nid(), slot, head, x, list_y - 22, col_w, 18, 12.5, bold=True))
         els.append(build_list_el(nid(), slot, title_col, third_col, list_y, x, col_w))
 
     els.append(_text_el(nid(), "foot",
                         "EVER-SKETCH · %s 임원회의%s" % (period_ym, ("  ·  " + dept) if dept else ""),
-                        24, list_y + 24 * LIST_DEFAULT_ROWS + 18, 700, 16, 10.5,
+                        MARGIN, list_y + LIST_ROW_H * LIST_DEFAULT_ROWS + 18, 700, 16, 10.5,
                         tcolor="#98a1b2"))
 
     return {

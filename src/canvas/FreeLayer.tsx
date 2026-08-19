@@ -158,6 +158,15 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [interactive, setSel, setConnSrc, setTool, setSelConn, removeConn, page])
   const active = interactive
+  // 페이지가 작업창보다 크면 Preview 가 CSS 로 축소해 그린다(맞춤 배율).
+  // 그때 마우스가 지나간 **화면 픽셀은 페이지 좌표보다 크다.** 배율로 나누지 않으면
+  // 드래그·크기조절·회전이 전부 커서보다 덜 움직인다(1040px 페이지를 800px 창에 넣으면 23% 어긋난다).
+  // rect.width 는 이미 축소가 반영된 값이라 논리 폭 W 로 나누면 그게 곧 현재 배율이다.
+  const zoomOf = (r: { width: number }) => (r.width > 0 ? r.width / W : 1)
+  const layerZoom = (from: Element) => {
+    const n = from.closest('.freelayer') as HTMLElement | null
+    return n ? zoomOf(n.getBoundingClientRect()) : 1
+  }
   const markerId = 'fah' + page.id
   const markerStartId = 'fas' + page.id
 
@@ -186,7 +195,8 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     if (!active) return
     if (e.target !== e.currentTarget) return
     const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left, y = e.clientY - rect.top
+    const z = zoomOf(rect)
+    const x = (e.clientX - rect.left) / z, y = (e.clientY - rect.top) / z
     if (tool === 'eraser') {
       e.preventDefault()
       let cur = page.strokes.slice()
@@ -197,7 +207,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
         if (keep.length !== cur.length) { if (!did) { snap(); did = true } cur = keep; setCanvas(page.id, { els: page.els, conns: page.conns, strokes: cur }) }
       }
       erase(x, y)
-      const move = (ev: PointerEvent) => erase(ev.clientX - rect.left, ev.clientY - rect.top)
+      const move = (ev: PointerEvent) => erase((ev.clientX - rect.left) / z, (ev.clientY - rect.top) / z)
       const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
       window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); return
     }
@@ -205,7 +215,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       e.preventDefault(); snap()
       const isHl = tool === 'highlighter'
       const pts: [number, number][] = [[x, y]]; setPenPts([...pts])
-      const move = (ev: PointerEvent) => { pts.push([ev.clientX - rect.left, ev.clientY - rect.top]); setPenPts([...pts]) }
+      const move = (ev: PointerEvent) => { pts.push([(ev.clientX - rect.left) / z, (ev.clientY - rect.top) / z]); setPenPts([...pts]) }
       const up = () => {
         // 펜=자유 잉크 획만(도형/화살표 자동 변환 없음 → 지우개로 지워짐). 형광펜도 획.
         if (isHl) addStroke(page.id, { points: pts, color: hlColor, w: hlWidth, hl: true })
@@ -219,10 +229,10 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       setSel(null); setConnSrc(null); setSelConn(null); setEditing(null)
       const s0 = { x, y }
       setMarquee({ x, y, w: 0, h: 0 })
-      const mv = (ev: PointerEvent) => { const cx = ev.clientX - rect.left, cy = ev.clientY - rect.top; setMarquee({ x: Math.min(s0.x, cx), y: Math.min(s0.y, cy), w: Math.abs(cx - s0.x), h: Math.abs(cy - s0.y) }) }
+      const mv = (ev: PointerEvent) => { const cx = (ev.clientX - rect.left) / z, cy = (ev.clientY - rect.top) / z; setMarquee({ x: Math.min(s0.x, cx), y: Math.min(s0.y, cy), w: Math.abs(cx - s0.x), h: Math.abs(cy - s0.y) }) }
       const up = (ev: PointerEvent) => {
         window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up)
-        const cx = ev.clientX - rect.left, cy = ev.clientY - rect.top
+        const cx = (ev.clientX - rect.left) / z, cy = (ev.clientY - rect.top) / z
         const mx = Math.min(s0.x, cx), my = Math.min(s0.y, cy), mw = Math.abs(cx - s0.x), mh = Math.abs(cy - s0.y)
         setMarquee(null)
         if (mw > 4 && mh > 4) {
@@ -239,7 +249,8 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   function onLayerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!active || tool !== 'connect' || connSrc === null) { if (mouse) setMouse(null); return }
     const rect = e.currentTarget.getBoundingClientRect()
-    setMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    const z = zoomOf(rect)
+    setMouse({ x: (e.clientX - rect.left) / z, y: (e.clientY - rect.top) / z })
   }
   function onElDown(e: React.PointerEvent<HTMLDivElement>, el: FreeEl) {
     if (!active) return
@@ -262,8 +273,9 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     const movableIds = dragIds.filter((id) => { const d = page.els.find((x) => x.id === id); return d && !d.locked })
     const starts = movableIds.map((id) => { const d = page.els.find((x) => x.id === id); return { id, x: d ? d.x : 0, y: d ? d.y : 0 } })
     const sx = e.clientX, sy = e.clientY; let moved = false
+    const lz = layerZoom(e.currentTarget)
     const move = (ev: PointerEvent) => {
-      const dx = ev.clientX - sx, dy = ev.clientY - sy
+      const dx = (ev.clientX - sx) / lz, dy = (ev.clientY - sy) / lz
       if (Math.abs(dx) + Math.abs(dy) > 4) { if (!moved) snap(); moved = true }
       if (single) {
         const s0 = starts[0]
@@ -284,6 +296,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     if (!rect) return
     const th = (el.rot || 0) * Math.PI / 180, cos = Math.cos(th), sin = Math.sin(th)
     const R = (px: number, py: number) => ({ x: px * cos - py * sin, y: px * sin + py * cos })
+    const z = zoomOf(rect)
     const ow = el.w, oh = el.h, cx0 = el.x + ow / 2, cy0 = el.y + oh / 2
     const signX = dir.indexOf('e') >= 0 ? 1 : dir.indexOf('w') >= 0 ? -1 : 0
     const signY = dir.indexOf('s') >= 0 ? 1 : dir.indexOf('n') >= 0 ? -1 : 0
@@ -292,7 +305,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     const MINW = 20, MINH = 16; let did = false
     const move = (ev: PointerEvent) => {
       if (!did) { snap(); did = true }
-      const wx = (ev.clientX - rect.left) - Ax, wy = (ev.clientY - rect.top) - Ay
+      const wx = (ev.clientX - rect.left) / z - Ax, wy = (ev.clientY - rect.top) / z - Ay
       const lx = wx * cos + wy * sin, ly = -wx * sin + wy * cos
       const nw = signX !== 0 ? Math.max(MINW, Math.abs(lx)) : ow
       const nh = signY !== 0 ? Math.max(MINH, Math.abs(ly)) : oh
@@ -310,10 +323,11 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     const layer = (e.currentTarget as HTMLElement).closest('.freelayer') as HTMLElement | null
     const rect = layer ? layer.getBoundingClientRect() : null
     if (!rect) return
+    const z = zoomOf(rect)
     const cx = el.x + el.w / 2, cy = el.y + el.h / 2; let did = false
     const move = (ev: PointerEvent) => {
       if (!did) { snap(); did = true }
-      const px = ev.clientX - rect.left, py = ev.clientY - rect.top
+      const px = (ev.clientX - rect.left) / z, py = (ev.clientY - rect.top) / z
       let ang = Math.atan2(py - cy, px - cx) * 180 / Math.PI + 90
       ang = ((Math.round(ang) % 360) + 360) % 360
       if (ev.shiftKey) ang = Math.round(ang / 15) * 15 % 360
@@ -333,10 +347,11 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     const ax = dir.indexOf('w') >= 0 ? bx2 : bx
     const ay = dir.indexOf('n') >= 0 ? by2 : by
     const starts = sel0.map((el) => ({ id: el.id, x: el.x, y: el.y, w: el.w, h: el.h }))
+    const gz = layerZoom(e.currentTarget)
     const sx0 = e.clientX, sy0 = e.clientY; let did = false
     const move = (ev: PointerEvent) => {
       if (!did) { snap(); did = true }
-      const dx = ev.clientX - sx0, dy = ev.clientY - sy0
+      const dx = (ev.clientX - sx0) / gz, dy = (ev.clientY - sy0) / gz
       let nBW = BW, nBH = BH
       if (dir.indexOf('e') >= 0) nBW = Math.max(20, BW + dx)
       if (dir.indexOf('w') >= 0) nBW = Math.max(20, BW - dx)
@@ -359,12 +374,13 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     if (!sel0.length) return
     const bx = Math.min(...sel0.map((el) => el.x)), by = Math.min(...sel0.map((el) => el.y))
     const bx2 = Math.max(...sel0.map((el) => el.x + el.w)), by2 = Math.max(...sel0.map((el) => el.y + el.h))
+    const z = zoomOf(rect)
     const gcx = (bx + bx2) / 2, gcy = (by + by2) / 2
     const starts = sel0.map((el) => ({ id: el.id, cx: el.x + el.w / 2, cy: el.y + el.h / 2, w: el.w, h: el.h, rot: el.rot || 0 }))
-    const a0 = Math.atan2((e.clientY - rect.top) - gcy, (e.clientX - rect.left) - gcx); let did = false
+    const a0 = Math.atan2((e.clientY - rect.top) / z - gcy, (e.clientX - rect.left) / z - gcx); let did = false
     const move = (ev: PointerEvent) => {
       if (!did) { snap(); did = true }
-      const a = Math.atan2((ev.clientY - rect.top) - gcy, (ev.clientX - rect.left) - gcx)
+      const a = Math.atan2((ev.clientY - rect.top) / z - gcy, (ev.clientX - rect.left) / z - gcx)
       const d = a - a0, dd = d * 180 / Math.PI
       transformEls(page.id, starts.map((m0) => {
         const rxp = m0.cx - gcx, ryp = m0.cy - gcy
@@ -383,11 +399,12 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     const layer = (e.currentTarget as HTMLElement).closest('.freelayer') as HTMLElement | null
     const rect = layer ? layer.getBoundingClientRect() : null
     if (!rect) return
-    const move = (ev: PointerEvent) => { setNodeDrag({ fromId: el.id, x: ev.clientX - rect.left, y: ev.clientY - rect.top }) }
+    const z = zoomOf(rect)
+    const move = (ev: PointerEvent) => { setNodeDrag({ fromId: el.id, x: (ev.clientX - rect.left) / z, y: (ev.clientY - rect.top) / z }) }
     const up = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up)
       setNodeDrag(null)
-      const x = ev.clientX - rect.left, y = ev.clientY - rect.top
+      const x = (ev.clientX - rect.left) / z, y = (ev.clientY - rect.top) / z
       const target = page.els.find((t) => t.id !== el.id && x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h)
       snap()
       if (target) { addConn(page.id, { from: el.id, to: target.id }); setSel(target.id); return }
@@ -412,12 +429,12 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     e.preventDefault(); e.stopPropagation()
     const svg = e.currentTarget.ownerSVGElement
     if (!svg) return
-    const rect = svg.getBoundingClientRect(); let did = false, moved = false
+    const rect = svg.getBoundingClientRect(); const z = zoomOf(rect); let did = false, moved = false
     const sx = e.clientX, sy = e.clientY
     const move = (ev: PointerEvent) => {
       if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) <= 4) return
       moved = true
-      const x = ev.clientX - rect.left, y = ev.clientY - rect.top
+      const x = (ev.clientX - rect.left) / z, y = (ev.clientY - rect.top) / z
       if (!did) { snap(); did = true } updateConn(page.id, i, { x, y }); setBending({ x, y })
     }
     const up = () => { setBending(null); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); if (!moved) setSelConn(i) }
