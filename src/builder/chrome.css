@@ -284,3 +284,12 @@
 
 .insp-pill:disabled{opacity:.45;cursor:default}
 .insp-pill:disabled:hover{background:#fff}
+
+/* 표 도구 — 표가 선택됐을 때만 보인다(EditToolbar::TableTools). */
+.ax-tb .tbtn{
+  height:26px;padding:0 10px;border-radius:7px;border:1px solid rgba(42,120,214,.28);
+  background:#fff;cursor:pointer;font-size:12px;font-family:inherit;color:#1c2433;white-space:nowrap;
+}
+.ax-tb .tbtn:hover:not(:disabled){background:rgba(42,120,214,.10)}
+.ax-tb .tbtn:disabled{opacity:.4;cursor:not-allowed}
+.ax-tb .tbtn-hint{font-size:11px;color:#5b6270;padding:0 4px;font-variant-numeric:tabular-nums;white-space:nowrap}

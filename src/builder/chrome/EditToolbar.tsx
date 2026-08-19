@@ -9,6 +9,8 @@ import { useAutosave } from '../../persistence/autosave'
 import { useBuilder, type PaperType } from '../../state/store'
 import { PAPER_OPTIONS } from '../../cards/paper'
 import type { FreeEl } from '../../state/store'
+import { mergeCovering, mergeRange, unmergeAt } from '../../canvas/tableOps'
+import { isSlotEl, slotAllows } from '../../template/slots'
 
 let FMT: Partial<FreeEl> | null = null
 
@@ -86,6 +88,48 @@ function ShapeTool() {
   )
 }
 
+/**
+ * 표 도구 — 표가 선택됐을 때만 나타난다.
+ *
+ * 병합 버튼이 오른쪽 패널 '표' 탭 **안에만** 있어서, 패널을 닫아둔 사람은
+ * 기능이 아예 없는 줄 알았다. 정본 v2.0 에서 로드맵의 진행 구간은
+ * '가로 병합 + 단계 이름' 이다 — 병합을 못 찾으면 로드맵을 그릴 수가 없다.
+ * 제품의 핵심 조작이 발견되지 않는 곳에 있었다.
+ */
+function TableTools() {
+  const { el, patch } = useSelEl()
+  const tableSel = useCanvasUI((s) => s.tableSel)
+  if (!el || el.type !== 'table') return null
+
+  const ts = tableSel && tableSel.elId === el.id ? tableSel : null
+  const inTemplate = isSlotEl(el.slot)
+  const canMerge = !inTemplate || slotAllows(el.slot, 'merge')
+  const rows = ts ? Math.abs(ts.r1 - ts.r0) + 1 : 0
+  const cols = ts ? Math.abs(ts.c1 - ts.c0) + 1 : 0
+  const ranged = rows * cols > 1
+  const onMerged = !!ts && !!mergeCovering(el.merges, ts.r1, ts.c1)
+
+  const why = !canMerge ? '이 표는 표준 양식이라 병합할 수 없어요'
+    : !ts ? '표 안에서 칸을 클릭하세요'
+    : !ranged ? '두 칸 이상을 끌어서 고르세요'
+    : `${rows}행 ${cols}열을 하나로 합칩니다`
+
+  return (
+    <span className="ax-grp gs">
+      <span className="lab">표</span>
+      <button className="tbtn" title={why} disabled={!canMerge || !ranged}
+        onClick={() => { if (ts) patch(mergeRange(el, ts.r0, ts.c0, ts.r1, ts.c1)) }}>⤢ 병합</button>
+      <button className="tbtn" title={canMerge ? (onMerged ? '이 칸의 병합을 풉니다' : '병합된 칸을 고르세요') : why}
+        disabled={!canMerge || !onMerged}
+        onClick={() => { if (ts) patch(unmergeAt(el, ts.r1, ts.c1)) }}>⤡ 해제</button>
+      <span className="tbtn-hint">
+        {ts ? (ranged ? `${rows}×${cols} 선택` : `${Math.min(ts.r0, ts.r1) + 1}행 ${Math.min(ts.c0, ts.c1) + 1}열`)
+            : '칸을 끌어서 선택'}
+      </span>
+    </span>
+  )
+}
+
 export default function EditToolbar() {
   const tool = useCanvasUI((s) => s.tool)
   const setTool = useCanvasUI((s) => s.setTool)
@@ -157,6 +201,8 @@ export default function EditToolbar() {
         <ShapeTool />
         <button className="ib" title="이모지·아이콘·이미지" onClick={openPicker}>😀</button>
       </span>
+
+      <TableTools />
 
       <span className="ax-grp gs note-grp">
         <span className="lab">노트</span>

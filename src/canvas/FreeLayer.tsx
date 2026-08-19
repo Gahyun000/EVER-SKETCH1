@@ -191,6 +191,36 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     inp.click()
   }
 
+  // 셀 드래그 선택 — 끌고 지나간 칸까지 범위를 넓힌다.
+  //
+  // 좌표로 계산하지 않고 **elementFromPoint 로 실제 칸을 짚는다.**
+  // 열 너비(colw)·행 높이(rowh)·병합이 섞이면 좌표 산술로는 어느 칸인지 못 맞춘다.
+  // 병합에 덮인 자리는 앵커 칸이 그 영역을 차지하므로 앵커 좌표가 그대로 나온다.
+  function startCellDrag(elId: number, r0: number, c0: number, from: Element) {
+    // 같은 페이지가 필름스트립 미리보기에도 그려진다 — 거기 칸들도 data-tel 이 같다.
+    // 레이어를 확인하지 않으면 커서가 미리보기 위를 지나는 순간 엉뚱한 칸이 잡힌다.
+    const layer = from.closest('.freelayer')
+    let last = r0 + '_' + c0
+    const move = (ev: PointerEvent) => {
+      const node = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null
+      const cell = node ? (node.closest('[data-tel]') as HTMLElement | null) : null
+      if (!cell || cell.dataset.tel !== String(elId)) return
+      if (!layer || !layer.contains(cell)) return
+      const r = Number(cell.dataset.r), c = Number(cell.dataset.c)
+      if (!Number.isFinite(r) || !Number.isFinite(c)) return
+      const key = r + '_' + c
+      if (key === last) return
+      last = key
+      setTableSel({ elId, r0, c0, r1: r, c1: c })
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
   function onLayerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (!active) return
     if (e.target !== e.currentTarget) return
@@ -573,17 +603,42 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                         const canEdit = editingThis && cellEditable(el.slot, r, c)
                         return (
                           <div key={k} className={'feltd' + (sel ? ' cellsel' : '') + (editingThis && !canEdit ? ' cell-locked' : '')} suppressContentEditableWarning
+                            data-tel={el.id} data-r={r} data-c={c}
                             title={editingThis && !canEdit ? '이 칸은 표준 양식이라 수정할 수 없어요' : undefined}
                             style={{ border: bw + 'px solid ' + border, fontSize: el.fs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}` }}
                             contentEditable={canEdit}
                             onPointerDown={(e) => {
                               if (editingThis) { e.stopPropagation(); return }
-                              if (tableActive) { e.stopPropagation(); if (e.shiftKey && ts) setTableSel({ elId: el.id, r0: ts.r0, c0: ts.c0, r1: r, c1: c }); else setTableSel({ elId: el.id, r0: r, c0: c, r1: r, c1: c }) }
+                              // 첫 클릭은 표를 고르는 데 쓴다 — 여기서 막지 않고 onElDown 으로 흘려보낸다.
+                              if (!tableActive) return
+                              e.stopPropagation()
+                              if (e.shiftKey && ts) { setTableSel({ elId: el.id, r0: ts.r0, c0: ts.c0, r1: r, c1: c }); return }
+                              setTableSel({ elId: el.id, r0: r, c0: c, r1: r, c1: c })
+                              startCellDrag(el.id, r, c, e.currentTarget)
+                            }}
+                            onDoubleClick={(e) => {
+                              // 더블클릭한 **그 칸**에 커서를 놓는다.
+                              // 예전엔 표 전체가 편집 모드로 바뀌기만 해서, 글자를 쓰려면
+                              // 한 번 더 클릭해야 했다. 더블클릭했는데 아무 일도 안 일어난
+                              // 것처럼 보이는 게 문제였다.
+                              if (editingThis) return        // 이미 편집 중이면 기본 동작(단어 선택)에 맡긴다
+                              e.stopPropagation()
+                              setEditing(el.id)
+                              if (!cellEditable(el.slot, r, c)) return
+                              const node = e.currentTarget
+                              requestAnimationFrame(() => requestAnimationFrame(() => node.focus()))
                             }}
                             onBlur={canEdit ? (e) => { const cells = (el.cells || []).map((row) => row.slice()); while (cells.length < R) cells.push([]); while (cells[r].length < C) cells[r].push(''); cells[r][c] = e.currentTarget.textContent || ''; updateEl(page.id, el.id, { cells }) } : undefined}
                           >{val}</div>
                         )
                       })}
+                      {/* 이동 손잡이 — 표가 선택되면 셀 클릭이 드래그 선택으로 바뀌어서
+                          셀을 잡고 표를 옮길 수 없다. 그래서 잡을 곳을 따로 만든다.
+                          잠긴 템플릿 표에는 띄우지 않는다(어차피 못 옮긴다). */}
+                      {active && tableActive && !el.locked ? (
+                        <div className="tbl-move" title="드래그해서 표 이동"
+                          onPointerDown={(e) => { e.stopPropagation(); onElDown(e, el) }}>⠿</div>
+                      ) : null}
                       {/* Today 마커 — 회차 기준월. 사용자가 옮기지 않는다(회차에서 계산). */}
                       {el.today != null && el.today >= 0 && el.today < C ? (
                         <div className="fel-today"

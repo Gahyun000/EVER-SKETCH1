@@ -31,7 +31,9 @@
 .fel-today::after {
   content: 'TODAY';
   position: absolute;
-  top: -13px;
+  /* 표 위쪽(-13px)에 두었더니 .fel 의 overflow:hidden 에 잘려 반쪽만 보였다.
+     머리글 행 안으로 들여놓는다. */
+  top: 1px;
   left: 50%;
   transform: translateX(-50%);
   background: #D98A2A;
@@ -65,3 +67,19 @@
   margin: 4px 0 10px;
 }
 .insp-hint { font-size: 11px; color: #98a1b2; margin: 4px 0 8px; line-height: 1.5; }
+
+/* 표 이동 손잡이 — 표가 선택되면 셀 클릭이 드래그 선택으로 바뀐다.
+   그러면 셀을 잡고 표를 옮길 수 없으므로, 잡을 곳을 따로 만든다. */
+.tbl-move{
+  position:absolute;left:-11px;top:-11px;width:20px;height:20px;
+  display:grid;place-items:center;border-radius:6px;
+  background:#2462EB;color:#fff;font-size:11px;line-height:1;
+  cursor:grab;user-select:none;z-index:5;
+  box-shadow:0 1px 4px rgba(15,27,61,.35);
+}
+.tbl-move:active{cursor:grabbing}
+
+/* 셀을 끌 때 브라우저 기본 글자 선택이 먼저 걸리면 파랗게 번지면서
+   드래그가 셀 선택이 아니라 텍스트 선택이 된다. (.fel 이 이미 막고 있지만
+   글자 편집 중인 칸은 되돌려 놔야 커서로 글자를 고를 수 있다.) */
+.feltd[contenteditable="true"]{user-select:text}

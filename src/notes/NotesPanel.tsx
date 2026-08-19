@@ -51,7 +51,14 @@ export default function NotesPanel() {
   function setOpen(v: boolean) { setOpenState(v); if (activeId) { try { localStorage.setItem('notepad-open-' + activeId, v ? '1' : '0') } catch { /* noop */ } } }
   function pickSize(s: Size) { setSize(s); try { localStorage.setItem('notepad-size', s) } catch { /* noop */ } }
 
-  // 프로젝트 전환 시: 그 이북 메모 로드 + 열림 상태 복원(첫 방문은 열림).
+  // 프로젝트 전환 시: 그 이북 메모를 불러오고 **패널은 닫아 둔다.**
+  //
+  // 예전에는 '첫 방문은 열림'이었다. 그래서 배부받은 임원이 자료를 열면
+  // 메모장이 자료 위를 덮은 채로 떴다 — 처음 보는 화면에서 가장 먼저 하는 일이
+  // '이 창 뭐지, 어떻게 닫지' 가 됐다. 브라우저 테스트에서도 메모 패널이
+  // 표 클릭을 가로채 실패했다(np-list intercepts pointer events).
+  //
+  // 챗봇과 같은 규칙으로 맞춘다 — 항상 닫힌 채로 시작하고, 필요한 사람이 연다.
   useEffect(() => {
     if (!activeId) { setNotes([]); setOpenState(false); return }
     let alive = true
@@ -60,9 +67,7 @@ export default function NotesPanel() {
       if (!alive) return
       setNotes(list.map((n) => ({ ...n, blocks: normalizePlain(reid(n.blocks || [])) })))
     })()
-    let stored: string | null = null
-    try { stored = localStorage.getItem('notepad-open-' + activeId) } catch { /* noop */ }
-    setOpenState(stored === null ? true : stored === '1')
+    setOpenState(false)
     setView('list'); setCurrentId(null); setQ('')
     return () => { alive = false }
   }, [activeId])

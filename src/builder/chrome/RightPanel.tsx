@@ -158,7 +158,7 @@ export default function RightPanel() {
                   <button type="button" className="es-cbg clear" title="색 지우기" disabled={!ts}
                     onClick={() => { if (ts) patchTable(setCellBgRange(el, ts.r0, ts.c0, ts.r1, ts.c1, null)) }}>✕</button>
                 </div>
-                <div className="insp-hint">셀을 드래그해 여러 칸을 한 번에 칠할 수 있어요.</div>
+                <div className="insp-hint">셀을 드래그해 여러 칸을 한 번에 칠할 수 있어요. 병합도 같은 방식이에요 — 위 툴바의 <b>표 ⤢ 병합</b>.</div>
               </>)}
 
               <div className="insp-sec">행</div>
