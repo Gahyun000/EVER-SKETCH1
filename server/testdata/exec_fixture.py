@@ -40,6 +40,10 @@ BARS = [
     (5, 9, 5, "PoC", STAGE[4]),
     (6, 4, 6, "설계", STAGE[0]),
 ]
+# 표의 진짜 크기는 열 너비·행 높이의 합이다(ext 가 아니라).
+TRUE_TABLE_W_IN = 1.15 + 1.35 + 0.42 * 12 + 0.62 * 4     # 10.02in
+STALE_EXT_IN = 2.5                                        # 파일에 적힌 낡은 값
+
 EXPECTED_MERGES = [
     (0, 0, 2, 2), (0, 2, 1, 12), (0, 14, 2, 1), (0, 15, 2, 1),
     (0, 16, 2, 1), (0, 17, 2, 1), (2, 0, 2, 1), (4, 0, 3, 1),
@@ -104,6 +108,15 @@ def build() -> bytes:
         tbl.cell(r, 15).text = "2.0"
         tbl.cell(r, 16).text = "1.5"
         tbl.cell(r, 17).text = "홍길동 외 2"
+
+    # **일부러 낡은 크기를 심는다 — 반드시 표를 다 만든 뒤에.**
+    # 열 너비를 지정하면 python-pptx 가 graphicFrame 의 ext 를 다시 계산해 덮어쓴다.
+    # 그래서 먼저 심으면 흔적도 없이 사라진다(그렇게 해봤다가 테스트가 버그를 못 잡았다).
+    #
+    # 실물 임원회의 파일이 이 상태였다 — ext 가 갱신되지 않아 표 3개가 전부
+    # 같은 작은 정사각형(315×315)으로 들어왔다. 위치는 맞았고 크기만 낡았다.
+    gf.width = Emu(int(Inches(STALE_EXT_IN)))
+    gf.height = Emu(int(Inches(STALE_EXT_IN)))
 
     t2 = slide.shapes.add_table(3, 2, Inches(0.30), Inches(4.15),
                                 Inches(6.6), Inches(1.9)).table

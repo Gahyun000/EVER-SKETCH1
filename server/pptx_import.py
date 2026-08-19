@@ -278,10 +278,21 @@ def table_to_el(shape, fr: Frame, el_id: int, warnings: list[str]) -> dict:
     # 큰 쪽에 맞추면 촘촘한 칸의 글자가 칸을 넘쳐 잘린다.
     fs = fr.font(min(sizes) if sizes else None)
 
+    # 표의 크기는 **행·열 크기의 합**에서 구한다. 도형에 적힌 크기(graphicFrame 의
+    # a:ext)는 표에서 자주 낡아 있다 — PowerPoint 는 표를 그릴 때 행·열 크기에서
+    # 매번 다시 계산하므로 파일에 적힌 ext 를 갱신하지 않는 경우가 많다.
+    #
+    # 실제로 이걸로 사고가 났다. 임원회의 실물 파일을 올렸더니 표 3개가 전부
+    # w=315 h=315 인 똑같은 정사각형으로 들어왔다(글상자는 멀쩡했다). 위치(a:off)는
+    # 맞고 크기만 낡은 값이었다. 받는 사람은 열 때마다 표를 손으로 늘려야 했다.
+    sum_w, sum_h = sum(colw), sum(rowh)
+    w = fr.size(sum_w) if sum_w > 0 else fr.size(shape.width)
+    h = fr.size(sum_h) if sum_h > 0 else fr.size(shape.height)
+
     el = {
         "id": el_id, "type": "table",
         "x": fr.x(shape.left), "y": fr.y(shape.top),
-        "w": fr.size(shape.width), "h": fr.size(shape.height),
+        "w": w, "h": h,
         "text": "", "color": "transparent", "fs": fs,
         "rows": R, "cols": C, "cells": cells,
         "merges": merges, "calign": calign, "cbg": cbg,
@@ -360,12 +371,29 @@ def _walk(shapes, fr: Frame, out: list[dict], warnings: list[str], next_id) -> N
         if st == MSO_SHAPE_TYPE.LINE or shape.__class__.__name__ == "Connector":
             warnings.append("연결선 하나는 가져오지 않았습니다.")
             continue
+        if _is_chrome_placeholder(shape):
+            # 슬라이드 번호(‹#›)·바닥글·날짜 자리표시자. PowerPoint 가 자동으로
+            # 채우는 값이라 옮겨봐야 '#' 같은 기호만 종이 한복판에 떠 있게 된다.
+            continue
         if getattr(shape, "has_text_frame", False):
             el = text_to_el(shape, fr, next_id())
             if el:
                 out.append(el)
             continue
         warnings.append("가져오지 못한 개체가 있습니다(%s)." % (st,))
+
+
+def _is_chrome_placeholder(shape) -> bool:
+    """슬라이드 번호·바닥글·날짜 자리표시자인가."""
+    from pptx.enum.shapes import PP_PLACEHOLDER
+
+    try:
+        if not shape.is_placeholder:
+            return False
+        return shape.placeholder_format.type in (
+            PP_PLACEHOLDER.SLIDE_NUMBER, PP_PLACEHOLDER.FOOTER, PP_PLACEHOLDER.DATE)
+    except Exception:
+        return False
 
 
 def convert_slide(prs, index: int, page_id: int = 1) -> SlideConversion:

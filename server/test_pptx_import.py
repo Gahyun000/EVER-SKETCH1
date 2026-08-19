@@ -111,6 +111,39 @@ def test_three_tables_survive(result):
     assert not [e for e in result["pages"][0]["els"] if e["type"] == "image"]
 
 
+def test_table_size_comes_from_rows_and_columns(roadmap):
+    """도형에 적힌 크기(graphicFrame 의 a:ext)를 믿으면 안 된다.
+
+    실물 임원회의 파일이 정확히 이 상태였다 — 표 3개가 전부 w=315 h=315 인
+    똑같은 정사각형으로 들어왔다. 글상자는 멀쩡했고, 표의 위치도 맞았다.
+    PowerPoint 는 표를 행·열 크기에서 다시 계산해 그리므로 파일에 적힌 ext 를
+    갱신하지 않는 경우가 많다. 받는 사람이 열 때마다 표를 손으로 늘려야 했다.
+    """
+    slide_w_in = fx.SLIDE_W_IN
+    # 낡은 ext(2.5in)가 아니라 실제 열 너비 합(10.02in)에 맞아야 한다.
+    expect = PAGE_W * fx.TRUE_TABLE_W_IN / slide_w_in
+    stale = PAGE_W * fx.STALE_EXT_IN / slide_w_in
+    assert abs(roadmap["w"] - expect) < 6, \
+        "표 너비가 %d 입니다. 열 너비 합 기준이면 %d, 낡은 ext 기준이면 %d 입니다." % (
+            roadmap["w"], expect, stale)
+    assert roadmap["w"] > stale * 2, "낡은 ext 값을 그대로 쓰고 있습니다."
+
+
+def test_table_is_not_square(result):
+    """세 표가 모두 같은 정사각형으로 들어오면 ext 를 그대로 쓴 것이다."""
+    tables = [e for e in result["pages"][0]["els"] if e["type"] == "table"]
+    sizes = {(t["w"], t["h"]) for t in tables}
+    assert len(sizes) == len(tables), "표들이 같은 크기로 들어왔습니다: %s" % sizes
+    for t in tables:
+        assert t["w"] != t["h"], "표가 정사각형입니다 — ext 를 그대로 쓴 흔적입니다."
+
+
+def test_slide_number_placeholder_is_dropped(result):
+    """'‹#›' 같은 자동 채움 자리표시자가 종이 한복판에 떠 있으면 안 된다."""
+    texts = [(e.get("text") or "") for e in result["pages"][0]["els"]]
+    assert not any("#" in t and len(t.strip()) <= 3 for t in texts), texts
+
+
 def test_roadmap_shape(roadmap):
     assert (roadmap["rows"], roadmap["cols"]) == (fx.ROWS, fx.COLS)
 
