@@ -112,6 +112,24 @@
 .cy-foot { font-size: 11.5px; color: var(--muted); margin: 16px 0 0; line-height: 1.6; }
 .cy-foot b { color: var(--sub); }
 
+/* 실물 PPT 업로드 · 슬라이드 배정 */
+.cy-deck { border: 1px solid var(--line); border-radius: 9px; padding: 14px 16px; margin-bottom: 16px; background: #fcfdff; }
+.cy-deck-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.cy-deck-head b { font-size: 13.5px; color: var(--navy); }
+.cy-deck-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.cy-deck-foot .cy-hint { flex: 1; min-width: 220px; }
+.cy-msg.warn { background: #FBF0E1; border: 1px solid #f0e0c4; color: #7a4d10; }
+.cy-msg.warn ul { margin: 6px 0 0; padding-left: 18px; }
+.cy-msg.warn li { margin-top: 2px; }
+.cy-slides td { vertical-align: middle; }
+.cy-slides input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; }
+.cy-sel {
+  width: 100%; height: 30px; border: 1px solid var(--line); border-radius: 6px;
+  padding: 0 6px; font-size: 12.5px; font-family: inherit; color: var(--ink); background: #fff;
+}
+.cy-sel:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(36,98,235,.12); }
+.cy-sel:disabled { background: var(--card); color: var(--muted); cursor: not-allowed; }
+
 /* 라이브러리 상단의 '회차' 버튼 — 기본 '새 이북' 버튼과 구분되게 흰 배경으로. */
 .lib-new.ghost {
   background: #fff;

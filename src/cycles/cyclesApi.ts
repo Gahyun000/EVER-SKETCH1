@@ -87,6 +87,72 @@ export async function apiDistribute(id: string, userIds?: string[]): Promise<{
   })
 }
 
+// ── 실물 PPT 업로드 · 슬라이드별 배부 ──
+export interface SlideInfo {
+  index: number
+  title: string
+  tables: number
+  texts: number
+  images: number
+}
+
+export interface Deck {
+  id: string
+  cycle_id: string
+  filename: string
+  slide_count: number
+  slides: SlideInfo[]
+  warnings: string[]
+  uploaded_at: number
+}
+
+/** 파일 업로드는 JSON 이 아니다 — Content-Type 을 브라우저가 정하게 둬야
+ *  multipart 경계 문자열이 붙는다. 직접 지정하면 서버가 파싱하지 못한다. */
+export async function apiUploadDeck(cycleId: string, file: File): Promise<Deck> {
+  const body = new FormData()
+  body.append('file', file)
+  const res = await fetch(`${API}/${cycleId}/deck`, {
+    method: 'POST', body, credentials: 'same-origin',
+  })
+  checkAuth(res)
+  if (!res.ok) {
+    let detail = ''
+    try {
+      const j = await res.json()
+      detail = typeof j?.detail === 'string' ? j.detail : ''
+    } catch { /* JSON 이 아니면 무시 */ }
+    throw new ApiError(res.status, detail || `파일을 올리지 못했어요 (HTTP ${res.status})`)
+  }
+  return (await res.json()).deck as Deck
+}
+
+/** 아직 안 올렸으면 null — 404 는 오류가 아니라 '없음'이다. */
+export async function apiGetDeck(cycleId: string): Promise<Deck | null> {
+  try {
+    return (await req<{ deck: Deck }>(`/${cycleId}/deck`)).deck
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null
+    throw e
+  }
+}
+
+export async function apiDeleteDeck(cycleId: string): Promise<void> {
+  await req(`/${cycleId}/deck`, { method: 'DELETE' })
+}
+
+export async function apiDistributeSlides(cycleId: string, input: {
+  assignments: { slide: number; user_id: string }[]
+  common?: number[]
+}): Promise<{
+  created_count: number; skipped_count: number
+  created: { project_id: string; owner_id: string; name: string; page_count: number }[]
+}> {
+  return req(`/${cycleId}/deck/distribute`, {
+    method: 'POST',
+    body: JSON.stringify({ assignments: input.assignments, common: input.common || null }),
+  })
+}
+
 export async function apiSetSubmitStatus(pid: string, status: SubmitStatus): Promise<void> {
   await req(`/projects/${pid}/submit`, { method: 'POST', body: JSON.stringify({ status }) })
 }

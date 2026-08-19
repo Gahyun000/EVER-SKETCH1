@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, apiListUsers, isAdmin, type Me } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { useProjects } from '../persistence/projects'
+import DeckPanel from './DeckPanel'
 import {
   apiCreateCycle, apiDistribute, apiGetCycle, apiListCycles, apiSetCycleStatus,
   apiSetSubmitStatus, CYCLE_STATUS_LABEL, defaultPeriod, fmtKst, NEXT_STATUS,
@@ -182,7 +183,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                           ? `${r.created_count}명에게 배부했습니다.${r.skipped_count ? ` (이미 받은 ${r.skipped_count}명 제외)` : ''}`
                           : '모두 이미 배부받았습니다. 새로 만든 장은 없습니다.')
                       })}>
-                      {busy === 'dist' ? '배부 중…' : `배부하기${users.length ? ` (${users.length}명)` : ''}`}
+                      {busy === 'dist' ? '배부 중…' : `표준 양식 배부${users.length ? ` (${users.length}명)` : ''}`}
                     </button>
                     {NEXT_STATUS[cyc.status].map((s) => (
                       <button key={s} className={'cy-btn' + (s === 'closed' ? ' danger' : '')}
@@ -209,9 +210,14 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                 </div>
               )}
 
+              {admin && (
+                <DeckPanel cycleId={cyc.id} writers={users} distributed={mine.length > 0}
+                  onDistributed={() => void load(cyc.id)} />
+              )}
+
               {mine.length === 0 ? (
                 <div className="cy-empty">
-                  {admin ? '아직 배부하지 않았습니다.\n‘배부하기’를 누르면 작성자별로 표준 양식 1장이 만들어집니다.'
+                  {admin ? '아직 배부하지 않았습니다.\n실물 PPT 를 올려 슬라이드별로 배부하거나, ‘표준 양식 배부’를 누르세요.'
                          : '이 회차에서 배부받은 자료가 없습니다.'}
                 </div>
               ) : (
