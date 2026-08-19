@@ -3,9 +3,17 @@ import { useBuilder } from '../../state/store'
 import { useProjects } from '../../persistence/projects'
 import { useCanvasUI } from '../../state/canvasUI'
 import { useAutosave } from '../../persistence/autosave'
+import { isAdmin } from '../../auth/authApi'
+import { useAuth } from '../../auth/useAuth'
 import type { Tool } from '../../state/canvasUI'
 
-interface MItem { label?: string; sc?: string; run?: () => void; disabled?: boolean; sep?: boolean }
+interface MItem {
+  label?: string; sc?: string; run?: () => void; disabled?: boolean; sep?: boolean
+  /** 관리자만 쓸 수 있는 항목 — 작성자에게는 아예 보이지 않는다.
+   *  서버가 403 으로 막으므로 보안이 목적은 아니다. 눌러도 안 되는 버튼을
+   *  띄워두면 사용자는 '고장 났다' 고 이해한다. */
+  admin?: boolean
+}
 interface Menu { label: string; hwp?: boolean; items: MItem[] }
 
 // 구글 슬라이드식 드롭다운 메뉴. 실동작 가능한 항목은 연결, 미구현은 비활성 표시.
@@ -20,6 +28,7 @@ export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { o
   const saveNow = useAutosave((s) => s.saveNow)
   const [open, setOpen] = useState<number | null>(null)
   const wrap = useRef<HTMLDivElement>(null)
+  const admin = isAdmin(useAuth((s) => s.me))
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(null) }
@@ -39,11 +48,11 @@ export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { o
       { sep: true },
       { label: '🖼 PDF로 내보내기 (이미지)', run: () => emit('ebook:export-pdf') },
       { label: '📊 PPT로 내보내기 (편집 가능)', run: () => emit('ebook:export-pptx') },
-      { label: '↧ 이북(웹) 만들기', run: () => emit('ebook:build') },
+      { label: '↧ 이북(웹) 만들기', run: () => emit('ebook:build'), admin: true },
       { sep: true },
       { label: '▷ 슬라이드쇼 (미리 보기)', run: onPresent },
       { sep: true },
-      { label: '⚙ 환경설정', run: onSettings },
+      { label: '⚙ 환경설정', run: onSettings, admin: true },
     ] },
     { label: '수정', items: [
       { label: '실행취소', sc: '⌘Z', run: () => emit('ebook:undo') },
@@ -95,7 +104,7 @@ export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { o
       { label: '회전 (+15°)', run: () => emit('ebook:el-rotate') },
     ] },
     { label: '도구', items: [
-      { label: '⚙ 환경설정', run: onSettings },
+      { label: '⚙ 환경설정', run: onSettings, admin: true },
       { label: '맞춤법 검사 켜기/끄기', run: () => { const c = useCanvasUI.getState(); c.setSpell(!c.spell) } },
     ] },
     { label: '도움말', items: [{ label: '도움말 열기', run: onHelp }] },
@@ -104,7 +113,13 @@ export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { o
   return (
     <div className="ax-menu" ref={wrap}>
       <button className="ax-lib" title="내 이북(라이브러리로 돌아가기)" onClick={() => void backToLibrary()}>☰ 내 이북</button>
-      {MENUS.map((m, i) => (
+      {MENUS.map((m0, i) => {
+        // 관리자 전용 항목을 뺀 뒤, 위아래가 비어버린 구분선도 함께 정리한다.
+        const kept = m0.items.filter((it) => admin || !it.admin)
+        const items = kept.filter((it, j) =>
+          !it.sep || (j > 0 && j < kept.length - 1 && !kept[j - 1].sep))
+        const m = { ...m0, items }
+        return (
         <div key={m.label} className="ax-mwrap">
           <button
             className={'m' + (m.hwp ? ' hwp' : '') + (open === i ? ' active' : '')}
@@ -123,7 +138,8 @@ export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { o
             </div>
           ) : null}
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

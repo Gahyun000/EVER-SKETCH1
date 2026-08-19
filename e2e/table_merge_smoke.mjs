@@ -91,7 +91,34 @@ await p.waitForTimeout(150)
 const selCount = await p.locator('.stage .feltd.cellsel').count()
 ok('드래그로 칸 4개가 선택된다', selCount === 4, `${selCount}칸 선택됨`)
 
+// ── 2-b) 빈 로드맵에는 사용법이 뜬다 ──
+// 정본에서 진행 구간은 '가로 병합 + 단계 이름' 인데, 빈 표만 보고는 그걸
+// 어떻게 만드는지 알 길이 없다. 배부받고 처음 여는 사람이 가장 막히는 지점이다.
+{
+  await clearSel()
+  await cell(4, 3).click()
+  await p.waitForTimeout(200)
+  const teach = await p.locator('.ax-tb .tbtn-hint').first().innerText()
+  ok('빈 로드맵에서 만드는 법을 알려준다', teach.includes('병합') && teach.includes('단계 이름'),
+     teach)
+  ok('안내가 눈에 띄게 표시된다',
+     await p.locator('.ax-tb .tbtn-hint.teach').count() === 1)
+}
+await clearSel()
+await cell(2, 2).click()
+await p.waitForTimeout(120)
+
 // ── 3) 툴바에 병합 버튼이 보인다 ──
+{
+  const a2 = await cell(2, 2).boundingBox()
+  const z2 = await cell(2, 5).boundingBox()
+  await p.mouse.move(a2.x + a2.width / 2, a2.y + a2.height / 2)
+  await p.mouse.down()
+  await p.mouse.move(a2.x + a2.width / 2 + 8, a2.y + a2.height / 2, { steps: 2 })
+  await p.mouse.move(z2.x + z2.width / 2, z2.y + z2.height / 2, { steps: 12 })
+  await p.mouse.up()
+  await p.waitForTimeout(200)
+}
 const mergeBtn = p.locator('.ax-tb .tbtn', { hasText: '병합' }).first()
 ok('상단 툴바에 병합 버튼이 있다(오른쪽 패널을 열지 않아도)', await mergeBtn.count() === 1)
 ok('병합 버튼이 눌리는 상태다', await mergeBtn.isEnabled())
@@ -158,6 +185,49 @@ await p.waitForTimeout(200)
 const after = await newTable.boundingBox()
 ok('손잡이를 끌면 표가 따라 움직인다', Math.abs(after.x - before.x) > 40,
    `x ${Math.round(before.x)} → ${Math.round(after.x)}`)
+
+
+// ── 9) 상단 헤더: 겹치지 않고, 신원 표시는 하나뿐이다 ──
+// 예전에는 사용자 칩이 position:fixed 전역 오버레이라 툴바 버튼과 같은 자리를 두고
+// 겹쳤고, 툴바에는 글자가 '가' 로 박힌 초록 원이 따로 있었다(로그인한 사람과 무관).
+{
+  const bars = await p.locator('.es-userbar').count()
+  ok('사용자 표시는 화면에 하나뿐이다', bars === 1, `${bars}개`)
+  ok('편집 화면에서는 툴바 안에 들어간다',
+     await p.locator('.ax-title .es-userbar.inline').count() === 1)
+  ok('옛 하드코딩 아바타가 사라졌다', await p.locator('.ax-title .av').count() === 0)
+
+  const initial = (await p.locator('.es-av').first().innerText()).trim()
+  ok('아바타가 로그인한 사람의 이름 첫 글자다', initial === '홍', `표시: ${initial}`)
+
+  // 겹침은 눈으로 못 보고 지나간다 — 사각형이 실제로 겹치는지 재서 확인한다.
+  const overlap = await p.evaluate(() => {
+    const bar = document.querySelector('.ax-title .es-userbar')
+    const others = [...document.querySelectorAll('.ax-title .rbtn, .ax-title .folio-chip')]
+    const a = bar.getBoundingClientRect()
+    return others.filter((o) => {
+      const b = o.getBoundingClientRect()
+      return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+    }).map((o) => o.textContent.trim().slice(0, 12))
+  })
+  ok('툴바의 다른 버튼과 겹치지 않는다', overlap.length === 0, overlap.join(', '))
+}
+
+// ── 10) 작성자에게는 쓸 수 없는 메뉴가 보이지 않는다 ──
+// 눌러도 403 인 버튼을 띄워두면 사용자는 '고장 났다' 고 이해한다.
+{
+  await p.locator('.ax-menu .m', { hasText: '파일' }).first().click()
+  await p.waitForTimeout(200)
+  const items = await p.locator('.ax-mdrop .ax-mitem').allInnerTexts()
+  ok('작성자에게 환경설정이 보이지 않는다', !items.some((t) => t.includes('환경설정')),
+     items.join(' | ').slice(0, 90))
+  ok('작성자에게 이북 만들기(발행)가 보이지 않는다',
+     !items.some((t) => t.includes('이북(웹) 만들기')))
+  ok('작성자가 쓸 수 있는 항목은 그대로다', items.some((t) => t.includes('저장')))
+  await p.keyboard.press('Escape')
+  await p.locator('.ax-title').click({ position: { x: 4, y: 4 } })
+  await p.waitForTimeout(150)
+}
 
 ok('페이지 오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '))
 

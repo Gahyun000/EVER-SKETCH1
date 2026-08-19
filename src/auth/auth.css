@@ -64,13 +64,31 @@
 .es-kv dt { color: var(--muted); }
 .es-kv dd { margin: 0; color: var(--ink); font-weight: 600; }
 
-/* 상단 사용자 바 */
+/* 상단 사용자 바.
+   기본은 툴바가 없는 화면(라이브러리·회차)의 오른쪽 위 고정 배치.
+   편집 화면에서는 `.inline` 으로 툴바 안에 자리를 잡는다 — 고정 배치로 두면
+   툴바 버튼과 같은 자리를 두고 겹친다. */
 .es-userbar {
   position: fixed; top: 0; right: 0; z-index: 3000;
   display: flex; align-items: center; gap: 8px;
   padding: 6px 12px; font-size: 12px;
   font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', Inter, system-ui, sans-serif;
 }
+.es-userbar.inline {
+  position: static; z-index: auto; padding: 0; gap: 6px; flex: 0 0 auto;
+}
+.es-userbar.inline .es-chip,
+.es-userbar.inline .es-linkbtn { box-shadow: none; background: #fff; }
+
+/* 이니셜 동그라미 — 로그인한 사람의 이름 첫 글자. */
+.es-av {
+  width: 21px; height: 21px; flex: 0 0 auto; border-radius: 50%;
+  display: grid; place-items: center; font-size: 11px; font-weight: 800;
+  color: #fff; background: #6b7480; margin-left: -4px;
+}
+.es-av.r-admin  { background: #2462EB; }
+.es-av.r-writer { background: #3E9E6E; }
+.es-av.r-viewer { background: #98a1b2; }
 .es-chip {
   display: inline-flex; align-items: center; gap: 6px;
   background: rgba(255, 255, 255, .92); border: 1px solid #e6e8ee; border-radius: 99px;

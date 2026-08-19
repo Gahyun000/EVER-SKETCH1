@@ -25,7 +25,8 @@
 .ax-title .rbtn{border:1px solid var(--ax-line);background:var(--ax-surface);border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ax-ink);white-space:nowrap;flex:0 0 auto}
 .ax-title .rbtn:hover{background:var(--ax-plane)}
 .ax-title .rbtn.pri{background:var(--ax-blue);color:#fff;border-color:var(--ax-blue)}
-.ax-title .av{width:30px;height:30px;flex:0 0 auto;border-radius:50%;background:#1b7a3d;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px}
+/* .ax-title .av 는 없앴다 — 글자가 '가' 로 박힌 자리표시자였고, 로그인한 사람과
+   무관했다. 사용자 표시는 UserBar 하나로 합쳤다(src/auth/UserBar.tsx). */
 
 /* 메뉴줄 */
 .ax-menu{display:flex;align-items:center;gap:2px;background:var(--ax-surface);padding:2px 14px 6px;border-bottom:1px solid var(--ax-line);font-size:13.5px;flex:0 0 auto;flex-wrap:wrap}
@@ -293,3 +294,5 @@
 .ax-tb .tbtn:hover:not(:disabled){background:rgba(42,120,214,.10)}
 .ax-tb .tbtn:disabled{opacity:.4;cursor:not-allowed}
 .ax-tb .tbtn-hint{font-size:11px;color:#5b6270;padding:0 4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* 배부받은 빈 로드맵에서만 나오는 사용법 안내 — 한 번 그리기 시작하면 사라진다. */
+.ax-tb .tbtn-hint.teach { color: #96601a; font-weight: 700; }

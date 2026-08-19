@@ -108,6 +108,12 @@ function TableTools() {
   const cols = ts ? Math.abs(ts.c1 - ts.c0) + 1 : 0
   const ranged = rows * cols > 1
   const onMerged = !!ts && !!mergeCovering(el.merges, ts.r1, ts.c1)
+  // 배부받은 빈 로드맵 — 아직 아무것도 안 그린 상태.
+  // 정본에서 진행 구간은 '가로 병합 + 단계 이름' 인데, 빈 표만 보고는
+  // 그걸 어떻게 만드는지 알 길이 없다. 그 순간에만 방법을 알려준다.
+  // 머리글 병합 6건은 정본이 처음부터 갖고 있다 — 그 이상이 없으면 아직 아무것도 안 그린 것이다.
+  // 범위를 잡기 전까지만 알려준다. 범위를 잡은 뒤엔 몇 칸인지가 더 중요하다.
+  const blankRoadmap = el.slot === 'SLOT-A' && (el.merges || []).length <= 6 && !ranged
 
   const why = !canMerge ? '이 표는 표준 양식이라 병합할 수 없어요'
     : !ts ? '표 안에서 칸을 클릭하세요'
@@ -122,9 +128,11 @@ function TableTools() {
       <button className="tbtn" title={canMerge ? (onMerged ? '이 칸의 병합을 풉니다' : '병합된 칸을 고르세요') : why}
         disabled={!canMerge || !onMerged}
         onClick={() => { if (ts) patch(unmergeAt(el, ts.r1, ts.c1)) }}>⤡ 해제</button>
-      <span className="tbtn-hint">
-        {ts ? (ranged ? `${rows}×${cols} 선택` : `${Math.min(ts.r0, ts.r1) + 1}행 ${Math.min(ts.c0, ts.c1) + 1}열`)
-            : '칸을 끌어서 선택'}
+      <span className={'tbtn-hint' + (blankRoadmap ? ' teach' : '')}>
+        {blankRoadmap
+          ? '진행 구간: 칸을 끌어 고르고 ⤢ 병합 → 단계 이름을 쓰세요'
+          : ts ? (ranged ? `${rows}×${cols} 선택` : `${Math.min(ts.r0, ts.r1) + 1}행 ${Math.min(ts.c0, ts.c1) + 1}열`)
+          : '칸을 끌어서 선택'}
       </span>
     </span>
   )
