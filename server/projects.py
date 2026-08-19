@@ -253,10 +253,22 @@ def rename_project(pid: str, name: str) -> dict:
 
 
 def delete_project(pid: str) -> dict:
+    """이북과 **딸린 것 전부**를 지운다.
+
+    예전에는 Projects/ProjectVersions 만 지웠다. 그러면 Notes 가 죽은
+    project_id 를 가리킨 채 남는다 — 자료를 회수했는데 그 자료에 달린 메모는
+    DB 에 그대로 있는 상태다. 지웠다고 말한 것이 안 지워진 것은 신뢰의 문제이고,
+    회수 사유가 '잘못 배부' 라면 개인정보 문제이기도 하다.
+    """
     c = _conn()
     try:
         c.execute("DELETE FROM Projects WHERE id=?", (pid,))
         c.execute("DELETE FROM ProjectVersions WHERE project_id=?", (pid,))
+        # Notes 는 notes.py 가 만드는 표다. 아직 없을 수 있으므로 존재를 확인한다.
+        have = c.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Notes'").fetchone()
+        if have:
+            c.execute("DELETE FROM Notes WHERE project_id=?", (pid,))
         c.commit()
     finally:
         c.close()

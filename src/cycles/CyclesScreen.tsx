@@ -3,6 +3,7 @@ import { ApiError, apiListUsers, isAdmin, type Me } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { useProjects } from '../persistence/projects'
 import DeckPanel from './DeckPanel'
+import RevokeDialog from './RevokeDialog'
 import {
   apiCreateCycle, apiDistribute, apiGetCycle, apiListCycles, apiSetCycleStatus,
   apiSetSubmitStatus, CYCLE_STATUS_LABEL, defaultPeriod, fmtKst, NEXT_STATUS,
@@ -33,6 +34,9 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
   const [creating, setCreating] = useState(false)
   const [period, setPeriod] = useState(defaultPeriod())
   const [due, setDue] = useState('')
+  // 회수 확인창 — null 이면 닫힘. { projectId } 가 있으면 개인별, 없으면 회차 전체.
+  const [revoking, setRevoking] = useState<
+    { projectId: string; ownerId: string } | 'all' | null>(null)
 
   const load = useCallback(async (keepId?: string) => {
     setLoading(true); setErr('')
@@ -185,6 +189,11 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                       })}>
                       {busy === 'dist' ? '배부 중…' : `표준 양식 배부${users.length ? ` (${users.length}명)` : ''}`}
                     </button>
+                    {mine.length > 0 && cyc.status !== 'closed' && (
+                      <button className="cy-btn danger" disabled={!!busy}
+                        title="이 회차에 나간 배부본을 모두 지웁니다"
+                        onClick={() => setRevoking('all')}>배부 취소</button>
+                    )}
                     {NEXT_STATUS[cyc.status].map((s) => (
                       <button key={s} className={'cy-btn' + (s === 'closed' ? ' danger' : '')}
                         disabled={!!busy}
@@ -254,6 +263,13 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                                     제출
                                   </button>
                             )}
+                            {admin && cyc.status !== 'closed' && (
+                              <button className="cy-mini danger" disabled={!!busy}
+                                title="이 사람의 배부본을 지웁니다"
+                                onClick={() => setRevoking({ projectId: p.id, ownerId: p.owner_id })}>
+                                회수
+                              </button>
+                            )}
                             {admin && !isMine && p.submit_status === 'submitted' && (<>
                               <button className="cy-mini" disabled={!!busy}
                                 onClick={() => void run('ap' + p.id, () => apiSetSubmitStatus(p.id, 'approved'), '승인했습니다.')}>승인</button>
@@ -266,6 +282,16 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                     })}
                   </tbody>
                 </table>
+              )}
+
+              {admin && revoking && (
+                <RevokeDialog
+                  cycleId={cyc.id}
+                  only={revoking === 'all' ? null : revoking}
+                  users={users}
+                  onClose={() => setRevoking(null)}
+                  onDone={(m) => { setRevoking(null); setMsg(m); setErr(''); void load(cyc.id) }}
+                />
               )}
 
               {admin && cyc.status !== 'closed' && (

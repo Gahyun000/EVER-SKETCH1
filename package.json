@@ -10,7 +10,8 @@
     "e2e": "node e2e/run.mjs",
     "test:unit": "for f in *.test.mjs; do echo \"--- $f\" && node --experimental-strip-types \"$f\" || exit 1; done",
     "e2e:table": "node e2e/es_mock.mjs & sleep 2 && node e2e/table_merge_smoke.mjs; kill %1",
-    "e2e:login": "ANON=1 node e2e/es_mock.mjs & sleep 2 && node e2e/login_password_smoke.mjs; kill %1"
+    "e2e:login": "ANON=1 node e2e/es_mock.mjs & sleep 2 && node e2e/login_password_smoke.mjs; kill %1",
+    "e2e:revoke": "ADMIN=1 node e2e/es_mock.mjs & sleep 2 && node e2e/revoke_smoke.mjs; kill %1"
   },
   "dependencies": {
     "html-to-image": "^1.11.11",

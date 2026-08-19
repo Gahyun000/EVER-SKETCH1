@@ -25,13 +25,56 @@ const MIME = {
 const state = JSON.parse(
   await readFile(new URL('./fixture_template_state.json', import.meta.url), 'utf-8'))
 
-const ME = {
-  id: 'u_test', login_id: 'hong', name: '홍길동', dept: 'SI개발본부',
-  status: 'active', must_change_pw: false,
-  role: 'writer', requested_role: 'writer',
-  grade: 2, requested_grade: 2,
-  role_label: '작성자', requested_role_label: '작성자',
+// ADMIN=1 이면 관리자로 로그인된 상태 — 회차·배부·회수 화면을 볼 수 있다.
+const ADMIN = !!process.env.ADMIN
+const ME = ADMIN
+  ? {
+    id: 'u_admin', login_id: 'admin', name: '김가현', dept: 'AI팀',
+    status: 'active', must_change_pw: false,
+    role: 'admin', requested_role: 'admin',
+    grade: 1, requested_grade: 1,
+    role_label: '관리자', requested_role_label: '관리자',
+  }
+  : {
+    id: 'u_test', login_id: 'hong', name: '홍길동', dept: 'SI개발본부',
+    status: 'active', must_change_pw: false,
+    role: 'writer', requested_role: 'writer',
+    grade: 2, requested_grade: 2,
+    role_label: '작성자', requested_role_label: '작성자',
+  }
+
+// 회차 화면용 모의 자료. 홍길동은 12칸을 썼고, 이순신은 아직 비어 있다.
+const WRITERS = [
+  { id: 'u_test', login_id: 'hong', name: '홍길동', dept: 'SI개발본부', status: 'active',
+    must_change_pw: false, role: 'writer', requested_role: 'writer', grade: 2,
+    requested_grade: 2, role_label: '작성자', requested_role_label: '작성자' },
+  { id: 'u_lee', login_id: 'lee', name: '이순신', dept: '제2본부', status: 'active',
+    must_change_pw: false, role: 'writer', requested_role: 'writer', grade: 2,
+    requested_grade: 2, role_label: '작성자', requested_role_label: '작성자' },
+]
+const CYCLE = {
+  id: 'c_test', title: '2026년 10월 임원회의', period_ym: '2026-10', status: 'writing',
+  due_at: null, template_id: 't1', created_at: Date.now(),
+  published_at: null, closed_at: null,
 }
+const CYCLE_PROJECTS = [
+  { id: 'p_test', name: '2026년 10월 임원회의 — 홍길동', owner_id: 'u_test',
+    submit_status: 'submitted', updated_at: Date.now(), page_count: 1 },
+  { id: 'p_lee', name: '2026년 10월 임원회의 — 이순신', owner_id: 'u_lee',
+    submit_status: 'draft', updated_at: Date.now(), page_count: 1 },
+]
+const REVOKE_PREVIEW = {
+  cycle_id: 'c_test',
+  items: [
+    { project_id: 'p_test', owner_id: 'u_test', name: CYCLE_PROJECTS[0].name,
+      submit_status: 'submitted', updated_at: Date.now(), filled_cells: 12, page_count: 1 },
+    { project_id: 'p_lee', owner_id: 'u_lee', name: CYCLE_PROJECTS[1].name,
+      submit_status: 'draft', updated_at: Date.now(), filled_cells: 0, page_count: 1 },
+  ],
+  total: 2, with_content: 1, submitted: 1,
+}
+// 테스트가 들여다볼 수 있게 마지막 회수 요청을 기억해 둔다.
+let lastRevoke = null
 const META = {
   id: 'p_test', name: '2026년 10월 임원회의 — 홍길동',
   created_at: Date.now(), updated_at: Date.now(),
@@ -64,6 +107,29 @@ const server = http.createServer(async (req, res) => {
     req.on('end', () => json(res, { ...META, state }))
     return
   }
+  if (url === '/api/auth/users') return json(res, { users: WRITERS })
+  if (url === '/api/cycles' && req.method === 'GET') return json(res, { cycles: [CYCLE] })
+  if (url === '/api/cycles/c_test' && req.method === 'GET') {
+    return json(res, {
+      cycle: CYCLE, projects: CYCLE_PROJECTS,
+      progress: { total: 2, counts: { draft: 1, submitted: 1, returned: 0, approved: 0 }, submitted: 1 },
+    })
+  }
+  if (url === '/api/cycles/c_test/deck') return json(res, { detail: '없음' }, 404)
+  if (url === '/api/cycles/c_test/revoke-preview') return json(res, REVOKE_PREVIEW)
+  if (url === '/api/cycles/c_test/revoke' && req.method === 'POST') {
+    let body = ''
+    req.on('data', (c) => { body += c })
+    req.on('end', () => {
+      try { lastRevoke = JSON.parse(body) } catch { lastRevoke = { parseError: body } }
+      json(res, { ok: true, removed_count: 2, remaining: 0, lost_cells: 12, removed: [] })
+    })
+    return
+  }
+  // 테스트 전용 — 마지막 회수 요청 본문. 앞선 실행의 흔적이 남아 있으면
+  // '아무것도 안 보냈다' 를 검사할 수 없으므로 초기화 경로도 함께 둔다.
+  if (url === '/__lastRevoke') return json(res, lastRevoke || {})
+  if (url === '/__resetRevoke') { lastRevoke = null; return json(res, { ok: true }) }
   if (url.startsWith('/api/')) return json(res, { ok: true })
 
   // 정적 파일 — SPA 라 못 찾으면 index.html 로 되돌린다.

@@ -38,6 +38,14 @@ class SubmitIn(BaseModel):
     status: str                          # draft | submitted | returned | approved
 
 
+class RevokeIn(BaseModel):
+    # 비우면 이 회차 전체 회수. 채우면 그 사람들 것만.
+    project_ids: Optional[list[str]] = None
+    # 화면에서 '무엇이 사라지는지' 를 본 뒤에만 눌리게 한다.
+    # 확인 없이 도는 스크립트가 실수로 전량을 지우는 걸 막는 안전핀이다.
+    confirm: bool = False
+
+
 class SlideAssign(BaseModel):
     slide: int                           # 0부터
     user_id: str
@@ -230,6 +238,40 @@ def cycle_deck_distribute(cid: str, req: DeckDistributeIn,
         raise HTTPException(status_code=400, detail=str(e))
     auth_store.audit(user["id"], "deck_distribute", cid,
                      "신규 %d · 기존 %d" % (result["created_count"], result["skipped_count"]))
+    return {"ok": True, **result}
+
+
+# ─────────────── 배부 회수 ───────────────
+@router.get("/{cid}/revoke-preview")
+def cycle_revoke_preview(cid: str, user: dict = Depends(require_active)):
+    """회수하면 무엇이 사라지는지 미리 보여준다(지우지 않는다).
+
+    목록 API 에 섞지 않은 이유 — 배부본 하나하나의 state 를 열어 세어야 해서
+    무겁다. 회차 화면을 열 때마다 20명분 JSON 을 파싱할 이유가 없다.
+    """
+    require_action(user, perm.CYCLE_MANAGE)
+    if not cycles_store.get_cycle(cid):
+        raise HTTPException(status_code=404, detail="회차를 찾을 수 없습니다.")
+    return cycles_store.revoke_preview(cid)
+
+
+@router.post("/{cid}/revoke")
+def cycle_revoke(cid: str, req: RevokeIn, user: dict = Depends(require_active)):
+    """배부본을 회수한다(관리자만). 되돌릴 수 없다."""
+    require_action(user, perm.CYCLE_MANAGE)
+    if not req.confirm:
+        raise HTTPException(status_code=400,
+                            detail="회수 전에 사라지는 내용을 확인해 주세요.")
+    try:
+        result = cycles_store.revoke(cid, req.project_ids)
+    except cycles_store.CycleError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    # 되돌릴 수 없는 조작이다. 누가·언제·무엇을 지웠는지는 반드시 남는다(UDS-107 §5).
+    auth_store.audit(
+        user["id"], "cycle_revoke", cid,
+        "%d건 회수 · 작성 칸 %d개 소실 · 대상 %s"
+        % (result["removed_count"], result["lost_cells"],
+           ",".join(x["owner_id"] for x in result["removed"])[:200]))
     return {"ok": True, **result}
 
 

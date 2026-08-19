@@ -153,6 +153,41 @@ export async function apiDistributeSlides(cycleId: string, input: {
   })
 }
 
+// ── 배부 회수 ──
+export interface RevokeItem {
+  project_id: string
+  owner_id: string
+  name: string
+  submit_status: SubmitStatus
+  updated_at: number
+  filled_cells: number
+  page_count: number
+}
+
+export interface RevokePreview {
+  cycle_id: string
+  items: RevokeItem[]
+  total: number
+  with_content: number
+  submitted: number
+}
+
+/** 회수하면 무엇이 사라지는지 미리 센다. 지우지 않는다. */
+export async function apiRevokePreview(cycleId: string): Promise<RevokePreview> {
+  return req<RevokePreview>(`/${cycleId}/revoke-preview`)
+}
+
+/** 배부본 회수. projectIds 를 비우면 회차 전체. **되돌릴 수 없다.** */
+export async function apiRevoke(cycleId: string, projectIds?: string[]): Promise<{
+  removed_count: number; remaining: number; lost_cells: number
+  removed: { project_id: string; owner_id: string; name: string; filled_cells: number }[]
+}> {
+  return req(`/${cycleId}/revoke`, {
+    method: 'POST',
+    body: JSON.stringify({ project_ids: projectIds || null, confirm: true }),
+  })
+}
+
 export async function apiSetSubmitStatus(pid: string, status: SubmitStatus): Promise<void> {
   await req(`/projects/${pid}/submit`, { method: 'POST', body: JSON.stringify({ status }) })
 }

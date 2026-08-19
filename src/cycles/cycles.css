@@ -137,3 +137,27 @@
   border: 1px solid #e6e8ee;
 }
 .lib-new.ghost:hover { background: #f6f8fc; border-color: #c6d5ff; color: #2462EB; }
+
+/* 회수 확인창 — 되돌릴 수 없는 조작이라 무엇이 사라지는지 보여준 뒤에 누르게 한다. */
+.cy-scrim {
+  position: fixed; inset: 0; background: rgba(15,20,35,.42); z-index: 80;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.cy-modal {
+  background: #fff; border-radius: 14px; width: min(620px, 96vw); max-height: 86vh;
+  overflow: auto; padding: 22px 24px; box-shadow: 0 24px 70px rgba(15,27,61,.3);
+}
+.cy-modal h3 { font-size: 16.5px; font-weight: 800; color: var(--navy); margin: 0 0 12px; }
+.cy-rv-lead { font-size: 13px; color: var(--sub); line-height: 1.7; margin: 0 0 12px; }
+.cy-rv-lead b { color: var(--ink); }
+.cy-rv-list { max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.cy-rv-list .cy-table th { position: sticky; top: 0; z-index: 1; }
+.cy-rv-list tr.cy-rv-risk td { background: #fdf6ef; }
+.cy-rv-agree {
+  display: flex; gap: 9px; align-items: flex-start; margin-top: 14px;
+  font-size: 12.5px; line-height: 1.6; color: var(--ink); cursor: pointer;
+}
+.cy-rv-agree input { margin-top: 2px; width: 15px; height: 15px; accent-color: var(--red); flex-shrink: 0; }
+.cy-modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.cy-btn.danger-solid { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; }
+.cy-btn.danger-solid:hover:not(:disabled) { opacity: .9; background: var(--red); }

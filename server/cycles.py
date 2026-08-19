@@ -280,6 +280,115 @@ def set_submit_status(pid: str, status: str) -> dict:
     return {"ok": True, "id": pid, "submit_status": status}
 
 
+# ─────────────────────── 회수 ───────────────────────
+def _filled_cells(state: dict) -> int:
+    """배부본에서 **사람이 채워 넣은 칸** 수.
+
+    빈 양식으로 배부되므로, 머리글 아래에 글자가 있으면 그건 사람이 쓴 것이다.
+    이 숫자를 회수 확인 문구에 그대로 쓴다 — "정말 지울까요?" 만으로는
+    무엇이 사라지는지 알 수 없고, 관리자는 감으로 누르게 된다.
+
+    실물 PPT 배부본은 처음부터 내용이 차 있다. 그건 '사람이 쓴 것'이 아니지만
+    구분할 방법이 없으므로 **많게 잡는다** — 적게 잡아서 실수로 지우는 쪽이 더 나쁘다.
+    """
+    from server import template_seed
+
+    n = 0
+    for page in (state or {}).get("pages", []) or []:
+        for el in page.get("els", []) or []:
+            if el.get("type") != "table":
+                continue
+            locked = template_seed.SLOT_POLICY.get(el.get("slot") or "", {}).get("lockedRows", 0)
+            for r, row in enumerate(el.get("cells") or []):
+                if r < locked:
+                    continue
+                for v in row:
+                    if isinstance(v, str) and v.strip():
+                        n += 1
+    return n
+
+
+def revoke_preview(cid: str) -> dict:
+    """회수하면 무엇이 사라지는지 미리 센다(지우지 않는다).
+
+    이 값을 화면에 보여준 뒤에야 회수 버튼이 눌린다.
+    """
+    rows = list_cycle_projects(cid)
+    items = []
+    for r in rows:
+        full = projects_store.get_project(r["id"])
+        state = (full or {}).get("state") or {}
+        items.append({
+            "project_id": r["id"],
+            "owner_id": r["owner_id"],
+            "name": r["name"],
+            "submit_status": r["submit_status"],
+            "updated_at": r["updated_at"],
+            "filled_cells": _filled_cells(state),
+            "page_count": len(state.get("pages") or []),
+        })
+    return {
+        "cycle_id": cid,
+        "items": items,
+        "total": len(items),
+        "with_content": sum(1 for x in items if x["filled_cells"] > 0),
+        "submitted": sum(1 for x in items if x["submit_status"] in ("submitted", "approved")),
+    }
+
+
+def revoke(cid: str, project_ids: Optional[list[str]] = None) -> dict:
+    """배부본을 회수한다. `project_ids` 가 없으면 이 회차 전체.
+
+    **다른 회차의 이북은 절대 지우지 않는다.** 회차에 속한 것만 대상으로 거른다 —
+    바깥에서 넘어온 id 를 그대로 지우면, 실수 한 번에 남의 문서가 사라진다.
+    """
+    cycle = get_cycle(cid)
+    if not cycle:
+        raise CycleError("회차를 찾을 수 없습니다.")
+    if cycle["status"] == "closed":
+        raise CycleError("마감된 회차는 회수할 수 없습니다.")
+
+    mine = {p["id"]: p for p in list_cycle_projects(cid)}
+    if project_ids is None:
+        targets = list(mine.values())
+    else:
+        unknown = [x for x in project_ids if x not in mine]
+        if unknown:
+            raise CycleError("이 회차의 배부본이 아닙니다: %d건" % len(unknown))
+        targets = [mine[x] for x in project_ids]
+    if not targets:
+        raise CycleError("회수할 배부본이 없습니다.")
+
+    removed = []
+    for p in targets:
+        full = projects_store.get_project(p["id"])
+        state = (full or {}).get("state") or {}
+        removed.append({
+            "project_id": p["id"], "owner_id": p["owner_id"], "name": p["name"],
+            "filled_cells": _filled_cells(state), "submit_status": p["submit_status"],
+        })
+        projects_store.delete_project(p["id"])
+
+    # 전부 회수했고 아직 '작성' 단계였다면 '준비' 로 되돌린다.
+    # 배부본이 하나도 없는데 '작성중' 이라고 떠 있으면 관리자가 상태를 못 믿는다.
+    left = list_cycle_projects(cid)
+    if not left and cycle["status"] == "writing":
+        c = _conn()
+        try:
+            c.execute("UPDATE Cycles SET status='draft' WHERE id=?", (cid,))
+            c.commit()
+        finally:
+            c.close()
+
+    return {
+        "cycle_id": cid,
+        "removed": removed,
+        "removed_count": len(removed),
+        "remaining": len(left),
+        "lost_cells": sum(x["filled_cells"] for x in removed),
+    }
+
+
 def cycle_progress(cid: str) -> dict:
     """회차 현황 요약 — 관리자 화면에서 '누가 아직 안 냈는지'를 한눈에."""
     rows = list_cycle_projects(cid)

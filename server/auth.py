@@ -179,6 +179,30 @@ def audit(user_id: Optional[str], action: str, target: str = "", detail: str = "
         c.close()
 
 
+def list_audit(limit: int = 200, action: Optional[str] = None) -> list[dict]:
+    """감사 기록 읽기 — 최근 것부터.
+
+    지금까지 기록만 쓰고 읽는 길이 없었다. 남기기만 하고 아무도 볼 수 없는 로그는
+    "남겼다"고 말할 수 있을 뿐 실제로는 없는 것과 같다(UDS-107 §5).
+    되돌릴 수 없는 조작(배부 회수 등)이 늘어날수록 이게 유일한 사후 확인 수단이다.
+    """
+    limit = max(1, min(int(limit or 200), 1000))
+    c = _conn()
+    try:
+        if action:
+            rows = c.execute(
+                "SELECT id,user_id,action,target,ts,detail FROM AuditLogs "
+                "WHERE action=? ORDER BY id DESC LIMIT ?", (action, limit)).fetchall()
+        else:
+            rows = c.execute(
+                "SELECT id,user_id,action,target,ts,detail FROM AuditLogs "
+                "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    finally:
+        c.close()
+    return [{"id": r[0], "user_id": r[1], "action": r[2], "target": r[3],
+             "ts": r[4], "detail": r[5] or ""} for r in rows]
+
+
 # ── 가입 ─────────────────────────────────────────
 class AuthError(Exception):
     pass
