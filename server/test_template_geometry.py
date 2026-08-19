@@ -54,19 +54,19 @@ def test_elements_do_not_overlap_vertically_between_blocks():
     """로드맵 표와 아래 3단 목록이 겹치지 않는다 — 겹치면 글자가 서로를 가린다."""
     page = ts.build_template_page("2026-10")
     road = next(e for e in page["els"] if e.get("slot") == "SLOT-A" and e["type"] == "table")
-    lists = [e for e in page["els"] if e.get("slot") in ("SLOT-B", "SLOT-C", "SLOT-D")]
+    lists = [e for e in page["els"] if e.get("slot") in ("SLOT-B", "SLOT-C")]
     road_bottom = road["y"] + road["h"]
     for el in lists:
         assert el["y"] >= road_bottom, \
             "%s 가 로드맵 표(끝 %d)와 겹칩니다 (시작 %d)" % (el.get("slot"), road_bottom, el["y"])
 
 
-def test_three_lists_do_not_overlap_horizontally():
+def test_bottom_tables_do_not_overlap_horizontally():
     page = ts.build_template_page("2026-10")
     tables = sorted(
-        [e for e in page["els"] if e["type"] == "table" and e.get("slot") in ("SLOT-B", "SLOT-C", "SLOT-D")],
+        [e for e in page["els"] if e["type"] == "table" and e.get("slot") in ("SLOT-B", "SLOT-C")],
         key=lambda e: e["x"])
-    assert len(tables) == 3
+    assert len(tables) == 2
     for a, b in zip(tables, tables[1:]):
         assert a["x"] + a["w"] <= b["x"], "목록 표가 가로로 겹칩니다."
 

@@ -1,6 +1,7 @@
-"""표준 템플릿 정본 v1.0 생성기 검증.
+"""표준 템플릿 정본 v2.0 생성기 검증.
 
-사양서(start_docs/화면설계/표준템플릿_정본_사양_v1.0.md)의 확정 사항을 그대로 못 박는다.
+사양서(start_docs/화면설계/표준템플릿_정본_사양_v2.0.md)의 확정 사항을 못 박는다.
+**여기 적힌 숫자는 우리가 정한 게 아니라 실물에서 잰 값이다.**
 사양이 바뀌면 여기가 먼저 실패해야 한다.
 """
 import pytest
@@ -31,45 +32,50 @@ def test_잘못된_기간은_즉시_실패한다(bad):
 
 
 # ══════════ 로드맵 표 (사양 §3) ══════════
-def test_로드맵은_20열이다():
+def test_로드맵은_18열이다():
+    """실측값이다. 20열이던 v1.0 은 내가 상상한 구성이었다."""
     el = el_of(page(), "SLOT-A")
-    assert el["cols"] == 20
-    assert all(len(row) == 20 for row in el["cells"])
+    assert el["cols"] == 18
+    assert all(len(row) == 18 for row in el["cells"])
 
 
 def test_헤더는_2행이고_연도가_자동으로_들어간다():
     el = el_of(page("2026-10"), "SLOT-A")
-    assert el["cells"][0][T.COL_LABEL] == "구분"
-    assert el["cells"][0][T.COL_MONTH_FIRST] == "2026"
-    assert el["cells"][0][T.COL_EXT_FIRST] == "2027"      # 익년
+    assert el["cells"][0][T.COL_GROUP] == "Project"
+    assert el["cells"][0][T.COL_MONTH_FIRST] == "2026년"
+    assert el["cells"][0][T.COL_NEXT_YEAR] == "2027년"
     assert el["cells"][0][T.COL_PLAN_MM] == "계획 M/M"
     assert el["cells"][0][T.COL_ACTUAL_MM] == "투입 M/M"
-    assert el["cells"][0][T.COL_NOTE] == "비고"
+    assert el["cells"][0][T.COL_NOTE] == "비고(투입인원)"
 
 
 def test_연도는_회차마다_달라진다():
     """정적 JSON 이면 사람이 매번 고쳐야 하고, 그 순간 정본이 여러 개가 된다."""
-    assert el_of(page("2027-03"), "SLOT-A")["cells"][0][T.COL_MONTH_FIRST] == "2027"
-    assert el_of(page("2027-03"), "SLOT-A")["cells"][0][T.COL_EXT_FIRST] == "2028"
+    el = el_of(page("2027-03"), "SLOT-A")
+    assert el["cells"][0][T.COL_MONTH_FIRST] == "2027년"
+    assert el["cells"][0][T.COL_NEXT_YEAR] == "2028년"
 
 
-def test_월과_분기_라벨():
+def test_월_라벨():
     el = el_of(page(), "SLOT-A")
     months = el["cells"][1][T.COL_MONTH_FIRST:T.COL_MONTH_LAST + 1]
     assert months == [str(i) for i in range(1, 13)]
-    ext = el["cells"][1][T.COL_EXT_FIRST:T.COL_EXT_LAST + 1]
-    assert ext == ["1Q", "2Q", "3Q", "4Q"]
+
+
+def test_익년은_분기가_아니라_한_칸이다():
+    """v1.0 은 익년을 4분기로 쪼갰다. 실물은 한 칸이다."""
+    assert T.COL_NEXT_YEAR + 1 == T.COL_PLAN_MM
 
 
 def test_병합은_사양대로_6건():
     el = el_of(page(), "SLOT-A")
     m = {(x["r"], x["c"]): (x["rs"], x["cs"]) for x in el["merges"]}
-    assert m[(0, 0)] == (2, 1)      # 구분
-    assert m[(0, 1)] == (1, 12)     # 당해년도 12개월
-    assert m[(0, 13)] == (1, 4)     # 익년 4분기
-    assert m[(0, 17)] == (2, 1)     # 계획 M/M
-    assert m[(0, 18)] == (2, 1)     # 투입 M/M
-    assert m[(0, 19)] == (2, 1)     # 비고
+    assert m[(0, T.COL_GROUP)] == (2, 2)          # 'Project' 2행 2열
+    assert m[(0, T.COL_MONTH_FIRST)] == (1, 12)   # 당해년도 12개월
+    assert m[(0, T.COL_NEXT_YEAR)] == (2, 1)
+    assert m[(0, T.COL_PLAN_MM)] == (2, 1)
+    assert m[(0, T.COL_ACTUAL_MM)] == (2, 1)
+    assert m[(0, T.COL_NOTE)] == (2, 1)
     assert len(el["merges"]) == 6
 
 
@@ -80,11 +86,20 @@ def test_병합이_표_범위를_벗어나지_않는다():
         assert x["c"] + x["cs"] <= el["cols"]
 
 
+def test_열너비가_열_수와_같고_사업명_열이_넓다():
+    """균등 분할이면 'Project' 칸이 월 칸과 같은 폭이 되어 사업명이 세 줄로 접힌다."""
+    el = el_of(page(), "SLOT-A")
+    assert len(el["colw"]) == el["cols"]
+    assert min(el["colw"]) == 1.0
+    assert el["colw"][T.COL_GROUP] > 2 and el["colw"][T.COL_PROJECT] > 2
+    assert el["colw"][T.COL_MONTH_FIRST] == 1.0
+
+
 def test_Today_마커가_회차_기준월을_가리킨다():
     """사용자가 옮기지 않는다 — 회차에서 계산한다(사양 §3.4)."""
-    assert el_of(page("2026-01"), "SLOT-A")["today"] == T.COL_MONTH_FIRST      # 1월 = 열 1
-    assert el_of(page("2026-10"), "SLOT-A")["today"] == T.COL_MONTH_FIRST + 9  # 10월 = 열 10
-    assert el_of(page("2026-12"), "SLOT-A")["today"] == T.COL_MONTH_LAST       # 12월 = 열 12
+    assert el_of(page("2026-01"), "SLOT-A")["today"] == T.COL_MONTH_FIRST
+    assert el_of(page("2026-10"), "SLOT-A")["today"] == T.COL_MONTH_FIRST + 9
+    assert el_of(page("2026-12"), "SLOT-A")["today"] == T.COL_MONTH_LAST
 
 
 def test_Today_마커는_항상_월_열_안에_있다():
@@ -93,9 +108,15 @@ def test_Today_마커는_항상_월_열_안에_있다():
         assert T.COL_MONTH_FIRST <= t <= T.COL_MONTH_LAST
 
 
-def test_진행_셀은_비어서_배부된다():
-    """예시 색이 들어 있으면 임원이 지우는 것부터 시작한다."""
-    assert el_of(page(), "SLOT-A")["cbg"] == {}
+def test_머리글에만_색이_들어간다():
+    """머리글 색은 구조다. 데이터 행에 예시 색이 있으면 임원이 지우는 것부터 시작한다."""
+    el = el_of(page(), "SLOT-A")
+    for r in range(T.ROADMAP_HEADER_ROWS):
+        for c in range(T.ROADMAP_COLS):
+            assert el["cbg"]["%d_%d" % (r, c)] == T.HEADER_BG
+    for r in range(T.ROADMAP_HEADER_ROWS, el["rows"]):
+        for c in range(T.ROADMAP_COLS):
+            assert "%d_%d" % (r, c) not in el["cbg"]
 
 
 def test_데이터_행_수를_조절할_수_있다():
@@ -103,22 +124,30 @@ def test_데이터_행_수를_조절할_수_있다():
     assert el_of(page(), "SLOT-A")["rows"] == 2 + T.DEFAULT_DATA_ROWS
 
 
-# ══════════ 목록 표 (사양 §4) ══════════
-@pytest.mark.parametrize("slot,third", [
-    ("SLOT-B", "상태"), ("SLOT-C", "목표일"), ("SLOT-D", "심각도"),
-])
-def test_목록표는_3열이고_헤더가_사양대로(slot, third):
-    el = el_of(page(), slot)
-    assert el["cols"] == 3
-    assert el["cells"][0][0] == "#"
-    assert el["cells"][0][2] == third
-
-
-def test_번호는_자동_채번된다():
-    """L2 가 직접 입력하지 않는다."""
+# ══════════ 하단 블록 (사양 §4) ══════════
+def test_진행현황과_향후계획은_한_표의_두_열이다():
+    """두 표로 쪼개면 행 높이가 어긋나 좌우 줄이 안 맞는다(실물은 한 표다)."""
     el = el_of(page(), "SLOT-B")
-    for i in range(1, el["rows"]):
-        assert el["cells"][i][0] == str(i)
+    assert el["cols"] == 2
+    assert el["cells"][0] == ["진행 현황", "향후 계획"]
+
+
+def test_이슈_리스트는_1열이다():
+    el = el_of(page(), "SLOT-C")
+    assert el["cols"] == 1
+    assert "이슈" in el["cells"][0][0]
+
+
+def test_번호_열이_없다():
+    """v1.0 의 자동 채번 '#' 열은 실물에 없다."""
+    for slot in ("SLOT-B", "SLOT-C"):
+        assert el_of(page(), slot)["cells"][0][0] != "#"
+
+
+def test_하단_두_표의_폭_비율이_실물과_같다():
+    b, c = el_of(page(), "SLOT-B"), el_of(page(), "SLOT-C")
+    assert b["w"] > c["w"]
+    assert abs(b["w"] / (b["w"] + c["w"]) - 0.66) < 0.05   # 실물 6.6 : 3.4
 
 
 # ══════════ 페이지 구조 ══════════
@@ -128,9 +157,10 @@ def test_1인_1장이다():
     assert st["orientation"] == "landscape"
 
 
-def test_4개_슬롯이_모두_있다():
+def test_세_슬롯이_모두_있다():
     slots = {e.get("slot") for e in page()["els"]}
-    assert {"SLOT-A", "SLOT-B", "SLOT-C", "SLOT-D", "head", "foot"} <= slots
+    assert {"SLOT-A", "SLOT-B", "SLOT-C", "head", "foot"} <= slots
+    assert "SLOT-D" not in slots
 
 
 def test_모든_슬롯_요소가_잠겨_있다():
@@ -141,7 +171,7 @@ def test_모든_슬롯_요소가_잠겨_있다():
 
 
 def test_슬롯이_겹치지_않는다():
-    """표 4개가 서로 포개지면 화면에서 가려진다."""
+    """표가 서로 포개지면 화면에서 가려진다."""
     tables = [e for e in page()["els"] if e["type"] == "table"]
     for i, a in enumerate(tables):
         for b in tables[i + 1:]:
@@ -158,8 +188,7 @@ def test_작성자_이름이_들어간다():
 
 def test_작성자가_없어도_생성된다():
     """회차를 먼저 만들고 대상자를 나중에 정하는 경우."""
-    pg = page(owner_name="", dept="")
-    assert pg["els"]
+    assert page(owner_name="", dept="")["els"]
 
 
 # ══════════ 슬롯 정책 (사양 §5) ══════════
@@ -170,15 +199,16 @@ def test_열_추가삭제는_어느_슬롯에도_없다():
 
 
 def test_로드맵만_셀_배경색과_병합을_허용한다():
+    """로드맵의 병합은 장식이 아니다 — 진행 구간 자체가 '가로 병합 + 단계 이름'이다."""
     assert T.slot_allows("SLOT-A", "cbg") is True
     assert T.slot_allows("SLOT-A", "merge") is True
-    for slot in ("SLOT-B", "SLOT-C", "SLOT-D"):
+    for slot in ("SLOT-B", "SLOT-C"):
         assert T.slot_allows(slot, "cbg") is False
         assert T.slot_allows(slot, "merge") is False
 
 
-def test_행_추가는_네_표_모두_허용():
-    for slot in ("SLOT-A", "SLOT-B", "SLOT-C", "SLOT-D"):
+def test_행_추가는_세_표_모두_허용():
+    for slot in ("SLOT-A", "SLOT-B", "SLOT-C"):
         assert T.slot_allows(slot, "row") is True
 
 
@@ -195,16 +225,23 @@ def test_모르는_슬롯은_거부된다():
     assert T.slot_allows("", "cell") is False
 
 
-def test_팔레트는_4색으로_고정():
-    assert T.SLOT_POLICY["SLOT-A"]["cbgPalette"] == ["#2462EB", "#EAF1FE", "#D98A2A", "#EEF0F4"]
+def test_팔레트는_실물_5색():
+    assert T.SLOT_POLICY["SLOT-A"]["cbgPalette"] == [
+        "#FBE5D6", "#DEEBF7", "#E2F0D9", "#FFFF00", "#92D050"]
 
 
-def test_상태칩은_4종_심각도는_3종():
-    assert T.SLOT_POLICY["SLOT-B"]["choices"]["2"] == ["완료", "진행", "지연", "보류"]
-    assert T.SLOT_POLICY["SLOT-D"]["choices"]["2"] == ["높음", "중간", "낮음"]
+def test_색에_뜻을_붙이지_않는다():
+    """색 이름은 색 이름이다. '완료·지연' 같은 뜻을 지어 붙이면
+    임원이 쓰던 뜻과 어긋난 채로 취합 통계가 나온다."""
+    assert set(T.STAGE_LABELS) == {"주황", "파랑", "연두", "노랑", "초록"}
+    assert len(T.STAGE_LABELS) == len(T.STAGE_COLORS)
 
 
 def test_헤더_행이_잠금_대상으로_표시된다():
     assert T.SLOT_POLICY["SLOT-A"]["lockedRows"] == 2      # 연도행 + 월행
-    for slot in ("SLOT-B", "SLOT-C", "SLOT-D"):
+    for slot in ("SLOT-B", "SLOT-C"):
         assert T.SLOT_POLICY[slot]["lockedRows"] == 1
+
+
+def test_버전이_v2다():
+    assert T.TEMPLATE_VERSION == "v2.0"

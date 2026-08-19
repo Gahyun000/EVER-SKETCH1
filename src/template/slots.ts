@@ -4,7 +4,7 @@
 // **버튼을 숨기고 편집을 막기 위한 화면용 사본**이다. 우회해도 서버가 거부한다.
 // 두 파일이 어긋나면 `server/test_slot_policy_sync.py` 가 실패한다.
 //
-// 사양: start_docs/화면설계/표준템플릿_정본_사양_v1.0.md §5
+// 사양: start_docs/화면설계/표준템플릿_정본_사양_v2.0.md §5
 
 export type SlotOp = 'cell' | 'merge' | 'row' | 'col' | 'align' | 'cbg' | 'format'
 
@@ -18,36 +18,37 @@ export interface SlotPolicy {
   choices?: Record<string, string[]>
 }
 
-// 진행 셀 색 (사양 §3.3)
-export const CBG = {
-  done: '#2462EB',   // 완료 구간
-  plan: '#EAF1FE',   // 계획 구간
-  risk: '#D98A2A',   // 지연·리스크
-  hold: '#EEF0F4',   // 보류
-} as const
+// 로드맵 머리글 색 (실물 실측)
+export const HEADER_BG = '#FFFFCC'
+
+// 진행 구간 색 5종 (사양 §3.3) — 실물에서 그대로 가져왔다.
+// **색에 뜻을 지어 붙이지 않는다.** 무슨 단계인지는 셀 안의 글자에 적혀 있다.
+// '완료/지연' 같은 뜻을 임의로 붙이면 임원이 쓰던 뜻과 어긋난 채 취합 통계가 나온다.
+export const STAGE_COLORS = ['#FBE5D6', '#DEEBF7', '#E2F0D9', '#FFFF00', '#92D050'] as const
 
 export const CBG_LABEL: Record<string, string> = {
-  '#2462EB': '완료',
-  '#EAF1FE': '계획',
-  '#D98A2A': '지연',
-  '#EEF0F4': '보류',
+  '#FBE5D6': '주황',
+  '#DEEBF7': '파랑',
+  '#E2F0D9': '연두',
+  '#FFFF00': '노랑',
+  '#92D050': '초록',
 }
-
-const PALETTE = [CBG.done, CBG.plan, CBG.risk, CBG.hold]
 
 // **열(col) 추가·삭제가 어느 슬롯에도 없다.** 임원마다 열 구성이 달라지면
 // 회차 취합에서 표를 자동 병합할 수 없다(설계사상 ④).
+//
+// SLOT-A 는 병합이 **필수**다 — 실물에서 진행 구간은 색칠이 아니라
+// '가로로 병합한 칸 + 단계 이름' 이다. 병합을 막으면 로드맵을 그릴 수 없다.
 export const SLOT_POLICY: Record<string, SlotPolicy> = {
   head: { edit: [] },
   foot: { edit: [] },
   'SLOT-A': {
     edit: ['cell', 'merge', 'row', 'align', 'cbg', 'format'],
-    cbgPalette: PALETTE,
+    cbgPalette: [...STAGE_COLORS],
     lockedRows: 2,        // 연도 행 + 월 행
   },
-  'SLOT-B': { edit: ['cell', 'row', 'format'], lockedRows: 1, choices: { '2': ['완료', '진행', '지연', '보류'] } },
-  'SLOT-C': { edit: ['cell', 'row', 'format'], lockedRows: 1 },
-  'SLOT-D': { edit: ['cell', 'row', 'format'], lockedRows: 1, choices: { '2': ['높음', '중간', '낮음'] } },
+  'SLOT-B': { edit: ['cell', 'row', 'format'], lockedRows: 1 },   // 진행 현황 · 향후 계획
+  'SLOT-C': { edit: ['cell', 'row', 'format'], lockedRows: 1 },   // 이슈 리스트
 }
 
 /** 이 슬롯에서 이 편집이 허용되는가. 모르는 슬롯은 거부(기본 거부). */
@@ -66,13 +67,13 @@ export function lockedRowCount(slot: string | undefined): number {
   return SLOT_POLICY[slot]?.lockedRows ?? 0
 }
 
-/** 이 칸을 편집할 수 있는가. 헤더 행과 자동 채번 열은 막는다. */
+/** 이 칸을 편집할 수 있는가. 헤더 행은 막는다.
+ *  (v1.0 에 있던 '자동 채번 0열' 규칙은 없앴다 — 실물 양식에 번호 열이 없다.) */
 export function cellEditable(slot: string | undefined, r: number, c: number): boolean {
+  void c
   if (!isSlotEl(slot)) return true
   if (!slotAllows(slot, 'cell')) return false
   if (r < lockedRowCount(slot)) return false
-  // 목록 표의 0열은 자동 채번이다 — 사람이 고치면 번호가 어긋난다.
-  if (c === 0 && (slot === 'SLOT-B' || slot === 'SLOT-C' || slot === 'SLOT-D')) return false
   return true
 }
 
@@ -119,11 +120,12 @@ export function cellTextColor(bg: string | undefined): string | undefined {
   return onWhite > onInk ? '#ffffff' : undefined
 }
 
-/** 보류(hold)는 단색이 아니라 사선 해칭으로 그린다 — 색맹에게도 '비어 있음'이 구분된다. */
+/** 셀 배경 — 실물 색을 그대로 쓴다.
+ *
+ *  v1.0 에서는 '보류' 색을 사선 해칭으로 바꿔 그렸다. 색맹 배려였지만,
+ *  실물에는 보류라는 개념 자체가 없다. 실물과 다르게 그리면
+ *  임원이 자기 자료를 못 알아본다 — 그게 더 큰 접근성 문제다.
+ *  구분은 색이 아니라 **셀 안의 단계 이름**이 한다. */
 export function cellBackground(bg: string | undefined): string | undefined {
-  if (!bg) return undefined
-  if (bg === CBG.hold) {
-    return 'repeating-linear-gradient(45deg,#e9edf3,#e9edf3 3px,#f6f8fc 3px,#f6f8fc 6px)'
-  }
-  return bg
+  return bg || undefined
 }

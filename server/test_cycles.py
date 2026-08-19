@@ -150,7 +150,7 @@ def test_작성자가_없으면_배부가_거부되고_이유를_알려준다(ct
 
 
 # ══════════ 배부본 내용 ══════════
-def test_배부본에_템플릿_4블록이_들어있다(ctx):
+def test_배부본에_템플릿_3블록이_들어있다(ctx):
     c = ctx["as_admin"]()
     cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
     c.post("/api/cycles/%s/distribute" % cid, json={})
@@ -158,7 +158,7 @@ def test_배부본에_템플릿_4블록이_들어있다(ctx):
     state = projects_store.get_project(pid)["state"]
     assert len(state["pages"]) == 1                     # 1인 1장
     slots = {e.get("slot") for e in state["pages"][0]["els"]}
-    assert {"SLOT-A", "SLOT-B", "SLOT-C", "SLOT-D"} <= slots
+    assert {"SLOT-A", "SLOT-B", "SLOT-C"} <= slots
 
 
 def test_배부본의_연도와_Today가_회차에_맞는다(ctx):
@@ -168,8 +168,8 @@ def test_배부본의_연도와_Today가_회차에_맞는다(ctx):
     pid = cycles_store.list_cycle_projects(cid)[0]["id"]
     els = projects_store.get_project(pid)["state"]["pages"][0]["els"]
     road = [e for e in els if e.get("slot") == "SLOT-A" and e["type"] == "table"][0]
-    assert road["cells"][0][template_seed.COL_MONTH_FIRST] == "2027"
-    assert road["cells"][0][template_seed.COL_EXT_FIRST] == "2028"
+    assert road["cells"][0][template_seed.COL_MONTH_FIRST] == "2027년"
+    assert road["cells"][0][template_seed.COL_NEXT_YEAR] == "2028년"
     assert road["today"] == template_seed.COL_MONTH_FIRST + 2      # 3월
 
 

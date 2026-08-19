@@ -80,18 +80,30 @@ def test_열_편집은_양쪽_모두_금지(ts_src):
 
 def test_팔레트가_같다(ts_src):
     py = T.SLOT_POLICY["SLOT-A"]["cbgPalette"]
-    ts_colors = re.findall(r"(?:done|plan|risk|hold):\s*'(#[0-9A-Fa-f]{6})'", ts_src)
+    m = re.search(r"STAGE_COLORS\s*=\s*\[([^\]]*)\]", ts_src)
+    assert m, "프런트에 STAGE_COLORS 가 없습니다"
+    ts_colors = re.findall(r"'(#[0-9A-Fa-f]{6})'", m.group(1))
     assert ts_colors == py, "팔레트가 다릅니다\n  서버: %s\n  프런트: %s" % (py, ts_colors)
 
 
-def test_선택지가_같다(ts_src):
-    for slot in ("SLOT-B", "SLOT-D"):
-        py = T.SLOT_POLICY[slot]["choices"]["2"]
-        block = _ts_block(ts_src, slot)
-        m = re.search(r"choices:\s*\{\s*'2':\s*\[([^\]]*)\]", block)
-        assert m, "%s 에 선택지가 없습니다" % slot
-        ts_choices = re.findall(r"'([^']+)'", m.group(1))
-        assert ts_choices == py, "%s 선택지가 다릅니다\n  서버: %s\n  프런트: %s" % (slot, py, ts_choices)
+def test_머리글_색이_같다(ts_src):
+    m = re.search(r"HEADER_BG\s*=\s*'(#[0-9A-Fa-f]{6})'", ts_src)
+    assert m, "프런트에 HEADER_BG 가 없습니다"
+    assert m.group(1) == T.HEADER_BG
+
+
+@pytest.mark.parametrize("slot", sorted(T.SLOT_POLICY.keys()))
+def test_선택지가_같다(ts_src, slot):
+    """v2.0 정본에는 드롭다운 열이 없다 — 한쪽에만 생기면 잡아낸다."""
+    py = T.SLOT_POLICY[slot].get("choices") or {}
+    block = _ts_block(ts_src, slot)
+    ts_has = "choices:" in block
+    assert bool(py) == ts_has, \
+        "%s 선택지 유무가 다릅니다 (서버 %s / 프런트 %s)" % (slot, bool(py), ts_has)
+    for col, values in py.items():
+        m = re.search(r"choices:\s*\{\s*'%s':\s*\[([^\]]*)\]" % col, block)
+        assert m, "%s 의 %s열 선택지가 프런트에 없습니다" % (slot, col)
+        assert re.findall(r"'([^']+)'", m.group(1)) == list(values)
 
 
 def test_프런트가_기본_거부다(ts_src):
@@ -100,7 +112,20 @@ def test_프런트가_기본_거부다(ts_src):
     assert "if (!p) return false" in fn, "slotAllows 가 모르는 슬롯을 거부하지 않습니다"
 
 
-def test_자동채번_열이_잠긴다(ts_src):
-    """목록 표의 0열은 자동 채번 — 사람이 고치면 번호가 어긋난다."""
+def test_머리글_행이_잠긴다(ts_src):
+    """머리글은 연도·월처럼 회차에서 계산된 값이다. 사람이 고치면 정본이 갈라진다.
+
+    (v1.0 의 '자동 채번 0열' 잠금은 없앴다 — 실물 양식에 번호 열이 없다.
+     대신 그 규칙이 되살아나지 않는지도 함께 본다.)
+    """
     fn = ts_src.split("export function cellEditable")[1].split("\n}")[0]
-    assert "c === 0" in fn and "SLOT-B" in fn, "0열 잠금이 없습니다"
+    assert "r < lockedRowCount(slot)" in fn, "머리글 행 잠금이 없습니다"
+    assert "c === 0" not in fn, "없앤 자동 채번 잠금이 되살아났습니다"
+
+
+def test_슬롯_수가_같다(ts_src):
+    """프런트에만 남은 유령 슬롯(SLOT-D 등)이 있으면 화면에서 되는데 서버가 거부한다."""
+    body = ts_src.split("export const SLOT_POLICY")[1].split("\n}")[0]
+    ts_slots = set(re.findall(r"'(SLOT-[A-Z])':", body)) | set(re.findall(r"^\s+(head|foot):", body, re.M))
+    assert ts_slots == set(T.SLOT_POLICY.keys()), \
+        "슬롯 목록이 다릅니다\n  서버: %s\n  프런트: %s" % (sorted(T.SLOT_POLICY), sorted(ts_slots))
