@@ -117,3 +117,12 @@
 }
 .cmt-mini.primary { border-color: #2462eb; color: #2462eb; font-weight: 700; }
 .cmt-mini.primary:hover:not(:disabled) { background: #eef4ff; }
+
+/* 가리키던 칸이 사라진 지적 — 지우지 않고 남긴다.
+   조용히 엉뚱한 칸을 가리키는 것보다, 그 사실을 말하는 편이 낫다. */
+.cmt-lost { color: #a2560f; font-weight: 700; }
+.cmt-loss { margin: 0 0 12px; padding: 8px 10px; list-style: none;
+  background: #fbfcfe; border: 1px solid #e6e8ee; border-radius: 8px; max-height: 200px; overflow: auto; }
+.cmt-loss li { display: flex; gap: 8px; padding: 4px 0; font-size: 12.5px; line-height: 1.6; }
+.cmt-loss-at { flex: 0 0 auto; font-weight: 700; color: #8a5a12; }
+.cmt-loss-body { flex: 1; min-width: 0; color: #5b6270; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

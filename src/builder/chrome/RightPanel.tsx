@@ -11,6 +11,9 @@ import { FCOLORS } from '../../canvas/model'
 import { pushSnap } from '../../canvas/model'
 import type { FreeEl } from '../../state/store'
 import { addRow, delRow, addCol, delCol, mergeRange, unmergeAt, setAlignRange, setCellBgRange } from '../../canvas/tableOps'
+import AnchorLossDialog from '../../comments/AnchorLossDialog'
+import { anchorLostBy } from '../../comments/anchor'
+import { useComments } from '../../comments/store'
 import { CBG_LABEL, cbgPalette, cellBackground, isSlotEl, lockedRowCount, slotAllows } from '../../template/slots'
 import '../../template/template.css'
 
@@ -102,6 +105,33 @@ export default function RightPanel() {
       <input type="number" value={Math.round(val)} onChange={(e) => on(Math.max(min, Number(e.target.value) || 0))} /></label>
   )
 
+  // ── 표가 바뀌면 지적이 가리키는 칸도 따라 움직여야 한다 ──
+  // 안 그러면 지적은 그대로인데 **엉뚱한 칸**을 가리키게 되고, 아무도 모른다.
+  const cmtThreads = useComments((s) => s.threads)
+  const cmtShift = useComments((s) => s.shift)
+  const [loss, setLoss] = useState<{ axis: 'row' | 'col'; at: number; run: () => void } | null>(null)
+
+  const shiftAnchors = async (axis: 'row' | 'col', at: number, delta: number,
+                              onLost: 'keep' | 'delete' = 'keep') => {
+    if (!el) return
+    try { await cmtShift({ el_id: el.id, axis, at, delta, on_lost: onLost }) }
+    catch { /* 지적이 없거나 권한이 없으면 조용히 넘어간다 — 표 편집을 막을 일은 아니다 */ }
+  }
+
+  /** 지울 때만 묻는다. 가리킬 곳을 잃는 지적이 없으면 그냥 지운다. */
+  function askThenDo(axis: 'row' | 'col', at: number, run: () => void) {
+    if (!el) return
+    const hit = cmtThreads.filter((t) => t.el_id === el.id && !t.lost_at
+      && anchorLostBy(t.cell, axis, at))
+    if (hit.length === 0) { run(); void shiftAnchors(axis, at, -1); return }
+    setLoss({ axis, at, run })
+  }
+
+  const lostThreads = loss && el
+    ? cmtThreads.filter((t) => t.el_id === el.id && !t.lost_at
+        && anchorLostBy(t.cell, loss.axis, loss.at))
+    : []
+
   function patchTable(pt: Partial<FreeEl>) {
     if (!page || !el) return
     pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached }))
@@ -163,18 +193,19 @@ export default function RightPanel() {
 
               <div className="insp-sec">행</div>
               <div className="insp-row">
-                <button className="insp-pill" disabled={!canRow} onClick={() => patchTable(addRow(el, Math.max(ar, headLocked)))}>↑ 위에 추가</button>
-                <button className="insp-pill" disabled={!canRow} onClick={() => patchTable(addRow(el, ar + 1))}>↓ 아래 추가</button>
+                <button className="insp-pill" disabled={!canRow} onClick={() => { patchTable(addRow(el, Math.max(ar, headLocked))); void shiftAnchors('row', Math.max(ar, headLocked), 1) }}>↑ 위에 추가</button>
+                <button className="insp-pill" disabled={!canRow} onClick={() => { patchTable(addRow(el, ar + 1)); void shiftAnchors('row', ar + 1, 1) }}>↓ 아래 추가</button>
                 <button className="insp-pill danger" disabled={!canRow || headRowSelected}
                   title={headRowSelected ? '머리글 행은 삭제할 수 없어요' : undefined}
-                  onClick={() => patchTable(delRow(el, ar))}>🗑 행 삭제</button>
+                  onClick={() => askThenDo('row', ar, () => patchTable(delRow(el, ar)))}>🗑 행 삭제</button>
               </div>
               {canCol ? (<>
                 <div className="insp-sec">열</div>
                 <div className="insp-row">
-                  <button className="insp-pill" onClick={() => patchTable(addCol(el, ac))}>← 왼쪽 추가</button>
-                  <button className="insp-pill" onClick={() => patchTable(addCol(el, ac + 1))}>→ 오른쪽 추가</button>
-                  <button className="insp-pill danger" onClick={() => patchTable(delCol(el, ac))}>🗑 열 삭제</button>
+                  <button className="insp-pill" onClick={() => { patchTable(addCol(el, ac)); void shiftAnchors('col', ac, 1) }}>← 왼쪽 추가</button>
+                  <button className="insp-pill" onClick={() => { patchTable(addCol(el, ac + 1)); void shiftAnchors('col', ac + 1, 1) }}>→ 오른쪽 추가</button>
+                  <button className="insp-pill danger"
+                    onClick={() => askThenDo('col', ac, () => patchTable(delCol(el, ac)))}>🗑 열 삭제</button>
                 </div>
               </>) : null}
               {canMerge ? (<>
@@ -328,6 +359,23 @@ export default function RightPanel() {
           <div className="insp-sec">내용</div>
           <div className="ax-editwrap"><Editor /></div>
         </div>
+      )}
+
+      {/* 짚어 둔 칸이 사라질 때 — **삭제 계열에서만** 묻는다.
+          추가할 때까지 물으면 사람들은 읽지 않고 누르게 되고,
+          그러면 정작 지워질 때의 경고까지 함께 흘려보낸다. */}
+      {loss && lostThreads.length > 0 && (
+        <AnchorLossDialog
+          el={el || undefined}
+          lost={lostThreads}
+          what={loss.axis === 'row' ? `${loss.at + 1}행` : `${loss.at + 1}열`}
+          onCancel={() => setLoss(null)}
+          onGo={(keep) => {
+            const { axis, at, run } = loss
+            setLoss(null)
+            run()
+            void shiftAnchors(axis, at, -1, keep ? 'keep' : 'delete')
+          }} />
       )}
     </div>
   )

@@ -18,6 +18,9 @@ export interface Comment {
    *  지적한 사람이 확인하고 닫을 때까지 미해결로 남는다. */
   fixed_at?: number | null
   fixed_by?: string | null
+  /** 가리키던 칸이 사라진 시각. 표에서 그 행·열이 지워졌다는 뜻이다.
+   *  지적은 남기고 핀만 그리지 않는다 — 검토 이력이 조용히 사라지는 것이 제일 나쁘다. */
+  lost_at?: number | null
 }
 
 export interface Thread extends Comment {
@@ -56,6 +59,16 @@ export async function apiResolveComment(cid: string, resolved: boolean): Promise
   return (await req<{ comment: Comment }>(`/api/comments/${cid}/resolve`, {
     method: 'POST', body: JSON.stringify({ resolved }),
   })).comment
+}
+
+/** 표에서 행·열이 늘거나 줄었을 때 앵커를 따라 옮긴다.
+ *  이걸 안 하면 지적은 그대로인데 **엉뚱한 칸**을 가리키게 된다. */
+export async function apiShiftAnchors(pid: string, input: {
+  el_id: number; axis: 'row' | 'col'; at: number; delta: number; on_lost?: 'keep' | 'delete'
+}): Promise<{ moved: number; lost: number; deleted: number }> {
+  return await req(`/api/projects/${pid}/comments/shift`, {
+    method: 'POST', body: JSON.stringify(input),
+  })
 }
 
 export async function apiSetFixed(cid: string, fixed: boolean, body?: string): Promise<Comment> {

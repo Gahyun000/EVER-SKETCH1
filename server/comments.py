@@ -54,7 +54,7 @@ def _conn() -> sqlite3.Connection:
     # 「고쳤습니다」 표시 — 나중에 생긴 열이라 이미 쓰고 있는 DB 에는 없다.
     # 없으면 붙인다. 이 한 줄이 없으면 배포하는 순간 기존 자료의 메모가 전부 죽는다.
     have = {r[1] for r in c.execute("PRAGMA table_info(Comments)").fetchall()}
-    for col, decl in (("fixed_at", "REAL"), ("fixed_by", "TEXT")):
+    for col, decl in (("fixed_at", "REAL"), ("fixed_by", "TEXT"), ("lost_at", "REAL")):
         if col not in have:
             c.execute("ALTER TABLE Comments ADD COLUMN %s %s" % (col, decl))
     c.commit()
@@ -65,11 +65,11 @@ def _row(r) -> dict:
     return {"id": r[0], "project_id": r[1], "thread_id": r[2], "page_id": r[3],
             "el_id": r[4], "cell": r[5], "body": r[6], "author_id": r[7],
             "created_at": r[8], "resolved_at": r[9], "resolved_by": r[10],
-            "fixed_at": r[11], "fixed_by": r[12]}
+            "fixed_at": r[11], "fixed_by": r[12], "lost_at": r[13]}
 
 
 _COLS = ("id,project_id,thread_id,page_id,el_id,cell,body,author_id,"
-         "created_at,resolved_at,resolved_by,fixed_at,fixed_by")
+         "created_at,resolved_at,resolved_by,fixed_at,fixed_by,lost_at")
 
 
 # 앵커에 넣을 수 있는 가장 큰 좌표. 표는 이보다 훨씬 작지만, 서버는 표 크기를
@@ -152,7 +152,7 @@ def add(project_id: str, author_id: str, body: str, page_id: int,
 
         cid = "cm" + uuid.uuid4().hex[:12]
         c.execute(
-            "INSERT INTO Comments(%s) VALUES(?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,NULL)" % _COLS,
+            "INSERT INTO Comments(%s) VALUES(?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,NULL,NULL)" % _COLS,
             (cid, project_id, thread_id or cid, int(page_id), el_id, cell,
              body, author_id, _now()),
         )
@@ -268,6 +268,104 @@ def remove(cid: str) -> dict:
     finally:
         c.close()
     return {"ok": True, "removed": n, "thread_id": cur["thread_id"]}
+
+
+def shift_anchor(cell: Optional[str], axis: str, at: int, delta: int) -> Optional[str]:
+    """행·열이 늘거나 줄었을 때 앵커를 따라 옮긴다. 가리킬 곳이 없어지면 None.
+
+    **왜 필요한가**
+    담당자가 로드맵에 행을 하나 추가하면, 그 아래 칸들은 전부 한 칸씩 밀린다.
+    앵커를 그대로 두면 「B프로젝트 · 3월」이 가리키던 자리가 다른 줄이 된다 —
+    지적은 그대로인데 **엉뚱한 곳을 가리키게** 되고, 아무도 그 사실을 모른다.
+    조용히 틀리는 종류라 이 계산을 따로 두고 검사한다.
+
+    규칙(행 기준, 열도 같다)
+      추가(delta=+1): at 이상이면 +1. 범위가 at 을 걸치면 아래쪽만 늘어난다.
+      삭제(delta=-1): at 보다 크면 -1. 범위가 at 을 포함하면 한 칸 줄어든다.
+                      범위가 그 줄 하나뿐이었으면 가리킬 곳이 없다(None).
+    """
+    if not cell:
+        return None
+    head, _, tail = cell.partition(":")
+
+    def pt(t: str) -> tuple[int, int]:
+        a, _, b = t.partition("_")
+        return int(a), int(b)
+
+    r0, c0 = pt(head)
+    r1, c1 = pt(tail) if tail else (r0, c0)
+    lo, hi = (r0, r1) if axis == "row" else (c0, c1)
+
+    if delta > 0:
+        if lo >= at:
+            lo += delta
+        if hi >= at:
+            hi += delta
+    else:
+        n = -delta                      # 지운 줄 수 (지금은 늘 1)
+        end = at + n - 1                # 지운 마지막 줄
+        if lo > end:
+            lo -= n
+            hi -= n
+        elif hi < at:
+            pass                        # 지운 줄보다 위 — 그대로
+        else:
+            # 겹친다. 남는 줄이 없으면 가리킬 곳이 사라진 것이다.
+            overlap = min(hi, end) - max(lo, at) + 1
+            if hi - lo + 1 <= overlap:
+                return None
+            if lo >= at:
+                lo = at
+                hi -= overlap
+            else:
+                hi -= overlap
+    if axis == "row":
+        r0, r1 = lo, hi
+    else:
+        c0, c1 = lo, hi
+    if r0 == r1 and c0 == c1:
+        return "%d_%d" % (r0, c0)
+    return "%d_%d:%d_%d" % (r0, c0, r1, c1)
+
+
+def shift_anchors(project_id: str, el_id: int, axis: str, at: int, delta: int,
+                  on_lost: str = "keep") -> dict:
+    """그 표의 앵커들을 한꺼번에 옮긴다.
+
+    가리킬 곳이 사라진 지적은 `on_lost` 에 따라
+      'keep'   — 남기고 「가리키던 칸이 없어짐」으로 표시한다(기본).
+                 검토 이력이 조용히 사라지는 것이 제일 나쁘다.
+      'delete' — 스레드째 지운다(사용자가 그렇게 골랐을 때만).
+    """
+    if axis not in ("row", "col"):
+        raise CommentError("행 또는 열만 옮길 수 있습니다.")
+    if on_lost not in ("keep", "delete"):
+        raise CommentError("알 수 없는 처리 방법입니다.")
+    c = _conn()
+    try:
+        rows = c.execute(
+            "SELECT id, cell FROM Comments WHERE project_id=? AND el_id=? AND id=thread_id "
+            "AND cell IS NOT NULL", (project_id, el_id)).fetchall()
+        moved, lost = 0, []
+        for cid, cell in rows:
+            try:
+                nxt = shift_anchor(cell, axis, at, delta)
+            except ValueError:
+                continue                # 형식이 깨진 옛 앵커는 건드리지 않는다
+            if nxt is None:
+                lost.append(cid)
+            elif nxt != cell:
+                c.execute("UPDATE Comments SET cell=? WHERE thread_id=?", (nxt, cid))
+                moved += 1
+        for cid in lost:
+            if on_lost == "delete":
+                c.execute("DELETE FROM Comments WHERE thread_id=?", (cid,))
+            else:
+                c.execute("UPDATE Comments SET lost_at=? WHERE id=?", (_now(), cid))
+        c.commit()
+    finally:
+        c.close()
+    return {"moved": moved, "lost": len(lost), "deleted": len(lost) if on_lost == "delete" else 0}
 
 
 def remove_all(project_id: str) -> int:

@@ -51,3 +51,19 @@ export function cellLabel(cell: string | null): string {
   const cols = rg.c0 === rg.c1 ? `${rg.c0 + 1}열` : `${rg.c0 + 1}~${rg.c1 + 1}열`
   return `${rows} ${cols}`
 }
+
+
+/**
+ * 이 행(또는 열)을 지우면 **가리킬 곳이 사라지는** 앵커인가.
+ *
+ * 서버가 실제 이동을 맡는다(comments.shift_anchor). 여기서는 **묻기 전에
+ * 몇 건인지 보여주려고** 같은 판단만 한다 — 지우고 나서 "사실은 3건이
+ * 사라졌습니다" 라고 말하면 이미 늦다.
+ */
+export function anchorLostBy(cell: string | null | undefined,
+                             axis: 'row' | 'col', at: number): boolean {
+  const rg = parseCell(cell)
+  if (!rg) return false
+  const [lo, hi] = axis === 'row' ? [rg.r0, rg.r1] : [rg.c0, rg.c1]
+  return lo === at && hi === at
+}

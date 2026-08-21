@@ -24,6 +24,7 @@ const SUITES = [
   { name: '대화상자 공용 껍데기', file: 'modal_shell_smoke.mjs', env: {} },
   { name: '동료 자료 — 작성 중', file: 'peer_readonly_smoke.mjs', env: { PEER: 'writing', COMMENTS: '1' } },
   { name: '동료 자료 — 검토 중', file: 'peer_readonly_smoke.mjs', env: { PEER: 'review', COMMENTS: '1' } },
+  { name: '앵커 따라가기 · 사라질 때', file: 'anchor_shift_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '처음부터 다시 — 작성 중', file: 'reset_smoke.mjs', env: { WRITER_ROW: 'draft', COMMENTS: '1' } },
   { name: '처음부터 다시 — 제출 뒤', file: 'reset_smoke.mjs',
     env: { WRITER_ROW: 'submitted', CYCLE_STATUS: 'review', COMMENTS: '1' } },

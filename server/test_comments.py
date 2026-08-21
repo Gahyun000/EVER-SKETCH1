@@ -353,3 +353,54 @@ def test_답글은_범위까지_그대로_물려받는다(ctx):
                              reply_to=root["id"])
     assert rep["cell"] == "2_2:2_9"
     assert rep["el_id"] == 7
+
+
+# ══════════ 표가 바뀌면 앵커도 따라간다 ══════════
+# 조용히 틀리는 종류다. 앵커를 안 옮기면 지적은 그대로인데 **엉뚱한 칸**을
+# 가리키게 되고, 아무도 그 사실을 모른 채 회의에 들어간다.
+import pytest as _pytest  # noqa: E402
+
+
+@_pytest.mark.parametrize("cell,axis,at,delta,want", [
+    # 행 추가 — 아래쪽이 밀린다
+    ("3_5", "row", 2, +1, "4_5"),
+    ("3_5", "row", 5, +1, "3_5"),          # 아래에 추가 — 그대로
+    ("2_1:5_1", "row", 3, +1, "2_1:6_1"),  # 범위를 걸치면 아래쪽만 늘어난다
+    # 행 삭제
+    ("3_5", "row", 1, -1, "2_5"),
+    ("3_5", "row", 3, -1, None),           # 그 줄이 사라졌다
+    ("3_5", "row", 4, -1, "3_5"),          # 아래 줄 삭제 — 그대로
+    ("2_1:5_1", "row", 3, -1, "2_1:4_1"),  # 범위가 한 칸 줄어든다
+    ("3_1:3_9", "row", 3, -1, None),       # 한 줄짜리 범위 — 통째로 사라진다
+    # 열도 같다
+    ("3_5", "col", 2, +1, "3_6"),
+    ("3_4:3_6", "col", 5, -1, "3_4:3_5"),
+    ("3_4:3_6", "col", 9, -1, "3_4:3_6"),
+])
+def test_앵커가_행열_변화를_따라간다(cell, axis, at, delta, want):
+    assert comments_store.shift_anchor(cell, axis, at, delta) == want
+
+
+def test_가리킬_곳이_사라지면_남기되_표시한다(ctx):
+    """지우는 것보다 낫다 — 검토 이력이 조용히 사라지는 것이 제일 나쁘다."""
+    t = comments_store.add(ctx["pid"], ctx["admin"]["id"], "이 줄 확인", 1, 7, "3_5")
+    out = comments_store.shift_anchors(ctx["pid"], 7, "row", 3, -1)
+    assert out["lost"] == 1 and out["deleted"] == 0
+    again = comments_store.get(t["id"])
+    assert again is not None, "남아 있어야 한다"
+    assert again["lost_at"] is not None
+
+
+def test_원하면_함께_지운다(ctx):
+    t = comments_store.add(ctx["pid"], ctx["admin"]["id"], "이 줄 확인", 1, 7, "3_5")
+    out = comments_store.shift_anchors(ctx["pid"], 7, "row", 3, -1, on_lost="delete")
+    assert out["deleted"] == 1
+    assert comments_store.get(t["id"]) is None
+
+
+def test_다른_표의_지적은_건드리지_않는다(ctx):
+    a = comments_store.add(ctx["pid"], ctx["admin"]["id"], "표7", 1, 7, "3_5")
+    b = comments_store.add(ctx["pid"], ctx["admin"]["id"], "표9", 1, 9, "3_5")
+    comments_store.shift_anchors(ctx["pid"], 7, "row", 1, +1)
+    assert comments_store.get(a["id"])["cell"] == "4_5"
+    assert comments_store.get(b["id"])["cell"] == "3_5"

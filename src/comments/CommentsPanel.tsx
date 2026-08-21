@@ -145,7 +145,11 @@ export default function CommentsPanel() {
                 {!t.resolved_at && t.fixed_at
                   ? <span className="cmt-fixed" title="담당자가 고쳤다고 알렸습니다">고침</span>
                   : null}
-                <span className="cmt-anchor">{pageNo(t)}쪽 · {anchorOf(t)}</span>
+                <span className="cmt-anchor">
+                  {t.lost_at
+                    ? <span className="cmt-lost" title="표에서 그 행·열이 지워졌습니다">가리키던 칸이 없어짐</span>
+                    : `${pageNo(t)}쪽 · ${anchorOf(t)}`}
+                </span>
                 {t.resolved_at ? <span className="cmt-done-tag">해결</span> : null}
               </div>
               <p className="cmt-body">{t.body}</p>

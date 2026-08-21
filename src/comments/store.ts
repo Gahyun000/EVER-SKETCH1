@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { apiAddComment, apiDeleteComment, apiListComments, apiResolveComment, apiSetFixed, type Thread } from './commentsApi'
+import { apiAddComment, apiDeleteComment, apiListComments, apiResolveComment, apiSetFixed, apiShiftAnchors, type Thread } from './commentsApi'
 
 /**
  * 앵커 메모 상태.
@@ -23,6 +23,8 @@ interface CommentsState {
   add: (input: { body: string; page_id: number; el_id?: number | null; cell?: string | null; reply_to?: string }) => Promise<void>
   resolve: (cid: string, resolved: boolean) => Promise<void>
   setFixed: (cid: string, fixed: boolean) => Promise<void>
+  /** 표가 바뀌었으니 앵커도 따라 옮긴다. 프로젝트가 안 열려 있으면 아무 일도 안 한다. */
+  shift: (input: { el_id: number; axis: 'row' | 'col'; at: number; delta: number; on_lost?: 'keep' | 'delete' }) => Promise<void>
   remove: (cid: string) => Promise<void>
 }
 
@@ -65,6 +67,12 @@ export const useComments = create<CommentsState>((set, get) => ({
     await apiSetFixed(cid, fixed)
     if (pid) await get().load(pid)
   },
+  shift: async (input) => {
+    const pid = get().projectId
+    if (!pid) return
+    await apiShiftAnchors(pid, input)
+    await get().load(pid)
+  },
   remove: async (cid) => {
     const pid = get().projectId
     await apiDeleteComment(cid)
@@ -74,7 +82,10 @@ export const useComments = create<CommentsState>((set, get) => ({
 
 /** 이 페이지의 미해결 스레드만 — 핀은 미해결만 그린다(해결된 지적까지 뜨면 화면이 덮인다). */
 export function pinsOfPage(threads: Thread[], pageId: number, showResolved: boolean): Thread[] {
-  return threads.filter((t) => t.page_id === pageId && (showResolved || !t.resolved_at))
+  // 가리키던 칸이 사라진 지적은 **핀을 그리지 않는다.**
+  // 조용히 엉뚱한 칸을 가리키는 것보다, 목록에만 남기고 그 사실을 말하는 편이 낫다.
+  return threads.filter((t) => t.page_id === pageId && !t.lost_at
+    && (showResolved || !t.resolved_at))
 }
 
 export { countMyTurn, relationOf, sortThreads, turnOf, type CmtRelation, type Turn } from './relation'

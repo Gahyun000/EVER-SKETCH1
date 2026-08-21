@@ -61,6 +61,14 @@ class ResolveIn(BaseModel):
     resolved: bool = True
 
 
+class ShiftIn(BaseModel):
+    el_id: int
+    axis: str            # 'row' | 'col'
+    at: int
+    delta: int           # +1 추가 · -1 삭제
+    on_lost: str = "keep"   # 가리킬 곳이 사라진 지적을 남길지 지울지
+
+
 class FixedIn(BaseModel):
     fixed: bool = True
     body: Optional[str] = None      # 비우면 「고쳤습니다.」 한 줄이 달린다
@@ -252,6 +260,26 @@ def _comment_or_404(cid: str) -> dict:
     if not item:
         raise HTTPException(status_code=404, detail="메모를 찾을 수 없습니다.")
     return item
+
+
+@router.post("/api/projects/{pid}/comments/shift")
+def comments_shift(pid: str, req: ShiftIn, user: dict = Depends(require_active)):
+    """표에서 행·열이 늘거나 줄었을 때 앵커를 따라 옮긴다.
+
+    이걸 안 하면 지적은 그대로인데 **엉뚱한 칸을 가리키게** 된다 —
+    그리고 아무도 그 사실을 모른다. 문서를 고칠 수 있는 사람만 부를 수 있다
+    (문서가 바뀌었으니 앵커도 따라가는 것이므로 판정 기준은 WRITE 다).
+    """
+    require_project(user, pid, perm.WRITE)
+    try:
+        out = comments_store.shift_anchors(pid, req.el_id, req.axis, req.at, req.delta,
+                                           req.on_lost)
+    except comments_store.CommentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if out["lost"]:
+        auth_store.audit(user["id"], "comment_anchor_lost", pid,
+                         "%d건 (%s)" % (out["lost"], req.on_lost))
+    return {"ok": True, **out}
 
 
 @router.post("/api/comments/{cid}/resolve")

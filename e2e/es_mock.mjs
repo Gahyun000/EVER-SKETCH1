@@ -84,6 +84,7 @@ const REVOKE_PREVIEW = {
 // 테스트가 들여다볼 수 있게 마지막 회수 요청을 기억해 둔다.
 let lastRevoke = null
 let lastReset = null
+let lastShift = null
 let lastDistribute = null
 // 테스트에서 '이미 배부된 회차' 상태를 만들기 위한 스위치.
 let forcedProjects = null
@@ -255,6 +256,44 @@ const server = http.createServer(async (req, res) => {
     return json(res, { ok: true, created_count: 2, skipped_count: 0, created: [] })
   }
   if (url === '/__lastDistribute') return json(res, lastDistribute || {})
+  // ── 앵커 이동 (표에서 행·열이 늘거나 줄 때) ──
+  if (url === '/api/projects/p_test/comments/shift' && req.method === 'POST') {
+    let body = ''
+    req.on('data', (c) => { body += c })
+    req.on('end', () => {
+      let b = {}
+      try { b = JSON.parse(body) } catch { /* 무시 */ }
+      lastShift = b
+      let moved = 0, lost = 0
+      for (const t of comments.slice()) {
+        if (t.el_id !== b.el_id || !t.cell) continue
+        const [h, tl] = t.cell.split(':')
+        const pt = (x) => x.split('_').map(Number)
+        const [r0, c0] = pt(h)
+        const [r1, c1] = tl ? pt(tl) : [r0, c0]
+        let lo = b.axis === 'row' ? r0 : c0
+        let hi = b.axis === 'row' ? r1 : c1
+        if (b.delta > 0) {
+          if (lo >= b.at) lo += b.delta
+          if (hi >= b.at) hi += b.delta
+        } else if (lo === b.at && hi === b.at) {
+          lost++
+          if (b.on_lost === 'delete') comments.splice(comments.indexOf(t), 1)
+          else t.lost_at = Date.now()
+          continue
+        } else if (lo > b.at) { lo -= 1; hi -= 1 } else if (hi >= b.at) { hi -= 1 }
+        const nr0 = b.axis === 'row' ? lo : r0, nr1 = b.axis === 'row' ? hi : r1
+        const nc0 = b.axis === 'col' ? lo : c0, nc1 = b.axis === 'col' ? hi : c1
+        const next = (nr0 === nr1 && nc0 === nc1)
+          ? `${nr0}_${nc0}` : `${nr0}_${nc0}:${nr1}_${nc1}`
+        if (next !== t.cell) { t.cell = next; moved++ }
+      }
+      json(res, { ok: true, moved, lost, deleted: b.on_lost === 'delete' ? lost : 0 })
+    })
+    return
+  }
+  if (url === '/__lastShift') return json(res, lastShift || {})
+
   // ── 「처음부터 다시」 ──
   if (url === '/api/cycles/projects/p_test/reset-preview') {
     return json(res, { can_reset: true, filled_cells: 12, comments: comments.length,
