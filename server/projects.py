@@ -40,6 +40,11 @@ _EXTRA_COLS = (
     ("cycle_id", "TEXT"),
     ("template_id", "TEXT"),
     ("submit_status", "TEXT DEFAULT 'draft'"),
+    # **배부받은 그대로의 모습.** 작성자가 「처음부터 다시」를 누를 때 돌아갈 곳이다.
+    # 이걸 저장해 두지 않으면 되돌리려고 원본을 다시 만들어야 하는데,
+    # 실물 PPT 배부본은 다시 만들 수 없다(어느 슬라이드가 누구에게 갔는지는
+    # 배부 그 순간에만 알 수 있다).
+    ("origin_state", "TEXT"),
 )
 
 
@@ -204,18 +209,20 @@ def owns_in_cycle(user_id: Optional[str], cycle_id: Optional[str]) -> bool:
 
 
 def create_project(name: Optional[str] = None, state: Optional[dict] = None,
-                   owner_id: Optional[str] = None, cycle_id: Optional[str] = None) -> dict:
+                   owner_id: Optional[str] = None, cycle_id: Optional[str] = None,
+                   keep_origin: bool = False) -> dict:
     pid = _new_id("p")
     ts = _now()
     st = state or {}
     nm = (name or "").strip() or _title_of(st)
     c = _conn()
     try:
+        body = json.dumps(st, ensure_ascii=False)
         c.execute(
             "INSERT INTO Projects(id,name,created_at,updated_at,published_id,page_count,state,"
-            "owner_id,cycle_id,submit_status) VALUES(?,?,?,?,?,?,?,?,?,'draft')",
-            (pid, nm, ts, ts, None, _page_count(st), json.dumps(st, ensure_ascii=False),
-             owner_id, cycle_id),
+            "owner_id,cycle_id,submit_status,origin_state) VALUES(?,?,?,?,?,?,?,?,?,'draft',?)",
+            (pid, nm, ts, ts, None, _page_count(st), body,
+             owner_id, cycle_id, body if keep_origin else None),
         )
         c.commit()
     finally:
@@ -223,6 +230,37 @@ def create_project(name: Optional[str] = None, state: Optional[dict] = None,
     return {"id": pid, "name": nm, "created_at": ts, "updated_at": ts,
             "published_id": None, "page_count": _page_count(st), "state": st,
             "owner_id": owner_id, "cycle_id": cycle_id, "submit_status": "draft"}
+
+
+def reset_to_origin(pid: str) -> Optional[dict]:
+    """배부받은 그대로의 모습으로 되돌린다.
+
+    **배부본을 지우지 않는다.** 지우면 그 사람이 회차 목록에서 사라지고,
+    관리자 화면에는 "3명 중 2명" 으로 보인다. 누가 빠졌는지도 알 수 없다.
+    혼자 해결하려던 일이 오히려 관리자를 거쳐야 하는 일이 된다.
+    """
+    c = _conn()
+    try:
+        r = c.execute("SELECT origin_state FROM Projects WHERE id=?", (pid,)).fetchone()
+        if not r or not r[0]:
+            return None
+        st = json.loads(r[0])
+        c.execute("UPDATE Projects SET state=?, page_count=?, updated_at=? WHERE id=?",
+                  (r[0], _page_count(st), _now(), pid))
+        c.commit()
+    finally:
+        c.close()
+    return get_project(pid)
+
+
+def has_origin(pid: str) -> bool:
+    """되돌릴 곳이 있는가 — 배부본이 아니면 없다."""
+    c = _conn()
+    try:
+        r = c.execute("SELECT origin_state FROM Projects WHERE id=?", (pid,)).fetchone()
+    finally:
+        c.close()
+    return bool(r and r[0])
 
 
 def get_project(pid: str) -> Optional[dict]:

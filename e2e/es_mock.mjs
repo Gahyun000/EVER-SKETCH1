@@ -55,7 +55,9 @@ const WRITERS = [
     requested_grade: 2, role_label: '작성자', requested_role_label: '작성자' },
 ]
 const CYCLE = {
-  id: 'c_test', title: '2026년 10월 임원회의', period_ym: '2026-10', status: 'writing',
+  id: 'c_test', title: '2026년 10월 임원회의', period_ym: '2026-10',
+  // CYCLE_STATUS=review 로 띄우면 '관리자가 검토를 시작한' 회차가 된다.
+  status: process.env.CYCLE_STATUS || 'writing',
   due_at: null, template_id: 't1', created_at: Date.now(),
   published_at: null, closed_at: null,
 }
@@ -63,7 +65,9 @@ const CYCLE = {
 // (이미 배부된 회차에서는 원본 교체·재배정이 잠긴다. 그게 정상 동작이다.)
 const CYCLE_PROJECTS = process.env.EMPTY ? [] : [
   { id: 'p_test', name: '2026년 10월 임원회의 — 홍길동', owner_id: 'u_test',
-    submit_status: 'submitted', updated_at: Date.now(), page_count: 1 },
+    // WRITER_ROW=draft 로 띄우면 '아직 제출 전' 인 내 배부본이 된다.
+    submit_status: process.env.WRITER_ROW || 'submitted',
+    mine: true, updated_at: Date.now(), page_count: 1 },
   { id: 'p_lee', name: '2026년 10월 임원회의 — 이순신', owner_id: 'u_lee',
     submit_status: 'draft', updated_at: Date.now(), page_count: 1 },
 ]
@@ -79,6 +83,7 @@ const REVOKE_PREVIEW = {
 }
 // 테스트가 들여다볼 수 있게 마지막 회수 요청을 기억해 둔다.
 let lastRevoke = null
+let lastReset = null
 let lastDistribute = null
 // 테스트에서 '이미 배부된 회차' 상태를 만들기 위한 스위치.
 let forcedProjects = null
@@ -250,13 +255,33 @@ const server = http.createServer(async (req, res) => {
     return json(res, { ok: true, created_count: 2, skipped_count: 0, created: [] })
   }
   if (url === '/__lastDistribute') return json(res, lastDistribute || {})
+  // ── 「처음부터 다시」 ──
+  if (url === '/api/cycles/projects/p_test/reset-preview') {
+    return json(res, { can_reset: true, filled_cells: 12, comments: comments.length,
+                       submit_status: process.env.WRITER_ROW || 'submitted' })
+  }
+  if (url === '/api/cycles/projects/p_test/reset' && req.method === 'POST') {
+    let body = ''
+    req.on('data', (c) => { body += c })
+    req.on('end', () => {
+      let b = {}
+      try { b = JSON.parse(body) } catch { /* 무시 */ }
+      lastReset = b
+      let removed = 0
+      if (b.keep_comments === false) { removed = comments.length; comments.length = 0 }
+      json(res, { ok: true, removed_comments: removed })
+    })
+    return
+  }
+  if (url === '/__lastReset') return json(res, lastReset || {})
+
   if (url.startsWith('/__setDistributed')) {
     const n = Number(((req.url || '').split('n=')[1] || '0'))
     forcedProjects = n
     return json(res, { ok: true, n })
   }
   if (url === '/__resetDistribute') {
-    lastDistribute = null; hasDeck = !!process.env.DECK; forcedProjects = null
+    lastDistribute = null; lastReset = null; hasDeck = !!process.env.DECK; forcedProjects = null
     return json(res, { ok: true })
   }
   if (url === '/api/cycles/c_test/preview') {

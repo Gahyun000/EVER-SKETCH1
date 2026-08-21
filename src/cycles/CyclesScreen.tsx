@@ -3,6 +3,7 @@ import { ApiError, apiListUsers, isAdmin, type Me } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { useProjects } from '../persistence/projects'
 import DistributeDialog from './DistributeDialog'
+import ResetDialog from './ResetDialog'
 import RevokeDialog from './RevokeDialog'
 import {
   apiCreateCycle, apiDistribute, apiGetCycle, apiListCycles, apiSetCycleStatus,
@@ -35,6 +36,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
   const [period, setPeriod] = useState(defaultPeriod())
   const [due, setDue] = useState('')
   // 회수 확인창 — null 이면 닫힘. { projectId } 가 있으면 개인별, 없으면 회차 전체.
+  const [resetting, setResetting] = useState<string | null>(null)
   const [revoking, setRevoking] = useState<
     { projectId: string; ownerId: string } | 'all' | null>(null)
   const [distributing, setDistributing] = useState(false)
@@ -95,6 +97,11 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
   }
 
   const cyc = sel?.cycle
+  // 제출 취소는 **회차가 아직 '작성 중' 일 때만** 본인이 한다.
+  // 관리자가 검토를 시작한 뒤에 자료가 발밑에서 바뀌면, 무엇을 기준으로
+  // 취합했는지 알 수 없게 된다. 서버도 같게 판정한다.
+  const canUnsubmit = admin || !sel?.cycle
+    || sel.cycle.status === 'draft' || sel.cycle.status === 'writing'
   const prog = sel?.progress
   const mine = sel?.projects || []
   const notYet = prog ? prog.total - prog.submitted : 0
@@ -261,14 +268,29 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                             </button>
                             {isMine && st !== 'approved' && (
                               st === 'submitted'
-                                ? <button className="cy-mini" disabled={!!busy}
-                                    onClick={() => void run('sub' + p.id, () => apiSetSubmitStatus(p.id, 'draft'), '제출을 취소했습니다.')}>
-                                    제출 취소
-                                  </button>
+                                ? (canUnsubmit
+                                  ? <button className="cy-mini" disabled={!!busy}
+                                      onClick={() => void run('sub' + p.id, () => apiSetSubmitStatus(p.id, 'draft'), '제출을 취소했습니다.')}>
+                                      제출 취소
+                                    </button>
+                                  /* 검토가 시작된 뒤에는 관리자가 반려해야 열린다.
+                                     버튼을 그냥 없애면 '왜 없지' 가 되므로, 잠근 채로 이유를 말한다. */
+                                  : <button className="cy-mini" disabled
+                                      title="이미 검토가 시작된 회차입니다 — 관리자에게 반려를 요청해 주세요">
+                                      제출 취소
+                                    </button>)
                                 : <button className="cy-mini primary" disabled={!!busy}
                                     onClick={() => void run('sub' + p.id, () => apiSetSubmitStatus(p.id, 'submitted'), '제출했습니다.')}>
                                     제출
                                   </button>
+                            )}
+                            {/* 「처음부터 다시」 — 지우는 게 아니라 배부받은 그대로 되돌린다.
+                                내가 망쳤을 때 관리자를 부르지 않고 혼자 해결하는 길이다. */}
+                            {isMine && !admin && st !== 'submitted' && st !== 'approved'
+                              && cyc.status !== 'published' && cyc.status !== 'closed' && (
+                              <button className="cy-mini" disabled={!!busy}
+                                title="배부받은 처음 상태로 되돌립니다"
+                                onClick={() => setResetting(p.id)}>처음부터 다시</button>
                             )}
                             {admin && cyc.status !== 'closed' && (
                               <button className="cy-mini danger" disabled={!!busy}
@@ -298,6 +320,14 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                   distributedCount={mine.length}
                   onClose={() => setDistributing(false)}
                   onDone={(m) => { setDistributing(false); setMsg(m); setErr(''); void load(cyc.id) }}
+                />
+              )}
+
+              {resetting && (
+                <ResetDialog
+                  projectId={resetting}
+                  onClose={() => setResetting(null)}
+                  onDone={(m) => { setResetting(null); setMsg(m); setErr(''); void load(cyc.id) }}
                 />
               )}
 

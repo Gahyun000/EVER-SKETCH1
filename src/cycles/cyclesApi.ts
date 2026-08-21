@@ -211,6 +211,25 @@ export async function apiSetSubmitStatus(pid: string, status: SubmitStatus): Pro
   await req(`/projects/${pid}/submit`, { method: 'POST', body: JSON.stringify({ status }) })
 }
 
+/** 되돌리기 전에 보여줄 것 — 무엇이 사라지는지. */
+export interface ResetPreview {
+  can_reset: boolean
+  filled_cells: number
+  comments: number
+  submit_status: SubmitStatus
+}
+
+export async function apiResetPreview(pid: string): Promise<ResetPreview> {
+  return await req<ResetPreview>(`/projects/${pid}/reset-preview`)
+}
+
+/** 배부받은 그대로 되돌린다. **배부본은 지우지 않는다**(그러면 목록에서 사라진다). */
+export async function apiResetProject(pid: string, keepComments: boolean): Promise<{ removed_comments: number }> {
+  return await req<{ removed_comments: number }>(`/projects/${pid}/reset`, {
+    method: 'POST', body: JSON.stringify({ confirm: true, keep_comments: keepComments }),
+  })
+}
+
 // ── 화면 문구 ──
 export const CYCLE_STATUS_LABEL: Record<CycleStatus, string> = {
   draft: '준비', writing: '작성', review: '검토', published: '발행', closed: '마감',

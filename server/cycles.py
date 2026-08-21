@@ -238,6 +238,7 @@ def distribute(cid: str, recipients: list[dict]) -> dict:
         )
         proj = projects_store.create_project(
             name=state["title"], state=state, owner_id=uid, cycle_id=cid,
+            keep_origin=True,      # 「처음부터 다시」가 돌아갈 곳
         )
         created.append({"project_id": proj["id"], "owner_id": uid,
                         "name": person.get("name") or ""})

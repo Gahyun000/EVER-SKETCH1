@@ -37,6 +37,12 @@ class DistributeIn(BaseModel):
     user_ids: Optional[list[str]] = None
 
 
+class ResetIn(BaseModel):
+    confirm: bool = False
+    # 검토 이력이 조용히 사라지는 것이 제일 나쁘다 — 기본은 남긴다.
+    keep_comments: bool = True
+
+
 class SubmitIn(BaseModel):
     status: str                          # draft | submitted | returned | approved
 
@@ -186,20 +192,78 @@ def cycle_distribute(cid: str, req: DistributeIn, user: dict = Depends(require_a
 def project_submit(pid: str, req: SubmitIn, user: dict = Depends(require_active)):
     """제출 상태 전이.
 
-    - 작성자(L2)는 본인 것을 **제출(submitted)** 하거나 작성중으로 되돌릴 수 있다.
+    - 작성자(L2)는 본인 것을 **제출(submitted)** 할 수 있다.
+    - 제출 취소는 **회차가 아직 '작성 중' 일 때만.** 관리자가 검토를 시작한
+      뒤에는 반려를 거친다 — 안 그러면 관리자가 보고 있는 자료가 발밑에서
+      바뀌고, 무엇을 기준으로 취합했는지 알 수 없게 된다.
+      (제출 버튼은 실수로 누르기 가장 쉬운 버튼이라, 그 전까지는 혼자
+       되돌릴 수 있게 둔다 — 안 그러면 "잘못 눌렀어요" 가 전부 관리자에게 몰린다.)
     - 반려(returned)·승인(approved)은 검토하는 쪽 판단이므로 L3 만 한다.
     """
     if req.status in ("returned", "approved"):
         require_project(user, pid, perm.WRITE)
         require_action(user, perm.CYCLE_MANAGE)
     else:
-        require_project(user, pid, perm.WRITE)
+        res = require_project(user, pid, perm.WRITE)
+        cur = projects_store.get_project_meta(pid) or {}
+        going_back = req.status == "draft" and cur.get("submit_status") == "submitted"
+        if going_back and res.cycle_status not in (None, "draft", "writing") \
+                and not perm.is_admin(auth_store.actor_of(user)):
+            raise HTTPException(
+                status_code=403,
+                detail="이미 검토가 시작된 회차입니다. 관리자에게 반려를 요청해 주세요.")
     try:
         out = cycles_store.set_submit_status(pid, req.status)
     except cycles_store.CycleError as e:
         raise HTTPException(status_code=400, detail=str(e))
     auth_store.audit(user["id"], "submit_status", pid, "→ %s" % req.status)
     return out
+
+
+@router.get("/projects/{pid}/reset-preview")
+def project_reset_preview(pid: str, user: dict = Depends(require_active)):
+    """되돌리면 무엇이 사라지는지 — 누르기 전에 보여준다.
+
+    "정말 되돌릴까요?" 만으로는 무엇이 사라지는지 알 수 없고, 사람은 감으로 누른다.
+    """
+    require_project(user, pid, perm.WRITE)
+    p = projects_store.get_project(pid)
+    if not p:
+        raise HTTPException(status_code=404, detail="자료를 찾을 수 없습니다.")
+    return {
+        "can_reset": projects_store.has_origin(pid),
+        "filled_cells": cycles_store._filled_cells(p.get("state") or {}),
+        "comments": comments_store.unresolved_count(pid),
+        "submit_status": p.get("submit_status") or "draft",
+    }
+
+
+@router.post("/projects/{pid}/reset")
+def project_reset(pid: str, req: ResetIn, user: dict = Depends(require_active)):
+    """작성자가 자기 배부본을 **배부받은 그대로** 되돌린다.
+
+    지우는 게 아니다 — 지우면 그 사람이 회차 목록에서 사라지고, 관리자는
+    누가 빠졌는지 알 수 없다. 혼자 해결하려던 일이 오히려 관리자를 거쳐야
+    하는 일이 된다.
+    """
+    require_project(user, pid, perm.WRITE)
+    meta = projects_store.get_project_meta(pid) or {}
+    if (meta.get("submit_status") or "draft") in ("submitted", "approved"):
+        raise HTTPException(
+            status_code=400,
+            detail="이미 제출한 자료입니다. 제출을 취소한 뒤에 되돌릴 수 있습니다.")
+    if not req.confirm:
+        raise HTTPException(status_code=400, detail="확인이 필요합니다.")
+    out = projects_store.reset_to_origin(pid)
+    if out is None:
+        raise HTTPException(status_code=400, detail="배부받은 자료만 되돌릴 수 있습니다.")
+    removed = 0
+    if not req.keep_comments:
+        removed = comments_store.remove_all(pid)
+    # 어제까지 있던 내용이 없어졌을 때, 관리자가 설명할 수 있어야 한다.
+    auth_store.audit(user["id"], "project_reset", pid,
+                     "처음부터 다시 (의견 %s)" % ("남김" if req.keep_comments else "삭제 %d건" % removed))
+    return {"ok": True, "project": out, "removed_comments": removed}
 
 
 # ─────────────── 실물 PPT 업로드 · 슬라이드별 배부 ───────────────

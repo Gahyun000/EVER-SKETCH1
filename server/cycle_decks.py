@@ -216,7 +216,8 @@ def distribute_slides(cid: str, assignments: list[dict], people: list[dict],
             "selectedPageId": mine[0]["id"],
         }
         proj = projects_store.create_project(
-            name=state["title"], state=state, owner_id=uid, cycle_id=cid)
+            name=state["title"], state=state, owner_id=uid, cycle_id=cid,
+            keep_origin=True)      # 「처음부터 다시」가 돌아갈 곳
         created.append({"project_id": proj["id"], "owner_id": uid,
                         "name": person.get("name") or "", "slides": idxs,
                         "page_count": len(mine)})

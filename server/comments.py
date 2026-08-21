@@ -270,6 +270,23 @@ def remove(cid: str) -> dict:
     return {"ok": True, "removed": n, "thread_id": cur["thread_id"]}
 
 
+def remove_all(project_id: str) -> int:
+    """이 자료의 메모를 전부 지운다. 지운 개수를 돌려준다.
+
+    「처음부터 다시」에서 사용자가 **함께 지우기를 고른 경우**에만 부른다.
+    기본은 남기는 쪽이다 — 검토 이력이 조용히 사라지는 것이 제일 나쁘다.
+    """
+    c = _conn()
+    try:
+        n = c.execute("SELECT COUNT(*) FROM Comments WHERE project_id=?",
+                      (project_id,)).fetchone()[0]
+        c.execute("DELETE FROM Comments WHERE project_id=?", (project_id,))
+        c.commit()
+    finally:
+        c.close()
+    return int(n)
+
+
 def unresolved_count(project_id: str) -> int:
     c = _conn()
     try:

@@ -2,6 +2,7 @@
 
 계획서 §8 W2 의 게이트 문구를 그대로 테스트로 옮겼다.
 """
+import json
 import os
 import pathlib
 import tempfile
@@ -392,3 +393,126 @@ def test_회차_개설과_배부가_감사로그에_남는다(ctx):
     acts = [r[0] for r in conn.execute("SELECT action FROM AuditLogs").fetchall()]
     conn.close()
     assert "cycle_create" in acts and "cycle_distribute" in acts
+
+
+# ══════════ 처음부터 다시 ══════════
+def _mine(ctx, cid):
+    return [p for p in cycles_store.list_cycle_projects(cid)
+            if p["owner_id"] == ctx["execs"][0]["id"]][0]
+
+
+def test_처음부터_다시_하면_배부받은_그대로_돌아온다(ctx):
+    """지우지 않는다 — 지우면 그 사람이 회차 목록에서 사라지고, 관리자는
+    누가 빠졌는지 알 수 없다. 혼자 해결하려던 일이 관리자를 거쳐야 하는 일이 된다."""
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = _mine(ctx, cid)["id"]
+
+    c1 = ctx["as_user"]("exec1")
+    before = c1.get("/api/projects/%s" % pid).json()["state"]
+    dirty = json.loads(json.dumps(before))
+    dirty["title"] = "내가 망친 제목"
+    c1.put("/api/projects/%s" % pid, json={"state": dirty, "name": dirty["title"]})
+    assert c1.get("/api/projects/%s" % pid).json()["state"]["title"] == "내가 망친 제목"
+
+    r = c1.post("/api/cycles/projects/%s/reset" % pid, json={"confirm": True})
+    assert r.status_code == 200, r.text
+    assert c1.get("/api/projects/%s" % pid).json()["state"]["title"] == before["title"]
+
+    # 목록에서 사라지지 않는다
+    assert any(p["id"] == pid for p in cycles_store.list_cycle_projects(cid))
+
+
+def test_확인_없이는_되돌리지_않는다(ctx):
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = _mine(ctx, cid)["id"]
+    r = ctx["as_user"]("exec1").post("/api/cycles/projects/%s/reset" % pid, json={})
+    assert r.status_code == 400
+
+
+def test_남의_배부본은_되돌릴_수_없다(ctx):
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    other = [p for p in cycles_store.list_cycle_projects(cid)
+             if p["owner_id"] != ctx["execs"][0]["id"]][0]["id"]
+    r = ctx["as_user"]("exec1").post("/api/cycles/projects/%s/reset" % other, json={"confirm": True})
+    assert r.status_code == 403
+
+
+def test_제출한_뒤에는_되돌리지_못한다(ctx):
+    """관리자가 보고 있는 자료가 발밑에서 비워지면 안 된다."""
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = _mine(ctx, cid)["id"]
+    c1 = ctx["as_user"]("exec1")
+    c1.post("/api/cycles/projects/%s/submit" % pid, json={"status": "submitted"})
+    r = c1.post("/api/cycles/projects/%s/reset" % pid, json={"confirm": True})
+    assert r.status_code == 400
+    assert "제출" in r.json()["detail"]
+
+
+def test_되돌리기_전에_무엇이_사라지는지_보여준다(ctx):
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = _mine(ctx, cid)["id"]
+    c.post("/api/projects/%s/comments" % pid, json={"body": "여기 확인", "page_id": 1})
+    prev = ctx["as_user"]("exec1").get("/api/cycles/projects/%s/reset-preview" % pid).json()
+    assert prev["can_reset"] is True
+    assert prev["comments"] == 1
+    assert "filled_cells" in prev
+
+
+def test_의견을_함께_지울지_고를_수_있다(ctx):
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = _mine(ctx, cid)["id"]
+    c.post("/api/projects/%s/comments" % pid, json={"body": "여기 확인", "page_id": 1})
+    c1 = ctx["as_user"]("exec1")
+
+    # 기본은 남긴다 — 검토 이력이 조용히 사라지는 것이 제일 나쁘다.
+    c1.post("/api/cycles/projects/%s/reset" % pid, json={"confirm": True})
+    assert c1.get("/api/projects/%s/comments" % pid).json()["comments"]
+
+    r = c1.post("/api/cycles/projects/%s/reset" % pid,
+                json={"confirm": True, "keep_comments": False})
+    assert r.json()["removed_comments"] == 1
+    assert c1.get("/api/projects/%s/comments" % pid).json()["comments"] == []
+
+
+# ══════════ 제출 취소 ══════════
+def test_작성_중이면_본인이_제출을_취소한다(ctx):
+    """제출 버튼은 실수로 누르기 가장 쉽다. 관리자가 아직 안 봤으면 혼자 되돌린다."""
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = _mine(ctx, cid)["id"]
+    c1 = ctx["as_user"]("exec1")
+    c1.post("/api/cycles/projects/%s/submit" % pid, json={"status": "submitted"})
+    r = c1.post("/api/cycles/projects/%s/submit" % pid, json={"status": "draft"})
+    assert r.status_code == 200
+
+
+def test_검토가_시작되면_본인은_못_되돌린다(ctx):
+    """관리자가 그 자료를 기준으로 일하고 있다. 반려를 거친다."""
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = _mine(ctx, cid)["id"]
+    c1 = ctx["as_user"]("exec1")
+    c1.post("/api/cycles/projects/%s/submit" % pid, json={"status": "submitted"})
+    c.post("/api/cycles/%s/status" % cid, json={"status": "review"})
+
+    r = c1.post("/api/cycles/projects/%s/submit" % pid, json={"status": "draft"})
+    assert r.status_code == 403
+    assert "반려" in r.json()["detail"]
+
+    # 관리자는 반려로 풀어 준다
+    assert c.post("/api/cycles/projects/%s/submit" % pid,
+                  json={"status": "returned"}).status_code == 200
