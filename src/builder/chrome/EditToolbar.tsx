@@ -11,7 +11,8 @@ import { PAPER_OPTIONS } from '../../cards/paper'
 import type { FreeEl } from '../../state/store'
 import { mergeCovering, mergeRange, unmergeAt } from '../../canvas/tableOps'
 import { isSlotEl, slotAllows } from '../../template/slots'
-import { cellKey, cellLabel } from '../../comments/commentsApi'
+import { tableAnchorLabel } from '../../comments/anchorLabel'
+import { cellKey } from '../../comments/anchor'
 import CommentComposer from '../../comments/CommentComposer'
 import { useProjects } from '../../persistence/projects'
 import { useComments } from '../../comments/store'
@@ -128,7 +129,8 @@ function CommentTool() {
   // 를 짚어도 목록에는 「4행 6열」 한 칸만 남고, 받는 사람은 어느 구간인지
   // 글을 다시 읽어야 했다. 로드맵에서 지적의 대부분은 구간에 달린다.
   const cell = ts ? cellKey(ts.r0, ts.c0, ts.r1, ts.c1) : null
-  const where = !el ? '이 장' : cell ? `표 ${cellLabel(cell)}` : '고른 요소'
+  // 「5행 3~6열」이 아니라 「B프로젝트 · 2월~5월」로 적는다(anchorLabel.ts 주석 참고).
+  const where = !el ? '이 장' : cell ? tableAnchorLabel(el, cell) : '고른 요소'
 
   return (
     <span className="ax-grp gs">

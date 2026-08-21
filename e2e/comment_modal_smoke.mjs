@@ -42,8 +42,10 @@ const openBtn = p.locator('.ax-tb .tbtn', { hasText: '의견 달기' })
 // ── 1) 칸을 짚고 창을 연다 ──
 await cell(2, 3).click()
 await p.waitForTimeout(200)
-ok('짚은 칸이 툴바에 표시된다',
-   (await p.locator('.ax-tbrow.ctx .tbtn-hint').last().innerText()).includes('3행 4열'),
+// **번호가 아니라 표에 적힌 말로** 나온다. 정본 로드맵의 4열 머리글은 「2월」이고,
+// 그 행은 아직 비어 있으니 줄은 번호로 채운다.
+ok('짚은 칸을 표에 적힌 말로 보여준다',
+   (await p.locator('.ax-tbrow.ctx .tbtn-hint').last().innerText()).includes('3행 · 2월'),
    await p.locator('.ax-tbrow.ctx .tbtn-hint').last().innerText())
 
 await openBtn.click()
@@ -51,7 +53,7 @@ await p.waitForTimeout(300)
 ok('브라우저 기본 창이 아니라 우리 창이 뜬다', await p.locator('.ui-scrim').count() === 1)
 ok('브라우저 기본 창은 뜨지 않았다', native === 0, `${native}건`)
 ok('어디에 다는지 창 안에 적혀 있다',
-   (await p.locator('.cmt-compose-where').innerText()).includes('3행 4열'),
+   (await p.locator('.cmt-compose-where').innerText()).includes('3행 · 2월'),
    (await p.locator('.cmt-compose-where').innerText()).replace(/\n/g, ' '))
 
 // ── 2) 여러 줄로 쓸 수 있다 ──
@@ -73,7 +75,7 @@ ok('창을 닫아도 골라 둔 칸이 그대로다',
    await p.locator('.stage .feltd.cellsel').count() === 1,
    `${await p.locator('.stage .feltd.cellsel').count()}칸`)
 ok('닫은 뒤 툴바도 그 자리를 가리키고 있다',
-   (await p.locator('.ax-tbrow.ctx .tbtn-hint').last().innerText()).includes('3행 4열'))
+   (await p.locator('.ax-tbrow.ctx .tbtn-hint').last().innerText()).includes('3행 · 2월'))
 
 // ── 4) 다시 열어 실제로 단다 ──
 // 같은 칸의 의견은 핀 하나에 모여서 개수로 표시된다(칸마다 핀이 쌓이면 표가 덮인다).
@@ -117,12 +119,12 @@ ok('줄바꿈이 그대로 남는다', (await mine.innerText()).includes('\n확�
   ok('(사전) 네 칸을 끌어 골랐다', await p.locator('.stage .feltd.cellsel').count() === 4)
 
   const hint = await p.locator('.ax-tbrow.ctx .tbtn-hint').last().innerText()
-  ok('툴바가 범위를 그대로 말한다', hint.includes('5행 3~6열'), hint)
+  ok('툴바가 범위를 표에 적힌 말로 말한다', hint.includes('5행 · 1월~4월'), hint)
 
   await openBtn.click()
   await p.waitForTimeout(250)
   ok('창에도 범위가 적힌다',
-     (await p.locator('.cmt-compose-where').innerText()).includes('5행 3~6열'),
+     (await p.locator('.cmt-compose-where').innerText()).includes('5행 · 1월~4월'),
      (await p.locator('.cmt-compose-where').innerText()).replace(/\n/g, ' '))
   await p.locator('.cmt-compose-body').fill('이 구간이 앞 장과 다릅니다')
   await p.locator('.cmt-compose-send').click()
@@ -140,7 +142,7 @@ ok('줄바꿈이 그대로 남는다', (await mine.innerText()).includes('\n확�
      marked.join(' | '))
 
   const item = p.locator('.cmt-item', { hasText: '이 구간이 앞 장과 다릅니다' }).first()
-  ok('목록에도 범위로 적힌다', (await item.innerText()).includes('5행 3~6열'),
+  ok('목록에도 같은 말로 적힌다', (await item.innerText()).includes('5행 · 1월~4월'),
      (await item.innerText()).split('\n')[1])
 }
 

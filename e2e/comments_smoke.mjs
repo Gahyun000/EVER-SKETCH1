@@ -50,7 +50,7 @@ ok('핀을 누르면 의견 목록이 열린다', await p.locator('.cmt-panel').
 const item = p.locator('.cmt-item').first()
 ok('그 지적이 골라진 상태로 보인다', (await item.getAttribute('class') || '').includes('on'))
 const itemText = await item.innerText()
-ok('어디를 가리키는지 목록에도 적혀 있다', itemText.includes('4행 6열'), itemText.split('\n')[1])
+ok('어디를 가리키는지 목록에도 적혀 있다', itemText.includes('4행 · 4월'), itemText.split('\n')[1])
 ok('내용이 그대로 보인다', itemText.includes('5월 진행 구간'))
 
 // ── 4) 답글 ──

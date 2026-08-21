@@ -8,7 +8,8 @@ import { mkFreeEl, pushSnap, FCOLORS } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, mergeCovering, sizeTracks } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount } from '../template/slots'
-import { parseCell } from '../comments/commentsApi'
+import { tableAnchorLabel } from '../comments/anchorLabel'
+import { parseCell } from '../comments/anchor'
 import { pinsOfPage, useComments } from '../comments/store'
 import '../template/template.css'
 import ColorPicker from '../builder/chrome/ColorPicker'
@@ -199,10 +200,16 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       }
     }
   }
-  const Pin = ({ list }: { list: typeof pagePins }) => (
+  // 핀에 올렸을 때 **어디를 가리키는지도** 함께 보여준다.
+  // 범위로 짚으면 핀은 왼쪽 위 한 칸에만 붙는다 — 글만 뜨면 어디까지가
+  // 지적 범위인지 다시 헤아려야 한다.
+  const Pin = ({ list, el }: { list: typeof pagePins; el?: typeof page.els[number] }) => (
     <div className={'cmt-pin' + (list.every((t) => t.resolved_at) ? ' done' : '')
       + (list.some((t) => t.id === cmtFocusId) ? ' on' : '')}
-      title={list.map((t) => t.body).join('\n').slice(0, 120)}
+      title={list.map((t) => {
+        const w = tableAnchorLabel(el, t.cell)
+        return (w ? w + ' — ' : '') + t.body
+      }).join('\n').slice(0, 200)}
       onPointerDown={(e) => { e.stopPropagation(); cmtFocus(list[0].id) }}
       onClick={(e) => e.stopPropagation()}>
       {list.length}
@@ -706,7 +713,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                           >{val}
                             {(() => {
                               const ps = pinByCell.get(el.id + '_' + r + '_' + c)
-                              return ps ? <Pin list={ps} /> : null
+                              return ps ? <Pin list={ps} el={el} /> : null
                             })()}
                           </div>
                         )

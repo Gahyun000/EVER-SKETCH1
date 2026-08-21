@@ -3,7 +3,8 @@ import { apiListUsers, type Me } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { useProjects } from '../persistence/projects'
 import { useBuilder } from '../state/store'
-import { cellLabel, type Thread } from './commentsApi'
+import { anchorText } from './anchorLabel'
+import { type Thread } from './commentsApi'
 import { useComments } from './store'
 import './comments.css'
 
@@ -54,8 +55,14 @@ export default function CommentsPanel() {
     const i = pages.findIndex((p) => p.id === t.page_id)
     return i >= 0 ? i + 1 : t.page_id
   }
-  const anchorText = (t: Thread) =>
-    t.cell ? `표 · ${cellLabel(t.cell)}` : t.el_id != null ? '요소' : '이 장 전체'
+  // 짚은 자리를 사람 말로 — 「5행 3~6열」이 아니라 「B프로젝트 · 2월~5월」.
+  // 그러려면 그 표를 찾아야 한다(이름은 표 안에 적혀 있다).
+  const elOf = (t: Thread) => {
+    if (t.el_id == null) return undefined
+    const pg = pages.find((p) => p.id === t.page_id)
+    return pg?.els?.find((e) => e.id === t.el_id)
+  }
+  const anchorOf = (t: Thread) => anchorText(elOf(t), t.cell, t.el_id != null)
 
   const submit = async () => {
     const body = draft.trim()
@@ -116,7 +123,7 @@ export default function CommentsPanel() {
               onClick={() => focus(t.id)}>
               <div className="cmt-meta">
                 <b>{who(t.author_id)}</b>
-                <span className="cmt-anchor">{pageNo(t)}쪽 · {anchorText(t)}</span>
+                <span className="cmt-anchor">{pageNo(t)}쪽 · {anchorOf(t)}</span>
                 {t.resolved_at ? <span className="cmt-done-tag">해결</span> : null}
               </div>
               <p className="cmt-body">{t.body}</p>
