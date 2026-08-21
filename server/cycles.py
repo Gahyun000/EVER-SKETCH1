@@ -314,7 +314,13 @@ def revoke_preview(cid: str) -> dict:
 
     이 값을 화면에 보여준 뒤에야 회수 버튼이 눌린다.
     """
+    from server import comments as comments_store
+
     rows = list_cycle_projects(cid)
+    # 배부를 무르면 그 자료에 달린 **검토 의견도 함께 사라진다.**
+    # 이걸 안 세어 주면, 리뷰어가 쓴 지적이 아무 말 없이 없어지고
+    # 무른 사람은 자기가 무엇을 지웠는지도 모른다. 20명분을 한 번에 센다.
+    cmt = comments_store.counts_for([r["id"] for r in rows], include_resolved=True)
     items = []
     for r in rows:
         full = projects_store.get_project(r["id"])
@@ -326,6 +332,7 @@ def revoke_preview(cid: str) -> dict:
             "submit_status": r["submit_status"],
             "updated_at": r["updated_at"],
             "filled_cells": _filled_cells(state),
+            "comments": cmt.get(r["id"], 0),
             "page_count": len(state.get("pages") or []),
         })
     return {
@@ -333,6 +340,7 @@ def revoke_preview(cid: str) -> dict:
         "items": items,
         "total": len(items),
         "with_content": sum(1 for x in items if x["filled_cells"] > 0),
+        "comments": sum(x["comments"] for x in items),
         "submitted": sum(1 for x in items if x["submit_status"] in ("submitted", "approved")),
     }
 

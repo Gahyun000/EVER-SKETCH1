@@ -395,17 +395,23 @@ def unresolved_count(project_id: str) -> int:
         c.close()
 
 
-def counts_for(project_ids: list[str]) -> dict[str, int]:
-    """여러 자료의 미해결 수를 한 번에 — 회차 화면에서 20명분을 한 줄씩 물어보지 않게."""
+def counts_for(project_ids: list[str], include_resolved: bool = False) -> dict[str, int]:
+    """여러 자료의 미해결 수를 한 번에 — 회차 화면에서 20명분을 한 줄씩 물어보지 않게.
+
+    `include_resolved` 를 켜면 해결된 것까지 센다. **무엇이 사라지는지 보여줄 때**
+    쓴다 — 배부를 무르면 해결된 지적도 함께 없어지고, 그건 그 회차가 무엇을
+    검토했는지에 대한 기록이다.
+    """
     if not project_ids:
         return {}
     c = _conn()
     try:
         marks = ",".join("?" for _ in project_ids)
+        where = "" if include_resolved else "AND resolved_at IS NULL "
         rows = c.execute(
             "SELECT project_id, COUNT(*) FROM Comments "
-            "WHERE project_id IN (%s) AND id=thread_id AND resolved_at IS NULL "
-            "GROUP BY project_id" % marks, project_ids).fetchall()
+            "WHERE project_id IN (%s) AND id=thread_id %s"
+            "GROUP BY project_id" % (marks, where), project_ids).fetchall()
     finally:
         c.close()
     return {r[0]: r[1] for r in rows}

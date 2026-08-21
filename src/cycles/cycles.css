@@ -236,3 +236,13 @@
 .cy-rs-list b { color: var(--ink); font-size: 14px; }
 .cy-rs-opt { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
 .cy-rs-opt .insp-check { align-items: flex-start; line-height: 1.6; }
+
+/* 무르기 창 맨 위 한 줄 — 이 기능이 무엇을 못 하고 무엇을 하는지.
+   「회수」로 읽히면 '이미 봤는데 무슨 소용이냐' 가 되고, 그러면 기능 자체가
+   쓸모없어 보인다. 오해를 먼저 걷어낸다. */
+.cy-rv-what {
+  margin: 0 0 10px; padding: 9px 12px; border-radius: 8px;
+  background: #f4f7fd; border: 1px solid #d9e3f7;
+  font-size: 12.5px; line-height: 1.7; color: #2f4372;
+}
+.cy-rv-what b { color: #16234a; }

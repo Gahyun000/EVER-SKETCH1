@@ -172,7 +172,7 @@ export async function apiPreviewPage(cycleId: string, slide?: number): Promise<{
   return req(`/${cycleId}/preview${q}`)
 }
 
-// ── 배부 회수 ──
+// ── 배부 무르기 ──
 export interface RevokeItem {
   project_id: string
   owner_id: string
@@ -180,6 +180,8 @@ export interface RevokeItem {
   submit_status: SubmitStatus
   updated_at: number
   filled_cells: number
+  /** 이 자료에 달린 검토 의견 수(해결된 것 포함) — 무르면 함께 사라진다. */
+  comments: number
   page_count: number
 }
 
@@ -188,15 +190,16 @@ export interface RevokePreview {
   items: RevokeItem[]
   total: number
   with_content: number
+  comments: number
   submitted: number
 }
 
-/** 회수하면 무엇이 사라지는지 미리 센다. 지우지 않는다. */
+/** 무르면 무엇이 사라지는지 미리 센다. 지우지 않는다. */
 export async function apiRevokePreview(cycleId: string): Promise<RevokePreview> {
   return req<RevokePreview>(`/${cycleId}/revoke-preview`)
 }
 
-/** 배부본 회수. projectIds 를 비우면 회차 전체. **되돌릴 수 없다.** */
+/** 배부 무르기. projectIds 를 비우면 회차 전체. **되돌릴 수 없다.** */
 export async function apiRevoke(cycleId: string, projectIds?: string[]): Promise<{
   removed_count: number; remaining: number; lost_cells: number
   removed: { project_id: string; owner_id: string; name: string; filled_cells: number }[]

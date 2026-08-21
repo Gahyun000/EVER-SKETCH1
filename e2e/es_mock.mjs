@@ -75,11 +75,13 @@ const REVOKE_PREVIEW = {
   cycle_id: 'c_test',
   items: [
     { project_id: 'p_test', owner_id: 'u_test', name: '2026년 10월 임원회의 — 홍길동',
-      submit_status: 'submitted', updated_at: Date.now(), filled_cells: 12, page_count: 1 },
+      submit_status: 'submitted', updated_at: Date.now(), filled_cells: 12,
+      comments: 3, page_count: 1 },
     { project_id: 'p_lee', owner_id: 'u_lee', name: '2026년 10월 임원회의 — 이순신',
-      submit_status: 'draft', updated_at: Date.now(), filled_cells: 0, page_count: 1 },
+      submit_status: 'draft', updated_at: Date.now(), filled_cells: 0,
+      comments: 0, page_count: 1 },
   ],
-  total: 2, with_content: 1, submitted: 1,
+  total: 2, with_content: 1, comments: 3, submitted: 1,
 }
 // 테스트가 들여다볼 수 있게 마지막 회수 요청을 기억해 둔다.
 let lastRevoke = null

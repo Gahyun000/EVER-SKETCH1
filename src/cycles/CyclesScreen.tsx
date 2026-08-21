@@ -35,7 +35,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
   const [creating, setCreating] = useState(false)
   const [period, setPeriod] = useState(defaultPeriod())
   const [due, setDue] = useState('')
-  // 회수 확인창 — null 이면 닫힘. { projectId } 가 있으면 개인별, 없으면 회차 전체.
+  // 배부 무르기 확인창 — null 이면 닫힘. { projectId } 가 있으면 개인별, 없으면 회차 전체.
   const [resetting, setResetting] = useState<string | null>(null)
   const [revoking, setRevoking] = useState<
     { projectId: string; ownerId: string } | 'all' | null>(null)
@@ -195,8 +195,8 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                       onClick={() => setDistributing(true)}>배부하기</button>
                     {mine.length > 0 && cyc.status !== 'closed' && (
                       <button className="cy-btn danger" disabled={!!busy}
-                        title="이 회차에 나간 배부본을 모두 지웁니다"
-                        onClick={() => setRevoking('all')}>배부 취소</button>
+                        title="이 회차에 나간 배부를 모두 무릅니다 — 이미 열어본 내용은 되돌릴 수 없습니다"
+                        onClick={() => setRevoking('all')}>배부 무르기</button>
                     )}
                     {NEXT_STATUS[cyc.status].map((s) => (
                       <button key={s} className={'cy-btn' + (s === 'closed' ? ' danger' : '')}
@@ -294,9 +294,9 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                             )}
                             {admin && cyc.status !== 'closed' && (
                               <button className="cy-mini danger" disabled={!!busy}
-                                title="이 사람의 배부본을 지웁니다"
+                                title="이 사람을 담당에서 빼고 더 이상 열지 못하게 합니다"
                                 onClick={() => setRevoking({ projectId: p.id, ownerId: p.owner_id })}>
-                                회수
+                                배부 무르기
                               </button>
                             )}
                             {admin && !isMine && st === 'submitted' && (<>

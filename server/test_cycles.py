@@ -516,3 +516,23 @@ def test_검토가_시작되면_본인은_못_되돌린다(ctx):
     # 관리자는 반려로 풀어 준다
     assert c.post("/api/cycles/projects/%s/submit" % pid,
                   json={"status": "returned"}).status_code == 200
+
+
+def test_무르기_전에_사라질_의견_수도_보여준다(ctx):
+    """배부를 무르면 그 자료에 달린 지적도 함께 사라진다.
+    안 세어 주면 리뷰어가 쓴 지적이 아무 말 없이 없어지고,
+    무른 사람은 자기가 무엇을 지웠는지도 모른다."""
+    c = ctx["as_admin"]()
+    cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
+    c.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = _mine(ctx, cid)["id"]
+    c.post("/api/projects/%s/comments" % pid, json={"body": "여기 확인", "page_id": 1})
+    root = c.post("/api/projects/%s/comments" % pid,
+                  json={"body": "이건 끝난 것", "page_id": 1}).json()["comment"]
+    c.post("/api/comments/%s/resolve" % root["id"], json={"resolved": True})
+
+    prev = c.get("/api/cycles/%s/revoke-preview" % cid).json()
+    mine = [x for x in prev["items"] if x["project_id"] == pid][0]
+    # 해결된 것도 센다 — 그 회차가 무엇을 검토했는지에 대한 기록이다.
+    assert mine["comments"] == 2, mine
+    assert prev["comments"] == 2
