@@ -220,3 +220,53 @@ def test_열_때_할_수_있는_일이_함께_온다(tmp_path, monkeypatch):
     ac.post("/api/cycles/%s/status" % cid, json={"status": "published"})
     own2 = c1.get("/api/projects/%s" % w1["id"]).json()["access"]
     assert own2["can_write"] is False, "확정본이 나간 뒤에 원본이 바뀌면 안 된다"
+
+
+def test_열람자에게는_회차_명단이_보이지_않는다(tmp_path):
+    """동료끼리 서로의 장을 보게 열면서 **열람자에게까지 열려 있었다.**
+
+    발행된 회차에서 열람자가 받은 것은 '이름 목록 + 미해결 지적 수' 였다.
+    열지도 못하는 자료의 명단이고, 게다가 메모는 열람자에게 **존재 자체를
+    노출하지 않는다**(확정 사항). 참여한 사람에게만 명단을 준다.
+    """
+    import os
+    os.environ["EVER_SKETCH_DB"] = str(tmp_path / "vis2.db")
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from server import auth as auth_store
+    from server import cycles as cycles_store
+    from server.routes_auth import router as auth_router
+    from server.routes_cycles import router as cycles_router
+    from server.routes_projects import router as proj_router
+
+    app = FastAPI()
+    for r in (auth_router, proj_router, cycles_router):
+        app.include_router(r)
+
+    auth_store.ensure_seed_admin("adminpw12345")
+    admin = [u for u in auth_store.list_users() if u["login_id"] == "admin"][0]
+    for lid, role in (("exec1", "writer"), ("exec2", "writer"), ("view1", "viewer")):
+        u = auth_store.signup(lid, "password123", lid, "본부", "writer")
+        auth_store.approve(admin["id"], u["id"], role)
+
+    def login(lid, pw="password123"):
+        c = TestClient(app)
+        assert c.post("/api/auth/login", json={"login_id": lid, "password": pw}).status_code == 200
+        return c
+
+    ac = login("admin", "adminpw12345")
+    cid = ac.post("/api/cycles", json={"period_ym": "2026-12"}).json()["cycle"]["id"]
+    ac.post("/api/cycles/%s/distribute" % cid, json={})
+    pid = cycles_store.list_cycle_projects(cid)[0]["id"]
+    ac.post("/api/projects/%s/comments" % pid, json={"body": "지적", "page_id": 1})
+    ac.post("/api/cycles/%s/status" % cid, json={"status": "review"})
+    ac.post("/api/cycles/%s/status" % cid, json={"status": "published"})
+
+    got = login("view1").get("/api/cycles/%s" % cid).json()
+    assert got["projects"] == [], "열람자에게 명단이 가면 안 된다"
+    assert "progress" not in got
+
+    # 참여한 사람에게는 그대로 보인다
+    joined = login("exec1").get("/api/cycles/%s" % cid).json()
+    assert len(joined["projects"]) == 2

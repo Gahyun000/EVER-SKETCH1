@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVER-SKETCH 내부 리허설 진행 자료</title>
+<style>
+  :root{
+    --bg:#070a12; --bg2:#0b1020; --panel:#111827; --panel2:#151f33;
+    --line:rgba(80,120,200,.18); --line2:rgba(80,120,200,.10);
+    --blue:#3b7dff; --cyan:#22d3ee; --violet:#8b5cf6;
+    --green:#10b981; --amber:#f59e0b; --red:#ef4444; --gold:#f4c430;
+    --t1:#e6edf6; --t2:#9aa9bd; --t3:#65758c;
+    --mono:ui-monospace,SFMono-Regular,Menlo,"Cascadia Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",
+      "Noto Sans KR",sans-serif;
+    background:var(--bg); color:var(--t1); line-height:1.75; font-size:15px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── HERO ── */
+  .hero{position:relative;min-height:78vh;display:flex;flex-direction:column;
+    justify-content:center;align-items:center;text-align:center;overflow:hidden;padding:72px 24px}
+  .hero-grid{position:absolute;inset:0;
+    background-image:linear-gradient(rgba(59,125,255,.06) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(59,125,255,.06) 1px,transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 75% 60% at 50% 45%,#000 35%,transparent 100%);
+    mask-image:radial-gradient(ellipse 75% 60% at 50% 45%,#000 35%,transparent 100%)}
+  .hero-glow{position:absolute;top:-160px;left:50%;transform:translateX(-50%);
+    width:900px;height:900px;pointer-events:none;
+    background:radial-gradient(ellipse,rgba(59,125,255,.13) 0%,transparent 62%)}
+  .badge{display:inline-flex;align-items:center;gap:9px;background:rgba(59,125,255,.10);
+    border:1px solid rgba(59,125,255,.30);border-radius:99px;padding:6px 18px;font-size:12px;
+    color:var(--cyan);letter-spacing:2px;margin-bottom:26px;font-family:var(--mono);position:relative}
+  .badge::before{content:'●';color:var(--green);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .hero h1{font-size:clamp(38px,6.4vw,68px);font-weight:900;line-height:1.12;
+    letter-spacing:-2px;margin-bottom:18px;position:relative}
+  .hero h1 span{background:linear-gradient(135deg,var(--blue),var(--cyan));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero-sub{font-size:clamp(15px,2.2vw,19px);color:var(--t2);font-weight:300;
+    max-width:660px;margin:0 auto 42px;position:relative}
+  .hero-meta{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;position:relative}
+  .hm .v{font-size:34px;font-weight:900;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hm .l{font-size:12px;color:var(--t3);letter-spacing:1px}
+
+  /* ── NAV ── */
+  nav{position:sticky;top:0;z-index:100;background:rgba(7,10,18,.93);
+    backdrop-filter:blur(14px);border-bottom:1px solid var(--line2);
+    padding:0 28px;display:flex;align-items:center;gap:2px;overflow-x:auto}
+  nav .logo{font-weight:900;font-size:14px;margin-right:14px;white-space:nowrap;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  nav a{display:block;padding:15px 12px;font-size:13px;color:var(--t3);
+    text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+  nav a:hover{color:var(--t1)}
+
+  /* ── LAYOUT ── */
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  section{padding:74px 0;border-bottom:1px solid var(--line2)}
+  .lab{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);
+    font-size:11px;letter-spacing:3px;color:var(--blue);margin-bottom:14px}
+  .lab::before{content:'';width:26px;height:1px;background:var(--blue)}
+  h2.st{font-size:clamp(26px,3.6vw,37px);font-weight:900;line-height:1.22;
+    margin-bottom:14px;letter-spacing:-1px}
+  p.sd{font-size:16px;color:var(--t2);max-width:660px;margin-bottom:44px}
+  h3.sub{font-size:19px;font-weight:800;margin:34px 0 18px}
+
+  /* ── 표 ── */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{background:#0d1424;padding:11px 15px;text-align:left;color:var(--t3);
+    font-size:11px;letter-spacing:1px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:13px 15px;border-bottom:1px solid var(--line2);color:var(--t2);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td b,td strong{color:var(--t1)}
+  .tw{overflow-x:auto;border:1px solid var(--line2);border-radius:14px;background:var(--panel)}
+  .num{font-family:var(--mono)}
+
+  .cmp th:nth-child(2){background:rgba(100,116,139,.10);color:var(--t2)}
+  .cmp th:nth-child(3){background:rgba(59,125,255,.15);color:var(--cyan);
+    border-left:2px solid var(--blue)}
+  .cmp td:nth-child(3){color:var(--t1);background:rgba(59,125,255,.04);
+    border-left:2px solid rgba(59,125,255,.2)}
+
+  /* ── 패널 · 카드 ── */
+  .panel{background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:26px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .three{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+  @media(max-width:760px){.two{grid-template-columns:1fr}}
+  .panel h4{font-size:14px;color:var(--cyan);margin-bottom:12px}
+  .panel p,.panel li{font-size:13.5px;color:var(--t2);line-height:1.85}
+
+  /* ── 임팩트 ── */
+  .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;
+    background:var(--line2);border:1px solid var(--line2);border-radius:16px;
+    overflow:hidden;margin:40px 0}
+  .strip .it{background:var(--panel);padding:32px 22px;text-align:center}
+  .strip .v{font-size:44px;font-weight:900;line-height:1;margin-bottom:6px}
+  .strip .v.b{background:linear-gradient(135deg,var(--blue),var(--cyan));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .strip .v.g{color:var(--green)} .strip .v.a{color:var(--amber)}
+  .strip .l{font-size:12.5px;color:var(--t3)}
+
+  /* ── 시퀀스 ── */
+  .seq{position:relative;padding-left:44px}
+  .seq::before{content:'';position:absolute;left:17px;top:16px;bottom:8px;width:1px;background:var(--line)}
+  .si{position:relative;margin-bottom:30px}
+  .si .n{position:absolute;left:-44px;top:-2px;width:34px;height:34px;border-radius:50%;
+    background:var(--panel2);border:1px solid var(--blue);display:flex;align-items:center;
+    justify-content:center;font-size:13px;font-weight:700;color:var(--blue);font-family:var(--mono)}
+  .si .t{font-size:15.5px;font-weight:700;margin-bottom:6px}
+  .si .b{font-size:13.5px;color:var(--t2)}
+  .who{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;
+    margin-right:8px;vertical-align:middle}
+  .w-admin{background:rgba(59,125,255,.16);color:#8ab4ff}
+  .w-writer{background:rgba(16,185,129,.14);color:#5eddb0}
+  .w-viewer{background:rgba(148,163,184,.14);color:#a9b6c6}
+
+  /* ── 멘트 ── */
+  .say{background:linear-gradient(135deg,rgba(59,125,255,.08),rgba(139,92,246,.06));
+    border:1px solid rgba(59,125,255,.22);border-radius:12px;padding:19px 22px;
+    margin:18px 0;position:relative}
+  .say::before{content:'멘트';position:absolute;top:-10px;left:16px;background:var(--bg);
+    padding:0 8px;font-size:11px;color:var(--cyan);font-family:var(--mono);letter-spacing:1px}
+  .say p{font-size:14.5px;color:var(--t1);line-height:1.85;font-style:italic}
+
+  /* ── 관찰 포인트 ── */
+  .watch{background:rgba(244,196,48,.05);border:1px solid rgba(244,196,48,.22);
+    border-radius:12px;padding:17px 20px;margin:16px 0;position:relative}
+  .watch::before{content:'여기를 본다';position:absolute;top:-10px;left:16px;background:var(--bg);
+    padding:0 8px;font-size:11px;color:var(--gold);font-family:var(--mono);letter-spacing:1px}
+  .watch ul{list-style:none;font-size:13.5px;color:var(--t2);line-height:1.95}
+  .watch li::before{content:'▸ ';color:var(--gold)}
+  .watch b{color:var(--gold)}
+
+  /* ── 콜아웃 ── */
+  .call{display:flex;gap:15px;align-items:flex-start;border-radius:12px;
+    padding:18px 22px;margin:22px 0;background:rgba(244,196,48,.06);
+    border:1px solid rgba(244,196,48,.22)}
+  .call.blue{background:rgba(59,125,255,.06);border-color:rgba(59,125,255,.22)}
+  .call.red{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.22)}
+  .call.green{background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.22)}
+  .call .ic{font-size:21px;flex-shrink:0;margin-top:1px}
+  .call .tx{font-size:13.8px;color:var(--t2);line-height:1.8}
+  .call .tx strong{color:var(--gold)}
+  .call.blue .tx strong{color:var(--cyan)}
+  .call.red .tx strong{color:#ff8b8b}
+  .call.green .tx strong{color:#5eddb0}
+
+  /* ── 체크리스트 ── */
+  .chk{list-style:none}
+  .chk li{display:flex;align-items:flex-start;gap:11px;padding:10px 0;
+    border-bottom:1px solid var(--line2);font-size:13.8px;color:var(--t2)}
+  .chk li:last-child{border-bottom:none}
+  .chk li::before{content:'';width:17px;height:17px;flex-shrink:0;margin-top:4px;
+    border:1.5px solid var(--line);border-radius:4px}
+  .chk b{color:var(--t1)}
+
+  /* ── 뱃지 ── */
+  .bg{display:inline-block;padding:2px 9px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .bg-r{background:rgba(239,68,68,.15);color:#ff8b8b}
+  .bg-a{background:rgba(245,158,11,.15);color:#f6bd5c}
+  .bg-g{background:rgba(16,185,129,.15);color:#5eddb0}
+  .bg-b{background:rgba(59,125,255,.15);color:#8ab4ff}
+  .bg-v{background:rgba(139,92,246,.16);color:#b79bff}
+
+  /* ── 흐름 ── */
+  .flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:22px 0}
+  .flow .s{background:var(--panel);border:1px solid var(--line2);border-radius:10px;
+    padding:9px 15px;font-size:12.5px;color:var(--t2)}
+  .flow .s.on{border-color:var(--blue);color:var(--t1)}
+  .flow .a{color:var(--blue);font-size:14px}
+
+  /* ── 질문 카드 ── */
+  .qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:26px}
+  .qcard{background:var(--panel);border:1px solid var(--line2);border-radius:16px;
+    padding:24px;position:relative;overflow:hidden}
+  .qcard::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .qcard.b::after{background:linear-gradient(90deg,var(--blue),transparent)}
+  .qcard.c::after{background:linear-gradient(90deg,var(--cyan),transparent)}
+  .qcard.v::after{background:linear-gradient(90deg,var(--violet),transparent)}
+  .qcard.g::after{background:linear-gradient(90deg,var(--green),transparent)}
+  .qcard .qn{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:2px;margin-bottom:9px}
+  .qcard .qt{font-size:16px;font-weight:800;margin-bottom:10px;line-height:1.45}
+  .qcard .qb{font-size:13px;color:var(--t2);line-height:1.8}
+  .qcard .qa{margin-top:12px;padding-top:12px;border-top:1px solid var(--line2);
+    font-size:12.5px;color:var(--t3)}
+
+  /* ── 기록표 ── */
+  .rec td{height:44px}
+  .rec .blank{background:rgba(255,255,255,.02);border-left:1px solid var(--line2)}
+
+  footer{padding:46px 24px;text-align:center;border-top:1px solid var(--line2);
+    color:var(--t3);font-size:13px}
+  .mono{font-family:var(--mono)}
+  code{background:#0d1424;padding:2px 7px;border-radius:5px;font-size:12px;
+    color:#7fd6ff;font-family:var(--mono)}
+  hr.t{border:none;border-top:1px solid var(--line2);margin:34px 0}
+  .mt24{margin-top:24px} .mt32{margin-top:32px} .mt16{margin-top:16px}
+
+  @media print{
+    nav{display:none} .hero{min-height:auto;padding:30px 0}
+    body{background:#fff;color:#111}
+    .panel,.qcard,.tw{border-color:#ccc;background:#fff}
+    td,.panel p,.call .tx{color:#333}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">EVER-SKETCH</span>
+  <a href="#top">개요</a>
+  <a href="#why">무엇을 확인하나</a>
+  <a href="#built">물려받은 것</a>
+  <a href="#idea">기획의도·설계사상</a>
+  <a href="#added">추가한 기능</a>
+  <a href="#setup">준비</a>
+  <a href="#run">진행 순서</a>
+  <a href="#a">A 배부</a>
+  <a href="#b">B 작성</a>
+  <a href="#c">C 검토</a>
+  <a href="#d">D 사고</a>
+  <a href="#decide">결정할 것</a>
+  <a href="#record">기록표</a>
+  <a href="#trouble">문제 대처</a>
+  <a href="#qa">Q&amp;A</a>
+</nav>
+
+<!-- ══════════ HERO ══════════ -->
+<div class="hero" id="top">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+
+  <div class="badge">INTERNAL REHEARSAL · 2026-08-21</div>
+
+  <h1>EVER-SKETCH<br><span>내부 리허설 진행 자료</span></h1>
+  <p class="hero-sub">
+    월간 임원회의 자료를 <b>파일로 주고받는 일</b>에서 <b>링크 하나 위에서 같이 고치는 일</b>로.<br>
+    실전 투입 전, 가상 회차 한 바퀴를 끝까지 돌려본다.
+  </p>
+
+  <div class="hero-meta">
+    <div class="hm"><div class="v">60분</div><div class="l">전체 소요</div></div>
+    <div class="hm"><div class="v">4</div><div class="l">시나리오</div></div>
+    <div class="hm"><div class="v">4</div><div class="l">여기서 정할 것</div></div>
+    <div class="hm"><div class="v">4명</div><div class="l">필요 인원</div></div>
+  </div>
+</div>
+
+<!-- ══════════ 01 무엇을 확인하나 ══════════ -->
+<section id="why">
+<div class="wrap">
+  <div class="lab">01 · 리허설의 목적</div>
+  <h2 class="st">기능이 되는지 보는 자리가 아니다.<br><span style="color:var(--cyan)">쓸 만한지</span> 보는 자리다.</h2>
+  <p class="sd">
+    기능은 이미 자동 테스트가 지킨다 — 서버 647건, 브라우저 12스위트가 매번 돈다.
+    여기서 볼 것은 <b>사람이 실제로 이 흐름을 견디는가</b>, 그리고 <b>아직 정하지 못한 네 가지</b>다.
+  </p>
+
+  <div class="tw">
+    <table class="cmp">
+      <thead><tr><th style="width:150px">항목</th><th>지금 (PPT 왕복)</th><th>✦ EVER-SKETCH</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>자료가 도는 방식</td>
+          <td>메일·메신저로 <b>파일이 이동</b><br><span style="font-size:12px">최종.pptx · 최종_수정.pptx · 최종_진짜최종.pptx</span></td>
+          <td><b>사람이 링크로 온다.</b> 원본은 하나, 버전은 서버가 기록</td>
+        </tr>
+        <tr>
+          <td>피드백</td>
+          <td>문서 <b>밖</b>에 있다 — 구두·메일·메신저<br><span style="font-size:12px">"3번째 줄 그거요" → 어느 줄인지 다시 물음</span></td>
+          <td>그 <b>칸·그 구간</b>에 붙는다 — <span class="mono">AI Agent · 03월~05월</span></td>
+        </tr>
+        <tr>
+          <td>반영 확인</td>
+          <td>추적되지 않음. 고쳤는지 물어봐야 함</td>
+          <td><b>고쳤습니다 → 해결</b> 두 손으로 나뉜다. 미해결 수가 숫자로 남는다</td>
+        </tr>
+        <tr>
+          <td>양식</td>
+          <td>권고사항. 임원마다 표가 달라짐</td>
+          <td>시스템이 고정. 열 추가·삭제는 관리자만</td>
+        </tr>
+        <tr>
+          <td>열람 통제</td>
+          <td>파일이 나가는 순간 통제 불가</td>
+          <td>회차 단계별로 <b>누가 무엇을 볼 수 있는지</b> 서버가 판정</td>
+        </tr>
+        <tr>
+          <td>취합</td>
+          <td>관리자 수작업</td>
+          <td><span class="bg bg-a">이번 리허설로 정한다</span> — 아직 만들지 않았다</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call red mt32">
+    <span class="ic">⚠</span>
+    <div class="tx">
+      <strong>솔직하게 시작한다.</strong> 취합·발행(W4)은 <b>일부러 만들지 않았다.</b>
+      회의장에서 무엇으로 띄우는지, 장 순서를 누가 정하는지를 <b>추측으로 만들면 다시 만들게 된다.</b>
+      오늘 그 답을 얻는 것이 이 리허설의 절반이다.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 02 물려받은 것 ══════════ -->
+<section id="built">
+<div class="wrap">
+  <div class="lab">02 · 물려받은 것</div>
+  <h2 class="st">EVER-SKETCH는 맨땅에서<br>시작하지 않았다</h2>
+  <p class="sd">
+    두 저장소가 각각 <b>끝난 상태</b>로 있었다. 하나는 <b>이북을 만드는 기계</b>(uniever_ebook),
+    하나는 <b>문서를 편집하는 도구</b>(ebook_html)다.
+    EVER-SKETCH가 새로 만든 것은 그 위에 얹은 <b>사람·권한·회차 계층</b>이다 — 그래서 3주 만에 여기까지 왔다.
+  </p>
+
+  <div class="flow">
+    <div class="s">uniever_ebook<br><span style="font-size:11px;color:var(--t3)">이북 생성기 · 수정 금지</span></div>
+    <span class="a">→</span>
+    <div class="s">ebook_html<br><span style="font-size:11px;color:var(--t3)">편집기 · 로컬 1인용</span></div>
+    <span class="a">→</span>
+    <div class="s on">EVER-SKETCH<br><span style="font-size:11px;color:var(--cyan)">여러 사람 · 회차 · 권한</span></div>
+  </div>
+
+  <!-- uniever_ebook -->
+  <h3 class="sub">🎨 uniever_ebook — 무엇으로 마무리했나 <span class="bg bg-g">호출만 한다</span></h3>
+  <p style="font-size:14px;color:var(--t2);margin-bottom:18px">
+    이북을 실제로 찍어내는 기계다. <b>여기는 손대지 않는다</b>는 것이 계약이다.
+    EVER-SKETCH는 이 저장소를 합치지 않고 <b>명령줄로 부른다</b>. 그래서 이북 쪽이 바뀌어도 우리 쪽이 안 깨진다.
+  </p>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:190px">마무리된 기능</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td><b>이북 빌드</b><br><code>generator.py</code></td>
+            <td>폴더를 훑어 <code>manifest.json</code>을 만들고 <b>자립형 이북</b>(그 자체로 열리는 결과물)까지 빌드</td></tr>
+        <tr><td><b>파일명 계약</b></td>
+            <td><span class="mono">표지.png</span> · <span class="mono">00. 목차.png</span> ·
+                <span class="mono">NN. 제목.png</span> · <span class="mono">뒷표지.png</span> —
+                이 규칙만 지키면 어느 도구가 그림을 만들든 이북이 나온다. <b>EVER-SKETCH가 지켜야 할 유일한 약속</b></td></tr>
+        <tr><td><b>비율 스냅</b><br>계약 v1.2</td>
+            <td>페이지 비율을 이미지에서 실측하되 표준값(0.75 · 1.3333 · 1.7778 …)에 3% 이내면 <b>붙여서 맞춘다</b>.
+                자료마다 비율이 미세하게 달라 책 모양이 제각각 되던 것을 막는다</td></tr>
+        <tr><td><b>목차 처리</b></td>
+            <td><span class="mono">목차.png</span>는 <code>kind=toc</code> 페이지로 인식, id 충돌은 <span class="mono">-2/-3</span>으로 회피,
+                링크는 <code>links.json</code>(CSV UTF-8)</td></tr>
+        <tr><td><b>삭제·롤백</b><br>P4/P5</td>
+            <td>휴지통·완전삭제, 편집 저장 스냅샷·롤백, <b>재생성 머지</b>(충돌 요약 제공)</td></tr>
+        <tr><td><b>덱·브랜드</b></td>
+            <td><code>build_everpeak_deck.py</code>(EVER-PEAK 룩 PPTX), 브랜드 자산·AX 색상 팔레트</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="call blue mt24">
+    <span class="ic">🔒</span>
+    <div class="tx">
+      <strong>이 저장소를 지키는 방식.</strong> 회귀 테스트가 <b>진짜 <span class="mono">ebooks/</span> 폴더에 써버려</b>
+      사용자의 예시 이북을 날린 사고가 과거에 있었다. 그 뒤로 출력 위치를 환경변수로 바꿀 수 있게 두었다.
+      <b>테스트가 실제 자료를 건드리지 않는다</b> — 이 원칙은 EVER-SKETCH에도 그대로 넘어왔다.
+    </div>
+  </div>
+
+  <!-- ebook_html -->
+  <h3 class="sub">📦 ebook_html — 무엇으로 마무리했나 <span class="bg bg-g">승계</span></h3>
+  <p style="font-size:14px;color:var(--t2);margin-bottom:18px">
+    <b>요구사항 기준선 0.1.0 승인</b>으로 닫았다. 기능 11건 · 비기능 5건이 정의되고 실측으로 확인됐다.
+    EVER-SKETCH는 이 저장소를 <b>통째로 복사해 확장</b>했다.
+  </p>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:110px">ID</th><th style="width:180px">기능</th><th>마무리 상태</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">REQ-F-001</td><td><b>카드 카탈로그</b></td><td>13종 카드(frame / extra / viz)로 페이지 조립</td></tr>
+        <tr><td class="mono">REQ-F-002</td><td><b>자유 캔버스</b></td><td>카드 + 자유 요소를 한 장에 합성 — <span class="bg bg-g">e2e 실측 통과</span></td></tr>
+        <tr><td class="mono">REQ-F-003</td><td><b>HTML 가져오기</b></td><td>HTML → 카드 변환 · 페이지 나눔 · 정리 — <span class="bg bg-g">넘침 분할까지 실측 통과</span></td></tr>
+        <tr><td class="mono">REQ-F-004</td><td><b>이북 내보내기</b></td><td>페이지 → PNG → 폴더 → <code>generator.py</code> 호출</td></tr>
+        <tr><td class="mono">REQ-F-005</td><td><b>발표덱(PPTX)</b></td><td><code>/api/deck</code> · 스트리밍 지원</td></tr>
+        <tr><td class="mono">REQ-F-006</td><td>DOCX 내보내기</td><td><code>/api/export/docx</code></td></tr>
+        <tr><td class="mono">REQ-F-007</td><td><b>챗 — 초안 생성</b></td><td>브리프 한 줄 → BookPlan(JSON) 생성 → 검증 → 카드 자동 배치</td></tr>
+        <tr><td class="mono">REQ-F-008</td><td><b>챗 — 부분 수정</b></td><td>"이 장 다듬어" · "톤 통일" · "N장 추가"를 대화로</td></tr>
+        <tr><td class="mono">REQ-F-009</td><td><b>자기검증</b></td><td>빈 필드 · 중복 · 과장 표현을 잡아 경고로 노출 + 자동 export</td></tr>
+        <tr><td class="mono">REQ-F-010</td><td>LLM 설정</td><td>provider/model/키 서버 저장 · 연결 테스트</td></tr>
+        <tr><td class="mono">REQ-F-011</td><td>EVER-FOLIO 연동</td><td>8811 라이브러리 전환 — <span class="bg bg-a">부분</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="two mt24">
+    <div class="panel">
+      <h4>비기능 요구 5건</h4>
+      <p>
+        <b>NF-001</b> LLM 응답 45초 타임아웃·폴백<br>
+        <b>NF-002</b> 비밀키는 형상관리에서 분리 — <b>저장소에 키 0건</b><br>
+        <b>NF-003</b> 도구는 무료·오픈소스 우선 (UDS-107) — self-host <span class="mono">gemma3:27b</span><br>
+        <b>NF-004</b> 원클릭 실행기 (mac <code>run.command</code> / Win <code>run.cmd</code>)<br>
+        <b>NF-005</b> <b>uniever_ebook 무수정</b> — 파일명 규칙 검사로 강제
+      </p>
+    </div>
+    <div class="panel">
+      <h4>표준 문서 세트 (default_skill 규격)</h4>
+      <p>
+        <b>start_docs</b> — 요구사항정의서·추적표, 프로세스, 화면설계, DB설계, 약식 매뉴얼 3종, 개요서<br>
+        <b>qc_docs</b> — 품질계획, 산출물별 기준서, 테스트케이스, 테스트증적, 결함대장<br>
+        <b>end_docs</b> — 개발자·사용자·운영배포 매뉴얼, 인수<br>
+        <span style="color:var(--t3)">적용 수준 <b class="mono">L2</b> · 개발기법 <b class="mono">T2</b> · AI 권한 <b class="mono">A2</b>(초안까지, 최종 수용은 사람)</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="call red mt24">
+    <span class="ic">🚧</span>
+    <div class="tx">
+      <strong>여기서 막혔다 — 그래서 EVER-SKETCH가 시작됐다.</strong>
+      ebook_html은 범위에 <b>"다중 사용자 / 권한 서버 제외 — 현재 로컬 단일 사용자"</b>라고 못박고 닫혔다.
+      도구는 훌륭한데 <b>사람이 없다.</b> 누가 무엇을 쓸 수 있는지, 이번 달 회의가 어디까지 왔는지,
+      남의 장을 봐도 되는지를 아무도 모른다. 임원회의 자료는 <b>혼자 만드는 문서가 아니다.</b>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 03 기획의도·설계사상 ══════════ -->
+<section id="idea">
+<div class="wrap">
+  <div class="lab">03 · EVER-SKETCH 기획의도와 설계사상</div>
+  <h2 class="st">도구를 하나 더 만든 게 아니라<br><span style="color:var(--cyan)">일하는 방식</span>을 옮긴 것이다</h2>
+  <p class="sd">
+    이 장은 리허설에서 "왜 이렇게 만들었냐"는 질문이 나올 때 <b>그대로 읽으면 되는</b> 근거다.
+  </p>
+
+  <h3 class="sub">기획의도 — 무엇을 없애려고 만들었나</h3>
+  <div class="seq mt24">
+    <div class="si"><div class="n">1</div>
+      <div class="t">파일을 옮기지 말고, 사람을 링크로 부른다</div>
+      <div class="b">
+        <span class="mono">최종.pptx → 최종_수정.pptx → 최종_진짜최종.pptx</span>가 생기는 이유는 단 하나,
+        <b>원본이 여러 개이기 때문</b>이다. 원본을 서버에 하나만 두면 이 문제는 사라진다.
+        버전은 사람이 파일 이름으로 관리하지 않고 <b>서버가 기록</b>한다.
+      </div>
+    </div>
+    <div class="si"><div class="n">2</div>
+      <div class="t">피드백을 문서 <b>안</b>으로 넣는다</div>
+      <div class="b">
+        "3번째 표에 그거요"는 <b>다시 물어봐야 하는 말</b>이다. 지적은 그 <b>칸·그 구간</b>에 붙어야 한다.
+        그래서 표의 칸 범위를 끌어서 고르면 <span class="mono">AI Agent · 03월~05월</span>처럼
+        <b>사람 말로 된 자리 이름</b>이 자동으로 붙는다.
+      </div>
+    </div>
+    <div class="si"><div class="n">3</div>
+      <div class="t">양식을 권고가 아니라 시스템으로</div>
+      <div class="b">
+        "이 양식으로 써 주세요"는 지켜지지 않는다. 임원마다 표가 달라지고, 취합할 때 관리자가 다시 맞춘다.
+        <b>템플릿 정본을 서버가 배부</b>하고, 열 추가·삭제 같은 구조 변경은 <b>관리자만</b> 할 수 있게 잠갔다.
+      </div>
+    </div>
+    <div class="si"><div class="n">4</div>
+      <div class="t">취합을 사람 손에서 뗀다 — <span class="bg bg-a">아직 만들지 않았다</span></div>
+      <div class="b">
+        의도적으로 비워 뒀다. 회의장에서 <b>무엇으로 띄우는지</b>, 장 순서를 <b>누가 정하는지</b>를
+        추측으로 만들면 반드시 다시 만들게 된다. <b>오늘 그 답을 얻는 것</b>이 이 리허설의 절반이다.
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub">설계사상 — 코드를 이렇게 짠 이유</h3>
+  <div class="three mt24">
+    <div class="panel">
+      <h4>① 권한은 한 곳에서만 판정한다</h4>
+      <p>
+        판정은 <code>permissions.decide(행위자, 행동, 대상)</code> <b>딱 한 함수</b>에서만 한다.
+        각 화면·각 라우트는 스스로 판단하지 않고 <b>물어본다</b>. 기본값은 <b>거부</b>다.
+        권한 규칙이 여러 곳에 흩어지면 <b>한 곳만 고치고 다른 곳을 잊는</b> 사고가 반드시 난다.
+      </p>
+    </div>
+    <div class="panel">
+      <h4>② 규칙을 잊지 못하게 테스트가 막는다</h4>
+      <p>
+        <code>test_endpoint_coverage.py</code>가 <b>소스를 직접 읽어</b> 모든 라우트에
+        로그인 확인과 권한 판정이 들어 있는지 검사한다.
+        <b>권한 없이 새 기능을 붙이면 테스트가 깨진다.</b> 사람의 기억에 맡기지 않는다.
+      </p>
+    </div>
+    <div class="panel">
+      <h4>③ 역할 이름이 진실, 숫자는 표시용</h4>
+      <p>
+        내부는 <span class="mono">admin · writer · viewer</span>로만 판정한다.
+        화면의 <b>Lv1·Lv2·Lv3</b>은 사람이 읽기 좋으라고 붙인 이름표일 뿐이다.
+        숫자로 비교(<span class="mono">level &lt;= 2</span>)하면 <b>등급이 하나 늘어나는 날 조용히 무너진다.</b>
+      </p>
+    </div>
+    <div class="panel">
+      <h4>④ 열람자에게는 메모의 <b>존재 자체</b>를 숨긴다</h4>
+      <p>
+        미해결 건수도 보여주지 않는다. <b>"0건"도 정보</b>이기 때문이다.
+        "몇 건 있다"만 알아도 그 장이 지금 시끄럽다는 사실이 새어 나간다.
+        <span class="bg bg-r">확정 사항</span> — 이 원칙을 어기는 화면은 버그로 처리한다.
+      </p>
+    </div>
+    <div class="panel">
+      <h4>⑤ 고친 손과 닫는 손을 나눈다</h4>
+      <p>
+        작성자는 <b>「고쳤습니다」</b>까지만 누를 수 있고, <b>「해결」</b>은 <b>지적한 사람만</b> 누른다.
+        자기 지적을 스스로 닫을 수 있으면 <b>반영 확인이라는 절차가 무의미</b>해진다.
+        미해결 숫자가 남아 있는 한 회의는 그 항목을 그냥 지나치지 못한다.
+      </p>
+    </div>
+    <div class="panel">
+      <h4>⑥ 조용히 틀리는 것을 가장 나쁘게 본다</h4>
+      <p>
+        표에 행을 하나 추가하면 아래 칸이 전부 밀린다. 지적이 <b>엉뚱한 자리를 가리킨 채</b>
+        아무도 모르고 회의에 들어가는 것 — 이게 최악이다.
+        그래서 <b>추가할 때는 묻지 않고 따라 옮기고</b>, <b>지울 때만 묻는다.</b>
+        모달이 잦으면 사람들은 읽지 않고 누르게 되고, 그러면 <b>정작 중요한 경고까지 흘려보낸다.</b>
+      </p>
+    </div>
+    <div class="panel">
+      <h4>⑦ 고친 것은 되돌려서 확인한다</h4>
+      <p>
+        버그를 고칠 때마다 테스트를 쓰고, <b>고친 부분을 일부러 되돌려</b> 그 테스트가 실패하는지 본다.
+        이 과정에서 <b>"통과하지만 아무것도 지키지 않는 테스트"</b>를 여러 번 잡아냈다 —
+        목록 정렬 검사는 <b>정렬을 통째로 빼도 통과</b>하고 있었다.
+      </p>
+    </div>
+    <div class="panel">
+      <h4>⑧ 브라우저 기본 창을 쓰지 않는다</h4>
+      <p>
+        <span class="mono">alert · confirm</span> 같은 브라우저 기본 창은 <b>모양도 제각각이고 문구도 못 바꾼다.</b>
+        대화상자는 <b>껍데기 하나</b>로 통일했고, 기본 창이 뜨는지 <b>자동으로 감시하는 테스트</b>를 붙였다.
+      </p>
+    </div>
+    <div class="panel">
+      <h4>⑨ 용어를 사람 말로 고친다</h4>
+      <p>
+        <b>「회수」→「배부 무르기」</b> — 이미 본 자료를 되돌릴 수는 없으니, 회수라는 말이 <b>오해를 만든다.</b><br>
+        <b>「5행 3~6열」→「AI Agent · 03월~05월」</b> — 좌표는 개발자의 말이지 임원의 말이 아니다.
+      </p>
+    </div>
+  </div>
+
+  <div class="call green mt32">
+    <span class="ic">🧩</span>
+    <div class="tx">
+      <strong>한 줄로 말하면.</strong> EVER-SKETCH의 설계는 전부
+      <b>"사람이 실수해도 시스템이 조용히 틀리지는 않게"</b>에 맞춰져 있다.
+      권한은 한 곳에서, 규칙은 테스트가, 경고는 꼭 필요할 때만.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 04 추가한 기능 ══════════ -->
+<section id="added">
+<div class="wrap">
+  <div class="lab">04 · 새로 만든 기능</div>
+  <h2 class="st">얹은 것은 "사람 · 권한 · 회차" 계층</h2>
+  <p class="sd">
+    ebook_html에는 없던 것만 적었다. 편집기·표 편집·내보내기는 물려받은 것이다.
+  </p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:96px">단계</th><th style="width:180px">기능</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td class="mono"><b>W1</b></td><td><b>계정과 권한</b></td>
+          <td>가입 → <b>관리자 승인</b> 후 사용, 역할 3종(관리자·작성자·열람자), 계정 정지·해제,
+              비밀번호 보기/숨기기 · Caps Lock 경고, 관리자 명령줄 도구</td></tr>
+        <tr><td class="mono"><b>W2</b></td><td><b>회차(Cycle)</b></td>
+          <td>월간 회의 한 바퀴를 <b>단계로 모델링</b>:
+              <span class="mono">작성 준비 → 작성 → 검토 → 발행 → 종료</span>.
+              단계마다 <b>누가 무엇을 볼 수 있는지</b>가 달라진다</td></tr>
+        <tr><td class="mono"><b>W2</b></td><td><b>표준 템플릿 배부</b></td>
+          <td>정본 양식(v2.0, 실물 구조 반영)을 <b>사람별 장으로 쪼개 배부</b>.
+              열 추가·삭제 등 구조 변경은 관리자만</td></tr>
+        <tr><td class="mono"><b>W2</b></td><td><b>실물 PPT 배부</b></td>
+          <td>기존 PPTX를 올리면 <b>슬라이드별로 편집 가능한 장</b>으로 변환하고,
+              슬라이드마다 담당자를 지정해 배부. <b>배부 전 미리보기</b> 제공</td></tr>
+        <tr><td class="mono"><b>W2</b></td><td><b>배부 무르기</b></td>
+          <td>잘못 배부했을 때 되돌린다. <b>이미 본 사람에게서 기억을 지울 수는 없다</b>는 사실을
+              확인창에 그대로 적고, 쌓인 의견 건수를 함께 보여준다</td></tr>
+        <tr><td class="mono"><b>W2</b></td><td>제출 · 반려 · 승인</td>
+          <td>작성자가 제출하면 관리자가 승인하거나 되돌린다. 회차 단계에 따라 제출 취소 가능 여부가 갈린다</td></tr>
+        <tr><td class="mono"><b>W3</b></td><td><b>앵커 의견</b></td>
+          <td>문서 위 <b>그 자리</b>에 지적을 남긴다. 아래 7단계로 나눠 만들었다</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub">W3 — 의견 기능은 이렇게 쌓았다</h3>
+  <div class="seq mt24">
+    <div class="si"><div class="n">0</div>
+      <div class="t">브라우저 기본 창을 걷어내고 대화상자를 하나로</div>
+      <div class="b">모든 확인창·오류창이 같은 껍데기를 쓴다. Esc·바깥 클릭·처리 중 잠금이 <b>한 군데서</b> 처리된다</div>
+    </div>
+    <div class="si"><div class="n">1</div>
+      <div class="t">같은 회차 동료끼리 서로의 장을 본다 <span class="bg bg-b">읽기 전용</span></div>
+      <div class="b">
+        관리자만 남의 장을 볼 수 있으면 <b>「지적한 사람이 닫는다」가 성립하지 않는다.</b>
+        같은 회차에 참여한 작성자끼리 서로의 장을 <b>읽을 수만</b> 있게 열었다.
+        열람자에게는 <b>여전히 메모가 보이지 않는다</b>
+      </div>
+    </div>
+    <div class="si"><div class="n">2</div>
+      <div class="t">끌어 고른 범위 그대로 짚는다</div>
+      <div class="b">칸 하나가 아니라 <b>끌어서 고른 구간</b>에 지적이 붙는다 — 「3월부터 5월까지가 겹칩니다」</div>
+    </div>
+    <div class="si"><div class="n">3</div>
+      <div class="t">짚은 자리를 사람 말로</div>
+      <div class="b">
+        <span class="mono">5행 3~6열</span> → <b>AI Agent · 03월~05월</b>.
+        표의 <b>머리글을 직접 읽어</b> 이름을 만든다. 머리글이 선언돼 있지 않은 실물 PPT 표도
+        병합된 좌상단 칸을 단서로 알아낸다
+      </div>
+    </div>
+    <div class="si"><div class="n">4</div>
+      <div class="t">내가 답해야 할 지적을 가려낸다</div>
+      <div class="b">
+        지적은 <b>내 차례 → 상대 차례 → 끝난 것</b> 순으로 정렬된다.
+        본인에게 달린 의견에는 <b>누가 달았는지 이름이 보인다</b>
+      </div>
+    </div>
+    <div class="si"><div class="n">5</div>
+      <div class="t">「고쳤습니다」 → 「해결」, 두 손으로 나눈다</div>
+      <div class="b">작성자는 고쳤다고 알리고, <b>지적한 사람만</b> 닫는다</div>
+    </div>
+    <div class="si"><div class="n">6</div>
+      <div class="t">「처음부터 다시」</div>
+      <div class="b">배부받은 원본 상태로 되돌린다. 무엇이 사라지는지 <b>먼저 보여주고</b> 되돌린다</div>
+    </div>
+    <div class="si"><div class="n">7</div>
+      <div class="t">표가 바뀌어도 지적이 자리를 잃지 않는다</div>
+      <div class="b">
+        행·열을 <b>추가하면 묻지 않고</b> 따라 옮기고, <b>지우려 하면 묻는다.</b>
+        기본 선택은 <b>「의견은 남기고 바꾸기」</b> — 검토 이력이 조용히 사라지는 것이 제일 나쁘다.
+        남은 지적은 목록에 <b>「가리키던 칸이 없어짐」</b>으로 표시되고 문서 위에는 그리지 않는다
+      </div>
+    </div>
+  </div>
+
+  <div class="two mt32">
+    <div class="panel">
+      <h4>편집기 쪽에서 고친 것</h4>
+      <p>
+        표 <b>셀 드래그 선택</b> + 툴바 병합 · 열너비/행높이 비율 지원 ·
+        표를 누르자마자 끌면 칸이 아니라 표가 통째로 움직이던 문제 ·
+        배부된 양식이 종이 밖에 그려지던 좌표계 오류 ·
+        PPTX 가져오기의 표·표지 배경·제목 누락 문제 ·
+        <b>툴바 두 줄 고정</b>(높이가 바뀌며 칸 드래그를 방해하던 문제)
+      </p>
+    </div>
+    <div class="panel">
+      <h4>지금 자동으로 지켜지는 것</h4>
+      <p>
+        서버 테스트 <b>647건</b> · 브라우저 회귀 <b>12스위트</b>.
+        새 라우트에 권한 판정이 빠지면 <b>테스트가 깨진다</b>.
+        브라우저 기본 창이 뜨면 <b>테스트가 깨진다</b>.
+        표를 바꿔 지적이 엉뚱한 자리를 가리키면 <b>테스트가 깨진다</b>.
+      </p>
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="it"><div class="v b">647</div><div class="l">서버 테스트</div></div>
+    <div class="it"><div class="v b">12</div><div class="l">브라우저 회귀 스위트</div></div>
+    <div class="it"><div class="v g">3주</div><div class="l">계획보다 앞선 기간</div></div>
+    <div class="it"><div class="v a">1</div><div class="l">남은 것 — 취합 발행</div></div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 05 준비 ══════════ -->
+<section id="setup">
+<div class="wrap">
+  <div class="lab">05 · 시작 전 준비</div>
+  <h2 class="st">체크리스트</h2>
+  <p class="sd">셋 이상 빠지면 리허설을 미루는 편이 낫다. 준비가 덜 된 채로 돌리면 <b>제품 문제와 준비 문제가 섞인다.</b></p>
+
+  <div class="two">
+    <div>
+      <h3 class="sub" style="margin-top:0">환경</h3>
+      <ul class="chk">
+        <li><b>백엔드 구동</b> — <code>uvicorn server.app:app --reload</code></li>
+        <li><b>프런트 구동</b> — <code>npm run dev</code> 또는 빌드본</li>
+        <li><b>python-pptx 설치 확인</b> — 없으면 PPT 업로드가 503으로 막힌다</li>
+        <li>브라우저 <b>두 개</b> 준비 (일반 창 + 시크릿 창) — 두 사람을 동시에 연기해야 한다</li>
+        <li>화면 공유 · 프로젝터 해상도 확인 <span class="mono">(1440 이상 권장)</span></li>
+        <li>DB 백업 1부 — 리허설 뒤 초기화할 수 있게</li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="sub" style="margin-top:0">사람과 자료</h3>
+      <ul class="chk">
+        <li><b>관리자 1명</b> — 회차를 열고 배부하고 검토를 시작하는 사람</li>
+        <li><b>작성자 2명</b> — 임원 역할. 실제로 표를 고쳐 본다</li>
+        <li><b>열람자 1명</b> — 아무것도 안 보이는 게 정상인지 확인하는 역할</li>
+        <li><b>실물 PPT 1벌</b> — 표준 양식이 아니라 <b>평소 쓰던 그대로</b></li>
+        <li>기록 담당 1명 (관찰 기록표 작성 — 이 문서 하단)</li>
+        <li>시드 관리자 계정 <code>admin</code> 비밀번호 확인</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="call">
+    <span class="ic">📄</span>
+    <div class="tx">
+      <strong>실물 PPT가 이 리허설의 절반이다.</strong> 표준 양식은 우리가 만든 것이라 당연히 잘 돌아간다.
+      진짜 질문은 <b>임원이 쓰던 PPT가 변환기를 통과하는가</b>다.
+      깨끗하게 정리된 파일 말고, <b>실제로 지난달에 돌린 파일</b>을 가져올 것.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 04 진행 순서 ══════════ -->
+<section id="run">
+<div class="wrap">
+  <div class="lab">06 · 진행 순서</div>
+  <h2 class="st">60분 · 네 개의 시나리오</h2>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:70px">시간</th><th style="width:150px">시나리오</th><th>하는 일</th><th style="width:120px">주역</th></tr></thead>
+      <tbody>
+        <tr><td class="num">0~5분</td><td>준비 확인</td><td>계정 4개 로그인 확인, 화면 배치</td><td>전원</td></tr>
+        <tr><td class="num">5~20분</td><td><b>A · 회차와 배부</b></td><td>회차 개설 → 실물 PPT 업로드 → 슬라이드별 배부</td><td><span class="who w-admin">관리자</span></td></tr>
+        <tr><td class="num">20~35분</td><td><b>B · 작성</b></td><td>배부받은 장을 실제로 고친다. 표 병합·진행 구간</td><td><span class="who w-writer">작성자</span></td></tr>
+        <tr><td class="num">35~50분</td><td><b>C · 검토</b></td><td>서로의 장을 보고 지적 → 고침 → 해결</td><td>전원</td></tr>
+        <tr><td class="num">50~58분</td><td><b>D · 사고</b></td><td>망쳤을 때·잘못 보냈을 때 빠져나오는 길</td><td><span class="who w-admin">관리자</span><span class="who w-writer">작성자</span></td></tr>
+        <tr><td class="num">58~60분</td><td>정리</td><td><b>네 가지 결정 질문</b>에 답하고 기록</td><td>전원</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flow mt24">
+    <span class="s on">가입 · 승인</span><span class="a">→</span>
+    <span class="s on">회차 개설</span><span class="a">→</span>
+    <span class="s on">PPT 업로드</span><span class="a">→</span>
+    <span class="s on">슬라이드별 배부</span><span class="a">→</span>
+    <span class="s on">작성</span><span class="a">→</span>
+    <span class="s on">제출</span><span class="a">→</span>
+    <span class="s on">검토 시작</span><span class="a">→</span>
+    <span class="s on">지적 · 고침 · 해결</span><span class="a">→</span>
+    <span class="s" style="border-color:var(--amber);color:var(--amber)">발행 — 오늘 정한다</span>
+  </div>
+
+  <div class="call blue">
+    <span class="ic">⏱</span>
+    <div class="tx">
+      <strong>시간이 모자라면 A와 C를 남긴다.</strong> A는 "실물 PPT가 들어오는가",
+      C는 "피드백 루프가 도는가" — 이 제품의 두 기둥이다.
+      B(작성)와 D(사고)는 짧게 시연만 하고 넘어가도 된다.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 시나리오 A ══════════ -->
+<section id="a">
+<div class="wrap">
+  <div class="lab">시나리오 A · 15분</div>
+  <h2 class="st" style="color:var(--cyan)">회차를 열고, 실물 PPT를 나눠 준다</h2>
+  <p class="sd">임원에게 "새 양식을 배우세요"라고 하지 않는다. <b>쓰던 PPT를 그대로 올려서 슬라이드별로 나눠 준다.</b></p>
+
+  <div class="seq">
+
+    <div class="si">
+      <div class="n">1</div>
+      <div class="t"><span class="who w-admin">관리자</span>가입 → 승인 → 권한 부여</div>
+      <div class="b">
+        새 창에서 작성자 1명을 <b>자가가입</b>시킨다(희망 역할: 작성자) →
+        관리자 화면 <b>사용자 관리</b>에서 승인 → 그 순간부터 권한이 생긴다.
+      </div>
+      <div class="say"><p>
+        "가입은 누구나 할 수 있지만, <b>가입만으로는 아무것도 못 봅니다.</b>
+        본인이 고른 역할은 '신청'이고, 실권한은 관리자가 승인하는 순간 생깁니다.
+        승인 전 계정으로 자료 주소를 직접 쳐 봐도 열리지 않습니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li>승인 <b>전</b> 계정이 정말 아무것도 못 보는가</li>
+        <li>승인 절차가 <b>병목으로 느껴지는가</b> — 임원 20명이면 어떨지</li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">2</div>
+      <div class="t"><span class="who w-admin">관리자</span>회차 개설</div>
+      <div class="b">
+        회차 화면 → <b>+ 회차 열기</b> → 년월(2026-09)과 제출기한 입력.
+        같은 달에 두 번은 열 수 없다.
+      </div>
+      <div class="watch"><ul>
+        <li>회차 <b>단계</b>가 준비 → 작성 중으로 자동으로 넘어가는가(배부 시)</li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">3</div>
+      <div class="t"><span class="who w-admin">관리자</span>실물 PPT 업로드 <span class="bg bg-b">핵심</span></div>
+      <div class="b">
+        <b>배부하기</b> → <b>실물 PPT</b> 선택 → 지난달에 실제로 쓴 파일 업로드 →
+        슬라이드 목록이 뜬다(표 개수·글상자 개수까지 표시).
+      </div>
+      <div class="say"><p>
+        "PPT를 그림으로 붙이는 게 아닙니다. <b>표는 표로, 글자는 글자로</b> 들어옵니다.
+        그래서 배부받은 사람이 그 자리에서 칸을 고칠 수 있습니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li><b>표가 표 모양대로 들어왔는가</b> — 열 너비·행 높이·병합</li>
+        <li>제목·색 띠가 살아 있는가 <span style="color:var(--t3)">(예전에 제목이 <span class="mono">‹#›</span>로 들어온 적 있음)</span></li>
+        <li><b>깨진 곳이 있다면 어디인가</b> — 스크린샷을 남길 것</li>
+        <li>변환에 걸린 시간</li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">4</div>
+      <div class="t"><span class="who w-admin">관리자</span>슬라이드별 배부</div>
+      <div class="b">
+        표지는 <b>공통</b>으로 체크(모두의 맨 앞에 붙는다) → 나머지 슬라이드마다 담당자 지정 →
+        아래 <b>「이렇게 나갑니다」</b>에서 누가 몇 장 받는지 확인 → 배부.
+      </div>
+      <div class="say"><p>
+        "누르기 전에 <b>실제로 나갈 장</b>이 미리보기로 보입니다.
+        그리고 '홍길동 — 공통 1장 + 담당 1장 = 2장'처럼 사람별로 몇 장인지 적혀 있습니다.
+        예전에 공통 체크가 빠진 줄 모르고 배부해서 표지가 안 나간 적이 있어서 넣은 장치입니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li>배부 전 미리보기가 <b>실제로 나간 것과 같은가</b></li>
+        <li>공통 장이 모두의 맨 앞에 붙었는가</li>
+        <li>담당자가 <b>자기 장만</b> 받았는가</li>
+      </ul></div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 시나리오 B ══════════ -->
+<section id="b">
+<div class="wrap">
+  <div class="lab">시나리오 B · 15분</div>
+  <h2 class="st" style="color:var(--green)">배부받은 장을 실제로 고쳐 본다</h2>
+  <p class="sd">여기서 <b>"PPT보다 불편하다"</b>는 말이 나오면, 그게 오늘 얻을 수 있는 가장 값진 정보다.</p>
+
+  <div class="seq">
+
+    <div class="si">
+      <div class="n">1</div>
+      <div class="t"><span class="who w-writer">작성자</span>내 장 열기</div>
+      <div class="b">로그인 → 회차 화면에 <b>내 것</b>과 <b>동료</b> 행이 함께 보인다 → 내 행 <b>열기</b>.</div>
+      <div class="watch"><ul>
+        <li>내 것과 동료 것이 <b>한눈에 구분되는가</b></li>
+        <li>동료 행에 <b>제출 상태가 안 보이는 것</b>이 자연스러운가, 답답한가
+          <span style="color:var(--t3)">— 지금은 "누가 아직 안 냈는지"를 관리자만 본다</span></li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">2</div>
+      <div class="t"><span class="who w-writer">작성자</span>진행 구간 만들기 — 칸을 끌어서 병합</div>
+      <div class="b">
+        로드맵 표에서 <b>3월~5월 칸을 끌어서</b> 고른다 → 상단 툴바 <b>표 · ⤢ 병합</b> →
+        합쳐진 칸에 단계 이름을 쓴다(예: 분석/설계) → 셀 배경색 5색 중 하나.
+      </div>
+      <div class="say"><p>
+        "엑셀처럼 <b>끌어서 고르고</b>, 병합하고, 이름을 씁니다.
+        색에는 뜻을 정해두지 않았습니다 — 뜻은 <b>칸에 쓴 글자</b>에 있습니다.
+        색에 '완료·지연' 같은 뜻을 우리가 붙이면, 임원이 쓰던 뜻과 어긋난 채로 취합됩니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li><b>드래그가 손에 맞는가</b> <span style="color:var(--t3)">— 예전에 문서가 42px 튀어서 한 줄 아래가 잡히던 문제가 있었다</span></li>
+        <li>병합·해제가 기대대로 되는가</li>
+        <li>머리글 행이 안 고쳐지는 것이 <b>답답한가</b></li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">3</div>
+      <div class="t"><span class="who w-writer">작성자</span>제출</div>
+      <div class="b">회차 화면 → 내 행 <b>제출</b>. 다른 작성자 한 명은 <b>일부러 제출하지 않고 둔다</b>(D에서 쓴다).</div>
+      <div class="watch"><ul>
+        <li>저장이 자동으로 되는 것이 <b>믿기는가</b> — 「저장됨」 표시를 보게 되는지</li>
+        <li>제출 뒤에 뭔가 더 하고 싶어지는가</li>
+      </ul></div>
+    </div>
+
+  </div>
+
+  <div class="call">
+    <span class="ic">📝</span>
+    <div class="tx">
+      <strong>이 시나리오의 진짜 관찰 포인트</strong> — 작성자가 <b>몇 번 막히는가</b>,
+      그리고 <b>어디서 손이 멈추는가</b>. 말로 설명해 주기 전에 스스로 찾는지 지켜볼 것.
+      설명해야만 되는 곳이 있다면 그건 화면이 말을 안 하고 있다는 뜻이다.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 시나리오 C ══════════ -->
+<section id="c">
+<div class="wrap">
+  <div class="lab">시나리오 C · 15분</div>
+  <h2 class="st" style="color:var(--violet)">지적 → 고침 → 해결, 한 바퀴</h2>
+  <p class="sd">이 제품이 대체하려는 것은 편집기가 아니라 <b>메일·구두로 오가던 피드백</b>이다. 여기가 본론이다.</p>
+
+  <div class="seq">
+
+    <div class="si">
+      <div class="n">1</div>
+      <div class="t"><span class="who w-admin">관리자</span>회차를 「검토 중」으로 넘긴다</div>
+      <div class="b">회차 화면 → <b>검토로</b> 버튼. 이 순간부터 <b>동료끼리 서로의 장에 지적</b>할 수 있다.</div>
+      <div class="say"><p>
+        "작성 중에는 서로 <b>보기만</b> 됩니다. 아직 쓰는 중인 것에 지적이 달리면 쓰는 사람이 흔들리니까요.
+        다 쓴 뒤 검토 단계로 넘기면 그때 열립니다."
+      </p></div>
+    </div>
+
+    <div class="si">
+      <div class="n">2</div>
+      <div class="t"><span class="who w-writer">작성자 B</span>동료의 장을 열어 <b>구간</b>을 짚는다</div>
+      <div class="b">
+        동료 행 <b>보기</b> → 로드맵에서 <b>3월~5월 구간을 끌어서</b> 고른다 →
+        툴바 <b>💬 의견 달기</b> → 창에 <b>「AI Agent · 03월~05월」</b>이 찍혀 있는지 확인하고 내용 작성.
+      </div>
+      <div class="say"><p>
+        "칸 하나가 아니라 <b>구간</b>을 짚습니다. 그리고 목록에는 「5행 3~6열」이 아니라
+        <b>표에 적힌 말 그대로</b> 남습니다. 받는 사람이 표에서 다시 세어볼 필요가 없습니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li>짚은 자리 이름이 <b>실제 표 내용과 맞는가</b> <span style="color:var(--t3)">(실물 PPT 변환본에서 특히)</span></li>
+        <li>문서 위 <b>핀</b>과 주황 테두리가 그 자리에 보이는가</li>
+        <li>남의 장이 <b>읽기 전용</b>으로 잠겨 있고, 왜 잠겼는지 화면이 말하는가</li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">3</div>
+      <div class="t"><span class="who w-writer">작성자 A</span>내 장으로 돌아와 고친다</div>
+      <div class="b">
+        미리보기 머리에 <b>「확인할 의견 N건」</b>이 떠 있다 → 눌러서 목록 → 핀을 눌러 그 자리로 →
+        고친 뒤 <b>「고쳤습니다」</b>.
+      </div>
+      <div class="say"><p>
+        "지적받은 사람은 <b>해결을 누를 수 없습니다.</b> 「고쳤습니다」까지가 그쪽 몫이고,
+        닫는 것은 <b>지적한 사람</b>이 합니다. 안 그러면 '고쳤다'와 '정말 고쳤다'가 구분되지 않고,
+        발행 직전의 '미해결 0건'이 아무것도 보장하지 못합니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li>「확인할 의견 N건」이 <b>눈에 들어오는가</b> — 아니면 그냥 지나치는가</li>
+        <li>「고쳤습니다」에 답글이 자동으로 한 줄 달리는 것이 자연스러운가</li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">4</div>
+      <div class="t"><span class="who w-writer">작성자 B</span>확인하고 닫는다</div>
+      <div class="b">
+        자기가 쓴 지적이 <b>「확인 차례」</b>로 맨 위에 올라와 있다 → 내용 확인 → <b>해결</b>.
+        핀이 사라진다.
+      </div>
+      <div class="watch"><ul>
+        <li>공이 넘어온 것을 <b>알아채는가</b></li>
+        <li>목록 순서(내 차례 → 기다리는 것 → 해결됨)가 <b>납득되는가</b></li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">5</div>
+      <div class="t"><span class="who w-viewer">열람자</span>아무것도 안 보이는지 확인</div>
+      <div class="b">열람자 계정으로 로그인 → 진행 중인 회차가 <b>보이지 않아야</b> 한다. 발행 전에는 명단도, 지적 건수도 안 나간다.</div>
+      <div class="say"><p>
+        "열람자에게는 <b>메모의 존재 자체를</b> 노출하지 않습니다.
+        발행된 결과물만 봅니다 — 그래서 지금은 볼 것이 없는 게 정상입니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li>열람자에게 <b>정말 아무것도 안 보이는가</b></li>
+        <li>그 상태가 <b>고장처럼 보이는가</b> — 안내 문구가 필요한지</li>
+      </ul></div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 시나리오 D ══════════ -->
+<section id="d">
+<div class="wrap">
+  <div class="lab">시나리오 D · 8분</div>
+  <h2 class="st" style="color:var(--amber)">망쳤을 때 빠져나오는 길</h2>
+  <p class="sd">실전에서 반드시 생긴다. <b>관리자를 부르지 않고 스스로 빠져나올 수 있는지</b>가 관건이다.</p>
+
+  <div class="seq">
+
+    <div class="si">
+      <div class="n">1</div>
+      <div class="t"><span class="who w-writer">작성자</span>「처음부터 다시」</div>
+      <div class="b">
+        아직 제출하지 않은 작성자가 표를 마구 헝클어뜨린 뒤 →
+        회차 화면 내 행 <b>처음부터 다시</b> → 사라지는 것(쓴 칸 수·의견 건수)을 확인하고 체크 → 실행.
+      </div>
+      <div class="say"><p>
+        "<b>지우는 게 아니라 되돌립니다.</b> 배부본을 지우면 그 사람이 명단에서 사라지고,
+        관리자 화면에는 '3명 중 2명'으로 보입니다. 혼자 해결하려던 일이 오히려 관리자를 거치게 되죠.
+        그래서 자리는 그대로 두고 내용만 배부받은 상태로 돌립니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li>확인창이 <b>무엇이 사라지는지</b> 정확히 말하는가</li>
+        <li>「의견은 남기고 / 함께 지우고」 선택이 <b>이해되는가</b></li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">2</div>
+      <div class="t"><span class="who w-writer">작성자</span>제출 취소를 눌러 본다</div>
+      <div class="b">
+        제출한 작성자가 <b>제출 취소</b>를 시도 → 회차가 이미 <b>검토 중</b>이면 버튼이 잠겨 있고
+        "관리자에게 반려를 요청해 주세요"라고 뜬다 → 관리자가 <b>반려</b>로 풀어 준다.
+      </div>
+      <div class="watch"><ul>
+        <li>잠긴 이유가 <b>바로 읽히는가</b></li>
+        <li>반려 요청이 <b>말로 해야 하는 것</b>인지 — 알림이 필요한 지점인지</li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">3</div>
+      <div class="t"><span class="who w-admin">관리자</span>「배부 무르기」</div>
+      <div class="b">
+        엉뚱한 사람에게 갔다고 가정 → 그 행 <b>배부 무르기</b> →
+        창 맨 위 문구와 사라지는 의견 건수를 확인.
+      </div>
+      <div class="say"><p>
+        "이 창은 먼저 <b>못 하는 것</b>을 말합니다 — '이미 열어본 내용을 없던 일로 만들지는 못합니다.'
+        하는 일은 <b>담당에서 빼고 더 이상 열지 못하게</b> 하는 것입니다.
+        그래야 '이미 봤는데 무슨 소용이냐'는 오해가 안 생깁니다."
+      </p></div>
+      <div class="watch"><ul>
+        <li>이 설명이 <b>납득되는가</b> — 아니면 여전히 무의미해 보이는가</li>
+        <li>사라지는 의견 건수가 <b>결정을 바꾸는가</b></li>
+      </ul></div>
+    </div>
+
+    <div class="si">
+      <div class="n">4</div>
+      <div class="t"><span class="who w-writer">작성자</span>지적이 달린 줄을 지워 본다</div>
+      <div class="b">
+        의견이 달린 행을 골라 오른쪽 패널에서 <b>🗑 행 삭제</b> →
+        "이 표에 달린 의견 1건이 가리키는 칸이 사라집니다" 창이 뜬다 → <b>의견은 남기고 바꾸기</b>.
+      </div>
+      <div class="watch"><ul>
+        <li>행을 <b>추가</b>할 때는 아무것도 안 묻는 것이 자연스러운가</li>
+        <li>「가리키던 칸이 없어짐」 표시가 <b>이해되는가</b></li>
+      </ul></div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 결정할 것 ══════════ -->
+<section id="decide">
+<div class="wrap">
+  <div class="lab">07 · 오늘 정할 것</div>
+  <h2 class="st">취합·발행(W4)을 정하는<br><span style="color:var(--gold)">네 가지 질문</span></h2>
+  <p class="sd">
+    이 넷은 <b>추측으로 만들면 다시 만들게 되는</b> 것들이다. 리허설이 끝나기 전에 답을 적는다.
+  </p>
+
+  <div class="qgrid">
+    <div class="qcard b">
+      <div class="qn">Q 01</div>
+      <div class="qt">확정본을 무엇으로 남기나</div>
+      <div class="qb">
+        ① EVER-SKETCH 문서 한 벌(링크로 열어 넘겨보기 · 슬라이드쇼)<br>
+        ② 이북(웹)으로 굽기<br>
+        ③ PPT 파일까지 함께
+      </div>
+      <div class="qa">판단 기준 — <b>회의장 PC에서 실제로 무엇으로 띄우는가.</b>
+        파일로 띄워야 하면 PPT 내보내기가 필수가 된다.</div>
+    </div>
+
+    <div class="qcard c">
+      <div class="qn">Q 02</div>
+      <div class="qt">장 순서를 누가 정하나</div>
+      <div class="qb">
+        ① 올린 슬라이드 순서 그대로<br>
+        ② 관리자가 발행 전에 끌어서 바꾼다<br>
+        ③ 부서·직급 순 자동
+      </div>
+      <div class="qa">판단 기준 — <b>순서가 실제로 문제가 되는가.</b>
+        안 되면 순서 편집 화면은 만들지 않는다.</div>
+    </div>
+
+    <div class="qcard v">
+      <div class="qn">Q 03</div>
+      <div class="qt">미제출·미해결이 남으면</div>
+      <div class="qb">
+        ① 보여주고 넘긴다 — "미제출 2명 · 미해결 5건입니다. 발행할까요?"<br>
+        ② 미제출이 있으면 막는다<br>
+        ③ 미해결까지 막는다
+      </div>
+      <div class="qa">판단 기준 — 회의는 시간이 정해져 있다.
+        <b>막아서 시스템 밖으로 나가는 것</b>이 최악인지, 그냥 나가는 것이 최악인지.</div>
+    </div>
+
+    <div class="qcard g">
+      <div class="qn">Q 04</div>
+      <div class="qt">서로 보이는 범위가 편한가</div>
+      <div class="qb">
+        지금은 <b>작성 중부터</b> 동료의 장이 보인다(읽기 전용).<br>
+        눈치보기가 생기면 <b>검토 단계로 늦출 수 있다</b> — 규칙 한 줄이다.
+      </div>
+      <div class="qa">판단 기준 — 작성자가 <b>남의 장을 실제로 열어봤는가</b>,
+        그리고 그게 도움이 됐는가 부담이었는가.</div>
+    </div>
+  </div>
+
+  <div class="call green mt32">
+    <span class="ic">✅</span>
+    <div class="tx">
+      <strong>네 질문에 답이 나오면 W4는 짧게 끝난다.</strong>
+      편집·배부·피드백은 이미 다 있고, 남은 것은 <b>모아서 내는 것</b> 하나다.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 기록표 ══════════ -->
+<section id="record">
+<div class="wrap">
+  <div class="lab">08 · 관찰 기록표</div>
+  <h2 class="st">리허설 중에 적는다</h2>
+  <p class="sd">끝나고 기억으로 적으면 <b>불편했던 순간이 사라진다.</b> 그 자리에서 적는다. 인쇄해서 써도 된다.</p>
+
+  <h3 class="sub">① 막힌 곳 — 설명 없이는 못 넘어간 지점</h3>
+  <div class="tw">
+    <table class="rec">
+      <thead><tr><th style="width:70px">시각</th><th style="width:110px">누가</th><th>무엇을 하려다 막혔나</th><th style="width:150px">설명해 줬더니 됐나</th></tr></thead>
+      <tbody>
+        <tr><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub">② 실물 PPT 변환 결과</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:180px">항목</th><th style="width:120px">결과</th><th>메모 · 스크린샷 번호</th></tr></thead>
+      <tbody>
+        <tr><td>업로드 성공 여부</td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td>변환 소요 시간</td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td>표가 표로 들어왔나</td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td>제목 · 색 띠</td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td>깨진 곳</td><td class="blank"></td><td class="blank"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub">③ 시간 실측 — 10월 목표의 기준선</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:230px">구간</th><th style="width:130px">걸린 시간</th><th>지금 PPT 방식이면?</th></tr></thead>
+      <tbody>
+        <tr><td>회차 개설 → 배부 완료</td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td>배부 → 작성자가 첫 글자를 쓰기까지</td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td>지적 → 고침 → 해결 1건</td><td class="blank"></td><td class="blank"></td></tr>
+        <tr><td>전체 왕복 1회</td><td class="blank"></td><td class="blank"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub">④ 치명 이슈 판정</h3>
+  <div class="two">
+    <div class="panel" style="border-color:rgba(239,68,68,.25)">
+      <h4 style="color:#ff8b8b">🔴 이러면 10월 못 간다</h4>
+      <p>
+        · 실물 PPT가 <b>변환되지 않는다</b><br>
+        · 남의 자료가 <b>보이면 안 되는 사람에게 보인다</b><br>
+        · 작성한 내용이 <b>사라진다</b><br>
+        · 지적이 <b>엉뚱한 곳</b>을 가리킨다<br>
+        · 설명 없이는 <b>아무도 못 쓴다</b>
+      </p>
+    </div>
+    <div class="panel" style="border-color:rgba(245,158,11,.25)">
+      <h4 style="color:#f6bd5c">🟠 불편하지만 갈 수 있다</h4>
+      <p>
+        · 표 편집이 PPT보다 손이 더 간다<br>
+        · 버튼 위치를 한 번 알려줘야 한다<br>
+        · 변환된 표의 <b>미세한</b> 모양 차이<br>
+        · 알림이 없어 말로 알려야 한다<br>
+        · 취합 발행이 아직 없다 <span class="bg bg-b">예정됨</span>
+      </p>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ 트러블슈팅 ══════════ -->
+<section id="trouble">
+<div class="wrap">
+  <div class="lab">09 · 문제 대처</div>
+  <h2 class="st">리허설 중 막히면</h2>
+  <p class="sd">아래는 개발 중에 <b>실제로 겪은</b> 것들이다. 같은 증상이 나오면 당황하지 말 것.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:250px">증상</th><th style="width:230px">원인</th><th>대처</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>PPT 업로드가 <b>503</b>으로 실패</td>
+          <td><code>python-pptx</code> 미설치</td>
+          <td>화면에 설치 명령이 그대로 뜬다 — 그대로 실행 후 재시도</td>
+        </tr>
+        <tr>
+          <td>고쳤는데 화면이 그대로</td>
+          <td>브라우저에 옛 파일이 남음</td>
+          <td>⌘/Ctrl + Shift + R 로 강력 새로고침</td>
+        </tr>
+        <tr>
+          <td>배부한 회차의 <b>원본을 못 바꿈</b></td>
+          <td>정상 동작 — 나간 자료와 어긋나는 것을 막는다</td>
+          <td>바꾸려면 <b>배부 무르기</b> 후 다시 올린다</td>
+        </tr>
+        <tr>
+          <td>동료 장을 열었는데 <b>안 고쳐짐</b></td>
+          <td>정상 동작 — 남의 장은 읽기 전용</td>
+          <td>미리보기 머리에 이유가 적혀 있다</td>
+        </tr>
+        <tr>
+          <td>남의 장에 <b>의견 버튼이 잠김</b></td>
+          <td>회차가 아직 「작성 중」</td>
+          <td>관리자가 <b>검토로</b> 넘기면 열린다</td>
+        </tr>
+        <tr>
+          <td>제출 취소가 안 됨</td>
+          <td>회차가 「검토 중」 이후</td>
+          <td>관리자가 <b>반려</b>로 풀어 준다</td>
+        </tr>
+        <tr>
+          <td>변환된 표가 이상하게 작음</td>
+          <td>예전 변환기 판으로 만든 자료</td>
+          <td>화면에 <b>낡은 자료 안내</b>가 뜬다 — 다시 올린다</td>
+        </tr>
+        <tr>
+          <td>열람자에게 아무것도 안 보임</td>
+          <td>정상 동작 — 발행 전이다</td>
+          <td>그대로 두고 기록에 남긴다 (Q01과 연결)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ══════════ Q&A ══════════ -->
+<section id="qa">
+<div class="wrap">
+  <div class="lab">10 · 예상 질문</div>
+  <h2 class="st">나올 만한 질문과 답</h2>
+
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:28px">
+
+    <div class="panel">
+      <div class="qn" style="font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:2px;margin-bottom:8px">Q 01</div>
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:9px">"PPT를 안 쓰고 이걸 쓰라는 겁니까?"</div>
+      <p>아닙니다. <b>쓰던 PPT를 그대로 올립니다.</b> 그걸 슬라이드별로 나눠 드리면,
+        각자 자기 장만 그 자리에서 고칩니다. 새 양식을 배우실 필요가 없습니다.
+        그리고 <b>PPT·PDF로 다시 내보내는 기능</b>은 그대로 있습니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="qn" style="font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:2px;margin-bottom:8px">Q 02</div>
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:9px">"내 자료를 다른 임원이 다 본다는 겁니까?"</div>
+      <p><b>같은 회차에 참여한 사람끼리만</b> 보이고, <b>읽기 전용</b>입니다. 고치는 것은 끝까지 본인 것만입니다.
+        연 이유는 하나입니다 — "앞 장과 숫자가 다릅니다" 같은 지적은 앞 장을 볼 수 없으면 애초에 할 수 없고,
+        막아두면 결국 캡처를 메신저로 주고받게 됩니다. <b>그게 훨씬 위험합니다.</b>
+        불편하시면 <b>검토 단계부터</b> 보이도록 늦출 수 있습니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="qn" style="font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:2px;margin-bottom:8px">Q 03</div>
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:9px">"제가 실수로 다 지우면 어떻게 됩니까?"</div>
+      <p>자동 저장되고 <b>버전이 남습니다.</b> 그리고 아예 헝클어졌으면
+        <b>「처음부터 다시」</b>로 배부받은 상태로 되돌릴 수 있습니다 — 관리자를 부르지 않아도 됩니다.
+        되돌리기 전에 <b>무엇이 사라지는지</b>(쓴 칸 수·달린 의견 수)를 보여드립니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="qn" style="font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:2px;margin-bottom:8px">Q 04</div>
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:9px">"지적을 받으면 제가 닫으면 되나요?"</div>
+      <p>아닙니다. <b>고치신 뒤 「고쳤습니다」까지가 담당자 몫</b>이고,
+        닫는 것은 <b>지적한 분</b>이 합니다. 스스로 닫을 수 있게 하면
+        "고쳤다"와 "정말 고쳤다"가 구분되지 않고, 발행 직전의 <b>「미해결 0건」</b>이
+        아무것도 보장하지 못하게 됩니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="qn" style="font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:2px;margin-bottom:8px">Q 05</div>
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:9px">"회의 자료는 결국 어떻게 나옵니까?"</div>
+      <p>솔직히 말씀드리면 <b>그 부분은 오늘 정합니다.</b> 문서 한 벌로 링크에서 넘겨볼지,
+        PPT 파일로 뽑을지 — 회의장에서 실제로 무엇으로 띄우시는지 보고 만드는 게 맞다고 판단했습니다.
+        추측으로 만들면 다시 만들게 되니까요. <b>오늘 답을 주시면 바로 붙입니다.</b></p>
+    </div>
+
+    <div class="panel">
+      <div class="qn" style="font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:2px;margin-bottom:8px">Q 06</div>
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:9px">"메일로 알림이 오나요?"</div>
+      <p>지금은 <b>화면 안에서만</b> 알립니다 — 「확인할 의견 N건」, 의견 탭 숫자, 회차 목록의 미해결 칸.
+        메일·메신저 연동은 <b>일부러 미뤘습니다.</b> 알림이 많으면 사람들이 규칙을 만들어 걸러버리고,
+        그 순간 알림은 없는 것과 같아집니다. <b>오늘 "몰라서 지나쳤다"가 실제로 나오면</b> 그때 붙입니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="qn" style="font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:2px;margin-bottom:8px">Q 07</div>
+      <div style="font-size:15.5px;font-weight:700;margin-bottom:9px">"보안은 괜찮습니까? 사외로 나가지 않나요?"</div>
+      <p>사내망에서만 돕니다. 외부로 나가는 경로가 없고, 접속은 기존 사내 VPN을 씁니다.
+        권한은 <b>화면이 아니라 서버가</b> 판정합니다 — 버튼을 숨기는 건 UX이고, 막는 건 서버입니다.
+        주소를 직접 쳐 넣어도 권한이 없으면 열리지 않습니다.</p>
+    </div>
+
+  </div>
+
+  <hr class="t">
+
+  <div class="lab">마무리</div>
+  <h3 class="sub" style="margin-top:8px">리허설이 끝나면 바로 할 일</h3>
+  <ul class="chk">
+    <li><b>네 가지 결정 질문</b>에 답을 적는다 — 이게 W4 설계서가 된다</li>
+    <li>치명 이슈가 있으면 <b>그것부터</b> 고친다. 없으면 W4 착수</li>
+    <li>기록표 ③(시간 실측)을 <b>10월 목표의 기준선</b>으로 남긴다</li>
+    <li>실물 PPT에서 깨진 곳은 <b>파일과 함께</b> 넘긴다 — 변환기 개선용</li>
+    <li>2차 리허설(임원 대상) 일정과 교육 시간을 잡는다</li>
+    <li>DB를 초기화하고 실전 계정 발급 준비</li>
+  </ul>
+</div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div style="font-size:21px;font-weight:900;margin-bottom:8px;
+      background:linear-gradient(135deg,var(--blue),var(--cyan));
+      -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">
+      EVER-SKETCH</div>
+    <p>월간 임원회의 자료 협업 플랫폼 · 내부 리허설 진행 자료 v1.0 · 2026-08-21</p>
+    <p style="margin-top:8px">유니에버(주) AI팀 · 기반 자산: ebook_html · uniever_ebook · default_skill</p>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('nav a').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var t = document.querySelector(a.getAttribute('href'));
+      if (t) t.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>

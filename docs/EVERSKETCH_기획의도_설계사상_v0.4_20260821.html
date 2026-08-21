@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVER-SKETCH — 기획의도 · 설계사상 · 실행계획 v0.4 (26.08.21)</title>
+<style>
+  :root{
+    --ink:#111418; --ink2:#3d4650; --ink3:#6b7480; --line:#e3e7ec;
+    --bg:#ffffff; --soft:#f6f8fa; --accent:#1e4fd8; --accent-soft:#eaf0ff;
+    --warn:#b45309; --warn-soft:#fff5e6; --ok:#0f7b52; --ok-soft:#e8f6f0;
+    --red:#b4232a; --red-soft:#fdf0f0;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;
+    font-size:15px; line-height:1.75; letter-spacing:-.01em;
+  }
+  .wrap{max-width:1000px; margin:0 auto; padding:56px 28px 96px}
+  header.doc{border-bottom:2px solid var(--ink); padding-bottom:18px; margin-bottom:30px}
+  .date{font-size:34px; font-weight:800; letter-spacing:-.03em; margin:0}
+  .title{font-size:20px; font-weight:700; margin:6px 0 0}
+  .meta{color:var(--ink3); font-size:13px; margin-top:10px}
+  .ver{display:inline-block; background:var(--ink); color:#fff; font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px; vertical-align:6px; margin-left:8px; letter-spacing:.02em}
+  .lede{background:var(--soft); border-left:3px solid var(--accent); padding:16px 18px; margin:0 0 26px; border-radius:0 6px 6px 0}
+  .lede b{color:var(--accent)}
+  .confirm{border:1px solid #cfe9dd; background:var(--ok-soft); border-radius:8px; padding:16px 18px; margin:0 0 40px}
+  .confirm h4{margin:0 0 10px; font-size:14px; font-weight:800; color:var(--ok); letter-spacing:.02em}
+  .confirm ul{margin:0; padding-left:18px; color:#215c46; font-size:14px}
+  .confirm li{margin:4px 0}
+  .confirm b{color:#0d4a36}
+  h2{font-size:23px; font-weight:800; letter-spacing:-.02em; margin:52px 0 6px; padding-top:14px; border-top:1px solid var(--line)}
+  h2 .en{font-weight:500; color:var(--ink3); font-size:15px; margin-left:8px}
+  h3{font-size:16px; font-weight:700; margin:28px 0 8px}
+  h3::before{content:"▍"; color:var(--accent); margin-right:6px}
+  p{margin:8px 0; color:var(--ink2)}
+  ul{margin:8px 0; padding-left:20px; color:var(--ink2)}
+  li{margin:5px 0}
+  li b, p b, td b{color:var(--ink)}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14px}
+  th,td{border:1px solid var(--line); padding:9px 11px; text-align:left; vertical-align:top}
+  th{background:var(--soft); font-weight:700; color:var(--ink); white-space:nowrap}
+  td{color:var(--ink2)}
+  .tag{display:inline-block; font-size:12px; font-weight:700; padding:1px 8px; border-radius:99px; line-height:1.7; white-space:nowrap}
+  .t-admin{background:var(--accent-soft); color:var(--accent)}
+  .t-writer{background:var(--ok-soft); color:var(--ok)}
+  .t-viewer{background:#eef0f3; color:var(--ink3)}
+  .t-new{background:var(--warn-soft); color:var(--warn)}
+  .t-have{background:var(--ok-soft); color:var(--ok)}
+  .t-cut{background:var(--red-soft); color:var(--red)}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0}
+  .card{border:1px solid var(--line); border-radius:8px; padding:16px 18px; background:#fff}
+  .card h4{margin:0 0 8px; font-size:15px; font-weight:700}
+  .card.bad{background:#fdf6f6; border-color:#f0dede}
+  .card.good{background:var(--ok-soft); border-color:#cfe9dd}
+  .flow{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0; font-size:13.5px}
+  .step{background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:7px 12px; color:var(--ink2)}
+  .step.on{background:var(--accent-soft); border-color:#c6d5ff; color:var(--accent); font-weight:600}
+  .step.stop{background:var(--red-soft); border-color:#f0d6d6; color:var(--red); font-weight:600}
+  .arw{color:var(--ink3)}
+  .note{background:var(--warn-soft); border:1px solid #f2e2c4; border-radius:8px; padding:14px 16px; margin:16px 0; font-size:14px; color:#6b4a12}
+  .note b{color:#6b4a12}
+  .danger{background:var(--red-soft); border:1px solid #f0d6d6; border-radius:8px; padding:14px 16px; margin:16px 0; font-size:14px; color:#7d2027}
+  .danger b{color:#7d2027}
+  .wk{font-weight:800; color:var(--accent); white-space:nowrap}
+  code{background:var(--soft); padding:1px 6px; border-radius:4px; font-size:13px; color:#c1305a; font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  footer.doc{margin-top:60px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink3); font-size:12.5px}
+  @media (max-width:720px){ .grid{grid-template-columns:1fr} .wrap{padding:32px 18px 64px} }
+  @media print{ .wrap{max-width:none} h2{page-break-after:avoid} table{page-break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <p class="date">26.08.21<span class="ver">v0.4 구현 반영 · 열람 범위 개정</span></p>
+  <p class="title">EVER-SKETCH — 월간 임원회의 자료 협업 플랫폼 기획의도 · 설계사상 · 실행계획</p>
+  <p class="meta">저장소: <code>/Users/kimgahyun/Desktop/git/EVER-SKETCH</code> &nbsp;|&nbsp; 통합: <b>ebook_html</b>(통째 복사·확장) + <b>uniever_ebook</b>(생성기 호출) + <b>default_skill</b>(개발표준) &nbsp;|&nbsp; 유니에버 AI팀</p>
+</header>
+
+<p class="lede">
+  한 문장 요약 — <b>월 1회 임원회의 자료를 "파일로 주고받는 일"에서 "링크 하나 위에서 같이 고치는 일"로 바꾼다.</b>
+  임원 각자에게 표준 템플릿 1장이 부여되고, 그 자리에서 고치고, 관리자가 메모로 피드백하고, 작성자가 즉시 반영한다. PPT 왕복은 사라진다.
+</p>
+
+<div class="confirm">
+  <h4>확정 사항 (2026-08-21 기준)</h4>
+  <ul>
+    <li><b>표준 템플릿 정본</b> — 로드맵/마일스톤 표 + 진행현황 + 향후계획 + 이슈리스트 양식을 <b>그대로 정본으로 확정</b></li>
+    <li><b>저장소</b> — <code>EVER-SKETCH</code> 신규 생성, <b>ebook_html을 통째로 복사한 뒤 확장</b> (구조 재편 없음)</li>
+    <li><b>계정</b> — 사내 서버 + 자체 ID/PW. <b>자가가입 시 본인이 희망 역할 선택 → 관리자 승인 후 실권한 부여</b></li>
+    <li><b>권한</b> — Lv1 관리자(삭제·수정·작성·사용자관리) / Lv2 작성자(작성·수정) / Lv3 열람자(읽기 전용)</li>
+    <li><b>메모 노출</b> — Lv3 열람자에게는 <b>존재 자체를 노출하지 않는다</b>. 회차 명단도 <b>그 회차에 참여한 사람에게만</b> <b>(8/21 확정)</b></li>
+    <li><b>열람 범위</b> — <b>같은 회차 동료끼리 「작성 중」부터 서로의 장을 본다(읽기 전용)</b>. 남의 장에 의견은 <b>「검토 중」부터</b>. 고치는 것은 끝까지 본인 것만 <b>(8/21 확정 — v0.3의 "타인 이북 접근 불가"를 개정)</b></li>
+    <li><b>지적 해결</b> — <b>지적한 사람이 닫는다.</b> 지적받은 쪽 손은 「고쳤습니다」. 관리자는 대신 닫을 수 있고 기록에 남는다 <b>(8/21 확정)</b></li>
+    <li><b>되돌리기</b> — 작성자는 <b>「처음부터 다시」</b>로 자기 배부본을 배부받은 상태로 되돌린다(지우지 않는다). 제출 취소는 <b>작성 중이면 본인, 검토부터는 관리자 반려</b> <b>(8/21 확정)</b></li>
+    <li><b>배부 무르기</b> — 「회수」를 <b>「배부 무르기」</b>로. 이미 열어본 내용은 되돌릴 수 없고, <b>담당에서 빼고 접근을 끊는 것</b>임을 창에서 먼저 말한다 <b>(8/21 확정)</b></li>
+    <li><b>알림</b> — 메일·메신저 알림은 <b>v1 에 넣지 않는다</b>. 화면 안에서만 알린다 <b>(8/21 확정)</b></li>
+    <li><b>파일럿</b> — <b>내부 리허설 → 10월 임원회의 실전 투입</b>. 구현이 계획보다 <b>약 3주 앞서</b> 리허설을 앞당길 수 있다 <b>(8/21)</b></li>
+    <li><b>배포</b> — 사내망 사설 IP + <b>기존 사내 VPN</b>. 포트포워딩 없음, HTTP 유지 <b>(8/19 확정)</b></li>
+    <li><b>권한 표기</b> — <b>Lv1 관리자 · Lv2 작성자 · Lv3 열람자</b>(1등급이 최고). 저장·판정은 역할명 <b>(8/19 확정)</b></li>
+    <li><b>미결</b> — 서버 장비·사설 IP 확정, 백업 정책(10월 배포 전), <b>취합 발행(W4)의 산출물 형태·장 순서·발행 조건 — 내부 리허설 뒤 결정</b> <b>(8/21)</b></li>
+  </ul>
+</div>
+
+<h2>1. 기획의도 <span class="en">Why &amp; Background</span></h2>
+
+<h3>문제 인식 — 지금 무엇이 불편한가</h3>
+<p>월 1회 임원회의 자료는 내용이 어려워서 힘든 게 아니다. <b>내용을 만드는 시간보다 파일을 돌리는 시간이 더 길다.</b></p>
+<div class="flow">
+  <span class="step">PPT 작성</span><span class="arw">→</span>
+  <span class="step">메일·메신저 발송</span><span class="arw">→</span>
+  <span class="step">검사·코멘트(구두/메일)</span><span class="arw">→</span>
+  <span class="step">수정</span><span class="arw">→</span>
+  <span class="step">재발송</span><span class="arw">→</span>
+  <span class="step">버전 혼선</span><span class="arw">→</span>
+  <span class="step">취합·양식 정리</span>
+</div>
+<ul>
+  <li><b>왕복 비용</b> — 작성 → 발송 → 검사 → 수정 → 재발송이 회차마다 반복된다. 실제 소요의 대부분이 이 왕복이다.</li>
+  <li><b>버전 분열</b> — <code>최종.pptx</code>, <code>최종_수정.pptx</code>, <code>최종_진짜최종.pptx</code>. 어느 것이 원본인지 사람이 기억으로 관리한다.</li>
+  <li><b>피드백 유실</b> — 코멘트가 문서 밖(메일·구두·메신저)에 있어 어느 장, 어느 칸 이야기인지 다시 물어야 한다. 반영 여부도 추적되지 않는다.</li>
+  <li><b>양식 이탈</b> — 임원별로 표 모양·글꼴·색이 달라져 취합 단계에서 관리자가 손으로 다시 맞춘다.</li>
+  <li><b>열람 통제 부재</b> — 파일이 나가는 순간 누가 보고 누가 고칠 수 있는지 통제할 방법이 없다.</li>
+</ul>
+
+<h3>해결 목표</h3>
+<div class="grid">
+  <div class="card bad">
+    <h4>AS-IS</h4>
+    <ul>
+      <li>파일이 이동한다 (첨부·다운로드)</li>
+      <li>피드백은 문서 밖에 있다</li>
+      <li>원본은 사람의 기억 속에 있다</li>
+      <li>양식은 권고사항이다</li>
+      <li>취합은 관리자의 수작업이다</li>
+    </ul>
+  </div>
+  <div class="card good">
+    <h4>TO-BE</h4>
+    <ul>
+      <li>사람이 링크로 모인다 (원본 1개)</li>
+      <li>피드백은 그 페이지·그 칸에 붙는다</li>
+      <li>원본은 서버가 보증한다 (버전 자동기록)</li>
+      <li>양식은 시스템이 고정한다</li>
+      <li>취합은 발행 버튼 한 번이다</li>
+    </ul>
+  </div>
+</div>
+<p>정량 목표(10월 실전 1회차 실측): <b>자료 준비 리드타임 50% 단축</b>, <b>재발송 0회</b>, <b>취합·양식정리 수작업 80% 감소</b>. 내부 리허설에서 기준선을 잡는다.</p>
+
+<h3>존재 이유 — 왜 지금, 왜 우리가</h3>
+<ul>
+  <li><b>재료가 이미 있다.</b> 편집기(ebook_html), 이북·덱 생성기(uniever_ebook), 개발표준(default_skill)이 각각 동작한다. 새로 만드는 게 아니라 <b>이어 붙여 제품으로 만드는 단계</b>다.</li>
+  <li><b>범용 협업툴로는 안 된다.</b> 상용 도구는 <b>고정 표준 양식 + 임원 1인 1장 + 회차 취합 + 이북/PPT 산출</b>이라는 이 회의체 고유의 흐름을 담지 못한다.</li>
+  <li><b>사내 파일럿이 곧 레퍼런스다.</b> 유니에버 임원회의에서 검증한 흐름은 그대로 <b>사내 표준 → 상품(솔루션 사업)</b>으로 확장된다. 최종 목적지는 사내 도구가 아니라 <b>비즈니스 모델</b>이다.</li>
+</ul>
+
+<h2>2. 설계사상 <span class="en">Philosophy &amp; Principle</span></h2>
+
+<h3>핵심 철학 — 다섯 개의 문장</h3>
+<table>
+  <tr><th style="width:215px">원칙</th><th>의미와 결과</th></tr>
+  <tr><td><b>① 원본은 하나다</b><br><span style="font-size:12.5px;color:var(--ink3)">Single Source of Truth</span></td>
+      <td>문서는 이동하지 않는다. 사람이 링크로 온다. 파일 첨부는 <b>최종 발행 단계에서만</b> 발생한다. 버전은 서버가 자동 기록한다.</td></tr>
+  <tr><td><b>② 권한은 화면이 아니라 데이터에 붙는다</b></td>
+      <td>버튼을 숨기는 것은 UX이고, 막는 것은 API다. 모든 읽기·쓰기·삭제는 서버에서 소유자·역할을 검증한다. 프런트 가드는 보조 수단일 뿐이다.</td></tr>
+  <tr><td><b>③ 피드백은 문서 안에서 닫힌다</b></td>
+      <td>메모는 반드시 <b>페이지(또는 셀)에 앵커</b>된다. 남기기 → 보기 → 고치기 → 해결까지 한 화면에서 끝난다. 문서 밖으로 나가는 코멘트는 만들지 않는다.</td></tr>
+  <tr><td><b>④ 자유도는 의도적으로 제한한다</b></td>
+      <td>표준 양식은 시스템이 박아둔다. 사용자는 <b>칸 내용, 셀 병합·추가, 글자 크기·굵기</b> 수준까지만 만진다. 자유도를 줄여야 취합이 자동화된다.</td></tr>
+  <tr><td><b>⑤ 되돌릴 수 있어야 손이 빨라진다</b></td>
+      <td>자동 저장 + 버전 스냅샷 + 복원이 기본. 실수를 되돌릴 수 있다는 확신이 있어야 사용자가 과감히 고친다.</td></tr>
+</table>
+
+<h3>우선순위 — 가치가 충돌할 때</h3>
+<p><b>정확성(원본 무결) &gt; 권한·보안 &gt; 취합 자동화 &gt; 편집 자유도 &gt; 화면의 화려함</b></p>
+<ul>
+  <li>"임원이 원하는 대로 다 편집되게" vs "취합이 자동으로" → <b>취합 자동화가 이긴다.</b> 편집 자유는 관리자 승인 후 템플릿 자체를 고쳐서 흡수한다.</li>
+  <li>"빨리 쓰게 승인 없이" vs "누가 무엇을 봤는가" → <b>권한이 이긴다.</b> (그래서 가입은 자유롭게, 권한은 승인제로 나눈다.)</li>
+  <li>"신규 기능 추가" vs "기존 산출 경로 유지" → <b>기존 산출 경로가 이긴다.</b></li>
+</ul>
+
+<h3>기술 · 구조 원칙</h3>
+<ul>
+  <li><b>스택 계승</b> — React + TypeScript + Vite / FastAPI + SQLite. <b>ebook_html을 통째로 복사</b>해 EVER-SKETCH의 출발점으로 삼는다. 폴더 구조를 재편하지 않는다(경로 파손 리스크 회피, 승인된 이탈 문서 그대로 승계).</li>
+  <li><b>무수정 계약 유지</b> — <code>uniever_ebook</code>의 <code>generator.py</code>·덱 빌더는 수정하지 않는다. 연결은 기존 계약(<b>PNG 폴더 산출 → CLI 호출</b>) 그대로. 통합의 방향은 "합치기"가 아니라 <b>"호출하기"</b>다.</li>
+  <li><b>단일 상태 모델</b> — 페이지 = 카드 + 자유 캔버스 요소, 이북 1장 = PNG 1장. 편집·발표·이북·PPTX가 하나의 상태에서 나온다.</li>
+  <li><b>표준스킬 준수</b> — default_skill의 G0~G6 게이트·UI 표준·검증 증적을 개발 프로세스에 적용. 화면 작업은 <code>uniever-development-standard</code> 필수 경유.</li>
+  <li><b>확장 여지만 열어둔다</b> — SSO/AD, PostgreSQL, 멀티테넌시는 <b>인터페이스만 분리</b>하고 구현은 미룬다. 지금 만들지 않는다.</li>
+</ul>
+
+<h2>3. 통합 구도 — EVER-SKETCH는 무엇을 가져오나</h2>
+<table>
+  <tr><th style="width:150px">자산</th><th>가져오는 것</th><th style="width:110px">방식</th></tr>
+  <tr><td><b>ebook_html</b></td>
+      <td>카드/자유 캔버스 편집기, 표 셀 병합·행열 추가·정렬(<code>tableOps.ts</code>), 서식 툴바(<code>EditToolbar</code>·<code>ClassicBar</code>), 자동저장·버전관리(<code>ProjectVersions</code>), 프로젝트 저장, 메모장, PPTX·PDF 내보내기, FastAPI+SQLite 서버</td>
+      <td><span class="tag t-have">통째 복사</span></td></tr>
+  <tr><td><b>uniever_ebook</b></td>
+      <td>이북 생성기(PNG 폴더 → 이북), 덱 빌더, 브랜드 자산·색 팔레트</td>
+      <td><span class="tag t-have">CLI 호출</span></td></tr>
+  <tr><td><b>default_skill</b></td>
+      <td>개발표준·게이트(G0~G6)·UI 표준·검증 증적 규약 (ebook_html의 <code>skills/</code>에 이미 이식본 존재)</td>
+      <td><span class="tag t-have">승계</span></td></tr>
+  <tr><td><b>EVER-SKETCH</b><br>(신규 개발)</td>
+      <td><b>계정·가입승인·권한(관리자·작성자·열람자)</b>, <b>사용자 관리 화면</b>, <b>회차 모델</b>, <b>표준 템플릿 정본 배부</b>, <b>앵커 메모 피드백</b>, <b>회차 취합·발행</b></td>
+      <td><span class="tag t-new">신규</span></td></tr>
+</table>
+<p class="note"><b>핵심 판단:</b> 편집기·표 편집·내보내기는 이미 만들어져 있다. 이번에 실제로 새로 만드는 것은 <b>"사람 · 권한 · 회차"</b> 계층이다. 편집 기능 재개발에 시간을 쓰지 않는다 — 이것이 10월 실전이 가능한 이유다.</p>
+
+<h2>4. 핵심 기능 ① — 가입 · 승인 · 권한 3역할</h2>
+
+<h3>가입 흐름 (확정)</h3>
+<div class="flow">
+  <span class="step">사내 사용자 자가가입</span><span class="arw">→</span>
+  <span class="step on">희망 역할 본인 선택<br>(열람자 / 작성자 / 관리자)</span><span class="arw">→</span>
+  <span class="step stop">승인 대기 상태<br>= 아무것도 못 봄</span><span class="arw">→</span>
+  <span class="step on">Lv1 관리자 승인·역할 확정</span><span class="arw">→</span>
+  <span class="step">실권한 부여</span>
+</div>
+<div class="danger">
+  <b>왜 승인 단계가 반드시 필요한가.</b> 가입 즉시 본인이 고른 역할이 그대로 적용되면, 링크를 아는 누구나 관리자를 골라 <b>임원 자료 전체를 열람하고 삭제</b>할 수 있다.
+  그래서 "본인이 고른다"는 사용자 경험은 그대로 두되, 그것을 <b>신청(희망 역할)</b>으로 처리하고 <b>실권한은 관리자 승인 시점에</b> 부여한다.
+  승인 전 계정은 로그인은 되지만 "승인 대기" 화면만 보이고, 어떤 이북에도 접근하지 못한다. <b>관리자 승인은 기존 관리자만 가능</b>하며, 최초 관리자 1명은 시드 계정으로 생성한다.
+</div>
+
+<h3>권한 매트릭스</h3>
+<table>
+  <tr><th style="width:150px">권한</th><th>대상</th><th>권한</th><th style="width:150px">보이는 범위</th></tr>
+  <tr>
+    <td><span class="tag t-admin">Lv1 관리자</span></td><td>회의 주관·기획 담당</td>
+    <td><b>작성 · 수정 · 삭제</b> + 가입 승인·권한 변경·비활성화 + 회차 개설/마감 + 템플릿 배부 + 전체 이북 열람 + 메모 작성·해결 + 최종 발행</td>
+    <td>전체</td>
+  </tr>
+  <tr>
+    <td><span class="tag t-writer">Lv2 작성자</span></td><td>임원 · 부서 담당자</td>
+    <td><b>작성 · 수정</b>(본인 이북) + <b>본인 이북의 지적 확인·답글·「고쳤습니다」</b> + <b>같은 회차 동료의 장 읽기</b>(검토 단계부터 의견 작성). 삭제 불가, <b>남의 장 편집 불가</b></td>
+    <td><b>본인 이북 + 같은 회차 동료의 장</b> + 발행본</td>
+  </tr>
+  <tr>
+    <td><span class="tag t-viewer">Lv3 열람자</span></td><td>일반 참석자·공유 대상</td>
+    <td><b>읽기 전용.</b> 편집·삭제 불가, <b>메모 작성·열람 모두 불가</b></td>
+    <td>발행된 회차 결과물</td>
+  </tr>
+</table>
+<ul>
+  <li><b>소유 기반 + 회차 기반</b> — 모든 이북에 <code>owner_id</code>·<code>cycle_id</code>. <b>보이는 근거는 역할이 아니라 "같은 회차에 배부본이 있다"는 사실</b>이다 — '작성자'라는 이유만으로 남의 회의 자료가 보이면 안 된다. 판정은 <code>permissions.decide()</code> <b>한 곳</b>에서만 한다.</li>
+  <li><b>회차 단계가 권한을 가른다</b> — 준비: 안 보임 / 작성 중: 보기만 / 검토 중: 보기 + 의견 / 발행·마감: <b>본인 것도 편집 잠김</b>(회의에서 본 확정본과 시스템 안의 자료가 다른 말을 하면 안 된다).</li>
+  <li><b>삭제는 관리자만</b> — 작성자의 삭제 요청은 "삭제 요청" 상태로 남기고 실제 삭제는 관리자가 승인(회차 자료 유실 방지). <span class="tag t-cut">v1.1로 이월</span></li>
+  <li><b>회귀 테스트 고정</b> — 모든 엔드포인트에 관리자·작성자·열람자 + 승인대기 4개 계정 자동 테스트를 스위트로 박는다. 여기에 <b>역할 4종 × 회차 5단계 전체 표</b>(<code>test_visibility.py</code>)를 더했다 — 열람 범위는 <b>틀려도 화면이 멀쩡해 보이는</b> 종류의 규칙이라, 판정해야 할 칸을 전부 적어 놓고 코드와 맞춘다. <span class="tag t-have">구현됨</span></li>
+</ul>
+
+<h2>5. 핵심 기능 ② — 메모 피드백 루프</h2>
+<p>현재 ebook_html의 메모는 <b>프로젝트 단위 메모장</b>(<code>Notes</code> 테이블)이다. 이를 <b>페이지·셀에 붙는 코멘트</b>로 확장하고 상태를 부여한다.</p>
+<div class="flow">
+  <span class="step on">지적: 그 칸·그 구간에 남긴다</span><span class="arw">→</span>
+  <span class="step">받는 사람 화면에 「확인할 의견 N건」</span><span class="arw">→</span>
+  <span class="step on">그 자리에서 고친다</span><span class="arw">→</span>
+  <span class="step">「고쳤습니다」(담당자)</span><span class="arw">→</span>
+  <span class="step on">지적한 사람이 확인 → 해결</span>
+</div>
+<table>
+  <tr><th style="width:150px">항목</th><th>정의</th></tr>
+  <tr><td>앵커</td><td>이북 &gt; 페이지 &gt; 요소 &gt; <b>칸 또는 끌어 고른 범위</b>(<code>3_3:3_5</code>). 핀은 범위 왼쪽 위에 하나, 범위는 테두리로 표시. <b>표에 적힌 말로 부른다</b> — 「5행 3~6열」이 아니라 <b>「AI Agent · 03월~05월」</b> <span class="tag t-have">구현됨</span></td></tr>
+  <tr><td><b>앵커 표류</b></td><td>행·열이 <b>늘면</b> 앵커가 조용히 따라 움직인다. <b>지우면</b> 묻는다 — 그대로 두기 / <b>의견은 남기고</b>(기본) / 함께 지우기. 남긴 것은 「가리키던 칸이 없어짐」으로 표시하고 핀은 그리지 않는다 <span class="tag t-have">구현됨</span></td></tr>
+  <tr><td>상태</td><td><code>열림</code> → <code>고쳤습니다</code> → <code>해결</code>. <b>닫는 것은 지적한 사람(과 관리자)만.</b> 지적받은 쪽이 스스로 닫으면 "고쳤다"와 "정말 고쳤다"가 구분되지 않고, 발행 직전의 '미해결 0건'이 아무것도 보장하지 못한다 <span class="tag t-have">구현됨</span></td></tr>
+  <tr><td><b>내 차례</b></td><td>등급이 아니라 <b>관계</b>로 가른다. 내 자료에 온 지적(고칠 차례) + 내가 쓴 지적에 고쳤다는 답이 온 것(닫을 차례)이 <b>목록 맨 위</b>로 오고, 「확인할 의견 N건」이 그 숫자다 <span class="tag t-have">구현됨</span></td></tr>
+  <tr><td><b>노출 범위</b></td><td>관리자 + 자료 주인 + <b>같은 회차 동료</b>(볼 수 있는 자료의 지적은 볼 수 있다 — 아니면 같은 지적이 두 번 달린다). Lv3 열람자에게는 <b>존재 자체를 노출하지 않는다</b> <b>(확정)</b></td></tr>
+  <tr><td>작성 권한</td><td>관리자는 모든 이북에. 작성자는 본인 이북에 언제나, <b>동료 이북에는 「검토 중」부터</b> — 아직 쓰는 중인 것에 지적이 달리면 쓰는 사람이 흔들린다. 열람자는 불가</td></tr>
+  <tr><td>알림</td><td>화면 안에서만 — 미리보기 머리의 「확인할 의견 N건」, 의견 탭 숫자, 회차 목록의 미해결 칸. <b>메일·메신저는 v1 에 넣지 않는다</b> <span class="tag t-cut">8/21 확정</span></td></tr>
+  <tr><td>이력</td><td>메모·답글·해결은 삭제해도 이력에 남는다. 회차 마감 시 "미해결 N건" 요약</td></tr>
+</table>
+
+<h2>6. 핵심 기능 ③ — 표준 템플릿 정본과 편집 범위</h2>
+<p><b>정본 확정:</b> 회차가 열리면 임원 1인당 아래 4블록으로 구성된 표준 템플릿 <b>1장</b>이 자동 부여된다.</p>
+<table>
+  <tr><th style="width:200px">블록</th><th>구성</th><th style="width:150px">편집 주체</th></tr>
+  <tr><td><b>① 로드맵 / 마일스톤 표</b></td><td>Project 구분 × 월별(1~12월) 진행 셀 + 연도 확장열 + 계획 M/M · 투입 M/M · 비고, Today 마커, 주요 마일스톤</td><td>작성자 (셀 내용·병합)</td></tr>
+  <tr><td><b>② 진행 현황</b></td><td>당월 기준 사업/과제별 진행 항목 목록</td><td>작성자</td></tr>
+  <tr><td><b>③ 향후 계획</b></td><td>익월 기준 계획 항목 목록</td><td>작성자</td></tr>
+  <tr><td><b>④ 이슈 리스트</b></td><td>미해결 이슈·리스크 목록</td><td>작성자</td></tr>
+</table>
+<h3>편집 허용 범위</h3>
+<table>
+  <tr><th style="width:120px">구분</th><th>허용</th><th>차단</th></tr>
+  <tr><td>표</td><td>셀 내용 입력, <b>셀 병합·해제</b>, <b>행·열 추가·삭제</b>, 셀 정렬, 셀 배경색</td><td>표 자체 삭제, 표준 헤더 행 변경(관리자만)</td></tr>
+  <tr><td>글자</td><td>크기, <b>굵게</b>, 기울임, 밑줄, 색, 정렬 — 한글(HWP)식 즉시 서식</td><td>임의 폰트 교체(브랜드 폰트 세트 내 선택만)</td></tr>
+  <tr><td>레이아웃</td><td>지정 영역 내 요소 이동·크기 조절</td><td>페이지 규격·표지·목차 구조 변경(관리자만)</td></tr>
+  <tr><td>페이지</td><td>—</td><td>페이지 추가·삭제 (1인 1장 원칙, 예외는 관리자 승인)</td></tr>
+</table>
+<p class="note"><b>이미 있는 것:</b> 셀 병합/해제, 행·열 추가·삭제, 셀 정렬은 <code>src/canvas/tableOps.ts</code>에 순수 함수로 존재하고 서식 툴바도 동작한다. 이번 작업은 새 구현이 아니라 <b>"표준 템플릿 위에서의 권한별 잠금 모드" 추가</b>다.</p>
+
+<h2>7. 데이터 모델 (신규 · 변경분)</h2>
+<table>
+  <tr><th style="width:165px">테이블</th><th>주요 컬럼</th><th style="width:110px">구분</th></tr>
+  <tr><td><code>Users</code></td><td>id, login_id, pw_hash, name, dept, <b>requested_role</b>, <b>role</b>(admin·writer·viewer), <b>status</b>(pending·active·disabled), created_at, approved_by<br><span class="tag t-have">구현됨</span> — 숫자 레벨이 아니라 <b>역할명</b>으로 저장·판정한다(등급 표기가 바뀌어도 코드가 뒤집히지 않게)</td><td><span class="tag t-new">신규</span></td></tr>
+  <tr><td><code>Sessions</code></td><td>token, user_id, expires_at, ip, user_agent</td><td><span class="tag t-new">신규</span></td></tr>
+  <tr><td><code>Cycles</code></td><td>id, title, period_ym, <b>status</b>(draft·writing·review·published·closed), due_at, template_id <span class="tag t-have">구현됨</span></td><td><span class="tag t-new">신규</span></td></tr>
+  <tr><td><code>Projects</code></td><td>기존 + <b>owner_id</b>, <b>cycle_id</b>, <b>submit_status</b>(draft·submitted·returned·approved), <b>origin_state</b>(배부받은 그대로 — 「처음부터 다시」가 돌아갈 곳) <span class="tag t-have">구현됨</span></td><td>확장</td></tr>
+  <tr><td><code>Comments</code></td><td>id, project_id, <b>thread_id</b>, page_id, el_id, <b>cell</b>(칸 또는 범위), body, author_id, created_at, <b>resolved_at·resolved_by</b>, <b>fixed_at·fixed_by</b>(「고쳤습니다」), <b>lost_at</b>(가리키던 칸이 사라짐) <span class="tag t-have">구현됨</span></td><td>기존 <code>Notes</code> 승계·확장</td></tr>
+  <tr><td><code>AuditLogs</code></td><td>id, user_id, action, target, ts, detail — 로그인·승인·발행·삭제 + <b>배부·무르기·처음부터 다시·대신 닫기·앵커 유실</b> <span class="tag t-have">구현됨</span></td><td><span class="tag t-new">신규(축소)</span></td></tr>
+  <tr><td><code>ProjectVersions</code></td><td>(기존 그대로 재사용)</td><td>승계</td></tr>
+  <tr><td><code>CycleDecks</code></td><td>cycle_id, filename, slide_count, 변환 결과 — <b>실물 PPT 업로드 → 슬라이드별 배부</b>용 <span class="tag t-have">구현됨</span></td><td><span class="tag t-new">신규(계획에 없던 것)</span></td></tr>
+</table>
+
+<h2>8. 실행계획 — 진행 현황과 앞으로</h2>
+<div class="confirm" style="margin-bottom:20px">
+  <h4>지금 어디까지 왔나 (2026-08-21)</h4>
+  <ul>
+    <li><b>계획 대비 약 3주 앞서 있다.</b> W1~W3(계정·회차·앵커 메모)이 8/18~8/19에 끝났고, 8/21에 의견 기능을 실제로 쓸 수 있는 수준까지 8단계에 걸쳐 다듬었다.</li>
+    <li><b>계획에 없던 것이 하나 늘었다</b> — <b>실물 PPT 업로드 → 슬라이드별 배부</b>. "표준 양식을 새로 쓰게 한다"가 임원에게 부담이라, <b>쓰던 PPT를 그대로 올려 나눠 주는 길</b>을 열었다.</li>
+    <li><b>W4(취합 발행)는 착수하지 않았다.</b> 산출물 형태·장 순서·발행 조건은 <b>내부 리허설이 답해줄 질문</b>이라 리허설 뒤에 정한다.</li>
+  </ul>
+</div>
+<table>
+  <tr><th style="width:120px">기간</th><th style="width:170px">목표</th><th>한 일 / 할 일</th><th style="width:120px">상태</th></tr>
+  <tr><td><span class="wk">W0</span><br>8/18</td><td>저장소 셋업 · 설계 확정</td>
+      <td>EVER-SKETCH 생성, ebook_html 통째 복사, 빌드·기존 테스트 그린, 데이터 모델 확정</td>
+      <td><span class="tag t-have">완료 8/18</span></td></tr>
+  <tr><td><span class="wk">W1</span><br>8/18~8/19</td><td>계정 · 가입승인 · 권한</td>
+      <td>Users/Sessions, 자가가입(희망 역할)·승인 대기·사용자 관리, <b>권한 판정 단일 지점</b>(<code>permissions.decide</code>), 숫자 레벨 → <b>역할명</b> 전환, UDS-107 보안 점검 2회, 전 엔드포인트 권한 커버리지 테스트</td>
+      <td><span class="tag t-have">완료 8/19</span></td></tr>
+  <tr><td><span class="wk">W2</span><br>8/19</td><td>회차 · 템플릿 배부</td>
+      <td>Cycles 모델, <b>표준 템플릿 정본 v2.0</b>(실물 구조로 개정), 회차 개설·배부·제출, <b>실물 PPT 변환·슬라이드별 배부</b>, 배부 창구 통합 + 배부 전 미리보기, 배부 무르기</td>
+      <td><span class="tag t-have">완료 8/19</span></td></tr>
+  <tr><td><span class="wk">W3</span><br>8/19~8/21</td><td>앵커 메모 피드백</td>
+      <td>칸·<b>범위</b> 앵커, 사람 말 표기, 「나에게」 구분, <b>고쳤습니다 → 해결</b> 3단계, 앵커 표류 처리, <b>동료 간 열람</b>, 「처음부터 다시」, 브라우저 기본 창 제거</td>
+      <td><span class="tag t-have">완료 8/21</span></td></tr>
+  <tr><td><span class="wk">W5</span><br><b>제안 8/25~8/29</b></td><td><b>내부 리허설 1차</b></td>
+      <td>AI팀 내부에서 가상 회차 완주(가입→승인→배부→작성→지적→고침→해결). <b>여기서 답을 얻을 것</b>: 회의장에서 무엇으로 띄우는가 / 장 순서를 누가 정하는가 / 마감 직전 미제출 한 명을 실제로 어떻게 하는가 / 서로 보이는 범위가 편한가 불편한가</td>
+      <td><span class="tag t-new">다음</span></td></tr>
+  <tr><td><span class="wk">W4</span><br>리허설 직후</td><td>취합 발행</td>
+      <td>회차 확정본 만들기 — <b>형태·순서·발행 조건은 리허설 결과로 결정</b>. 지금은 회차를 「발행」으로 넘겨도 열람자가 볼 것이 없다(상태 글자만 바뀐다)</td>
+      <td><span class="tag t-cut">보류 — 리허설 뒤</span></td></tr>
+  <tr><td><span class="wk">W6</span><br>9월</td><td>리허설 2차 · 교육 · 배포</td>
+      <td>임원 계정 발급, 사용 교육 1시간, 운영 매뉴얼·백업 절차, 관리자 대리입력 경로, <b>서버 장비·사설 IP 확정</b></td>
+      <td><span class="tag t-new">예정</span></td></tr>
+  <tr><td><span class="wk">10월</span><br>실전</td><td><b>10월 임원회의 투입</b></td>
+      <td>기존 PPT 프로세스와 <b>1회 병행 운영</b>, 정량 목표(리드타임·재발송·취합시간) 실측, 회고</td>
+      <td><span class="tag t-new">예정</span></td></tr>
+</table>
+<p class="note" style="font-size:13px;color:#666">
+  <b>일정을 앞당길지는 협의가 필요하다.</b> 구현은 앞서 있지만 리허설·교육·서버 확정은 사람과 장비의 일정이라 코드 속도와 무관하다.
+  위의 <b>제안 8/25~8/29</b>는 "지금 리허설을 시작할 수 있다"는 뜻이지 확정이 아니다.
+</p>
+
+<h3>품질 — 지금 걸려 있는 안전망</h3>
+<table>
+  <tr><th style="width:200px">무엇</th><th>규모 · 성격</th></tr>
+  <tr><td>서버 테스트</td><td><b>647건</b> — 권한(역할 4종 × 회차 5단계 전체 표), 배부·무르기, 앵커 이동, PPTX 변환, 템플릿 사양</td></tr>
+  <tr><td>브라우저 회귀</td><td><b>12개 스위트</b> — 실제 브라우저에서 로그인·표 병합·배부·무르기·의견·읽기 전용·되돌리기까지 사람이 하는 그대로</td></tr>
+  <tr><td>순수 함수 단위</td><td><b>6개</b> — 앵커 이름 짓기, 내 차례 판정, 표 편집 좌표 리맵 등. 화면의 <code>.ts</code> 원본을 그대로 불러 검사한다(같은 로직을 다시 구현하면 원본이 바뀌어도 통과한다)</td></tr>
+  <tr><td><b>고친 것은 되돌려 확인한다</b></td><td>버그를 고칠 때마다 <b>고친 부분을 일부러 되돌려 테스트가 실패하는지</b> 본다. 이 과정에서 "통과하지만 아무것도 지키지 않는 테스트"를 여러 번 잡아냈다</td></tr>
+</table>
+
+<h3>MVP에서 잘라낸 것 (v1.1 이후)</h3>
+<p>
+<span class="tag t-cut">이월</span> 삭제 요청·승인 워크플로 &nbsp;·&nbsp;
+<span class="tag t-cut">이월</span> 메일·메신저 알림 <b>(8/21 확정 — v1 제외)</b> &nbsp;·&nbsp;
+<span class="tag t-cut">이월</span> 상세 감사로그(열람 이력 전수) &nbsp;·&nbsp;
+<span class="tag t-cut">이월</span> SSO/AD 연동 &nbsp;·&nbsp;
+<span class="tag t-cut">이월</span> PostgreSQL 전환 &nbsp;·&nbsp;
+<span class="tag t-cut">이월</span> 동시 편집(실시간 커서) &nbsp;·&nbsp;
+<span class="tag t-cut">이월</span> 열람자 공개 포털 고도화 &nbsp;·&nbsp;
+<span class="tag t-cut">이월</span> AI 보조(변경점 요약·이슈 초안)
+</p>
+<p>이월 항목은 <b>10월 실전 회고 후 우선순위를 다시 매긴다.</b> 파일럿에서 실제로 아쉬웠던 것만 v1.1에 넣는다.</p>
+
+<h3>그다음 — 상품화 경로</h3>
+<ul>
+  <li><b>1단계(완료 목표: 10월)</b> 유니에버 임원회의 실사용</li>
+  <li><b>2단계</b> 사내 타 회의체 확산(주간회의·부서보고) → 템플릿 다종화</li>
+  <li><b>3단계</b> 멀티테넌시 + 조직·템플릿 커스터마이징 → <b>사외 판매 가능한 "회의체 문서 협업" 솔루션</b></li>
+</ul>
+
+<h2>9. 리스크와 대응</h2>
+<table>
+  <tr><th style="width:250px">리스크</th><th>대응</th></tr>
+  <tr><td><b>서버 위치 미정</b> <span class="tag t-cut">여전히 열려 있음</span></td><td>구현은 앞서 있지만 <b>이건 코드로 못 푼다.</b> W1~W3 는 로컬로 끝냈고 리허설도 임시 PC로 가능하지만, <b>10월 실전 전까지 서버·도메인·백업(SQLite 파일 일 1회) 확정</b>이 크리티컬 패스로 남는다</td></tr>
+  <tr><td><b>W4 를 미룬 만큼 10월이 촉박</b></td><td>취합 발행은 리허설 뒤 결정이라 착수가 늦다. 다만 <b>편집·배부·피드백이 이미 끝나 있어</b> 남은 것은 "모아서 내는 것" 하나다. 리허설에서 형태만 정해지면 짧게 끝난다</td></tr>
+  <tr><td><b>서로 보이게 열었는데 눈치보기가 생긴다</b> <span class="tag t-new">8/21 신규</span></td><td>작성 중에는 <b>보기만</b> 되고 지적은 검토 단계부터다. 그래도 부담되면 리허설에서 드러난다 — <b>보이는 시점을 검토 단계로 늦추는 것</b>이 준비된 대안이다(규칙 한 줄)</td></tr>
+  <tr><td>임원이 웹 편집기 대신 PPT 고집</td><td>템플릿을 "이미 채워진 상태"로 배부해 진입장벽 제거. PPTX 내보내기 항상 보장. 교육 1회 + 관리자 대리입력 경로 유지</td></tr>
+  <tr><td>편집 기능이 PPT만 못하다는 불만</td><td>범위를 명시적으로 좁힌다(표·서식 수준). 초과 요구는 템플릿 자체 개선으로 흡수</td></tr>
+  <tr><td><s>기존 ebook_html 데이터(소유자 없음) 이관</s> <span class="tag t-have">해소</span></td><td>W1 에서 이관 완료(<code>migrate_w1</code>). 소유자 없는 이북은 작성자에게 보이지 않는 것으로 처리</td></tr>
+  <tr><td>가입 승인이 병목이 됨</td><td>관리자 화면에 대기 목록 배지 + 일괄 승인. 리허설 전 임원 계정은 사전 일괄 발급</td></tr>
+  <tr><td><s>권한 우회(프런트만 막고 API 노출)</s> <span class="tag t-have">상시 감시</span></td><td>판정 단일 지점(<code>decide</code>) + <b>모든 엔드포인트에 권한 판정이 있는지 검사하는 테스트</b>가 스위트에 박혀 있다. 새 엔드포인트를 권한 없이 추가하면 테스트가 먼저 깨진다</td></tr>
+  <tr><td>리허설에서 치명 이슈 발견 → 10월 위험</td><td>2회 리허설로 이중 안전망. 10월은 기존 PPT와 <b>병행</b> 운영이므로 실패해도 회의 자체는 진행됨. 일정이 앞서 있어 <b>고칠 시간이 생겼다</b></td></tr>
+</table>
+
+<h2>10. 다음 액션</h2>
+<table>
+  <tr><th style="width:70px">순서</th><th>할 일</th><th style="width:150px">담당·시점</th></tr>
+  <tr><td><b>1</b></td><td><b>내부 리허설 일정 확정</b> — 참여자(가상 임원 역할 포함), 반나절이면 완주 가능</td><td>사용자 · 즉시</td></tr>
+  <tr><td><b>2</b></td><td>리허설용 <b>실물 PPT 1벌</b> 준비 — 표준 양식이 아니라 <b>평소 쓰던 그대로</b>. 변환기가 실물에서 어디까지 버티는지가 이 리허설의 절반이다</td><td>사용자 · 리허설 전</td></tr>
+  <tr><td><b>3</b></td><td>리허설 진행 + 관찰 기록 — <b>W4 를 정하기 위한 네 가지 질문</b>(회의장에서 무엇으로 띄우는가 / 장 순서 / 미제출자 처리 / 서로 보이는 범위)</td><td>AI팀 · 리허설</td></tr>
+  <tr><td><b>4</b></td><td>리허설 결과로 <b>W4(취합 발행) 설계 확정 → 구현</b></td><td>AI팀 · 리허설 직후</td></tr>
+  <tr><td><b>5</b></td><td>1회차 대상 임원 명단·부서 확정(계정 사전 발급용)</td><td>사용자 · 9월</td></tr>
+  <tr><td><b>6</b></td><td><b>서버·도메인·백업 정책 결정</b> — 유일하게 코드로 풀 수 없는 항목</td><td>사용자 · 10월 실전 전</td></tr>
+</table>
+
+<h3>리허설에서 볼 것 — W4 를 정하는 네 가지</h3>
+<table>
+  <tr><th style="width:210px">질문</th><th>왜 리허설이 답하는가</th></tr>
+  <tr><td><b>확정본을 무엇으로 남기나</b><br><span style="color:#666">문서 한 벌 / 이북(웹) / PPT 파일</span></td>
+      <td>회의장 PC 에서 무엇으로 띄우는지를 보면 정해진다. 링크로 넘겨보면 문서 한 벌이면 되고, 파일로 띄워야 하면 PPT 내보내기가 필수가 된다</td></tr>
+  <tr><td><b>장 순서를 누가 정하나</b></td>
+      <td>실제로 순서가 문제가 되는지, 된다면 누가 언제 손대는지를 봐야 한다. 안 되면 순서 편집 화면은 만들 필요가 없다</td></tr>
+  <tr><td><b>미제출·미해결이 남으면</b><br><span style="color:#666">막을까 / 보여주고 넘길까</span></td>
+      <td>회의는 시간이 정해져 있다. 막아서 시스템 밖으로 나가는 것이 최악인지, 그냥 나가는 것이 최악인지는 한 번 겪어봐야 안다</td></tr>
+  <tr><td><b>서로 보이는 범위가 편한가</b></td>
+      <td>8/21 에 동료 간 열람을 열었다. 눈치보기가 실제로 생기는지 보고, 부담되면 <b>보이는 시점을 검토 단계로 늦춘다</b>(규칙 한 줄)</td></tr>
+</table>
+
+<footer class="doc">
+  EVER-SKETCH 기획의도·설계사상·실행계획 <b>v0.4</b> · 2026-08-21 · 유니에버(주) AI팀<br>
+  근거 자산: <code>ebook_html</code>(React+TS+Vite / FastAPI+SQLite, 카드·자유캔버스 편집기, tableOps, 버전관리, PPTX·PDF 내보내기) ·
+  <code>uniever_ebook</code>(이북 생성기·덱 빌더·브랜드 자산) · <code>default_skill</code>(표준스킬 43종, G0~G6 개발표준)<br>
+  변경 이력: v0.1(초안) → v0.2 템플릿 정본 확정 · 저장소 확정 · 가입 승인제 · 열람자 메모 차단 · 9월 리허설/10월 실전 일정<br>
+  → <b>v0.3</b>(8/19) 권한 표기를 <b>Lv1 관리자 · Lv2 작성자 · Lv3 열람자</b>로 개정. 저장·판정은 숫자가 아닌 <b>역할명</b>으로 전환<br>
+  → <b>v0.4</b>(8/21) <b>구현 반영 · 열람 범위 개정.</b>
+  ① <b>같은 회차 동료끼리 서로의 장을 본다</b>(작성 중부터 읽기, 검토 중부터 의견) — v0.3 의 "타인 이북 접근 불가"를 뒤집었다.
+  막아두면 "앞 장과 다릅니다" 같은 지적이 애초에 불가능하고, 결국 캡처를 메신저로 주고받게 된다.
+  ② <b>해결은 지적한 사람이</b> — 지적받은 쪽 손은 「고쳤습니다」.
+  ③ 앵커가 <b>범위</b>까지 가리키고 <b>표에 적힌 말</b>로 불린다.
+  ④ <b>「처음부터 다시」</b>·제출 취소 규칙·<b>「배부 무르기」</b> 개명.
+  ⑤ 계획에 없던 <b>실물 PPT 슬라이드별 배부</b> 추가.
+  ⑥ <b>알림은 v1 제외</b>, <b>W4 는 리허설 뒤 결정</b>으로 보류.
+</footer>
+
+</div>
+</body>
+</html>

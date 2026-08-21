@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVER-SKETCH 표준 템플릿 정본 v2.0 — 임원 1인 1장</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --ink:#1c2433; --sub:#5b6270; --muted:#98a1b2;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A;
+    --tintBlue:#EAF1FE; --tintGreen:#E9F5EF; --tintAmber:#FBF0E1;
+    --line:#e6e8ee; --card:#f6f8fc; --page:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',Inter,system-ui,sans-serif;
+    font-size:14px;line-height:1.6;letter-spacing:-.01em}
+  .shell{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+  .lede{background:#fff;border-left:3px solid var(--blue);padding:14px 16px;margin:0 0 10px;border-radius:0 6px 6px 0;font-size:13.5px;color:var(--sub)}
+  .lede b{color:var(--navy)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 18px;font-size:12.5px;color:var(--sub)}
+  .lg{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:22px;height:12px;border-radius:2px;border:1px solid rgba(0,0,0,.08)}
+
+  /* ── 페이지(종이) ── */
+  .page{background:var(--page);border:1px solid var(--line);border-radius:4px;
+    box-shadow:0 2px 14px rgba(15,27,61,.08);padding:26px 28px 22px;position:relative}
+  .phead{display:flex;align-items:flex-end;justify-content:space-between;
+    border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:16px}
+  .ptitle{font-size:19px;font-weight:800;color:var(--navy);letter-spacing:-.02em;margin:0}
+  .pmeta{font-size:12px;color:var(--muted);text-align:right;line-height:1.5}
+  .pmeta b{color:var(--sub);font-weight:700}
+
+  .slot{position:relative;margin-bottom:16px}
+  .slotlab{position:absolute;right:0;top:-1px;font-size:10px;font-weight:700;color:var(--blue);
+    background:var(--tintBlue);border-radius:99px;padding:1px 7px;letter-spacing:.02em}
+  h3.bt{font-size:13.5px;font-weight:800;color:var(--navy);margin:0 0 7px;padding-left:9px;
+    border-left:3px solid var(--blue);line-height:1.25}
+
+  /* ── 로드맵 표 ── */
+  .rmwrap{overflow-x:auto;position:relative}
+  table.rm{border-collapse:collapse;width:100%;font-size:11.5px;table-layout:fixed}
+  table.rm th,table.rm td{border:1px solid var(--line);padding:0;text-align:center;height:26px}
+  table.rm th{background:var(--card);color:var(--navy);font-weight:700;font-size:11px}
+  table.rm th.yr{background:var(--navy);color:#fff;font-size:11px;letter-spacing:.04em}
+  table.rm th.yr.nx{background:#3a4a72}
+  .cproj{width:132px}
+  .cmm{width:52px}
+  .cnote{width:120px}
+  td.proj{text-align:left;padding:0 8px;font-weight:700;color:var(--navy);font-size:11.5px}
+  td.sub{text-align:left;padding:0 8px 0 18px;color:var(--sub);font-weight:400}
+  td.num{font-variant-numeric:tabular-nums;color:var(--sub)}
+  td.note{text-align:left;padding:0 8px;color:var(--sub);font-size:11px}
+  td.m{position:relative}
+  .bar{position:absolute;inset:4px 0;border-radius:2px}
+  .bar.plan{background:var(--tintBlue);border-top:1px solid #c3d7fb;border-bottom:1px solid #c3d7fb}
+  .bar.done{background:var(--blue)}
+  .bar.risk{background:var(--amber)}
+  .bar.hold{background:repeating-linear-gradient(45deg,#e9edf3,#e9edf3 3px,#f6f8fc 3px,#f6f8fc 6px)}
+  .ms{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-size:11px;color:var(--green);line-height:1;z-index:3;text-shadow:0 0 2px #fff,0 0 2px #fff}
+  /* Today 마커 */
+  .today{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--amber);z-index:4;pointer-events:none}
+  .today::after{content:"TODAY";position:absolute;top:-15px;left:50%;transform:translateX(-50%);
+    background:var(--amber);color:#fff;font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:99px;letter-spacing:.06em;white-space:nowrap}
+
+  /* ── 3단 하단 블록 ── */
+  .tri{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  table.lst{border-collapse:collapse;width:100%;font-size:11.5px}
+  table.lst th,table.lst td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+  table.lst th{background:var(--card);color:var(--navy);font-weight:700;font-size:11px;white-space:nowrap}
+  table.lst td{color:var(--sub);line-height:1.5}
+  .w-no{width:26px;text-align:center}
+  .w-st{width:52px;text-align:center;white-space:nowrap}
+  .chip{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;line-height:1.55;white-space:nowrap}
+  .c-done{background:var(--tintGreen);color:#2b7a54}
+  .c-run{background:var(--tintBlue);color:#1a4fc4}
+  .c-hold{background:#eef0f4;color:#6b7480}
+  .c-risk{background:var(--tintAmber);color:#96601a}
+  .pfoot{display:flex;justify-content:space-between;align-items:center;
+    border-top:1px solid var(--line);padding-top:8px;margin-top:4px;font-size:10.5px;color:var(--muted)}
+
+  /* ── 주석 ── */
+  .noteblk{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin-top:22px;font-size:13px}
+  .noteblk h4{margin:0 0 8px;font-size:13.5px;color:var(--navy)}
+  .noteblk table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:6px}
+  .noteblk th,.noteblk td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+  .noteblk th{background:var(--card);color:var(--navy);white-space:nowrap}
+  .noteblk td{color:var(--sub)}
+  code{background:var(--card);padding:1px 5px;border-radius:3px;font-size:11.5px;color:#c1305a;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .lockL{color:var(--green);font-weight:700}
+  .lockX{color:#b4232a;font-weight:700}
+
+  /* v2.0 — 18열 로드맵 */
+  table.rm th{background:#FFFFCC;color:#1c2433;font-weight:700}
+  table.rm th.yr,table.rm th.yr.nx{background:#FFFFCC;color:#1c2433;letter-spacing:0}
+  .cgrp{width:96px} .cproj{width:132px} .cnext{width:46px}
+  .grp{font-weight:700;color:var(--navy);text-align:center;vertical-align:middle;background:#fbfcfe}
+  .m.stg{font-size:10.5px;font-weight:700;color:#1c2433;text-align:center;padding:3px 4px;line-height:1.3}
+  .slotnote{margin:8px 2px 0;font-size:11.5px;line-height:1.7;color:var(--muted)}
+  .slotnote b{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<p class="lede">
+  <b>EVER-SKETCH 표준 템플릿 정본 v2.0</b> <span style="color:#3E9E6E;font-weight:700">개정 2026-08-21</span>
+  <span style="color:#b4232a;font-weight:700">· v1.0 시안을 실물 구조로 교체</span> —
+  회차가 열리면 임원 1인당 이 <b>1장</b>(1040×720 가로)이 자동 부여된다.
+  <b>SLOT-A · B · C</b> 세 블록을 시스템이 고정하고, Lv2 작성자는 <b>칸 내용·셀 병합·행 추가·서식</b>만 만진다.
+  로드맵은 <b>18열</b>(구분 · 프로젝트 · 1~12월 · 차년도 · 계획M/M · 투입M/M · 비고), 데이터 행은 <b>최대 7행</b>.
+  진행 구간 색은 <b>5종</b>이며 <b>색 자체에는 뜻이 없다</b> — 뜻은 칸 안에 적힌 단계 이름에 있다.
+  숫자·문구는 모두 <b>예시</b>다.
+</p>
+
+<div class="legend">
+  <span class="lg"><span class="sw" style="background:#FBE5D6;border-color:#e6c9b4"></span> 주황</span>
+  <span class="lg"><span class="sw" style="background:#DEEBF7;border-color:#bcd4ea"></span> 파랑</span>
+  <span class="lg"><span class="sw" style="background:#E2F0D9;border-color:#c3ddb4"></span> 연두</span>
+  <span class="lg"><span class="sw" style="background:#FFFF00;border-color:#dede00"></span> 노랑</span>
+  <span class="lg"><span class="sw" style="background:#92D050;border-color:#78b23c"></span> 초록</span>
+  <span class="lg"><span class="sw" style="background:#FFFFCC;border-color:#e0e0a8"></span> 머리글</span>
+  <span class="lg"><span class="sw" style="background:#D94A4A;width:3px;border:0;display:inline-block"></span> Today 마커(자동)</span>
+</div>
+<p class="lede" style="margin-top:-18px;font-size:13px">
+  <b>색 이름이 곧 범례다.</b> v1.0 시안은 색에 <s>완료·계획·지연·보류</s> 라는 뜻을 붙였지만,
+  실물 로드맵에서 그 색들이 무엇을 뜻하는지는 <b>칸 안에 적힌 단계 이름</b>(분석/설계 · 개발 · 실증 · 현장 적용 …)에 있다.
+  색에 뜻을 임의로 붙이면 임원이 쓰던 뜻과 어긋난 채로 취합 통계가 나온다 — <b>틀린 줄도 모르고 쓰이는 종류의 오류</b>라 붙이지 않기로 했다.
+</p>
+
+<!-- ══════════ 페이지 ══════════ -->
+<div class="page">
+
+  <div class="phead">
+    <div>
+      <p class="ptitle">2026년 10월 임원회의 — 사업본부 진행보고</p>
+    </div>
+    <div class="pmeta">
+      작성 <b>김OO 본부장</b> · 사업본부<br>
+      회차 <b>2026-10</b> · 제출기한 10/05
+    </div>
+  </div>
+
+    <!-- ─── SLOT-A 로드맵 (18열) ─── -->
+  <div class="slot">
+    <span class="slotlab">SLOT-A · roadmap · 18열</span>
+    <h3 class="bt">① 로드맵 / 마일스톤</h3>
+    <div class="rmwrap">
+      <div class="today" style="left:calc(96px + 132px + (100% - 96px - 132px - 46px - 46px - 46px - 96px) * 7.5 / 13)"></div>
+      <table class="rm">
+        <colgroup>
+          <col class="cgrp"><col class="cproj">
+          <col span="12"><col class="cnext">
+          <col class="cmm"><col class="cmm"><col class="cnote">
+        </colgroup>
+        <thead>
+          <tr>
+            <th colspan="2" rowspan="2">Project</th>
+            <th class="yr" colspan="12">2026년</th>
+            <th class="yr nx" rowspan="2">2027년</th>
+            <th rowspan="2">계획<br>M/M</th>
+            <th rowspan="2">투입<br>M/M</th>
+            <th rowspan="2">비고<br>(투입인원)</th>
+          </tr>
+          <tr>
+            <th>1월</th><th>2월</th><th>3월</th><th>4월</th><th>5월</th><th>6월</th><th>7월</th><th>8월</th><th>9월</th><th>10월</th><th>11월</th><th>12월</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="grp" rowspan="2">상시</td><td class="proj">AI Agent</td><td class="m"></td><td class="m"></td><td class="m stg" colspan="2" style="background:#FBE5D6">분석/설계</td><td class="m stg" colspan="2" style="background:#DEEBF7">개발 (자율형 Agentic)</td><td class="m stg" colspan="1" style="background:#FFFF00">가동</td><td class="m"></td><td class="m stg" colspan="2" style="background:#FFFF00">실증</td><td class="m stg" colspan="2" style="background:#92D050">현장 적용</td><td class="m"></td><td class="num">14.0</td><td class="num">11.5</td><td class="note">5월 PoC 완료</td></tr>
+          <tr><td class="proj">지능형 실행 가이드보드</td><td class="m"></td><td class="m"></td><td class="m stg" colspan="2" style="background:#FBE5D6">분석/설계</td><td class="m stg" colspan="3" style="background:#DEEBF7">개발 (API·UI/UX)</td><td class="m stg" colspan="1" style="background:#FFFF00">가동</td><td class="m stg" colspan="2" style="background:#FFFF00">실증</td><td class="m stg" colspan="2" style="background:#92D050">현장 적용</td><td class="m"></td><td class="num">6.0</td><td class="num">6.8</td><td class="note">데이터 품질 이슈</td></tr>
+          <tr><td class="grp" rowspan="3">자체 솔루션 사업</td><td class="proj">에이전트</td><td class="m stg" colspan="7" style="background:#E2F0D9">완전자율형 에이전틱 · 복셀화 · 파일변식 · 현황판단검토 · 논쟁학습판단</td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="num">4.5</td><td class="num">1.2</td><td class="note">기능 고도화</td></tr>
+          <tr><td class="proj">시스템</td><td class="m stg" colspan="7" style="background:#E2F0D9">경영모니터링 · EIS · 통합디스패치 · 실적대시보드 · 이벤트생성기 · 대시보드생성기</td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="num">3.0</td><td class="num">0.5</td><td class="note">상품화 기획</td></tr>
+          <tr><td class="proj">계획</td><td class="m stg" colspan="7" style="background:#E2F0D9">ERP/MES AI 학습 · 사내 단계별 전개</td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="m"></td><td class="num">2.0</td><td class="num">—</td><td class="note">검토</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="slotnote">
+      머리글 <b>2행</b>은 잠겨 있다(연도 띠 + 월). 진행 구간은 <b>가로 병합 + 단계 이름</b>으로 그린다 —
+      의견을 달 때 이 구간이 그대로 <b>「AI Agent · 03월~05월」</b>로 불린다.
+    </p>
+  </div>
+
+<!-- ─── SLOT-B (진행현황 | 향후계획) / SLOT-C (이슈) ─── -->
+  <div class="tri">
+
+    <div class="slot" style="margin-bottom:6px">
+      <h3 class="bt">② 진행 현황 <span style="font-weight:500;color:var(--muted);font-size:11px">당월</span></h3>
+      <table class="lst">
+        <thead><tr><th class="w-no">#</th><th>사업 / 과제</th><th class="w-st">상태</th></tr></thead>
+        <tbody>
+          <tr><td class="w-no">1</td><td><b>품질 AI</b> — 3개 라인 확대 적용 완료, 불량 검출률 94.2%</td><td class="w-st"><span class="chip c-done">완료</span></td></tr>
+          <tr><td class="w-no">2</td><td><b>성형기 예측</b> — 학습 데이터 재수집 중(8월분 결측)</td><td class="w-st"><span class="chip c-risk">지연</span></td></tr>
+          <tr><td class="w-no">3</td><td><b>EVER-SKETCH</b> — 저장소 셋업·권한 설계 완료, W2 진입</td><td class="w-st"><span class="chip c-run">진행</span></td></tr>
+          <tr><td class="w-no">4</td><td><b>물류 자동화</b> — 예산 심의 대기</td><td class="w-st"><span class="chip c-hold">보류</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="slot" style="margin-bottom:6px">
+      <h3 class="bt">③ 향후 계획 <span style="font-weight:500;color:var(--muted);font-size:11px">익월</span></h3>
+      <table class="lst">
+        <thead><tr><th class="w-no">#</th><th>계획 항목</th><th class="w-st">목표일</th></tr></thead>
+        <tbody>
+          <tr><td class="w-no">1</td><td><b>품질 AI</b> — 잔여 2개 라인 확대, 운영 인수인계</td><td class="w-st">11/20</td></tr>
+          <tr><td class="w-no">2</td><td><b>성형기 예측</b> — 재학습 후 정확도 재측정</td><td class="w-st">11/15</td></tr>
+          <tr><td class="w-no">3</td><td><b>EVER-SKETCH</b> — 11월 회차 전사 확대</td><td class="w-st">11/05</td></tr>
+          <tr><td class="w-no">4</td><td><b>물류</b> — 예산 확정 시 착수, 미확정 시 12월 이월</td><td class="w-st">11/30</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="slot" style="margin-bottom:6px">
+      <h3 class="bt">④ 이슈 리스트 <span style="font-weight:500;color:var(--muted);font-size:11px">미해결</span></h3>
+      <table class="lst">
+        <thead><tr><th class="w-no">#</th><th>이슈 · 리스크 / 필요 지원</th><th class="w-st">심각도</th></tr></thead>
+        <tbody>
+          <tr><td class="w-no">1</td><td>성형기 8월 센서 데이터 결측 — <b>설비팀 협조 필요</b></td><td class="w-st"><span class="chip c-risk">높음</span></td></tr>
+          <tr><td class="w-no">2</td><td>품질 AI 운영 인력 1명 미충원</td><td class="w-st"><span class="chip c-risk">중간</span></td></tr>
+          <tr><td class="w-no">3</td><td>물류 자동화 예산 미확정 — <b>경영회의 상정 요청</b></td><td class="w-st"><span class="chip c-hold">중간</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="pfoot">
+    <span>EVER-SKETCH · 2026-10 임원회의 · 사업본부</span>
+    <span>표준 템플릿 정본 v2.0 · 1 / 1</span>
+  </div>
+
+</div>
+<!-- ══════════ /페이지 ══════════ -->
+
+<div class="noteblk">
+  <h4>슬롯별 편집 권한</h4>
+  <table>
+    <tr>
+      <th style="width:96px">슬롯</th><th style="width:132px">요소</th>
+      <th>Lv2 작성자 허용</th><th style="width:150px">작성자 차단 (관리자만)</th>
+    </tr>
+    <tr>
+      <td><code>head</code></td><td>제목·작성자·회차</td>
+      <td><span class="lockX">없음</span> — 회차 개설 시 자동 채움</td>
+      <td>전체</td>
+    </tr>
+    <tr>
+      <td><code>SLOT-A</code></td><td>로드맵 표 <b>(18열)</b></td>
+      <td><span class="lockL">셀 내용, 셀 병합·해제, <b>행 추가·삭제</b>, 셀 정렬, 셀 배경색(<b>5색</b>)</span><br>
+        <span style="color:var(--muted);font-size:11.5px">칸을 <b>끌어서</b> 여러 개 고른 뒤 상단 툴바의 <b>⤢ 병합</b> — 진행 구간은 이렇게 만든다</span></td>
+      <td>표 삭제, <b>머리글 2행</b> 변경, <b>열 추가·삭제</b>, <b>데이터 7행 초과</b></td>
+    </tr>
+    <tr>
+      <td><code>SLOT-B</code></td><td>진행 현황 | 향후 계획<br><span style="color:var(--muted);font-size:11.5px">한 표 2열</span></td>
+      <td><span class="lockL">셀 내용, 행 추가·삭제, 글자 서식</span></td>
+      <td>표 삭제, 머리글 1행 변경, 열 구성 변경, <b>셀 병합</b></td>
+    </tr>
+    <tr>
+      <td><code>SLOT-C</code></td><td>이슈 리스트</td>
+      <td><span class="lockL">셀 내용, 행 추가·삭제, 글자 서식</span></td>
+      <td>표 삭제, 머리글 1행 변경, 열 구성 변경, <b>셀 병합</b></td>
+    </tr>
+    <tr>
+      <td><code>page</code></td><td>페이지</td>
+      <td><span class="lockX">없음</span></td>
+      <td>페이지 추가·삭제, 규격 변경, 슬롯 위치·크기 변경</td>
+    </tr>
+  </table>
+  <p style="margin:12px 0 0;color:var(--sub);font-size:12.5px">
+    <b>Today 마커</b>와 <b>연도 머리글</b>은 회차(<code>Cycles.period_ym</code>)에서 자동 계산되어 그려진다. 사용자가 옮기지 않는다.<br>
+    <b>열 추가·삭제를 작성자에게 막는 이유</b> — 열 구성이 임원마다 달라지면 회차 취합 시 표를 자동 병합할 수 없다(설계사상 ④).
+    연도 확장이 필요하면 관리자가 정본을 고쳐 전원에게 반영한다.<br>
+    <b>데이터 7행 제한</b> — 1040×720 한 장에 세 블록이 다 들어가야 한다. 넘으면 아래 블록이 종이 밖으로 나간다.
+    행이 모자라면 <b>장을 나누는 것</b>이 맞고, 그건 관리자가 배부 단계에서 정한다.<br>
+    <b>진행 구간에 색만 칠하고 이름을 안 쓰면</b> 취합 때 그 구간이 무엇이었는지 아무도 모른다.
+    의견도 <b>「AI Agent · 03월~05월」</b>로 불리므로, 이름이 있어야 지적이 통한다.
+  </p>
+</div>
+
+<div class="noteblk">
+  <h4>v1.0 시안에서 바뀐 것 — 왜 바꿨나</h4>
+  <table>
+    <tr><th style="width:150px">항목</th><th style="width:190px">v1.0 시안 (8/19)</th><th>v2.0 정본 (8/21)</th></tr>
+    <tr><td>로드맵 열</td><td>20열 — 익년을 <code>1Q~4Q</code> 4칸으로</td>
+        <td><b>18열</b> — 익년은 <b>「2027년」 한 칸</b>. 실물이 그렇게 생겼다</td></tr>
+    <tr><td>진행 구간 표기</td><td>색 막대 4종(완료·계획·지연·보류)</td>
+        <td><b>칸 배경색 5종 + 단계 이름</b>. <b>색에 뜻을 붙이지 않는다</b> — 실물에서 뜻은 글자에 있다</td></tr>
+    <tr><td>블록 수</td><td>SLOT-A~D 4블록</td>
+        <td><b>SLOT-A · B · C 3블록</b>. 진행 현황과 향후 계획은 <b>한 표 2열</b>이다</td></tr>
+    <tr><td>데이터 행</td><td>제한 없음</td><td><b>최대 7행</b> — 한 장에 세 블록이 다 들어가야 한다</td></tr>
+    <tr><td>페이지</td><td>규격 미명시</td><td><b>1040×720 가로</b></td></tr>
+  </table>
+  <p style="margin:12px 0 0;color:var(--sub);font-size:12.5px">
+    v1.0 은 <b>실물을 보기 전에 그린 시안</b>이었다. 8/19 에 임원이 실제로 쓰던 PPT 를 받아 열어보고 구조를 맞췄다 —
+    <b>양식을 새로 배우게 하지 않는 것</b>이 이 제품의 전제라, 정본이 실물을 따라간다.
+  </p>
+</div>
+
+</div>
+</body>
+</html>

@@ -132,7 +132,13 @@ def cycle_get(cid: str, user: dict = Depends(require_active)):
         # 회차를 굴리는 사람(관리자)의 정보다. 동료끼리 서로 재촉하라고
         # 만든 화면이 아니다.
         rows = cycles_store.list_cycle_projects(cid)
-        peer_ok = cycle["status"] in perm.PEER_READ_STAGES
+        # **명단은 그 회차에 참여한 사람에게만.**
+        # 동료끼리 서로의 장을 보게 열면서, 열람자에게까지 열려 있었다.
+        # 발행된 회차에서 열람자가 받은 것은 '이름 목록 + 미해결 지적 수' 였다 —
+        # 열지도 못하는 자료의 명단이고, 게다가 **메모는 열람자에게 존재
+        # 자체를 노출하지 않는다**(확정 사항). 참여 여부로 먼저 가른다.
+        joined = any(p["owner_id"] == user["id"] for p in rows)
+        peer_ok = joined and cycle["status"] in perm.PEER_READ_STAGES
         out["projects"] = []
         for p in rows:
             mine = p["owner_id"] == user["id"]
