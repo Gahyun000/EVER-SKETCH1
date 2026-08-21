@@ -259,7 +259,9 @@ def test_배부하면_회차가_작성중이_된다(ctx, deck_bytes):
     assert cycles_store.get_cycle(ctx["cid"])["status"] == "writing"
 
 
-def test_배부본은_본인만_연다(ctx, deck_bytes):
+def test_배부본은_같은_회차_동료까지_열린다(ctx, deck_bytes):
+    """'본인만' 이던 규칙을 바꿨다 — 같은 회의를 준비하는 사람끼리는 서로 본다.
+    고치는 것은 여전히 본인 것만이다."""
     c = ctx["as_admin"]()
     _upload(c, ctx["cid"], deck_bytes)
     a, b = ctx["execs"]
@@ -271,7 +273,9 @@ def test_배부본은_본인만_연다(ctx, deck_bytes):
     other = [p for p in rows if p["owner_id"] == b["id"]][0]
     c1 = ctx["as_user"]("exec1")
     assert c1.get("/api/projects/%s" % mine["id"]).status_code == 200
-    assert c1.get("/api/projects/%s" % other["id"]).status_code == 403
+    assert c1.get("/api/projects/%s" % other["id"]).status_code == 200
+    assert c1.put("/api/projects/%s" % other["id"],
+                  json={"state": {"pages": []}, "name": "남의 장"}).status_code == 403
 
 
 # ══════════ 잘못된 입력 ══════════

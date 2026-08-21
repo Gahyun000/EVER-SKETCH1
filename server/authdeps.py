@@ -63,14 +63,22 @@ def require_active(es_session: Optional[str] = Cookie(default=None)) -> dict:
 
 
 # ── 권한 판정 ─────────────────────────────────────────
-def _resource_of(pid: str) -> Optional[perm.Resource]:
-    p = projects_store.get_project_meta(pid)
-    if not p:
+def _resource_of(pid: str, user: Optional[dict] = None) -> Optional[perm.Resource]:
+    """판정 대상을 만든다.
+
+    회차 단계와 '같은 회차 동료인가' 를 **여기서 한 번에** 채운다.
+    예전에는 cycle_status 를 넣지 않아서(Projects 에 없는 값을 꺼내려 했다)
+    회차 단계 규칙이 늘 빈손으로 판정됐다 — 규칙은 있는데 아무 일도 안 했다.
+    """
+    sc = projects_store.project_scope(pid)
+    if not sc:
         return None
+    uid = (user or {}).get("id")
     return perm.Resource(
-        owner_id=p.get("owner_id"),
-        cycle_status=p.get("cycle_status"),
-        published=bool(p.get("published_id")),
+        owner_id=sc["owner_id"],
+        cycle_status=sc["cycle_status"],
+        published=sc["published"],
+        same_cycle=projects_store.owns_in_cycle(uid, sc["cycle_id"]),
     )
 
 
@@ -87,7 +95,7 @@ def require_project(user: dict, pid: str, action: str) -> perm.Resource:
     "없음(404)"과 "있는데 권한없음(403)"이 구분되면 id 존재 여부가 새어나간다.
     권한이 없으면 존재 여부와 무관하게 403으로 통일한다.
     """
-    res = _resource_of(pid)
+    res = _resource_of(pid, user)
     if res is None:
         # 없는 id — 전체를 볼 수 있는 사람(관리자)에게만 404를 알려준다.
         # 작성자에게 404를 주면 "그 id는 없다"가 확인되어 id 열거가 가능해진다.

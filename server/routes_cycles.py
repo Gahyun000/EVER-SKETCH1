@@ -60,6 +60,16 @@ class DeckDistributeIn(BaseModel):
     common: Optional[list[int]] = None
 
 
+def vis_projects(user: dict) -> str:
+    """프로젝트 가시성 필터 — 문자열을 여기서 지어내지 않는다.
+
+    예전에는 "own_or_published" 를 손으로 적어 뒀다. permissions 쪽 이름이
+    바뀌자 이 줄만 옛 규칙으로 남아, 회차 목록과 자료 목록이 서로 다른 말을
+    하게 됐다. 이름은 한 곳(permissions)에서만 정한다.
+    """
+    return perm.visible_project_filter(auth_store.actor_of(user))
+
+
 def _visible_cycles(user: dict) -> list[dict]:
     """가시성 규칙은 permissions.visible_cycle_filter 가 정한다. 여기서 레벨을 비교하지 않는다."""
     vis = perm.visible_cycle_filter(auth_store.actor_of(user))
@@ -70,7 +80,7 @@ def _visible_cycles(user: dict) -> list[dict]:
         return rows
     if vis == "mine_or_published":
         # 작성자는 자기가 배부받은 회차 + 발행된 회차
-        mine = {p["cycle_id"] for p in projects_store.list_projects("own_or_published", user["id"])
+        mine = {p["cycle_id"] for p in projects_store.list_projects(vis_projects(user), user["id"])
                 if p.get("cycle_id")}
         return [c for c in rows if c["id"] in mine or c["status"] == "published"]
     return [c for c in rows if c["status"] == "published"]
@@ -107,9 +117,25 @@ def cycle_get(cid: str, user: dict = Depends(require_active)):
         out["projects"] = cycles_store.list_cycle_projects(cid)
         out["progress"] = cycles_store.cycle_progress(cid)
     else:
-        mine = [p for p in cycles_store.list_cycle_projects(cid)
-                if p["owner_id"] == user["id"]]
-        out["projects"] = mine
+        # 작성자에게도 **같은 회차 명단을 보여준다.**
+        # 예전에는 자기 것 하나만 내려줬다. 그러면 "앞 장과 다릅니다" 를
+        # 확인하려 해도 앞 장으로 가는 길이 화면에 없다 — 결국 캡처를
+        # 메신저로 주고받게 된다.
+        #
+        # 다만 남의 행에서는 **제출 상태를 지운다.** 누가 아직 안 냈는지는
+        # 회차를 굴리는 사람(관리자)의 정보다. 동료끼리 서로 재촉하라고
+        # 만든 화면이 아니다.
+        rows = cycles_store.list_cycle_projects(cid)
+        peer_ok = cycle["status"] in perm.PEER_READ_STAGES
+        out["projects"] = []
+        for p in rows:
+            mine = p["owner_id"] == user["id"]
+            if not mine and not peer_ok:
+                continue
+            row = dict(p, mine=mine)
+            if not mine:
+                row.pop("submit_status", None)
+            out["projects"].append(row)
     # 미해결 지적 수를 함께 내려준다 — 이게 없으면 반려된 사람이 '무엇을 고쳐야
     # 하는지' 를 알려면 자료를 하나하나 열어봐야 한다. 20명분을 한 번에 센다.
     counts = comments_store.counts_for([p["id"] for p in out["projects"]])

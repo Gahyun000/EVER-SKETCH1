@@ -106,7 +106,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
           <h2>회차 관리</h2>
           <p>{admin
             ? '회차를 열고 임원별로 표준 양식을 배부합니다.'
-            : '배부받은 회차 자료입니다. 작성 후 제출해 주세요.'}</p>
+            : '배부받은 회차 자료입니다. 작성 후 제출해 주세요. 같은 회차 동료의 자료도 볼 수 있습니다.'}</p>
         </div>
         <div className="cy-headbtns">
           {admin && !creating && (
@@ -227,7 +227,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                     <tr>
                       {admin && <th style={{ width: 130 }}>작성자</th>}
                       <th>자료</th>
-                      <th style={{ width: 92 }}>상태</th>
+                      <th style={{ width: 92 }}>{admin ? '상태' : '내 것'}</th>
                       <th style={{ width: 78 }} title="아직 해결되지 않은 검토 의견">의견</th>
                       <th style={{ width: 128 }}>최종 수정</th>
                       <th style={{ width: 170 }}>작업</th>
@@ -237,11 +237,18 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                     {mine.map((p) => {
                       const who = users.find((u) => u.id === p.owner_id)
                       const isMine = p.owner_id === me?.id
+                      // 동료 행에는 제출 상태가 오지 않는다(서버가 지운다).
+                      // 대신 '내 것 / 동료' 를 보여준다 — 무엇을 열려는 것인지가 먼저다.
+                      const st = p.submit_status
                       return (
-                        <tr key={p.id} className={p.submit_status === 'submitted' || p.submit_status === 'approved' ? 'sent' : ''}>
+                        <tr key={p.id} className={st === 'submitted' || st === 'approved' ? 'sent' : ''}>
                           {admin && <td>{who ? `${who.name}${who.dept ? ` · ${who.dept}` : ''}` : '—'}</td>}
                           <td><b>{p.name}</b></td>
-                          <td><span className={'cy-sub b-' + p.submit_status}>{SUBMIT_LABEL[p.submit_status]}</span></td>
+                          <td>
+                            {st
+                              ? <span className={'cy-sub b-' + st}>{SUBMIT_LABEL[st]}</span>
+                              : <span className="cy-peer" title="같은 회차 동료의 자료 — 보기만 됩니다">동료</span>}
+                          </td>
                           <td>
                             {p.unresolved ? (
                               <span className="cy-unres" title="미해결 검토 의견">미해결 {p.unresolved}</span>
@@ -249,9 +256,11 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                           </td>
                           <td className="cy-dim">{fmtKst(p.updated_at)}</td>
                           <td className="cy-acts">
-                            <button className="cy-mini" onClick={() => void openProject(p.id)}>열기</button>
-                            {isMine && p.submit_status !== 'approved' && (
-                              p.submit_status === 'submitted'
+                            <button className="cy-mini" onClick={() => void openProject(p.id)}>
+                              {isMine ? '열기' : '보기'}
+                            </button>
+                            {isMine && st !== 'approved' && (
+                              st === 'submitted'
                                 ? <button className="cy-mini" disabled={!!busy}
                                     onClick={() => void run('sub' + p.id, () => apiSetSubmitStatus(p.id, 'draft'), '제출을 취소했습니다.')}>
                                     제출 취소
@@ -268,7 +277,7 @@ export default function CyclesScreen({ onClose }: { onClose: () => void }) {
                                 회수
                               </button>
                             )}
-                            {admin && !isMine && p.submit_status === 'submitted' && (<>
+                            {admin && !isMine && st === 'submitted' && (<>
                               <button className="cy-mini" disabled={!!busy}
                                 onClick={() => void run('ap' + p.id, () => apiSetSubmitStatus(p.id, 'approved'), '승인했습니다.')}>승인</button>
                               <button className="cy-mini danger" disabled={!!busy}

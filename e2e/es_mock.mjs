@@ -101,6 +101,14 @@ const DECK = {
   ],
   warnings: [], uploaded_at: Date.now(),
 }
+// PEER=1 로 띄우면 **남의 배부본을 연 상태**가 된다. 회차 단계는 PEER 값으로 정한다
+// (PEER=writing → 보기만, PEER=review → 의견도 가능).
+const PEER_STAGE = process.env.PEER || ''
+const ACCESS = PEER_STAGE
+  ? { mine: false, cycle_status: PEER_STAGE, can_write: false,
+      can_comment: PEER_STAGE === 'review' || PEER_STAGE === 'published' }
+  : { mine: true, cycle_status: 'writing', can_write: true, can_comment: true }
+
 const META = {
   id: 'p_test', name: '2026년 10월 임원회의 — 홍길동',
   created_at: Date.now(), updated_at: Date.now(),
@@ -126,8 +134,11 @@ const server = http.createServer(async (req, res) => {
     return
   }
   if (url === '/api/projects' && req.method === 'GET') return json(res, { projects: [META] })
-  if (url === '/api/projects/p_test' && req.method === 'GET') return json(res, { ...META, state })
+  if (url === '/api/projects/p_test' && req.method === 'GET') return json(res, { ...META, state, access: ACCESS })
   if (url.startsWith('/api/projects/p_test') && (req.method === 'PUT' || req.method === 'PATCH')) {
+    // 남의 배부본이면 서버가 실제로 막는다. 모의 서버가 순순히 200 을 주면,
+    // 화면 쪽 잠금이 풀려도 테스트가 알아채지 못한다.
+    if (PEER_STAGE) { res.writeHead(403, { 'content-type': 'application/json' }); res.end('{"detail":"권한이 없습니다."}'); return }
     let body = ''
     req.on('data', (c) => { body += c })
     req.on('end', () => json(res, { ...META, state }))

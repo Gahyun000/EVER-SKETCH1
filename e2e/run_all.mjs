@@ -22,6 +22,8 @@ const SUITES = [
   { name: '앵커 메모(검토 의견)', file: 'comments_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '의견 쓰기 창(모달)', file: 'comment_modal_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '대화상자 공용 껍데기', file: 'modal_shell_smoke.mjs', env: {} },
+  { name: '동료 자료 — 작성 중', file: 'peer_readonly_smoke.mjs', env: { PEER: 'writing', COMMENTS: '1' } },
+  { name: '동료 자료 — 검토 중', file: 'peer_readonly_smoke.mjs', env: { PEER: 'review', COMMENTS: '1' } },
 ]
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -47,7 +49,9 @@ async function runOne(suite) {
   }
   const code = await new Promise((resolve) => {
     const t = spawn(process.execPath, [join(dir, suite.file)], {
-      env: { ...process.env, URL: `http://127.0.0.1:${PORT}/` },
+      // 스위트 환경변수를 테스트에도 넘긴다 — 같은 파일이 PEER 값에 따라
+      // 다른 것을 기대하는 경우가 있다(작성 중 / 검토 중).
+      env: { ...process.env, ...suite.env, URL: `http://127.0.0.1:${PORT}/` },
       stdio: 'inherit',
     })
     t.on('exit', resolve)

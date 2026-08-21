@@ -16,6 +16,7 @@
     "e2e:comments": "COMMENTS=1 node e2e/es_mock.mjs & sleep 2 && node e2e/comments_smoke.mjs; kill %1",
     "e2e:modal": "COMMENTS=1 node e2e/es_mock.mjs & sleep 2 && node e2e/comment_modal_smoke.mjs; kill %1",
     "e2e:shell": "node e2e/es_mock.mjs & sleep 2 && node e2e/modal_shell_smoke.mjs; kill %1",
+    "e2e:peer": "PEER=writing COMMENTS=1 node e2e/es_mock.mjs & sleep 2 && PEER=writing node e2e/peer_readonly_smoke.mjs; kill %1",
     "e2e:all": "node e2e/run_all.mjs"
   },
   "dependencies": {

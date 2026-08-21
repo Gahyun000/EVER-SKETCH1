@@ -12,6 +12,7 @@ import type { FreeEl } from '../../state/store'
 import { mergeCovering, mergeRange, unmergeAt } from '../../canvas/tableOps'
 import { isSlotEl, slotAllows } from '../../template/slots'
 import CommentComposer from '../../comments/CommentComposer'
+import { useProjects } from '../../persistence/projects'
 import { useComments } from '../../comments/store'
 import { useBuilder as useBuilderStore } from '../../state/store'
 
@@ -114,6 +115,10 @@ function CommentTool() {
   const projectId = useComments((s) => s.projectId)
   const [busy, setBusy] = useState(false)
   const [composing, setComposing] = useState(false)
+  // 남의 장에는 **검토 단계부터** 지적을 단다. 아직 쓰는 중인 것에 지적이
+  // 달리면 쓰는 사람이 흔들린다. 되는지 여부는 서버가 정한다(access).
+  const access = useProjects((s) => s.access)
+  const canComment = !access || access.can_comment
   if (!projectId) return null
 
   const ts = el && tableSel && tableSel.elId === el.id ? tableSel : null
@@ -123,9 +128,13 @@ function CommentTool() {
   return (
     <span className="ax-grp gs">
       <span className="lab">검토</span>
-      <button className="tbtn" disabled={busy} title={`${where}에 의견을 답니다`}
+      <button className="tbtn" disabled={busy || !canComment}
+        title={canComment ? `${where}에 의견을 답니다`
+          : access && !access.mine && access.cycle_status === 'writing'
+            ? '아직 작성 중인 회차입니다 — 검토 단계부터 의견을 달 수 있어요'
+            : '이 자료에는 의견을 달 수 없습니다'}
         onClick={() => setComposing(true)}>💬 의견 달기</button>
-      <span className="tbtn-hint">{where}</span>
+      <span className="tbtn-hint">{canComment ? where : '검토 단계부터'}</span>
       {composing && (
         <CommentComposer where={where} onClose={() => setComposing(false)}
           onSubmit={async (body) => {

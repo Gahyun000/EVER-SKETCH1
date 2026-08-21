@@ -85,20 +85,32 @@ def test_게이트_가상회차_1건_5인_배부_성공(ctx):
     assert len(owners) == 5                              # 한 사람에게 몰리지 않았다
 
 
-def test_배부본은_각자에게만_보인다(ctx):
+def test_같은_회차_동료의_장은_보이되_고칠_수는_없다(ctx):
+    """예전 규칙은 '각자 자기 것만' 이었다.
+
+    그런데 실제로 나올 지적이 "3~5월 구간이 앞 장과 다릅니다" 다 —
+    앞 장을 볼 수 없으면 애초에 할 수 없는 말이고, 막아두면 결국
+    캡처를 메신저로 주고받게 된다. 그래서 **같은 회차 동료끼리는 보인다.**
+    다만 고치는 것은 끝까지 본인 것만이다.
+    """
     c = ctx["as_admin"]()
     cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
     c.post("/api/cycles/%s/distribute" % cid, json={})
 
     c1 = ctx["as_user"]("exec1")
-    mine = c1.get("/api/projects").json()["projects"]
-    assert len(mine) == 1
-    assert mine[0]["owner_id"] == ctx["execs"][0]["id"]
+    seen = c1.get("/api/projects").json()["projects"]
+    owners = {p["owner_id"] for p in seen}
+    assert ctx["execs"][0]["id"] in owners
+    assert len(owners) > 1, "같은 회차 동료의 장도 목록에 있어야 한다"
 
-    # 남의 배부본은 열리지 않는다
     others = [p for p in cycles_store.list_cycle_projects(cid)
               if p["owner_id"] != ctx["execs"][0]["id"]]
-    assert c1.get("/api/projects/%s" % others[0]["id"]).status_code == 403
+    other = others[0]["id"]
+    assert c1.get("/api/projects/%s" % other).status_code == 200
+
+    # 열리기는 해도 **고칠 수는 없다**.
+    assert c1.put("/api/projects/%s" % other,
+                  json={"state": {"pages": []}, "name": "남의 장 고치기"}).status_code == 403
 
 
 def test_배부는_멱등하다(ctx):
@@ -276,7 +288,9 @@ def test_L1은_발행된_회차만_본다(ctx):
     assert v.get("/api/cycles/%s" % a).status_code == 403     # 진행 중 회차는 존재도 모른다
 
 
-def test_L3만_전체_진행현황을_본다(ctx):
+def test_진행현황_숫자는_관리자만_본다(ctx):
+    """명단은 동료에게도 보인다(앞 장을 보러 가려면 길이 있어야 한다).
+    다만 **누가 아직 안 냈는지**는 회차를 굴리는 사람의 정보다."""
     c = ctx["as_admin"]()
     cid = c.post("/api/cycles", json={"period_ym": "2026-10"}).json()["cycle"]["id"]
     c.post("/api/cycles/%s/distribute" % cid, json={})
@@ -286,8 +300,15 @@ def test_L3만_전체_진행현황을_본다(ctx):
     assert len(admin_view["projects"]) == 5
 
     exec_view = ctx["as_user"]("exec1").get("/api/cycles/%s" % cid).json()
-    assert "progress" not in exec_view          # 남이 냈는지 여부는 알 필요 없다
-    assert len(exec_view["projects"]) == 1
+    assert "progress" not in exec_view          # 집계는 관리자만
+    assert len(exec_view["projects"]) == 5      # 명단은 보인다
+
+    me = [p for p in exec_view["projects"] if p["mine"]]
+    others = [p for p in exec_view["projects"] if not p["mine"]]
+    assert len(me) == 1 and len(others) == 4
+    assert "submit_status" in me[0], "내 제출 상태는 내가 봐야 한다"
+    assert all("submit_status" not in p for p in others), \
+        "남이 냈는지 여부까지 보이면 동료끼리 재촉하는 화면이 된다"
 
 
 # ══════════ 제출 상태 ══════════

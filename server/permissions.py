@@ -99,6 +99,22 @@ class Resource:
     owner_id: Optional[str] = None
     cycle_status: Optional[str] = None   # Cycles.status — 'published' 여야 열람자가 볼 수 있다
     published: bool = False
+    # 판정하는 사람이 **이 자료와 같은 회차에 배부본을 갖고 있는가.**
+    # 같은 회의를 준비하는 사람끼리는 서로의 장을 볼 수 있어야 한다 —
+    # "3~5월 구간이 앞 장과 다릅니다" 는 앞 장을 볼 수 없으면 할 수 없는 말이다.
+    # 막아두면 결국 캡처를 카톡으로 주고받게 되고, 그게 훨씬 위험하다.
+    same_cycle: bool = False
+
+
+# 동료가 남의 장을 **볼 수 있는** 회차 단계.
+# '준비'(draft)는 빠져 있다 — 아직 아무에게도 나가지 않은 회차다.
+PEER_READ_STAGES = ("writing", "review", "published", "closed")
+# 동료가 남의 장에 **의견을 달 수 있는** 회차 단계.
+# 작성 중에는 달지 않는다 — 아직 쓰는 중인 것에 지적이 달리면 쓰는 사람이 흔들린다.
+PEER_COMMENT_STAGES = ("review", "published")
+# 내 장이라도 **더는 고칠 수 없는** 단계. 확정본이 나간 뒤에 원본이 바뀌면
+# 발행된 것과 손에 든 것이 달라진다.
+FROZEN_STAGES = ("published", "closed")
 
 
 def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) -> bool:
@@ -140,22 +156,33 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
     if action == AI_USE:
         return True
 
-    # 소유 기반: '내 것'만. 소유자 판정이 불가능하면 거부.
+    # 소유 기반: '내 것' + 같은 회차의 동료 것. 소유자 판정이 불가능하면 거부.
     if res is None or res.owner_id is None:
         return False
     owns = res.owner_id == actor.id
+    # '동료' = 같은 회차에 배부본을 가진 다른 사람의 자료.
+    peer = bool(res.same_cycle) and not owns
+    stage = res.cycle_status or ""
 
     if action == READ:
-        # 본인 이북 + 발행본
-        return owns or bool(res.published)
+        # 본인 이북 + 발행본 + 같은 회차 동료의 장(배부가 나간 뒤부터)
+        return owns or bool(res.published) or (peer and stage in PEER_READ_STAGES)
     if action == WRITE:
-        return owns
+        # 고치는 것은 언제나 **본인 것만**. 동료 것은 읽기 전용이다.
+        # 회차가 발행·마감된 뒤에는 본인 것도 잠긴다 — 확정본과 어긋나면
+        # 회의에서 본 자료와 시스템 안의 자료가 다른 말을 하게 된다.
+        return owns and stage not in FROZEN_STAGES
     if action == DELETE:
         # 삭제는 관리자만. 회차 자료 유실 방지(삭제 요청 워크플로는 v1.1 이월)
         return False
-    if action in (COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE):
-        # 본인 이북의 메모만. 답글·해결요청 가능
-        return owns
+    if action == COMMENT_READ:
+        # 볼 수 있는 자료의 의견은 볼 수 있다. 따로 가르면 '자료는 보이는데
+        # 거기 달린 지적은 안 보이는' 상태가 되어 같은 지적이 두 번 달린다.
+        return owns or (peer and stage in PEER_READ_STAGES)
+    if action in (COMMENT_WRITE, COMMENT_RESOLVE):
+        # 내 장에는 언제나(관리자 지적에 답해야 한다).
+        # 남의 장에는 검토 단계부터.
+        return owns or (peer and stage in PEER_COMMENT_STAGES)
 
     return False
 
@@ -176,7 +203,10 @@ def visible_project_filter(actor: Optional[Actor]) -> str:
     if actor.role == ADMIN:
         return "all"
     if actor.role == WRITER:
-        return "own_or_published"
+        # 본인 것 + 발행본 + **같은 회차 동료의 장**.
+        # decide() 의 READ 규칙과 짝이 맞아야 한다 — 어긋나면
+        # '목록엔 보이는데 열면 403' 이 난다.
+        return "own_or_cycle_or_published"
     if actor.role == VIEWER:
         return "published"
     return "none"

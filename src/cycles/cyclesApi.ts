@@ -23,11 +23,14 @@ export interface CycleProject {
   id: string
   name: string
   owner_id: string
-  submit_status: SubmitStatus
+  /** 동료 행에는 오지 않는다 — 누가 아직 안 냈는지는 회차를 굴리는 사람의 정보다. */
+  submit_status?: SubmitStatus
   updated_at: number
   page_count: number
   /** 아직 해결되지 않은 검토 의견 수. 반려된 사람이 무엇을 고쳐야 하는지 바로 보이게. */
   unresolved?: number
+  /** 내 배부본인가. 관리자 응답에는 없다(관리자는 전부 남의 것으로 본다). */
+  mine?: boolean
 }
 
 export interface CycleProgress {

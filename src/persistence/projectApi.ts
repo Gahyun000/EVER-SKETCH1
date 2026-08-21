@@ -15,8 +15,18 @@ export interface ProjectMeta {
   cycle_id?: string | null
   submit_status?: string
 }
+/** 이 자료로 **무엇을 할 수 있는지** — 서버가 판정해서 함께 내려준다.
+ *  화면이 역할과 회차 단계를 보고 다시 계산하면 규칙이 두 곳에 생기고,
+ *  반드시 어긋난다(그때 사용자에게는 '눌리는데 403' 으로 보인다). */
+export interface ProjectAccess {
+  mine: boolean
+  cycle_status: string | null
+  can_write: boolean
+  can_comment: boolean
+}
 export interface ProjectFull extends ProjectMeta {
   state: DraftStateSnapshot
+  access?: ProjectAccess
 }
 export interface DocVersion {
   id: string

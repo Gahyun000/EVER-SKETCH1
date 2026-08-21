@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useProjects } from '../persistence/projects'
 import { useBuilder } from '../state/store'
 import PageWithCanvas from '../cards/PageWithCanvas'
 import { pageSize, ratioLabel } from '../cards/sizing'
@@ -42,14 +43,32 @@ export default function Preview() {
   }, [W, H])
 
   const pct = Math.round(scale * 100)
+
+  // **무엇을 할 수 있는지는 서버가 정한다**(GET /api/projects/{id} 의 access).
+  // 화면이 역할과 회차 단계를 보고 다시 계산하면 규칙이 두 곳에 생기고,
+  // 어긋나는 순간 사용자에게는 '눌리는데 저장이 안 되는' 상태로 보인다.
+  const access = useProjects((s) => s.access)
+  const canWrite = !access || access.can_write
+
   return (<>
-    <div className="pv-h">미리보기</div>
+    <div className="pv-h">
+      {canWrite ? '미리보기' : (
+        <span className="pv-ro">
+          <b>읽기 전용</b>
+          {!access?.mine
+            ? ' — 동료의 자료입니다. 고칠 수는 없고, 보고 의견을 남길 수 있습니다.'
+            : access.cycle_status === 'published'
+              ? ' — 발행된 회차입니다. 확정본과 어긋나지 않도록 잠겨 있습니다.'
+              : ' — 마감된 회차입니다.'}
+        </span>
+      )}
+    </div>
     <div className="stage" ref={stageRef}>
       {page
         ? (
           <div style={{ width: W * scale, height: H * scale, flex: '0 0 auto' }}>
             <div style={{ width: W, height: H, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
-              <PageWithCanvas page={page} docTitle={title} orientation={orientation} size={size} font={font} tocItems={items} interactive={true} />
+              <PageWithCanvas page={page} docTitle={title} orientation={orientation} size={size} font={font} tocItems={items} interactive={canWrite} />
             </div>
           </div>
         )

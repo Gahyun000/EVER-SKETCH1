@@ -77,10 +77,20 @@ def projects_create(req: ProjectCreateIn, user: dict = Depends(require_active)):
 
 @router.get("/api/projects/{pid}")
 def projects_get(pid: str, user: dict = Depends(require_active)):
-    require_project(user, pid, perm.READ)
+    res = require_project(user, pid, perm.READ)
     p = projects_store.get_project(pid)
     if not p:
         raise HTTPException(status_code=404, detail="not found")
+    # **무엇을 할 수 있는지는 서버가 말한다.**
+    # 화면이 역할과 회차 단계를 보고 다시 계산하면, 규칙이 두 곳에 생기고
+    # 반드시 어긋난다(그때 사용자에게는 '눌리는데 403' 으로 보인다).
+    actor = auth_store.actor_of(user)
+    p["access"] = {
+        "mine": res.owner_id == user["id"],
+        "cycle_status": res.cycle_status,
+        "can_write": perm.decide(actor, perm.WRITE, res),
+        "can_comment": perm.decide(actor, perm.COMMENT_WRITE, res),
+    }
     return p
 
 

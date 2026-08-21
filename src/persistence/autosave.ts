@@ -17,8 +17,12 @@ interface AutosaveState {
 let timer: number | null = null
 let installed = false
 let hydrated = false
+// 남의 자료를 열었을 때 자동저장이 돌면 매번 403 이 뜨고, 사용자는 자기가
+// 뭔가 망가뜨린 줄 안다. 서버 판정(access.can_write)이 잠그면 여기서 멈춘다.
+let readOnly = false
 
 function scheduleSave(delay = 800) {
+  if (readOnly) return                  // 읽기 전용으로 연 자료
   if (!hydrated) return                 // 프로젝트 로드 중(setState)엔 저장 안 함
   if (!getActiveProjectId()) return     // 편집 중인 프로젝트가 없으면 저장 대상 없음
   useAutosave.setState({ status: 'dirty', error: undefined })
@@ -32,6 +36,7 @@ export const useAutosave = create<AutosaveState>((set) => ({
   saveNow: async () => {
     const pid = getActiveProjectId()
     if (!pid) { set({ status: 'idle', error: undefined }); return }
+    if (readOnly) { set({ status: 'idle', error: undefined }); return }
     set({ status: 'saving', error: undefined })
     try {
       const snap = snapshotFromState(useBuilder.getState())
@@ -62,6 +67,15 @@ export function installAutosave() {
 
 // 프로젝트 로드 전/후로 자동저장 게이트를 여닫는다(로드 중 setState 로 인한 오저장 방지).
 export function setAutosaveHydrated(v: boolean) { hydrated = v }
+/** 읽기 전용으로 연 자료에서는 자동저장을 아예 돌리지 않는다. */
+export function setAutosaveReadOnly(v: boolean) {
+  readOnly = v
+  if (v) {
+    if (timer !== null) { window.clearTimeout(timer); timer = null }
+    useAutosave.setState({ status: 'idle', error: undefined })
+  }
+}
+export function isAutosaveReadOnly() { return readOnly }
 export function markAutosaveHydrated() { hydrated = true }
 
 export function hasUnsavedChanges() {

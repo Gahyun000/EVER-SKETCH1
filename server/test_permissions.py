@@ -126,7 +126,7 @@ def test_이상한_역할은_거부():
 # ── 목록 필터 ─────────────────────────────
 def test_목록_필터가_개별_판정과_일치():
     assert visible_project_filter(ADMIN_U) == "all"
-    assert visible_project_filter(WRITER_U) == "own_or_published"
+    assert visible_project_filter(WRITER_U) == "own_or_cycle_or_published"
     assert visible_project_filter(VIEWER_U) == "published"
     assert visible_project_filter(PENDING) == "none"
     assert visible_project_filter(DISABLED) == "none"

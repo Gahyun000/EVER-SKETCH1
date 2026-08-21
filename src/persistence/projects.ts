@@ -3,10 +3,10 @@ import { useBuilder, reseedUids, type BuilderState } from '../state/store'
 import { snapshotFromState, type DraftStateSnapshot } from './draftStorage'
 import {
   apiListProjects, apiCreateProject, apiGetProject, apiRenameProject,
-  apiDeleteProject, apiDuplicateProject, type ProjectMeta, type ProjectFull,
+  apiDeleteProject, apiDuplicateProject, type ProjectMeta, type ProjectFull, type ProjectAccess,
 } from './projectApi'
 import { setActiveProjectId } from './session'
-import { setAutosaveHydrated, markAutosaveHydrated, useAutosave, flushSave, cancelPendingSave } from './autosave'
+import { setAutosaveHydrated, setAutosaveReadOnly, markAutosaveHydrated, useAutosave, flushSave, cancelPendingSave } from './autosave'
 import { migrateLegacyDraftOnce } from './legacyMigration'
 
 export type LibView = 'library' | 'editor' | 'cycles'
@@ -31,7 +31,11 @@ function applyProject(p: ProjectFull): void {
   reseedUids(st.pages || [])
   useBuilder.setState(st as Partial<BuilderState>)
   setActiveProjectId(p.id)
-  useProjects.setState({ activeId: p.id, view: 'editor' })
+  // 남의 자료를 열었을 때 자동저장이 돌면 **매번 403 이 뜨고**, 사용자는
+  // 자기가 뭔가 망가뜨린 줄 안다. 열자마자 저장을 잠근다.
+  const acc = p.access || null
+  setAutosaveReadOnly(!!acc && !acc.can_write)
+  useProjects.setState({ activeId: p.id, view: 'editor', access: acc })
   useAutosave.setState({ status: 'saved', savedAt: new Date(p.updated_at || Date.now()).toISOString(), error: undefined })
   markAutosaveHydrated()                      // 이제부터 편집=저장
 }
@@ -39,6 +43,8 @@ function applyProject(p: ProjectFull): void {
 interface ProjectsState {
   view: LibView
   activeId: string | null
+  /** 지금 연 자료로 무엇을 할 수 있는지(서버 판정). 없으면 예전 방식대로 전부 허용. */
+  access: ProjectAccess | null
   list: ProjectMeta[]
   loading: boolean
   booted: boolean
@@ -57,6 +63,7 @@ interface ProjectsState {
 export const useProjects = create<ProjectsState>((set, get) => ({
   view: 'library',
   activeId: null,
+  access: null,
   list: [],
   loading: false,
   booted: false,
@@ -109,7 +116,8 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     const snap = snapshotFromState(useBuilder.getState())
     const p = await apiCreateProject(snap.title || '가져온 이북', snap)
     setActiveProjectId(p.id)
-    useProjects.setState({ activeId: p.id, view: 'editor' })
+    setAutosaveReadOnly(false)              // 내가 만든 것이니 잠금 해제
+    useProjects.setState({ activeId: p.id, view: 'editor', access: null })
     useAutosave.setState({ status: 'saved', savedAt: new Date(p.updated_at || Date.now()).toISOString(), error: undefined })
     markAutosaveHydrated()
     await get().loadList()
@@ -118,8 +126,9 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   backToLibrary: async () => {
     try { await flushSave() } catch { /* noop */ }
     setAutosaveHydrated(false)
+    setAutosaveReadOnly(false)
     setActiveProjectId(null)
-    set({ activeId: null, view: 'library' })
+    set({ activeId: null, view: 'library', access: null })
     await get().loadList()
   },
 

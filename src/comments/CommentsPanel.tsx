@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiListUsers, type Me } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
+import { useProjects } from '../persistence/projects'
 import { useBuilder } from '../state/store'
 import { cellLabel, type Thread } from './commentsApi'
 import { useComments } from './store'
@@ -14,6 +15,9 @@ import './comments.css'
  */
 export default function CommentsPanel() {
   const me = useAuth((s) => s.me)
+  // 의견을 달 수 있는지는 서버가 정한다(GET /api/projects/{id} 의 access).
+  const access = useProjects((s) => s.access)
+  const canComment = !access || access.can_comment
   const pages = useBuilder((s) => s.pages)
   const selectedPageId = useBuilder((s) => s.selectedPageId)
   const { threads, open, setOpen, focusId, focus, showResolved, setShowResolved,
@@ -139,17 +143,24 @@ export default function CommentsPanel() {
       </div>
 
       <div className="cmt-new">
+        {!canComment && (
+          /* 남의 장에는 검토 단계부터 단다. 입력칸만 잠그고 이유를 말하지 않으면
+             '왜 안 써지지' 로 끝난다. */
+          <p className="cmt-locked">
+            아직 <b>작성 중</b>인 회차입니다. 검토 단계로 넘어가면 의견을 달 수 있어요.
+          </p>
+        )}
         {replyTo && (
           <div className="cmt-replying">
             답글 작성 중
             <button className="cmt-mini" onClick={() => setReplyTo(null)}>취소</button>
           </div>
         )}
-        <textarea value={draft} rows={3} disabled={busy}
+        <textarea value={draft} rows={3} disabled={busy || !canComment}
           placeholder={replyTo ? '답글을 쓰세요' : '이 장에 대한 의견을 쓰세요. 특정 칸을 짚으려면 표에서 칸을 고른 뒤 툴바의 「의견 달기」를 누르세요.'}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit() }} />
-        <button className="cmt-send" disabled={busy || !draft.trim()} onClick={() => void submit()}>
+        <button className="cmt-send" disabled={busy || !canComment || !draft.trim()} onClick={() => void submit()}>
           {busy ? '보내는 중…' : replyTo ? '답글 달기' : '의견 달기'}
         </button>
       </div>

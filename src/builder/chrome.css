@@ -179,6 +179,14 @@
 
 /* 중앙 미리보기: 기존 Preview를 stage-wrap 안에 담는다 */
 .ax-stage-wrap .pv-h{flex:0 0 auto;padding:10px 14px 4px;font-size:12px;color:var(--ax-muted);font-weight:700;text-align:center}
+/* 읽기 전용 알림 — 미리보기 제목 자리에 그대로 뜬다.
+   따로 띄우는 배너는 한 번 닫으면 다시 안 보이고, 그 뒤로는 '왜 안 고쳐지지' 가 된다.
+   자리를 차지하지 않으면서 늘 보이는 곳이 여기다. */
+.ax-stage-wrap .pv-h .pv-ro{
+  display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#8a5a12;
+  background:#fff5e0;border:1px solid #f0d9a8;border-radius:999px;padding:3px 12px;
+}
+.ax-stage-wrap .pv-h .pv-ro b{color:#6f450b}
 .ax-stage-wrap .pv-cap{flex:0 0 auto;padding:8px 14px;font-size:11px;color:var(--ax-muted);font-family:var(--ax-mono);text-align:center;border-top:1px solid rgba(0,0,0,.06);background:#e9eaed}
 
 .cp{position:relative;display:inline-flex}
