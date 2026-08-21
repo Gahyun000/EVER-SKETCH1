@@ -61,6 +61,11 @@ class ResolveIn(BaseModel):
     resolved: bool = True
 
 
+class FixedIn(BaseModel):
+    fixed: bool = True
+    body: Optional[str] = None      # 비우면 「고쳤습니다.」 한 줄이 달린다
+
+
 # ─────────────────────── 프로젝트 ───────────────────────
 @router.get("/api/projects")
 def projects_list(user: dict = Depends(require_active)):
@@ -251,15 +256,46 @@ def _comment_or_404(cid: str) -> dict:
 
 @router.post("/api/comments/{cid}/resolve")
 def comment_resolve(cid: str, req: ResolveIn, user: dict = Depends(require_active)):
-    """해결 표시 — 스레드 단위."""
+    """해결 표시 — 스레드 단위. **지적한 사람(과 관리자)만.**
+
+    담당자가 자기에게 온 지적을 스스로 닫게 두면, "고쳤다" 와 "정말 고쳤다" 가
+    구분되지 않는다. 그러면 발행 직전의 '미해결 0건' 이 아무것도 보장하지 못한다.
+    담당자 쪽 손은 「고쳤습니다」(아래 comment_fixed)다.
+    """
     item = _comment_or_404(cid)
-    require_project(user, item["project_id"], perm.COMMENT_RESOLVE)
+    root = comments_store.get(item["thread_id"]) or item
+    res = require_project(user, item["project_id"], perm.READ)
+    require_action(user, perm.COMMENT_RESOLVE,
+                   perm.Resource(owner_id=res.owner_id, cycle_status=res.cycle_status,
+                                 published=res.published, same_cycle=res.same_cycle,
+                                 comment_author_id=root["author_id"]))
     try:
         out = comments_store.set_resolved(cid, req.resolved, user["id"])
     except comments_store.CommentError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    # 관리자가 **남 대신** 닫은 것은 따로 알아볼 수 있어야 한다.
+    who = "" if root["author_id"] == user["id"] else " (대신 %s)" % root["author_id"]
     auth_store.audit(user["id"], "comment_resolve", item["project_id"],
-                     "%s → %s" % (cid, "해결" if req.resolved else "다시 열기"))
+                     "%s → %s%s" % (cid, "해결" if req.resolved else "다시 열기", who))
+    return {"ok": True, "comment": out}
+
+
+@router.post("/api/comments/{cid}/fixed")
+def comment_fixed(cid: str, req: FixedIn, user: dict = Depends(require_active)):
+    """「고쳤습니다」 — 지적받은 쪽이 답하는 표시. **닫는 것이 아니다.**
+
+    지적한 사람이 확인하고 닫을 때까지 미해결로 남는다.
+    표시와 함께 답글을 한 줄 남긴다 — 상태만 바뀌면 지적한 사람은 목록에서
+    무엇이 달라졌는지 알 수 없다.
+    """
+    item = _comment_or_404(cid)
+    require_project(user, item["project_id"], perm.COMMENT_FIX)
+    try:
+        out = comments_store.set_fixed(cid, req.fixed, user["id"], req.body)
+    except comments_store.CommentError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "comment_fixed", item["project_id"],
+                     "%s → %s" % (cid, "고침" if req.fixed else "고침 취소"))
     return {"ok": True, "comment": out}
 
 

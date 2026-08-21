@@ -14,6 +14,11 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
+# SQLite 가 옆에 만드는 파일들 — 본체(*.db)만 막으면 이게 새어 들어온다.
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
 .env
 .env.*
 !.env.example

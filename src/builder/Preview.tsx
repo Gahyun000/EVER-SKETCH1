@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
-import { countToMe, useComments } from '../comments/store'
+import { countMyTurn, useComments } from '../comments/store'
 import { useProjects } from '../persistence/projects'
 import { useBuilder } from '../state/store'
 import PageWithCanvas from '../cards/PageWithCanvas'
@@ -62,7 +62,7 @@ export default function Preview() {
   const setCmtOpen = useComments((s) => s.setOpen)
   const cmtFocus = useComments((s) => s.focus)
   const docIsMine = !access || access.mine
-  const toMe = countToMe(threads, me?.id, docIsMine)
+  const toMe = countMyTurn(threads, me?.id, docIsMine)
   const first = threads.find((t) => !t.resolved_at && t.author_id !== me?.id)
 
   return (<>

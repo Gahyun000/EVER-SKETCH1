@@ -27,11 +27,33 @@ export function relationOf(t: { author_id: string }, meId: string | undefined,
   return docIsMine ? 'to-me' : 'other'
 }
 
-/** 답해야 할 것(미해결) 개수. 화면 곳곳에서 같은 숫자를 써야 한다. */
-export function countToMe(threads: { author_id: string; resolved_at: number | null }[], meId: string | undefined,
-                          docIsMine: boolean): number {
-  if (!docIsMine) return 0
-  return threads.filter((t) => !t.resolved_at && relationOf(t, meId, true) === 'to-me').length
+/**
+ * **지금 공이 누구에게 있는가.**
+ *
+ * 관계만으로는 부족하다. 내가 쓴 지적이라도 상대가 「고쳤습니다」를 눌렀으면
+ * 이제 **내가 확인하고 닫을 차례**다. 그걸 '내가 쓴 것' 무리에 그냥 두면,
+ * 고쳐 놓고 아무도 안 닫는 지적이 조용히 쌓인다.
+ *
+ *   'me'    내 차례 — 고치거나(지적받음), 확인하고 닫거나(고침 알림 옴)
+ *   'them'  상대 차례 — 기다린다
+ *   'none'  나와 상관없거나 이미 끝났다
+ */
+export type Turn = 'me' | 'them' | 'none'
+
+export function turnOf(t: { author_id: string; resolved_at: number | null; fixed_at?: number | null },
+                       meId: string | undefined, docIsMine: boolean): Turn {
+  if (t.resolved_at) return 'none'
+  const rel = relationOf(t, meId, docIsMine)
+  const fixed = !!t.fixed_at
+  if (rel === 'to-me') return fixed ? 'them' : 'me'   // 고쳤다고 알렸으면 확인은 상대 몫
+  if (rel === 'mine') return fixed ? 'me' : 'them'    // 고쳤다는 답이 왔으면 내가 닫는다
+  return 'none'
+}
+
+/** 내 차례인 것의 개수. 화면 곳곳에서 같은 숫자를 써야 한다. */
+export function countMyTurn(threads: { author_id: string; resolved_at: number | null; fixed_at?: number | null }[],
+                            meId: string | undefined, docIsMine: boolean): number {
+  return threads.filter((t) => turnOf(t, meId, docIsMine) === 'me').length
 }
 
 
@@ -43,16 +65,21 @@ export function countToMe(threads: { author_id: string; resolved_at: number | nu
  * 해결된 것은 맨 아래다. 같은 무리 안에서는 달린 순서대로 — 대화는
  * 시간 순으로 읽혀야 한다.
  */
-const RANK: Record<CmtRelation, number> = { 'to-me': 0, mine: 1, other: 2 }
+const TURN_RANK: Record<Turn, number> = { me: 0, them: 1, none: 2 }
+const REL_RANK: Record<CmtRelation, number> = { 'to-me': 0, mine: 1, other: 2 }
 
-export function sortThreads<T extends { author_id: string; resolved_at: number | null; created_at: number }>(
+export function sortThreads<T extends { author_id: string; resolved_at: number | null; created_at: number; fixed_at?: number | null }>(
   threads: T[], meId: string | undefined, docIsMine: boolean,
 ): T[] {
   return threads.slice().sort((a, b) => {
     const ra = a.resolved_at ? 1 : 0, rb = b.resolved_at ? 1 : 0
     if (ra !== rb) return ra - rb
-    const da = RANK[relationOf(a, meId, docIsMine)]
-    const db = RANK[relationOf(b, meId, docIsMine)]
+    // 내 차례가 먼저. 그다음은 관계 순서(내 자료의 지적 → 내가 쓴 것 → 그 밖).
+    const ta = TURN_RANK[turnOf(a, meId, docIsMine)]
+    const tb = TURN_RANK[turnOf(b, meId, docIsMine)]
+    if (ta !== tb) return ta - tb
+    const da = REL_RANK[relationOf(a, meId, docIsMine)]
+    const db = REL_RANK[relationOf(b, meId, docIsMine)]
     if (da !== db) return da - db
     return a.created_at - b.created_at
   })

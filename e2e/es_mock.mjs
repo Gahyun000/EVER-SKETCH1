@@ -172,6 +172,31 @@ const server = http.createServer(async (req, res) => {
     })
     return
   }
+  // 「고쳤습니다」 — 답글 한 줄이 함께 달린다(서버와 같은 동작).
+  if (/^\/api\/comments\/[^/]+\/fixed$/.test(url) && req.method === 'POST') {
+    const id = url.split('/')[3]
+    let body = ''
+    req.on('data', (c) => { body += c })
+    req.on('end', () => {
+      let b = {}
+      try { b = JSON.parse(body) } catch { /* 무시 */ }
+      const t = comments.find((x) => x.id === id || x.replies.some((r) => r.id === id))
+      if (t) {
+        t.fixed_at = b.fixed ? Date.now() : null
+        t.fixed_by = b.fixed ? ME.id : null
+        if (b.fixed) {
+          t.replies.push({
+            id: 'cm' + (++cmtSeq), project_id: 'p_test', thread_id: t.id,
+            page_id: t.page_id, el_id: t.el_id, cell: t.cell,
+            body: (b.body || '').trim() || '고쳤습니다.', author_id: ME.id,
+            created_at: Date.now(), resolved_at: null, resolved_by: null,
+          })
+        }
+      }
+      json(res, { ok: true, comment: t || {} })
+    })
+    return
+  }
   if (/^\/api\/comments\/[^/]+\/resolve$/.test(url) && req.method === 'POST') {
     const id = url.split('/')[3]
     let body = ''
@@ -180,7 +205,10 @@ const server = http.createServer(async (req, res) => {
       let b = {}
       try { b = JSON.parse(body) } catch { /* 무시 */ }
       const t = comments.find((x) => x.id === id || x.replies.some((r) => r.id === id))
-      if (t) { t.resolved_at = b.resolved ? Date.now() : null }
+      if (t) {
+        t.resolved_at = b.resolved ? Date.now() : null
+        if (b.resolved) { t.fixed_at = null; t.fixed_by = null }
+      }
       json(res, { ok: true, comment: t || {} })
     })
     return

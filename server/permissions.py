@@ -63,6 +63,7 @@ DELETE = "delete"
 COMMENT_READ = "comment_read"
 COMMENT_WRITE = "comment_write"
 COMMENT_RESOLVE = "comment_resolve"
+COMMENT_FIX = "comment_fix"       # 「고쳤습니다」 — 지적받은 쪽이 답하는 표시
 CYCLE_MANAGE = "cycle_manage"     # 회차 개설·마감
 USER_MANAGE = "user_manage"       # 가입 승인·역할 변경·비활성화
 TEMPLATE_MANAGE = "template_manage"
@@ -72,7 +73,7 @@ AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작
 
 ALL_ACTIONS = (
     READ, WRITE, DELETE,
-    COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE,
+    COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE, COMMENT_FIX,
     CYCLE_MANAGE, USER_MANAGE, TEMPLATE_MANAGE,
     SETTINGS_MANAGE, PUBLISH, AI_USE,
 )
@@ -104,6 +105,10 @@ class Resource:
     # "3~5월 구간이 앞 장과 다릅니다" 는 앞 장을 볼 수 없으면 할 수 없는 말이다.
     # 막아두면 결국 캡처를 카톡으로 주고받게 되고, 그게 훨씬 위험하다.
     same_cycle: bool = False
+    # 그 지적을 **누가 썼는가.** 해결(닫기)은 지적한 사람 몫이다 —
+    # 담당자가 자기에게 온 지적을 스스로 닫으면 검토가 형식이 된다.
+    # 지적 하나를 두고 판정할 때만 채운다(목록 조회 등에는 None).
+    comment_author_id: Optional[str] = None
 
 
 # 동료가 남의 장을 **볼 수 있는** 회차 단계.
@@ -179,6 +184,16 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
         # 볼 수 있는 자료의 의견은 볼 수 있다. 따로 가르면 '자료는 보이는데
         # 거기 달린 지적은 안 보이는' 상태가 되어 같은 지적이 두 번 달린다.
         return owns or (peer and stage in PEER_READ_STAGES)
+    if action == COMMENT_FIX:
+        # 「고쳤습니다」는 **지적받은 쪽**이 누른다 — 내 자료의 지적만.
+        return owns
+    if action == COMMENT_RESOLVE and res.comment_author_id is not None:
+        # **지적한 사람이 닫는다.**
+        # 담당자가 스스로 닫게 두면 "고쳤다" 와 "정말 고쳤다" 가 구분되지 않고,
+        # 발행 직전의 '미해결 0건' 이 아무것도 보장하지 못하게 된다.
+        # 대신 담당자에게는 「고쳤습니다」(COMMENT_FIX)가 있다.
+        # 자리를 비운 리뷰어 때문에 회차가 막히는 경우는 관리자가 푼다.
+        return res.comment_author_id == actor.id
     if action in (COMMENT_WRITE, COMMENT_RESOLVE):
         # 내 장에는 언제나(관리자 지적에 답해야 한다).
         # 남의 장에는 검토 단계부터.

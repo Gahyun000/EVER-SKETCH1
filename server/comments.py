@@ -51,6 +51,12 @@ def _conn() -> sqlite3.Connection:
     )
     c.execute("CREATE INDEX IF NOT EXISTS idx_comments_pid ON Comments(project_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_comments_thread ON Comments(thread_id)")
+    # 「고쳤습니다」 표시 — 나중에 생긴 열이라 이미 쓰고 있는 DB 에는 없다.
+    # 없으면 붙인다. 이 한 줄이 없으면 배포하는 순간 기존 자료의 메모가 전부 죽는다.
+    have = {r[1] for r in c.execute("PRAGMA table_info(Comments)").fetchall()}
+    for col, decl in (("fixed_at", "REAL"), ("fixed_by", "TEXT")):
+        if col not in have:
+            c.execute("ALTER TABLE Comments ADD COLUMN %s %s" % (col, decl))
     c.commit()
     return c
 
@@ -58,11 +64,12 @@ def _conn() -> sqlite3.Connection:
 def _row(r) -> dict:
     return {"id": r[0], "project_id": r[1], "thread_id": r[2], "page_id": r[3],
             "el_id": r[4], "cell": r[5], "body": r[6], "author_id": r[7],
-            "created_at": r[8], "resolved_at": r[9], "resolved_by": r[10]}
+            "created_at": r[8], "resolved_at": r[9], "resolved_by": r[10],
+            "fixed_at": r[11], "fixed_by": r[12]}
 
 
 _COLS = ("id,project_id,thread_id,page_id,el_id,cell,body,author_id,"
-         "created_at,resolved_at,resolved_by")
+         "created_at,resolved_at,resolved_by,fixed_at,fixed_by")
 
 
 # 앵커에 넣을 수 있는 가장 큰 좌표. 표는 이보다 훨씬 작지만, 서버는 표 크기를
@@ -145,7 +152,7 @@ def add(project_id: str, author_id: str, body: str, page_id: int,
 
         cid = "cm" + uuid.uuid4().hex[:12]
         c.execute(
-            "INSERT INTO Comments(%s) VALUES(?,?,?,?,?,?,?,?,?,NULL,NULL)" % _COLS,
+            "INSERT INTO Comments(%s) VALUES(?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,NULL)" % _COLS,
             (cid, project_id, thread_id or cid, int(page_id), el_id, cell,
              body, author_id, _now()),
         )
@@ -200,6 +207,43 @@ def set_resolved(cid: str, resolved: bool, actor_id: str) -> dict:
     try:
         c.execute("UPDATE Comments SET resolved_at=?, resolved_by=? WHERE id=?",
                   (_now() if resolved else None, actor_id if resolved else None, root_id))
+        if resolved:
+            # 닫힌 지적에는 '고침 알림' 을 남기지 않는다 — 남겨두면 '내 차례'
+            # 로 다시 세어져서, 해결했는데도 할 일이 줄지 않는다.
+            c.execute("UPDATE Comments SET fixed_at=NULL, fixed_by=NULL WHERE id=?", (root_id,))
+        c.commit()
+    finally:
+        c.close()
+    return get(root_id)          # type: ignore[return-value]
+
+
+# 담당자가 「고쳤습니다」를 누를 때 자동으로 달리는 한 줄.
+# 답글 없이 상태만 바꾸면, 지적한 사람은 목록에서 무엇이 달라졌는지 알 수 없다.
+FIXED_NOTE = "고쳤습니다."
+
+
+def set_fixed(cid: str, fixed: bool, actor_id: str, note: Optional[str] = None) -> dict:
+    """「고쳤습니다」 표시. 해결과 다르다 — **아직 닫힌 게 아니다.**
+
+    지적한 사람이 확인하고 닫을 때까지 미해결로 남는다. 담당자가 스스로
+    닫게 두면 검토가 형식이 된다(고쳤다는 말과 실제로 고쳤는지는 다르다).
+
+    표시와 함께 답글을 한 줄 남긴다. 상태만 바뀌면 지적한 사람은 목록에서
+    무엇이 달라졌는지 알 수 없다.
+    """
+    cur = get(cid)
+    if not cur:
+        raise CommentError("메모를 찾을 수 없습니다.")
+    if cur["resolved_at"]:
+        raise CommentError("이미 해결된 지적입니다.")
+    root_id = cur["thread_id"]
+    if fixed:
+        add(cur["project_id"], actor_id, (note or "").strip() or FIXED_NOTE,
+            cur["page_id"], reply_to=root_id)
+    c = _conn()
+    try:
+        c.execute("UPDATE Comments SET fixed_at=?, fixed_by=? WHERE id=?",
+                  (_now() if fixed else None, actor_id if fixed else None, root_id))
         c.commit()
     finally:
         c.close()

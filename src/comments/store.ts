@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { apiAddComment, apiDeleteComment, apiListComments, apiResolveComment, type Thread } from './commentsApi'
+import { apiAddComment, apiDeleteComment, apiListComments, apiResolveComment, apiSetFixed, type Thread } from './commentsApi'
 
 /**
  * 앵커 메모 상태.
@@ -22,6 +22,7 @@ interface CommentsState {
   setShowResolved: (v: boolean) => void
   add: (input: { body: string; page_id: number; el_id?: number | null; cell?: string | null; reply_to?: string }) => Promise<void>
   resolve: (cid: string, resolved: boolean) => Promise<void>
+  setFixed: (cid: string, fixed: boolean) => Promise<void>
   remove: (cid: string) => Promise<void>
 }
 
@@ -58,6 +59,12 @@ export const useComments = create<CommentsState>((set, get) => ({
     await apiResolveComment(cid, resolved)
     if (pid) await get().load(pid)
   },
+  // 「고쳤습니다」 — 답글이 함께 달리므로 목록을 다시 읽는다.
+  setFixed: async (cid, fixed) => {
+    const pid = get().projectId
+    await apiSetFixed(cid, fixed)
+    if (pid) await get().load(pid)
+  },
   remove: async (cid) => {
     const pid = get().projectId
     await apiDeleteComment(cid)
@@ -70,4 +77,4 @@ export function pinsOfPage(threads: Thread[], pageId: number, showResolved: bool
   return threads.filter((t) => t.page_id === pageId && (showResolved || !t.resolved_at))
 }
 
-export { countToMe, relationOf, sortThreads, type CmtRelation } from './relation'
+export { countMyTurn, relationOf, sortThreads, turnOf, type CmtRelation, type Turn } from './relation'

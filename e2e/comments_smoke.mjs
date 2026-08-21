@@ -82,9 +82,40 @@ await p.waitForTimeout(500)
 ok('답글이 같은 스레드에 달린다', await p.locator('.cmt-reply').count() === 1)
 ok('답글을 달아도 스레드는 하나다', await p.locator('.cmt-item').count() === 1)
 
-// ── 5) 해결하면 핀이 사라진다 ──
-await p.locator('.cmt-mini', { hasText: '해결' }).first().click()
-await p.waitForTimeout(500)
+// ── 5) 「고쳤습니다」 → 해결, 두 손으로 나뉜다 ──
+// 담당자가 스스로 닫게 두면 "고쳤다" 와 "정말 고쳤다" 가 구분되지 않는다.
+// 그러면 발행 직전의 '미해결 0건' 이 아무것도 보장하지 못한다.
+{
+  const acts = await p.locator('.cmt-item').first().locator('.cmt-mini').allInnerTexts()
+  ok('지적받은 쪽에는 「해결」이 없다', !acts.includes('해결'), acts.join(' | '))
+  ok('대신 「고쳤습니다」가 있다', acts.includes('고쳤습니다'), acts.join(' | '))
+
+  await p.locator('.cmt-mini', { hasText: '고쳤습니다' }).first().click()
+  await p.waitForTimeout(600)
+  ok('고쳤다고 알려도 아직 닫히지 않는다', await p.locator('.cmt-item').count() === 1)
+  ok('고침 표시가 붙는다', await p.locator('.cmt-fixed').count() === 1)
+  ok('답글이 한 줄 자동으로 달린다',
+     (await p.locator('.cmt-reply').last().innerText()).includes('고쳤습니다'),
+     (await p.locator('.cmt-reply').last().innerText()).replace(/\n/g, ' '))
+  ok('문서 위 핀도 아직 남아 있다', await p.locator('.stage .cmt-pin').count() === 1)
+  ok('이제 내 차례가 아니다(알림이 사라진다)', await p.locator('.pv-todo').count() === 0)
+
+  // 되돌릴 수 있다 — 잘못 눌렀을 때 관리자를 부르지 않아도 되게.
+  await p.locator('.cmt-mini', { hasText: '고침 취소' }).first().click()
+  await p.waitForTimeout(500)
+  ok('고침을 되돌릴 수 있다', await p.locator('.cmt-fixed').count() === 0)
+}
+
+// 닫는 것은 지적한 사람 몫이다. 여기서는 화면 검사를 위해 서버를 거치지 않고
+// 모의 서버에 직접 요청한다(권한 판정은 server/test_comments.py 가 지킨다).
+await p.request.post(URL.replace(/\/$/, '') + '/api/comments/cm1/resolve',
+                     { data: { resolved: true } })
+await p.reload({ waitUntil: 'networkidle' })
+await p.locator('text=2026년 10월 임원회의').first().click()
+await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
+await p.waitForTimeout(600)
+await p.locator('.cmt-tab').click()
+await p.waitForTimeout(400)
 ok('해결하면 문서 위 핀이 사라진다', await p.locator('.stage .cmt-pin').count() === 0)
 ok('해결하면 목록에서도 빠진다', await p.locator('.cmt-item').count() === 0)
 ok('모두 해결됐다고 알려준다',

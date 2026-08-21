@@ -14,6 +14,10 @@ export interface Comment {
   created_at: number
   resolved_at: number | null
   resolved_by: string | null
+  /** 담당자가 「고쳤습니다」를 누른 시각. **닫힌 것이 아니다** —
+   *  지적한 사람이 확인하고 닫을 때까지 미해결로 남는다. */
+  fixed_at?: number | null
+  fixed_by?: string | null
 }
 
 export interface Thread extends Comment {
@@ -51,6 +55,12 @@ export async function apiAddComment(pid: string, input: {
 export async function apiResolveComment(cid: string, resolved: boolean): Promise<Comment> {
   return (await req<{ comment: Comment }>(`/api/comments/${cid}/resolve`, {
     method: 'POST', body: JSON.stringify({ resolved }),
+  })).comment
+}
+
+export async function apiSetFixed(cid: string, fixed: boolean, body?: string): Promise<Comment> {
+  return (await req<{ comment: Comment }>(`/api/comments/${cid}/fixed`, {
+    method: 'POST', body: JSON.stringify({ fixed, body }),
   })).comment
 }
 

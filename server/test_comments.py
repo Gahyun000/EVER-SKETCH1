@@ -169,11 +169,83 @@ def test_해결은_스레드_단위다(ctx):
     assert r.json()["comment"]["resolved_at"] is not None
 
 
-def test_작성자도_자기_자료의_지적을_해결할_수_있다(ctx):
+def test_지적받은_사람은_스스로_닫지_못한다(ctx):
+    """규칙을 바꿨다.
+
+    담당자가 자기에게 온 지적을 스스로 닫게 두면 "고쳤다" 와 "정말 고쳤다" 가
+    구분되지 않는다. 그러면 발행 직전의 '미해결 0건' 이 아무것도 보장하지 못한다.
+    담당자 쪽 손은 「고쳤습니다」다.
+    """
     c = ctx["as_admin"]()
     root = _add(c, ctx["pid"]).json()["comment"]
     r = ctx["as_user"]("exec1").post("/api/comments/%s/resolve" % root["id"],
                                      json={"resolved": True})
+    assert r.status_code == 403
+
+    # 대신 「고쳤습니다」 는 할 수 있다.
+    f = ctx["as_user"]("exec1").post("/api/comments/%s/fixed" % root["id"],
+                                     json={"fixed": True})
+    assert f.status_code == 200, f.text
+    assert f.json()["comment"]["fixed_at"] is not None
+    assert f.json()["comment"]["resolved_at"] is None, "고쳤다고 닫히면 안 된다"
+
+
+def test_지적한_사람이_닫는다(ctx):
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    r = c.post("/api/comments/%s/resolve" % root["id"], json={"resolved": True})
+    assert r.status_code == 200
+    assert r.json()["comment"]["resolved_at"] is not None
+
+
+def test_고쳤다고_누르면_답글이_한_줄_달린다(ctx):
+    """상태만 바뀌면 지적한 사람은 목록에서 무엇이 달라졌는지 알 수 없다."""
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    ctx["as_user"]("exec1").post("/api/comments/%s/fixed" % root["id"], json={"fixed": True})
+    threads = c.get("/api/projects/%s/comments" % ctx["pid"]).json()["comments"]
+    t = [x for x in threads if x["id"] == root["id"]][0]
+    assert len(t["replies"]) == 1
+    assert "고쳤습니다" in t["replies"][0]["body"]
+    assert t["replies"][0]["author_id"] == ctx["writer"]["id"]
+
+
+def test_고쳤다는_말을_직접_쓸_수_있다(ctx):
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    ctx["as_user"]("exec1").post("/api/comments/%s/fixed" % root["id"],
+                                 json={"fixed": True, "body": "3월로 당겼습니다"})
+    threads = c.get("/api/projects/%s/comments" % ctx["pid"]).json()["comments"]
+    t = [x for x in threads if x["id"] == root["id"]][0]
+    assert t["replies"][0]["body"] == "3월로 당겼습니다"
+
+
+def test_해결하면_고침_표시가_지워진다(ctx):
+    """남겨두면 '내 차례' 로 다시 세어져서, 해결했는데도 할 일이 줄지 않는다."""
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    ctx["as_user"]("exec1").post("/api/comments/%s/fixed" % root["id"], json={"fixed": True})
+    out = c.post("/api/comments/%s/resolve" % root["id"], json={"resolved": True}).json()["comment"]
+    assert out["resolved_at"] is not None
+    assert out["fixed_at"] is None
+
+
+def test_남의_자료에는_고쳤다고_누를_수_없다(ctx):
+    """「고쳤습니다」는 지적받은 쪽 손이다. 동료가 대신 눌러 줄 수는 없다."""
+    c = ctx["as_admin"]()
+    root = _add(c, ctx["pid"]).json()["comment"]
+    r = ctx["as_user"]("exec2").post("/api/comments/%s/fixed" % root["id"], json={"fixed": True})
+    assert r.status_code == 403
+
+
+def test_관리자는_대신_닫을_수_있다(ctx):
+    """리뷰어가 자리를 비운 회차가 영영 막히면 안 된다. 대신 기록에 남는다."""
+    c = ctx["as_admin"]()
+    # 자료 주인이 스스로 남긴 메모 — 지적한 사람은 exec1 이다.
+    root = ctx["as_user"]("exec1").post(
+        "/api/projects/%s/comments" % ctx["pid"],
+        json={"body": "여기 확인 필요", "page_id": 1}).json()["comment"]
+    r = c.post("/api/comments/%s/resolve" % root["id"], json={"resolved": True})
     assert r.status_code == 200
 
 

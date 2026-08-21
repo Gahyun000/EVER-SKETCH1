@@ -5,7 +5,7 @@ import { useProjects } from '../persistence/projects'
 import { useBuilder } from '../state/store'
 import { anchorText } from './anchorLabel'
 import { type Thread } from './commentsApi'
-import { countToMe, relationOf, sortThreads, useComments } from './store'
+import { countMyTurn, relationOf, sortThreads, turnOf, useComments } from './store'
 import './comments.css'
 
 /**
@@ -22,7 +22,7 @@ export default function CommentsPanel() {
   const pages = useBuilder((s) => s.pages)
   const selectedPageId = useBuilder((s) => s.selectedPageId)
   const { threads, open, setOpen, focusId, focus, showResolved, setShowResolved,
-          add, resolve, remove, error, loading } = useComments()
+          add, resolve, setFixed, remove, error, loading } = useComments()
   const [users, setUsers] = useState<Me[]>([])
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<string | null>(null)
@@ -50,7 +50,7 @@ export default function CommentsPanel() {
   // 내 자료인가 — '나에게 온 지적' 인지는 여기서 갈린다.
   const docIsMine = !access || access.mine
   const rel = (t: Thread) => relationOf(t, me?.id, docIsMine)
-  const toMe = countToMe(threads, me?.id, docIsMine)
+  const toMe = countMyTurn(threads, me?.id, docIsMine)
 
   // 순서 규칙은 relation.ts 에 있다(답해야 할 것이 맨 위 — 그 이유는 거기 주석).
   const shown = useMemo(
@@ -131,13 +131,20 @@ export default function CommentsPanel() {
           ) : shown.map((t) => (
             <div key={t.id} data-thread={t.id}
               className={'cmt-item' + (t.resolved_at ? ' done' : '') + (focusId === t.id ? ' on' : '')
-                + (rel(t) === 'to-me' && !t.resolved_at ? ' tome' : '')}
+                + (turnOf(t, me?.id, docIsMine) === 'me' ? ' tome' : '')}
               onClick={() => focus(t.id)}>
               <div className="cmt-meta">
                 <b>{who(t.author_id)}</b>
-                {rel(t) === 'to-me' && !t.resolved_at
-                  ? <span className="cmt-tome" title="내 자료에 달린 지적입니다">나에게</span>
+                {!t.resolved_at && turnOf(t, me?.id, docIsMine) === 'me'
+                  ? <span className="cmt-tome"
+                      title={rel(t) === 'mine' ? '고쳤다는 답이 왔습니다 — 확인하고 닫아 주세요'
+                                               : '내 자료에 달린 지적입니다'}>
+                      {rel(t) === 'mine' ? '확인 차례' : '나에게'}
+                    </span>
                   : rel(t) === 'mine' ? <span className="cmt-byme">내가 씀</span> : null}
+                {!t.resolved_at && t.fixed_at
+                  ? <span className="cmt-fixed" title="담당자가 고쳤다고 알렸습니다">고침</span>
+                  : null}
                 <span className="cmt-anchor">{pageNo(t)}쪽 · {anchorOf(t)}</span>
                 {t.resolved_at ? <span className="cmt-done-tag">해결</span> : null}
               </div>
@@ -151,10 +158,32 @@ export default function CommentsPanel() {
               <div className="cmt-acts">
                 <button className="cmt-mini" disabled={busy}
                   onClick={(e) => { e.stopPropagation(); setReplyTo(t.id); focus(t.id) }}>답글</button>
-                <button className="cmt-mini" disabled={busy}
-                  onClick={(e) => { e.stopPropagation(); void act(() => resolve(t.id, !t.resolved_at)) }}>
-                  {t.resolved_at ? '다시 열기' : '해결'}
-                </button>
+                {/* **닫는 것은 지적한 사람 몫이다.**
+                    담당자가 스스로 닫으면 "고쳤다" 와 "정말 고쳤다" 가 구분되지 않고,
+                    발행 직전의 '미해결 0건' 이 아무것도 보장하지 못하게 된다.
+                    담당자에게는 대신 「고쳤습니다」가 있다(서버도 같게 판정한다). */}
+                {t.resolved_at
+                  ? <button className="cmt-mini" disabled={busy}
+                      onClick={(e) => { e.stopPropagation(); void act(() => resolve(t.id, false)) }}>
+                      다시 열기
+                    </button>
+                  : rel(t) === 'to-me'
+                    ? (t.fixed_at
+                      ? <button className="cmt-mini" disabled={busy}
+                          title="아직 고치는 중이라고 되돌립니다"
+                          onClick={(e) => { e.stopPropagation(); void act(() => setFixed(t.id, false)) }}>
+                          고침 취소
+                        </button>
+                      : <button className="cmt-mini primary" disabled={busy}
+                          title="고쳤다고 알립니다 — 닫는 것은 지적한 분이 합니다"
+                          onClick={(e) => { e.stopPropagation(); void act(() => setFixed(t.id, true)) }}>
+                          고쳤습니다
+                        </button>)
+                    : <button className="cmt-mini" disabled={busy}
+                        title="확인했으면 닫습니다"
+                        onClick={(e) => { e.stopPropagation(); void act(() => resolve(t.id, true)) }}>
+                        해결
+                      </button>}
                 {t.author_id === me?.id && (
                   <button className="cmt-mini danger" disabled={busy}
                     onClick={(e) => { e.stopPropagation(); void act(() => remove(t.id)) }}>삭제</button>

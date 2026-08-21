@@ -7,7 +7,7 @@
 //
 // 실행: node --experimental-strip-types --import ./ts_register.mjs comment_relation.test.mjs
 
-import { countToMe, relationOf, sortThreads } from './src/comments/relation.ts'
+import { countMyTurn, relationOf, sortThreads, turnOf } from './src/comments/relation.ts'
 
 let pass = 0, fail = 0
 const eq = (got, want, label) => {
@@ -16,7 +16,8 @@ const eq = (got, want, label) => {
 }
 
 const ME = 'u_me'
-const t = (author, resolved = null) => ({ author_id: author, resolved_at: resolved })
+const t = (author, resolved = null, fixed = null) =>
+  ({ author_id: author, resolved_at: resolved, fixed_at: fixed })
 
 // ── 내 자료를 열었을 때 ──
 console.log('\n── 내 자료 ──')
@@ -31,10 +32,10 @@ eq(relationOf(t(ME), ME, false), 'mine', '남의 자료에 **내가** 단 것도
 // ── 답해야 할 건수 ──
 console.log('\n── 답해야 할 건수 ──')
 const mixed = [t('u_admin'), t('u_lee'), t(ME), t('u_admin', 123)]
-eq(countToMe(mixed, ME, true), 2, '내 자료: 남이 단 미해결만 센다')
-eq(countToMe(mixed, ME, false), 0, '동료 자료에는 내가 답할 것이 없다')
-eq(countToMe([], ME, true), 0, '없으면 0')
-eq(countToMe(mixed, undefined, true), 0,
+eq(countMyTurn(mixed, ME, true), 2, '내 자료: 남이 단 미해결만 센다')
+eq(countMyTurn(mixed, ME, false), 0, '동료 자료에는 내가 답할 것이 없다')
+eq(countMyTurn([], ME, true), 0, '없으면 0')
+eq(countMyTurn(mixed, undefined, true), 0,
    '로그인 정보가 아직 없으면 0 — 남의 것을 내 몫으로 세는 쪽보다 낫다')
 
 // ── 관리자도 같은 규칙으로 갈린다 ───────────────────────
@@ -63,6 +64,33 @@ eq(sortThreads(list, ME, false).map((x) => x.id).join(''), 'acbd',
    '동료 자료에서는 내가 쓴 것이 위로 (답할 것이 없다)')
 eq(sortThreads([], ME, true).length, 0, '빈 목록')
 eq(list.map((x) => x.id).join(''), 'abcd', '원본 배열을 건드리지 않는다')
+
+// ── 공이 누구에게 있는가 ─────────────────────────────
+// 관계만으로는 부족하다. 내가 쓴 지적이라도 상대가 「고쳤습니다」를 눌렀으면
+// 이제 내가 확인하고 닫을 차례다. 그걸 '내가 쓴 것' 무리에 그냥 두면,
+// 고쳐 놓고 아무도 안 닫는 지적이 조용히 쌓인다.
+console.log('\n── 공이 누구에게 있는가 ──')
+eq(turnOf(t('u_admin'), ME, true), 'me', '내 자료에 지적이 왔다 — 내가 고칠 차례')
+eq(turnOf(t('u_admin', null, 555), ME, true), 'them', '고쳤다고 알렸다 — 확인은 상대 몫')
+eq(turnOf(t(ME), ME, false), 'them', '내가 단 지적 — 상대가 고칠 차례')
+eq(turnOf(t(ME, null, 555), ME, false), 'me', '고쳤다는 답이 왔다 — **내가 닫을 차례**')
+eq(turnOf(t('u_admin', 777), ME, true), 'none', '해결된 것은 아무의 차례도 아니다')
+
+eq(countMyTurn([t('u_admin'), t('u_admin', null, 555), t(ME)], ME, true), 1,
+   '내 차례만 센다 — 고쳤다고 알린 건 빠진다')
+eq(countMyTurn([t(ME, null, 555), t(ME)], ME, false), 1,
+   '동료 자료에서도 내가 닫을 것은 내 차례다')
+
+console.log('\n── 순서: 내 차례가 맨 위 ──')
+const th2 = (id, author, at, fixed = null) =>
+  ({ id, author_id: author, created_at: at, resolved_at: null, fixed_at: fixed })
+const list2 = [
+  th2('x', ME, 100),                 // 상대가 고치는 중 — 기다림
+  th2('y', 'u_admin', 200),          // 내가 고칠 차례
+  th2('z', ME, 300, 900),            // 고쳤다는 답이 옴 — 내가 닫을 차례
+]
+eq(sortThreads(list2, ME, true).map((x) => x.id).join(''), 'yzx',
+   '고칠 것 → 닫을 것 → 기다리는 것')
 
 console.log(`\n${fail ? '=== FAIL' : '=== ALL PASS'} (통과 ${pass} / 실패 ${fail}) ===`)
 process.exit(fail ? 1 : 0)
