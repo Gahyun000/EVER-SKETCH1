@@ -5,7 +5,7 @@ import { useProjects } from '../persistence/projects'
 import { useBuilder } from '../state/store'
 import { anchorText } from './anchorLabel'
 import { type Thread } from './commentsApi'
-import { useComments } from './store'
+import { countToMe, relationOf, sortThreads, useComments } from './store'
 import './comments.css'
 
 /**
@@ -47,9 +47,15 @@ export default function CommentsPanel() {
 
   const who = (id: string) => users.find((u) => u.id === id)?.name || id.slice(0, 8)
   const unresolved = threads.filter((t) => !t.resolved_at).length
+  // 내 자료인가 — '나에게 온 지적' 인지는 여기서 갈린다.
+  const docIsMine = !access || access.mine
+  const rel = (t: Thread) => relationOf(t, me?.id, docIsMine)
+  const toMe = countToMe(threads, me?.id, docIsMine)
+
+  // 순서 규칙은 relation.ts 에 있다(답해야 할 것이 맨 위 — 그 이유는 거기 주석).
   const shown = useMemo(
-    () => threads.filter((t) => showResolved || !t.resolved_at),
-    [threads, showResolved])
+    () => sortThreads(threads.filter((t) => showResolved || !t.resolved_at), me?.id, docIsMine),
+    [threads, showResolved, me?.id, docIsMine])
 
   const pageNo = (t: Thread) => {
     const i = pages.findIndex((p) => p.id === t.page_id)
@@ -87,10 +93,15 @@ export default function CommentsPanel() {
   }
 
   if (!open) {
+    // 닫혀 있을 때 보이는 숫자는 **내가 답해야 할 것**이다.
+    // 전체 건수를 보여주면, 남의 지적까지 섞인 숫자를 보고 '아직 할 게
+    // 많구나' 로 읽는다 — 정작 내 몫이 몇 건인지는 열어봐야 안다.
+    const n = toMe > 0 ? toMe : unresolved
     return (
-      <button className={'cmt-tab' + (unresolved ? ' has' : '')} onClick={() => setOpen(true)}
-        title="검토 의견 열기">
-        의견{unresolved > 0 ? <span className="cmt-count">{unresolved}</span> : null}
+      <button className={'cmt-tab' + (unresolved ? ' has' : '') + (toMe ? ' tome' : '')}
+        onClick={() => setOpen(true)}
+        title={toMe > 0 ? `나에게 온 미해결 ${toMe}건 · 전체 ${unresolved}건` : '검토 의견 열기'}>
+        의견{n > 0 ? <span className="cmt-count">{n}</span> : null}
       </button>
     )
   }
@@ -119,10 +130,14 @@ export default function CommentsPanel() {
             </p>
           ) : shown.map((t) => (
             <div key={t.id} data-thread={t.id}
-              className={'cmt-item' + (t.resolved_at ? ' done' : '') + (focusId === t.id ? ' on' : '')}
+              className={'cmt-item' + (t.resolved_at ? ' done' : '') + (focusId === t.id ? ' on' : '')
+                + (rel(t) === 'to-me' && !t.resolved_at ? ' tome' : '')}
               onClick={() => focus(t.id)}>
               <div className="cmt-meta">
                 <b>{who(t.author_id)}</b>
+                {rel(t) === 'to-me' && !t.resolved_at
+                  ? <span className="cmt-tome" title="내 자료에 달린 지적입니다">나에게</span>
+                  : rel(t) === 'mine' ? <span className="cmt-byme">내가 씀</span> : null}
                 <span className="cmt-anchor">{pageNo(t)}쪽 · {anchorOf(t)}</span>
                 {t.resolved_at ? <span className="cmt-done-tag">해결</span> : null}
               </div>

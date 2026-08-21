@@ -69,3 +69,5 @@ export const useComments = create<CommentsState>((set, get) => ({
 export function pinsOfPage(threads: Thread[], pageId: number, showResolved: boolean): Thread[] {
   return threads.filter((t) => t.page_id === pageId && (showResolved || !t.resolved_at))
 }
+
+export { countToMe, relationOf, sortThreads, type CmtRelation } from './relation'

@@ -43,6 +43,27 @@ const tab = p.locator('.cmt-tab')
 ok('의견 탭이 미해결 건수를 보여준다', (await tab.innerText()).includes('1'),
    (await tab.innerText()).replace(/\n/g, ' '))
 
+// ── 2-b) **내가 답해야 할 것**을 눈에 띄는 곳에서 알려준다 ──
+// 오른쪽 가장자리의 작은 탭 하나로는, 자기 장을 고치고 있는 사람 눈에
+// 들어오지 않는다. 그 사이 지적은 아무도 안 본 채로 남는다.
+{
+  const todo = p.locator('.pv-todo')
+  ok('확인할 의견이 있다고 미리보기 머리에 뜬다', await todo.count() === 1)
+  ok('몇 건인지 적혀 있다', (await todo.innerText()).includes('1건'),
+     (await todo.innerText()).replace(/\n/g, ' '))
+  ok('탭도 내 몫이라고 표시한다',
+     ((await tab.getAttribute('class')) || '').includes('tome'),
+     await tab.getAttribute('class'))
+  await todo.click()
+  await p.waitForTimeout(400)
+  ok('누르면 의견 목록이 열린다', await p.locator('.cmt-panel').count() === 1)
+  ok('그 지적이 「나에게」로 표시된다',
+     await p.locator('.cmt-item.tome .cmt-tome').count() === 1)
+  ok('열고 나면 알림은 사라진다', await p.locator('.pv-todo').count() === 0)
+  await p.locator('.cmt-x').click()
+  await p.waitForTimeout(300)
+}
+
 // ── 3) 핀을 누르면 목록이 그 지적으로 간다 ──
 await pin.click()
 await p.waitForTimeout(400)

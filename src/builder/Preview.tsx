@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../auth/useAuth'
+import { countToMe, useComments } from '../comments/store'
 import { useProjects } from '../persistence/projects'
 import { useBuilder } from '../state/store'
 import PageWithCanvas from '../cards/PageWithCanvas'
@@ -50,8 +52,27 @@ export default function Preview() {
   const access = useProjects((s) => s.access)
   const canWrite = !access || access.can_write
 
+  // **확인할 지적이 있으면 여기서 알려준다.**
+  // 지금은 오른쪽 가장자리의 작은 「의견」 탭이 유일한 신호다. 자기 장을
+  // 열어 표를 고치고 있는 사람 눈에는 잘 안 들어온다 — 그 사이 지적은
+  // 아무도 안 본 채로 남는다. 0건이면 아무것도 띄우지 않는다.
+  const me = useAuth((s) => s.me)
+  const threads = useComments((s) => s.threads)
+  const cmtOpen = useComments((s) => s.open)
+  const setCmtOpen = useComments((s) => s.setOpen)
+  const cmtFocus = useComments((s) => s.focus)
+  const docIsMine = !access || access.mine
+  const toMe = countToMe(threads, me?.id, docIsMine)
+  const first = threads.find((t) => !t.resolved_at && t.author_id !== me?.id)
+
   return (<>
     <div className="pv-h">
+      {!cmtOpen && toMe > 0 && (
+        <button className="pv-todo" onClick={() => { setCmtOpen(true); if (first) cmtFocus(first.id) }}
+          title="검토 의견 목록을 엽니다">
+          확인할 의견 <b>{toMe}건</b>
+        </button>
+      )}
       {canWrite ? '미리보기' : (
         <span className="pv-ro">
           <b>읽기 전용</b>

@@ -146,6 +146,25 @@ ok('줄바꿈이 그대로 남는다', (await mine.innerText()).includes('\n확�
      (await item.innerText()).split('\n')[1])
 }
 
+// ── 6) 내가 쓴 것과 내가 답할 것이 구분된다 ──
+// 이 문서에는 관리자가 단 지적(내가 답할 것)과 방금 내가 쓴 지적이 함께 있다.
+// 같은 모양으로 나오면, 스무 건 쌓였을 때 내 몫을 눈으로 찾게 된다.
+{
+  const items = p.locator('.cmt-item')
+  ok('내가 쓴 것은 「내가 씀」으로 표시된다', await p.locator('.cmt-byme').count() >= 1,
+     `${await p.locator('.cmt-byme').count()}건`)
+  ok('내가 답할 것은 「나에게」로 표시된다', await p.locator('.cmt-tome').count() === 1)
+
+  // **답해야 할 것이 맨 위로 온다.**
+  const firstCls = (await items.first().getAttribute('class')) || ''
+  ok('답해야 할 것이 목록 맨 위에 온다', firstCls.includes('tome'), firstCls)
+  const order = await items.evaluateAll(
+    (ns) => ns.map((n) => (n.className.includes('tome') ? '나에게' : '내가씀')))
+  ok('그다음이 내가 쓴 것들이다',
+     order.indexOf('나에게') === 0 && order.slice(1).every((x) => x === '내가씀'),
+     order.join(' → '))
+}
+
 ok('끝까지 브라우저 기본 창은 없었다', native === 0, `${native}건`)
 ok('페이지 오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '))
 
