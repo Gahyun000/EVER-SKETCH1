@@ -240,3 +240,44 @@ def test_자료를_지우면_지적도_함께_사라진다(ctx):
 def test_없는_메모는_404(ctx):
     assert ctx["as_admin"]().post("/api/comments/없는거/resolve",
                                   json={"resolved": True}).status_code == 404
+
+
+# ══════════ 범위 앵커 ══════════
+def test_범위를_그대로_저장한다(ctx):
+    """로드맵 지적의 대부분은 칸 하나가 아니라 **구간**에 달린다.
+    "3~5월 구간이 앞 장과 다릅니다" 를 왼쪽 위 한 칸으로만 저장하면,
+    받는 사람은 어느 구간인지 글을 다시 읽어야 한다."""
+    t = comments_store.add(ctx["pid"], ctx["admin"]["id"], "3~5월 구간이 앞 장과 다릅니다",
+                           page_id=1, el_id=7, cell="3_3:3_5")
+    assert t["cell"] == "3_3:3_5"
+
+
+def test_거꾸로_끌어도_같은_값으로_저장된다(ctx):
+    """끌어서 고르면 시작점이 오른쪽 아래일 수 있다. 정규화하지 않으면 같은
+    범위가 네 가지 문자열로 저장되고, 핀을 그리는 쪽이 그 네 경우를 다 알아야 한다."""
+    got = set()
+    for cell in ("3_3:5_6", "5_6:3_3", "3_6:5_3", "5_3:3_6"):
+        t = comments_store.add(ctx["pid"], ctx["admin"]["id"], "같은 범위", 1, 7, cell)
+        got.add(t["cell"])
+    assert got == {"3_3:5_6"}, got
+
+
+def test_한_칸이면_콜론_없이_쓴다(ctx):
+    """예전에 달린 의견과 같은 형식이어야 한다 — 형식이 갈리면 옛 지적이
+    가리키던 자리를 잃는다."""
+    t = comments_store.add(ctx["pid"], ctx["admin"]["id"], "한 칸", 1, 7, "4_4:4_4")
+    assert t["cell"] == "4_4"
+
+
+def test_말이_안_되는_앵커는_거부한다(ctx):
+    for bad in ("3", "a_b", "3_", "-1_2", "3_5:x", "3_5:9999_1"):
+        with pytest.raises(comments_store.CommentError):
+            comments_store.add(ctx["pid"], ctx["admin"]["id"], "이상한 앵커", 1, 7, bad)
+
+
+def test_답글은_범위까지_그대로_물려받는다(ctx):
+    root = comments_store.add(ctx["pid"], ctx["admin"]["id"], "구간 확인", 1, 7, "2_2:2_9")
+    rep = comments_store.add(ctx["pid"], ctx["writer"]["id"], "고쳤습니다", 1, None, None,
+                             reply_to=root["id"])
+    assert rep["cell"] == "2_2:2_9"
+    assert rep["el_id"] == 7

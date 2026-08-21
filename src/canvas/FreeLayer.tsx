@@ -8,6 +8,7 @@ import { mkFreeEl, pushSnap, FCOLORS } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, mergeCovering, sizeTracks } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount } from '../template/slots'
+import { parseCell } from '../comments/commentsApi'
 import { pinsOfPage, useComments } from '../comments/store'
 import '../template/template.css'
 import ColorPicker from '../builder/chrome/ColorPicker'
@@ -169,13 +170,34 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   const pagePins = pinsOfPage(cmtThreads, page.id, cmtShowResolved)
   const pinByEl = new Map<number, typeof pagePins>()
   const pinByCell = new Map<string, typeof pagePins>()
+  // 범위로 짚은 자리는 **테두리로 그린다.** 칸마다 핀을 박으면 표가 핀으로 덮이고,
+  // 반대로 핀 하나만 두면 어디까지가 지적 범위인지 알 수 없다.
+  // key: 'elId_r_c' → 그 칸이 범위의 어느 가장자리인지.
+  const rangeEdges = new Map<string, { t: boolean; b: boolean; l: boolean; r: boolean; done: boolean }>()
   for (const t of pagePins) {
     if (t.el_id == null) continue
-    const key = t.cell ? t.el_id + '_' + t.cell : null
+    const rg = parseCell(t.cell)
+    // 핀은 **범위의 왼쪽 위 칸 하나에만** 붙는다.
+    const key = rg ? t.el_id + '_' + rg.r0 + '_' + rg.c0 : null
     const bucket = key ? pinByCell : pinByEl
     const k = (key ?? t.el_id) as never
     const cur = (bucket as Map<unknown, typeof pagePins>).get(k) || []
     ;(bucket as Map<unknown, typeof pagePins>).set(k, [...cur, t])
+    if (!rg || (rg.r0 === rg.r1 && rg.c0 === rg.c1)) continue   // 한 칸이면 핀으로 충분하다
+    for (let r = rg.r0; r <= rg.r1; r++) {
+      for (let c = rg.c0; c <= rg.c1; c++) {
+        const kk = t.el_id + '_' + r + '_' + c
+        const prev = rangeEdges.get(kk)
+        const e = {
+          t: r === rg.r0, b: r === rg.r1, l: c === rg.c0, r: c === rg.c1,
+          done: !!t.resolved_at,
+        }
+        rangeEdges.set(kk, prev
+          ? { t: prev.t || e.t, b: prev.b || e.b, l: prev.l || e.l, r: prev.r || e.r,
+              done: prev.done && e.done }
+          : e)
+      }
+    }
   }
   const Pin = ({ list }: { list: typeof pagePins }) => (
     <div className={'cmt-pin' + (list.every((t) => t.resolved_at) ? ' done' : '')
@@ -630,11 +652,26 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                           : (bg ? cellBackground(bg) : (isHead ? '#f2f5fa' : '#fff'))
                         // 헤더 행과 자동 채번 열은 편집 불가(사양 §5).
                         const canEdit = editingThis && cellEditable(el.slot, r, c)
+                        // 지적 범위 테두리. 파랑은 '지금 내가 고른 칸' 이라 쓸 수 없다 —
+                        // 같은 색이면 내가 고른 것인지 남이 짚은 것인지 구분되지 않는다.
+                        const rgE = rangeEdges.get(el.id + '_' + r + '_' + c)
+                        const rgC = rgE ? (rgE.done ? '#2f9e59' : '#e08b2c') : ''
                         return (
-                          <div key={k} className={'feltd' + (sel ? ' cellsel' : '') + (editingThis && !canEdit ? ' cell-locked' : '')} suppressContentEditableWarning
+                          <div key={k} className={'feltd' + (sel ? ' cellsel' : '') + (rgE ? ' cmt-rg' : '') + (editingThis && !canEdit ? ' cell-locked' : '')} suppressContentEditableWarning
                             data-tel={el.id} data-r={r} data-c={c}
                             title={editingThis && !canEdit ? '이 칸은 표준 양식이라 수정할 수 없어요' : undefined}
-                            style={{ border: bw + 'px solid ' + border, fontSize: el.fs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}` }}
+                            style={{ border: bw + 'px solid ' + border, fontSize: el.fs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}`,
+                              ...(rgE ? {
+                                boxShadow: `inset 0 0 0 999px ${rgE.done ? 'rgba(47,158,89,.08)' : 'rgba(224,139,44,.10)'}`,
+                                borderTopColor: rgE.t ? rgC : undefined,
+                                borderBottomColor: rgE.b ? rgC : undefined,
+                                borderLeftColor: rgE.l ? rgC : undefined,
+                                borderRightColor: rgE.r ? rgC : undefined,
+                                borderTopWidth: rgE.t ? 2 : undefined,
+                                borderBottomWidth: rgE.b ? 2 : undefined,
+                                borderLeftWidth: rgE.l ? 2 : undefined,
+                                borderRightWidth: rgE.r ? 2 : undefined,
+                              } : {}) }}
                             contentEditable={canEdit}
                             onPointerDown={(e) => {
                               if (editingThis) { e.stopPropagation(); return }

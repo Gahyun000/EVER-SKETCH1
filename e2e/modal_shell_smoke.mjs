@@ -26,6 +26,13 @@ p.on('pageerror', (e) => errs.push(String(e.message)))
 let native = 0
 p.on('dialog', (d) => { native++; void d.dismiss() })
 
+// 저장을 막아 **'저장 안 됨' 상태를 확실히 만든다.**
+// 그냥 두면 자동저장이 먼저 끝나서, 확인창이 뜰 이유가 사라진다 —
+// 그러면 테스트는 기계가 바쁜 날에만 실패한다(원인을 짚기 가장 어려운 종류다).
+await p.route('**/api/projects/**', (route) => {
+  const m = route.request().method()
+  return (m === 'PUT' || m === 'PATCH') ? route.abort() : route.continue()
+})
 await p.goto(URL, { waitUntil: 'networkidle' })
 await p.locator('text=2026년 10월 임원회의').first().click()
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
@@ -36,8 +43,9 @@ const lb = await p.locator('.stage .freelayer').first().boundingBox()
 await p.locator('.ax-tb .ib[title="표"]').first().click()
 await p.mouse.click(lb.x + 120, lb.y + lb.height - 90)
 await p.waitForTimeout(500)
-ok('(사전) 저장 안 된 변경이 생겼다',
-   (await p.locator('.save-lab').getAttribute('class') || '').includes('state-dirty'),
+const lab = await p.locator('.save-lab').getAttribute('class') || ''
+ok('(사전) 저장되지 않은 변경이 생겼다',
+   lab.includes('state-dirty') || lab.includes('state-error') || lab.includes('state-saving'),
    await p.locator('.save-lab').innerText())
 
 // 저장하지 않고 나가려 하면 확인창이 뜬다.

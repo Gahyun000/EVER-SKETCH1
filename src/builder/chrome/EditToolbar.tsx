@@ -11,6 +11,7 @@ import { PAPER_OPTIONS } from '../../cards/paper'
 import type { FreeEl } from '../../state/store'
 import { mergeCovering, mergeRange, unmergeAt } from '../../canvas/tableOps'
 import { isSlotEl, slotAllows } from '../../template/slots'
+import { cellKey, cellLabel } from '../../comments/commentsApi'
 import CommentComposer from '../../comments/CommentComposer'
 import { useProjects } from '../../persistence/projects'
 import { useComments } from '../../comments/store'
@@ -122,8 +123,12 @@ function CommentTool() {
   if (!projectId) return null
 
   const ts = el && tableSel && tableSel.elId === el.id ? tableSel : null
-  const cell = ts ? `${Math.min(ts.r0, ts.r1)}_${Math.min(ts.c0, ts.c1)}` : null
-  const where = !el ? '이 장' : cell ? `표 ${Math.min(ts!.r0, ts!.r1) + 1}행 ${Math.min(ts!.c0, ts!.c1) + 1}열` : '고른 요소'
+  // **끌어 고른 범위 그대로 짚는다.**
+  // 예전에는 왼쪽 위 한 칸만 저장했다. 그러면 "3~5월 구간이 앞 장과 다릅니다"
+  // 를 짚어도 목록에는 「4행 6열」 한 칸만 남고, 받는 사람은 어느 구간인지
+  // 글을 다시 읽어야 했다. 로드맵에서 지적의 대부분은 구간에 달린다.
+  const cell = ts ? cellKey(ts.r0, ts.c0, ts.r1, ts.c1) : null
+  const where = !el ? '이 장' : cell ? `표 ${cellLabel(cell)}` : '고른 요소'
 
   return (
     <span className="ax-grp gs">

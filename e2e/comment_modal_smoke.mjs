@@ -101,6 +101,49 @@ ok('방금 쓴 의견이 목록에 있다', await mine.count() === 1)
 ok('줄바꿈이 그대로 남는다', (await mine.innerText()).includes('\n확인 부탁드립니다'),
    JSON.stringify((await mine.innerText()).slice(-40)))
 
+// ── 5) 끌어 고른 **범위 그대로** 짚는다 ──
+// 로드맵 지적의 대부분은 칸 하나가 아니라 구간에 달린다.
+// 왼쪽 위 한 칸만 저장하면 "3~5월 구간이 다릅니다" 를 짚어도 목록에는
+// 「4행 6열」만 남고, 받는 사람은 어느 구간인지 글을 다시 읽어야 한다.
+{
+  const box = async (r, c) => (await cell(r, c).boundingBox())
+  const a = await box(4, 2), z = await box(4, 5)
+  await p.mouse.move(a.x + a.width / 2, a.y + a.height / 2)
+  await p.mouse.down()
+  await p.mouse.move(a.x + a.width / 2 + 8, a.y + a.height / 2, { steps: 2 })
+  await p.mouse.move(z.x + z.width / 2, z.y + z.height / 2, { steps: 10 })
+  await p.mouse.up()
+  await p.waitForTimeout(250)
+  ok('(사전) 네 칸을 끌어 골랐다', await p.locator('.stage .feltd.cellsel').count() === 4)
+
+  const hint = await p.locator('.ax-tbrow.ctx .tbtn-hint').last().innerText()
+  ok('툴바가 범위를 그대로 말한다', hint.includes('5행 3~6열'), hint)
+
+  await openBtn.click()
+  await p.waitForTimeout(250)
+  ok('창에도 범위가 적힌다',
+     (await p.locator('.cmt-compose-where').innerText()).includes('5행 3~6열'),
+     (await p.locator('.cmt-compose-where').innerText()).replace(/\n/g, ' '))
+  await p.locator('.cmt-compose-body').fill('이 구간이 앞 장과 다릅니다')
+  await p.locator('.cmt-compose-send').click()
+  await p.waitForTimeout(600)
+
+  // 핀은 **범위 왼쪽 위 한 칸에만**. 칸마다 박으면 표가 핀으로 덮인다.
+  ok('핀은 범위 왼쪽 위에 하나만 붙는다',
+     await p.locator('.stage .feltd[data-r="4"][data-c="2"] .cmt-pin').count() === 1
+     && await p.locator('.stage .feltd[data-r="4"][data-c="3"] .cmt-pin').count() === 0)
+  // **어느 칸인지까지 본다.** 개수만 세면 앞선 실행이 남긴 표시로도 통과한다.
+  const marked = await p.locator('.stage .feltd.cmt-rg').evaluateAll(
+    (ns) => ns.map((n) => n.dataset.r + ',' + n.dataset.c).sort())
+  ok('짚은 네 칸에 정확히 표시된다',
+     JSON.stringify(marked) === JSON.stringify(['4,2', '4,3', '4,4', '4,5']),
+     marked.join(' | '))
+
+  const item = p.locator('.cmt-item', { hasText: '이 구간이 앞 장과 다릅니다' }).first()
+  ok('목록에도 범위로 적힌다', (await item.innerText()).includes('5행 3~6열'),
+     (await item.innerText()).split('\n')[1])
+}
+
 ok('끝까지 브라우저 기본 창은 없었다', native === 0, `${native}건`)
 ok('페이지 오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '))
 

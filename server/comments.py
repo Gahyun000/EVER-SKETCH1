@@ -65,6 +65,51 @@ _COLS = ("id,project_id,thread_id,page_id,el_id,cell,body,author_id,"
          "created_at,resolved_at,resolved_by")
 
 
+# 앵커에 넣을 수 있는 가장 큰 좌표. 표는 이보다 훨씬 작지만, 서버는 표 크기를
+# 모른다(그건 문서 안에 있다). 말이 되는 범위를 넘는 값만 걸러낸다.
+MAX_CELL_INDEX = 999
+
+
+def normalize_cell(cell: Optional[str]) -> Optional[str]:
+    """앵커 문자열을 정규화한다.
+
+        "3_5"        칸 하나
+        "3_3:3_5"    범위 (왼쪽 위 : 오른쪽 아래)
+
+    끌어서 고르면 시작점이 오른쪽 아래일 수도 있다("3_5:3_3"). 저장하기 전에
+    **작은 값이 앞으로 오게 맞춘다.** 안 맞추면 같은 범위가 네 가지 문자열로
+    저장되고, 핀을 그리는 쪽에서 그 네 경우를 다 알아야 한다.
+
+    한 칸이면 콜론 없이 쓴다 — 예전에 달린 의견과 같은 형식이다.
+    """
+    if cell is None:
+        return None
+    txt = str(cell).strip()
+    if not txt:
+        return None
+
+    def pt(s: str) -> tuple[int, int]:
+        a, _, b = s.partition("_")
+        try:
+            r, c = int(a), int(b)
+        except ValueError:
+            raise CommentError("가리키는 칸이 올바르지 않습니다.")
+        if not (0 <= r <= MAX_CELL_INDEX and 0 <= c <= MAX_CELL_INDEX):
+            raise CommentError("가리키는 칸이 표 밖입니다.")
+        return r, c
+
+    head, sep, tail = txt.partition(":")
+    r0, c0 = pt(head)
+    if not sep:
+        return "%d_%d" % (r0, c0)
+    r1, c1 = pt(tail)
+    lo_r, hi_r = min(r0, r1), max(r0, r1)
+    lo_c, hi_c = min(c0, c1), max(c0, c1)
+    if lo_r == hi_r and lo_c == hi_c:
+        return "%d_%d" % (lo_r, lo_c)
+    return "%d_%d:%d_%d" % (lo_r, lo_c, hi_r, hi_c)
+
+
 def add(project_id: str, author_id: str, body: str, page_id: int,
         el_id: Optional[int] = None, cell: Optional[str] = None,
         reply_to: Optional[str] = None) -> dict:
@@ -74,6 +119,7 @@ def add(project_id: str, author_id: str, body: str, page_id: int,
         raise CommentError("내용을 입력해 주세요.")
     if len(body) > MAX_BODY:
         raise CommentError("메모가 너무 깁니다 — 최대 %d자입니다." % MAX_BODY)
+    cell = normalize_cell(cell)
 
     c = _conn()
     try:
