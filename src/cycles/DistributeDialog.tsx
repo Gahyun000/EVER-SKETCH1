@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, type Me } from '../auth/authApi'
 import type { Page } from '../state/store'
+import Modal from '../ui/Modal'
 import PagePreview from './PagePreview'
 import {
   apiDeleteDeck, apiDistribute, apiDistributeSlides, apiGetDeck, apiPreviewPage,
@@ -158,16 +159,49 @@ export default function DistributeDialog({
   )
 
   return (
-    <div className="cy-scrim" role="dialog" aria-modal="true" aria-labelledby="cy-ds-t"
-      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose() }}>
-      <div className="cy-modal wide">
-        <h3 id="cy-ds-t">
-          {step === 'choose' ? '무엇을 배부할까요?'
-            : step === 'deck' ? '실물 PPT — 슬라이드별 배부'
-            : '표준 양식 배부'}
-        </h3>
-
-        {err && <div className="cy-msg err">{err}</div>}
+    /* 껍데기(스크림·Esc·포커스)는 ui/Modal 이 맡는다 — 창마다 따로 만들지 않는다. */
+    <Modal size="lg" className="cy-modal wide" scrimClassName="cy-scrim" footClassName="cy-modal-btns"
+      labelId="cy-ds-t" busy={!!busy} error={err} onClose={onClose}
+      title={step === 'choose' ? '무엇을 배부할까요?'
+        : step === 'deck' ? '실물 PPT — 슬라이드별 배부'
+        : '표준 양식 배부'}
+      footer={<>
+      {step !== 'choose' && (
+        <button className="cy-btn" disabled={!!busy}
+          onClick={() => { setStep('choose'); setErr('') }}>← 뒤로</button>
+      )}
+      <span className="cy-modal-spacer">
+        {step === 'deck' && deck && (
+          /* 잠긴 버튼이 이유를 말하지 않으면, 사용자는 엉뚱한 곳(경고 문구 등)을
+             원인으로 짚는다. 실제로 '가져오지 못한 게 있어서 배부가 안 되냐' 는
+             질문을 받았다 — 관계없는 경고였다. 무엇이 모자란지 여기서 말한다. */
+          <span className={'cy-hint' + (assignments.length === 0 ? ' cy-need' : '')}>
+            {assignments.length === 0
+              ? (common.length > 0
+                ? '공통 장은 「받는 사람」이 정해져야 나갑니다. 담당자를 한 명 이상 지정해 주세요.'
+                : '담당자를 한 명 이상 지정해야 배부할 수 있습니다. 위 표의 「담당자」에서 고르세요.')
+              : `${people.size}명에게 담당분 ${assignments.length}장이 나갑니다.`}
+            {common.length > 0 && ` 공통 ${common.length}장은 ${people.size || '받는'}${people.size ? '명' : ' 사람'} 모두의 맨 앞에 붙습니다.`}
+          </span>
+        )}
+      </span>
+      <button className="cy-btn" disabled={!!busy} onClick={onClose}>닫기</button>
+      {step === 'template' && (
+        <button className="cy-btn primary" disabled={!!busy || writers.length === 0}
+          onClick={() => void sendTemplate()}>
+          {busy === 'dist' ? '배부 중…' : `${writers.length}명에게 배부`}
+        </button>
+      )}
+      {step === 'deck' && deck && (
+        <button className="cy-btn primary"
+          disabled={!!busy || assignments.length === 0}
+          title={assignments.length === 0 ? '담당자를 한 명 이상 지정해 주세요'
+            : `${people.size}명에게 배부합니다 (이미 받은 사람은 건너뜁니다)`}
+          onClick={() => void sendDeck()}>
+          {busy === 'dist' ? '배부 중…' : `슬라이드별 배부 (${people.size}명)`}
+        </button>
+      )}
+      </>}>
 
         {/* ── 1) 방식 고르기 ── */}
         {step === 'choose' && (loading ? <p className="cy-dim">확인하는 중…</p> : (
@@ -369,44 +403,6 @@ export default function DistributeDialog({
           </div>
         )}
 
-        <div className="cy-modal-btns">
-          {step !== 'choose' && (
-            <button className="cy-btn" disabled={!!busy}
-              onClick={() => { setStep('choose'); setErr('') }}>← 뒤로</button>
-          )}
-          <span className="cy-modal-spacer">
-            {step === 'deck' && deck && (
-              /* 잠긴 버튼이 이유를 말하지 않으면, 사용자는 엉뚱한 곳(경고 문구 등)을
-                 원인으로 짚는다. 실제로 '가져오지 못한 게 있어서 배부가 안 되냐' 는
-                 질문을 받았다 — 관계없는 경고였다. 무엇이 모자란지 여기서 말한다. */
-              <span className={'cy-hint' + (assignments.length === 0 ? ' cy-need' : '')}>
-                {assignments.length === 0
-                  ? (common.length > 0
-                    ? '공통 장은 「받는 사람」이 정해져야 나갑니다. 담당자를 한 명 이상 지정해 주세요.'
-                    : '담당자를 한 명 이상 지정해야 배부할 수 있습니다. 위 표의 「담당자」에서 고르세요.')
-                  : `${people.size}명에게 담당분 ${assignments.length}장이 나갑니다.`}
-                {common.length > 0 && ` 공통 ${common.length}장은 ${people.size || '받는'}${people.size ? '명' : ' 사람'} 모두의 맨 앞에 붙습니다.`}
-              </span>
-            )}
-          </span>
-          <button className="cy-btn" disabled={!!busy} onClick={onClose}>닫기</button>
-          {step === 'template' && (
-            <button className="cy-btn primary" disabled={!!busy || writers.length === 0}
-              onClick={() => void sendTemplate()}>
-              {busy === 'dist' ? '배부 중…' : `${writers.length}명에게 배부`}
-            </button>
-          )}
-          {step === 'deck' && deck && (
-            <button className="cy-btn primary"
-              disabled={!!busy || assignments.length === 0}
-              title={assignments.length === 0 ? '담당자를 한 명 이상 지정해 주세요'
-                : `${people.size}명에게 배부합니다 (이미 받은 사람은 건너뜁니다)`}
-              onClick={() => void sendDeck()}>
-              {busy === 'dist' ? '배부 중…' : `슬라이드별 배부 (${people.size}명)`}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

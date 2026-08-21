@@ -71,3 +71,20 @@
 .cmt-pin.done { background: #3E9E6E; }
 .cmt-pin.on { outline: 2px solid #2462EB; outline-offset: 1px; }
 .feltd { position: relative; }
+
+/* 의견 쓰기 창 — 브라우저 기본 입력창을 대신한다(CommentComposer.tsx 주석 참고). */
+.cmt-compose-where {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 0 0 10px; font-size: 13px; color: #1c2433;
+}
+.cmt-compose-tag {
+  font-size: 11px; font-weight: 700; color: #2462eb;
+  background: #eaf1ff; border-radius: 6px; padding: 3px 7px;
+}
+.cmt-compose-body {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 110px;
+  border: 1px solid #d6dced; border-radius: 9px; padding: 10px 11px;
+  font: inherit; font-size: 13px; line-height: 1.65; color: #1c2433;
+}
+.cmt-compose-body:focus { outline: 2px solid #2462eb; outline-offset: -1px; border-color: #2462eb; }
+.cmt-compose-hint { margin: 7px 0 0; font-size: 11.5px; color: #9aa3b2; }

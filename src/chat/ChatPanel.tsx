@@ -162,14 +162,26 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose, screenContext, o
   const [messages, setMessages] = useState<Message[]>(makeInitialMessages);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  // 화면 안 안내(브라우저 경고창 대신). 잠깐 떴다 사라진다.
+  const [notice, setNotice] = useState<string>('');
+  const noticeTimer = useRef<number | null>(null);
+  const showNotice = (msg: string) => {
+    setNotice(msg);
+    if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setNotice(''), 6000);
+  };
   const [docxBusyIdx, setDocxBusyIdx] = useState<number | null>(null);
 
   const copyAnswer = async (text: string, idx: number) => {
     // http + 사내 IP 는 secure context 가 아니라 navigator.clipboard 가 없다.
     // copyText 가 execCommand 폴백까지 처리하고, 실패하면 사용자에게 알린다.
+    //
+    // 알리는 방법을 브라우저 경고창에서 **화면 안 안내로** 바꿨다.
+    // 경고창은 확인을 누를 때까지 화면 전체를 멈춘다 — 복사하려던 글을
+    // 직접 긁어 가려는 사람에게 정작 그 글을 가린다.
     const ok = await copyText(text);
     if (!ok) {
-      window.alert('복사에 실패했어요. 텍스트를 직접 선택해 Ctrl+C(\u2318+C) 로 복사해 주세요.');
+      showNotice('복사하지 못했어요 — 사내망(http)에서는 브라우저가 막습니다. 글을 직접 긁어서 Ctrl+C(\u2318+C) 해 주세요.');
       return;
     }
     setCopiedIdx(idx);
@@ -457,6 +469,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose, screenContext, o
           <button onClick={onClose} title="닫기"><PanelRightClose className="h-5 w-5" /></button>
         </div>
       </header>
+
+      {notice && (
+        <div className="chat-notice" role="status">
+          <span>{notice}</span>
+          <button type="button" onClick={() => setNotice('')} aria-label="안내 닫기">✕</button>
+        </div>
+      )}
 
       {showGuide && (() => {
         const screen = screenContext?.page ? SCREEN_GUIDE[screenContext.page] : undefined;

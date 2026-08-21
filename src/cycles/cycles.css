@@ -138,16 +138,9 @@
 }
 .lib-new.ghost:hover { background: #f6f8fc; border-color: #c6d5ff; color: #2462EB; }
 
-/* 회수 확인창 — 되돌릴 수 없는 조작이라 무엇이 사라지는지 보여준 뒤에 누르게 한다. */
-.cy-scrim {
-  position: fixed; inset: 0; background: rgba(15,20,35,.42); z-index: 80;
-  display: flex; align-items: center; justify-content: center; padding: 24px;
-}
-.cy-modal {
-  background: #fff; border-radius: 14px; width: min(620px, 96vw); max-height: 86vh;
-  overflow: auto; padding: 22px 24px; box-shadow: 0 24px 70px rgba(15,27,61,.3);
-}
-.cy-modal h3 { font-size: 16.5px; font-weight: 800; color: var(--navy); margin: 0 0 12px; }
+/* 회수 확인창 — 되돌릴 수 없는 조작이라 무엇이 사라지는지 보여준 뒤에 누르게 한다.
+   껍데기(스크림·상자·제목·버튼줄)는 ui/modal.css 하나가 맡는다. 여기 있던
+   .cy-scrim/.cy-modal 규칙은 그리로 옮겼다 — 창마다 폭과 모서리가 달라지지 않게. */
 .cy-rv-lead { font-size: 13px; color: var(--sub); line-height: 1.7; margin: 0 0 12px; }
 .cy-rv-lead b { color: var(--ink); }
 .cy-rv-list { max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
@@ -158,12 +151,11 @@
   font-size: 12.5px; line-height: 1.6; color: var(--ink); cursor: pointer;
 }
 .cy-rv-agree input { margin-top: 2px; width: 15px; height: 15px; accent-color: var(--red); flex-shrink: 0; }
-.cy-modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+/* 버튼줄 자체는 ui-modal-foot 가 그린다. 이 선택자는 화면·테스트가 잡는 이름으로 남긴다. */
 .cy-btn.danger-solid { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; }
 .cy-btn.danger-solid:hover:not(:disabled) { opacity: .9; background: var(--red); }
 
 /* 배부 창구 — 방식 고르기 · 배정 · 미리보기가 한 창 안에 있다. */
-.cy-modal.wide { width: min(1080px, 96vw); }
 .cy-modal-spacer { flex: 1; min-width: 0; }
 .cy-modal-spacer .cy-hint { display: block; }
 

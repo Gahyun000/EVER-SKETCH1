@@ -20,6 +20,8 @@ const SUITES = [
   { name: '배부 창구 · 미리보기', file: 'distribute_smoke.mjs', env: { ADMIN: '1', DECK: '1', EMPTY: '1' } },
   { name: '배부 회수', file: 'revoke_smoke.mjs', env: { ADMIN: '1' } },
   { name: '앵커 메모(검토 의견)', file: 'comments_smoke.mjs', env: { COMMENTS: '1' } },
+  { name: '의견 쓰기 창(모달)', file: 'comment_modal_smoke.mjs', env: { COMMENTS: '1' } },
+  { name: '대화상자 공용 껍데기', file: 'modal_shell_smoke.mjs', env: {} },
 ]
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))

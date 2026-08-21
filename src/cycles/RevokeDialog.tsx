@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ApiError, type Me } from '../auth/authApi'
+import Modal from '../ui/Modal'
 import { apiRevoke, apiRevokePreview, fmtKst, SUBMIT_LABEL, type RevokePreview } from './cyclesApi'
 
 /**
@@ -68,12 +69,17 @@ export default function RevokeDialog({
   }
 
   return (
-    <div className="cy-scrim" role="dialog" aria-modal="true" aria-labelledby="cy-rv-t"
-      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose() }}>
-      <div className="cy-modal">
-        <h3 id="cy-rv-t">{only ? '이 배부본을 회수합니다' : '이 회차의 배부를 모두 취소합니다'}</h3>
-
-        {err && <div className="cy-msg err">{err}</div>}
+    <Modal size="md" className="cy-modal" scrimClassName="cy-scrim" footClassName="cy-modal-btns" labelId="cy-rv-t"
+      busy={busy} error={err} onClose={onClose}
+      title={only ? '이 배부본을 회수합니다' : '이 회차의 배부를 모두 취소합니다'}
+      footer={<>
+        <button className="cy-btn" disabled={busy} onClick={onClose}>그만두기</button>
+        <button className="cy-btn danger-solid"
+          disabled={busy || !preview || items.length === 0 || (needsAgree && !agreed)}
+          onClick={() => void run()}>
+          {busy ? '회수 중…' : only ? '회수하기' : `${items.length}건 모두 회수`}
+        </button>
+      </>}>
 
         {!preview ? (
           <p className="cy-dim">사라지는 내용을 확인하는 중…</p>
@@ -128,16 +134,6 @@ export default function RevokeDialog({
             </label>
           )}
         </>)}
-
-        <div className="cy-modal-btns">
-          <button className="cy-btn" disabled={busy} onClick={onClose}>그만두기</button>
-          <button className="cy-btn danger-solid"
-            disabled={busy || !preview || items.length === 0 || (needsAgree && !agreed)}
-            onClick={() => void run()}>
-            {busy ? '회수 중…' : only ? '회수하기' : `${items.length}건 모두 회수`}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

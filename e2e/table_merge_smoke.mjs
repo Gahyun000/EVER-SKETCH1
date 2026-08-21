@@ -241,6 +241,34 @@ ok('손잡이를 끌면 표가 따라 움직인다', Math.abs(after.x - before.x
   await p.waitForTimeout(150)
 }
 
+// ── 툴바는 두 줄이다: 만들기 도구 / 고른 것에 따른 도구 ──
+// 한때 도구 묶음이 제멋대로 줄을 넘나들어, 1900px 화면에서 다 들어가고도
+// 빈 줄이 두 개 생겼다. 줄의 뜻을 정해 둔다 —
+// 첫 줄은 늘 쓰는 만들기 도구(구글 슬라이드 + 노트)가 **함께** 있고,
+// 둘째 줄은 표·검토가 자리를 지킨다(고른 게 없어도 사라지지 않는다).
+{
+  await p.setViewportSize({ width: 1900, height: 1000 })
+  await p.waitForTimeout(300)
+  const tb = p.locator('.ax-tb').first()
+  const rows = await p.locator('.ax-tb .ax-tbrow').count()
+  ok('툴바는 두 줄이다', rows === 2, `${rows}줄`)
+
+  const yOf = async (sel) => Math.round((await p.locator(sel).first().boundingBox()).y)
+  const yGs = await yOf('.ax-grp.gs:not(.note-grp):not(.off)')
+  const yNote = await yOf('.ax-grp.note-grp')
+  ok('만들기 도구는 첫 줄에 함께 있다', Math.abs(yGs - yNote) < 4, `${yGs} / ${yNote}`)
+
+  const yTbl = await yOf('.ax-tbrow.ctx .ax-grp')
+  ok('표·검토는 둘째 줄에 있다', yTbl > yGs + 10, `${yGs} → ${yTbl}`)
+
+  const wide0 = (await tb.boundingBox()).height
+  await cell(4, 4).click()
+  await p.waitForTimeout(250)
+  const wide1 = (await tb.boundingBox()).height
+  ok('넓은 화면에서도 고른 뒤 높이가 그대로다', Math.abs(wide1 - wide0) < 2,
+     `${wide0} → ${wide1}`)
+}
+
 ok('페이지 오류 없음', errs.length === 0, errs.slice(0, 2).join(' | '))
 
 await b.close()

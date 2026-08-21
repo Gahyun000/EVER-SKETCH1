@@ -510,3 +510,18 @@ button{font-family:inherit;cursor:pointer}
 .ctxbar .ctx-b:hover{background:#f0f5ff}
 .ctxbar .ctx-b.danger:hover{background:#fdecec;color:#d3392b}
 .cpt:hover{transform:scale(1.15)}
+
+/* 챗봇 화면 안 안내 — 브라우저 경고창(window.alert) 대신.
+   경고창은 확인을 누를 때까지 화면을 멈춘다. 복사하려던 글을 직접 긁어 가려는
+   사람에게 정작 그 글을 가려버린다. */
+.chat-notice{
+  display:flex;align-items:flex-start;gap:8px;margin:8px 12px 0;padding:9px 11px;
+  background:#fff7e8;border:1px solid #f0d9a8;border-radius:9px;
+  font-size:12.5px;line-height:1.6;color:#7a5312;
+}
+.chat-notice span{flex:1;min-width:0}
+.chat-notice button{
+  border:0;background:none;cursor:pointer;color:#a8823c;font-size:12px;
+  padding:0 2px;line-height:1.4;flex-shrink:0;
+}
+.chat-notice button:hover{color:#7a5312}

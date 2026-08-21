@@ -1,0 +1,36 @@
+/* 대화상자 껍데기 — Modal.tsx 하나만 쓴다.
+   폭·모서리·그림자를 여기서만 정해서, 창마다 조금씩 다르게 생기는 일을 없앤다. */
+.ui-scrim {
+  position: fixed; inset: 0; background: rgba(15, 20, 35, .42); z-index: 300;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.ui-modal {
+  background: #fff; border-radius: 14px; max-height: 86vh; overflow: auto;
+  padding: 20px 24px 22px; box-shadow: 0 24px 70px rgba(15, 27, 61, .3);
+  display: flex; flex-direction: column;
+}
+.ui-modal.sm { width: min(460px, 94vw); }
+.ui-modal.md { width: min(620px, 96vw); }
+.ui-modal.lg { width: min(1080px, 96vw); }
+
+.ui-modal-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.ui-modal-head h3 {
+  flex: 1; min-width: 0; margin: 0;
+  font-size: 16.5px; font-weight: 800; line-height: 1.35; color: var(--navy, #16234a);
+}
+.ui-modal-x {
+  border: 0; background: none; cursor: pointer; font-size: 15px; color: #8b94a6;
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+}
+.ui-modal-x:hover:not(:disabled) { background: #eef1f6; color: #333; }
+.ui-modal-x:disabled { opacity: .4; cursor: default; }
+
+.ui-modal-body { flex: 1; min-height: 0; }
+.ui-modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+/* 오류는 **무엇을 하려다 실패했는지**와 함께 적는다.
+   「저장하지 못했어요」만으로는 다시 눌러야 할지 그만둬야 할지 알 수 없다. */
+.ui-modal-err {
+  background: #fdecec; border: 1px solid #f3c2c2; color: #9c2b2b;
+  border-radius: 8px; padding: 9px 11px; font-size: 12.5px; line-height: 1.6; margin-bottom: 12px;
+}
