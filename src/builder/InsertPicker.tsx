@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { intakeImage } from './imageIntake'
 import { useCanvasUI } from '../state/canvasUI'
 import { useBuilder } from '../state/store'
 import { mkFreeEl, pushSnap } from '../canvas/model'
@@ -70,7 +71,12 @@ export default function InsertPicker() {
   }
   function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files && e.target.files[0]; if (!f) return
-    const r = new FileReader(); r.onload = () => insertImage(String(r.result), 180, 130); r.readAsDataURL(f)
+    // 넣기 전에 축소하고, 상자는 사진 원래 비율대로 잡는다(고정 180×130 이면 여백이 생긴다).
+    intakeImage(f).then((r) => {
+      const base = 260
+      const k = (r.w && r.h) ? base / Math.max(r.w, r.h) : 0
+      insertImage(r.src, k ? Math.max(24, Math.round(r.w * k)) : 180, k ? Math.max(24, Math.round(r.h * k)) : 130)
+    }).catch(() => { /* 읽기 실패 */ })
   }
 
   const emojiList = q.trim()

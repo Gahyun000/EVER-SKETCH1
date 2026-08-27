@@ -20,7 +20,7 @@ export default function Editor() {
   }
   return (<div>
     <div className="edit-h">{c.label} 카드</div>
-    <div className="edit-sub">예시가 미리 들어 있어요. 그대로 둬도 되고 고쳐 쓰면 됩니다.</div>
+    <div className="edit-sub">칸을 채우면 페이지에 바로 반영됩니다. 비워 두면 그 줄은 생략돼요.</div>
     {c.fields.map((fd) => (<div className="fld" key={fd.key}>
       <label>{fd.label}</label>
       {fd.textarea

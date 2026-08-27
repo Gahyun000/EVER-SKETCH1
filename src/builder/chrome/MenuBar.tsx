@@ -9,7 +9,7 @@ interface MItem { label?: string; sc?: string; run?: () => void; disabled?: bool
 interface Menu { label: string; hwp?: boolean; items: MItem[] }
 
 // 구글 슬라이드식 드롭다운 메뉴. 실동작 가능한 항목은 연결, 미구현은 비활성 표시.
-export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { onHelp: () => void; onSettings: () => void; onImport: () => void; onPresent: () => void }) {
+export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPresent }: { onHelp: () => void; onTutorial: () => void; onSettings: () => void; onImport: () => void; onPresent: () => void }) {
   const addCard = useBuilder((s) => s.addCard)
   const backToLibrary = useProjects((s) => s.backToLibrary)
   const setPageBg = useBuilder((s) => s.setPageBg)
@@ -39,7 +39,7 @@ export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { o
       { sep: true },
       { label: '🖼 PDF로 내보내기 (이미지)', run: () => emit('ebook:export-pdf') },
       { label: '📊 PPT로 내보내기 (편집 가능)', run: () => emit('ebook:export-pptx') },
-      { label: '↧ 이북(웹) 만들기', run: () => emit('ebook:build') },
+      { label: '↧ 이북(웹) 만들기', sc: '⌘↵', run: () => emit('ebook:build') },
       { sep: true },
       { label: '▷ 슬라이드쇼 (미리 보기)', run: onPresent },
       { sep: true },
@@ -58,7 +58,7 @@ export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { o
     ] },
     { label: '삽입', items: [
       { label: 'T  텍스트 상자', run: () => tool('text') },
-      { label: '🖼  이미지', run: () => tool('image') },
+      { label: '🖼  이미지', run: () => emit('ebook:insert-image') },
       { label: '◇  도형', run: () => tool('box') },
       { label: '▦  표', run: () => tool('table') },
       { label: '╱  선', run: () => tool('pen') },
@@ -98,7 +98,10 @@ export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { o
       { label: '⚙ 환경설정', run: onSettings },
       { label: '맞춤법 검사 켜기/끄기', run: () => { const c = useCanvasUI.getState(); c.setSpell(!c.spell) } },
     ] },
-    { label: '도움말', items: [{ label: '도움말 열기', run: onHelp }] },
+    { label: '도움말', items: [
+      { label: '도움말 열기', run: onHelp },
+      { label: '▶ 튜토리얼 (30초 시연)', run: onTutorial },
+    ] },
   ]
 
   return (

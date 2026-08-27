@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { cardByKey } from '../cards/registry'
 import type { ImportedDoc } from '../import/htmlImport'
 import { polish } from '../builder/polish'
+import { dropHistory } from '../canvas/history'
 import type { ThemeName } from '../design/tokens'
 export type Orientation = 'portrait' | 'landscape'
 export type SizePreset = 's' | 'm' | 'l'
@@ -12,7 +13,7 @@ export interface BookPlan { title?: string; orientation?: Orientation; theme?: T
 // G5 — 부분 수정: 대상 페이지 필드만 덮어쓰기(edits) + 새 장 끝에 추가(adds).
 export interface PageEdit { pageId: number; fields: Record<string, string> }
 export interface PageAdd { cardKey: string; fields?: Record<string, string> }
-export interface FreeEl { id: number; type: string; x: number; y: number; w: number; h: number; text: string; color: string; fs: number; src?: string; bold?: boolean; tcolor?: string; rows?: number; cols?: number; cells?: string[][]; merges?: { r: number; c: number; rs: number; cs: number }[]; calign?: Record<string, 'left' | 'center' | 'right'>; headRow?: boolean; wa?: boolean; italic?: boolean; underline?: boolean; rot?: number; align?: 'left' | 'center' | 'right'; gotoSeq?: number; blocks?: Block[]; flipH?: boolean; flipV?: boolean; opacity?: number; shadow?: boolean; reflect?: boolean; locked?: boolean; groupId?: number; borderColor?: string; borderWidth?: number }
+export interface FreeEl { id: number; type: string; x: number; y: number; w: number; h: number; text: string; color: string; fs: number; src?: string; bold?: boolean; tcolor?: string; rows?: number; cols?: number; cells?: string[][]; merges?: { r: number; c: number; rs: number; cs: number }[]; calign?: Record<string, 'left' | 'center' | 'right'>; cvalign?: Record<string, 'top' | 'middle' | 'bottom'>; cfs?: Record<string, number>; headRow?: boolean; wa?: boolean; italic?: boolean; underline?: boolean; rot?: number; align?: 'left' | 'center' | 'right'; gotoSeq?: number; blocks?: Block[]; flipH?: boolean; flipV?: boolean; opacity?: number; shadow?: boolean; reflect?: boolean; locked?: boolean; groupId?: number; borderColor?: string; borderWidth?: number }
 export interface Conn { from: number; to: number; bend?: { x: number; y: number }; kind?: 'straight' | 'ortho' | 'curve'; arrow?: 'end' | 'both' | 'none'; color?: string; width?: number; dash?: boolean }
 export interface Stroke { points: [number, number][]; color: string; w: number; hl?: boolean }
 export type BlockType = 'h1' | 'h2' | 'h3' | 'h4' | 'text' | 'bullet' | 'numbered' | 'todo' | 'divider' | 'toggle' | 'callout'
@@ -29,6 +30,8 @@ export interface BuilderState {
   updateField: (pageId: number, key: string, value: string) => void
   removePage: (pageId: number) => void
   movePage: (pageId: number, dir: number) => void
+  /** 드래그 재정렬용: from 위치의 페이지를 빼서 to 위치에 끼워 넣는다(스왑 아님). */
+  reorderPage: (from: number, to: number) => void
   duplicatePage: (pageId: number) => void
   selectPage: (pageId: number) => void
   setTitle: (t: string) => void
@@ -74,9 +77,14 @@ let uid = 1
 let elUid = 100000
 // 자유 캔버스 요소 id 단일 발급원(mkFreeEl 포함 모두 여기서). reseedUids가 로드 때 이 카운터를 끌어올림.
 export function nextElId(): number { return elUid++ }
+// 새 페이지의 필드는 빈칸으로 시작한다.
+// registry 의 example 을 그대로 넣으면 같은 카드를 두 번 추가했을 때 글자까지 똑같은 페이지가 나오고,
+// 지우지 않은 예시 문구가 그대로 내보내기까지 따라간다.
+// 빈칸은 PageView 의 data-ph 자리표시자가 안내하므로 화면이 비어 보이지도 않는다.
+// (AI 경로 buildPlanPage 도 같은 이유로 빈칸을 쓴다 — 정책을 하나로 맞춘 것)
 function defaultsFor(cardKey: string): Record<string, string> {
   const c = cardByKey(cardKey); const f: Record<string, string> = {}
-  if (c) c.fields.forEach((fd) => { f[fd.key] = fd.example ?? '' })
+  if (c) c.fields.forEach((fd) => { f[fd.key] = '' })
   return f
 }
 // (G4/G5 공유) planner/editor 의 페이지 스펙 한 장을 실제 Page 로 만든다.
@@ -146,17 +154,42 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     }
     const p: Page = { id: uid++, cardKey, fields: defaultsFor(cardKey), free: false, els: [], conns: [], strokes: [] }
     if (cardKey === 'note') {
+      // 빈 제목 블록 + 빈 본문 블록. 안내 문구를 값으로 넣으면 페이지마다 같은 글이 박히고,
+      // 지우지 않으면 그대로 내보내진다. 사용법 안내는 블록 자리표시자가 맡는다.
       p.blocks = [
-        { ...newBlock('h1', '새 페이지 제목'), bold: true },
-        newBlock('text', '여기에 내용을 적어보세요. ‘/’로 블록을 추가하고, ‘>’로 접히는 토글을 만들 수 있어요.'),
+        { ...newBlock('h1', ''), bold: true },
+        newBlock('text', ''),
       ]
       p.bg = ''
     }
     return { pages: [...s.pages, p], selectedPageId: p.id }
   }),
   updateField: (pageId, key, value) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, fields: { ...p.fields, [key]: value } })) })),
-  removePage: (pageId) => set((s) => { const pages = s.pages.filter((p) => p.id !== pageId); const sel = s.selectedPageId === pageId ? (pages.length ? pages[0].id : null) : s.selectedPageId; return { pages, selectedPageId: sel } }),
+  removePage: (pageId) => set((s) => {
+    dropHistory(pageId)
+    const at = s.pages.findIndex((p) => p.id === pageId)
+    const pages = s.pages.filter((p) => p.id !== pageId)
+    // 지운 자리의 다음(없으면 이전) 페이지로. 무조건 1페이지로 튀면 여러 장 정리할 때
+    // 매번 원래 보던 곳까지 다시 스크롤해 내려와야 한다.
+    let sel = s.selectedPageId
+    if (s.selectedPageId === pageId) {
+      sel = pages.length ? pages[Math.min(at, pages.length - 1)].id : null
+    }
+    return { pages, selectedPageId: sel }
+  }),
   movePage: (pageId, dir) => set((s) => { const i = s.pages.findIndex((p) => p.id === pageId); const j = i + dir; if (i < 0 || j < 0 || j >= s.pages.length) return {} as Partial<BuilderState>; const pages = [...s.pages]; const tmp = pages[i]; pages[i] = pages[j]; pages[j] = tmp; return { pages } }),
+  // movePage 는 인접 스왑이라 임의 위치 이동을 표현할 수 없다(28→3 이면 25번 눌러야 한다).
+  // 드래그 재정렬은 잘라내서 끼워 넣는 방식이어야 중간 페이지들의 상대 순서가 유지된다.
+  reorderPage: (from, to) => set((s) => {
+    const n = s.pages.length
+    if (from < 0 || from >= n) return {} as Partial<BuilderState>
+    const dest = Math.max(0, Math.min(n - 1, to))
+    if (dest === from) return {} as Partial<BuilderState>
+    const pages = [...s.pages]
+    const [moved] = pages.splice(from, 1)
+    pages.splice(dest, 0, moved)
+    return { pages }
+  }),
   duplicatePage: (pageId) => set((s) => {
     const i = s.pages.findIndex((p) => p.id === pageId); if (i < 0) return {} as Partial<BuilderState>
     const src = s.pages[i]

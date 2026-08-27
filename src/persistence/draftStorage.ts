@@ -96,13 +96,23 @@ export const VERSION_STORE = 'versions'
 export function openWorkspaceDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DRAFT_DB, DB_VERSION)
+    let settled = false
+    const done = (fn: () => void) => { if (settled) return; settled = true; window.clearTimeout(timer); fn() }
+    // 다른 탭이 구버전 DB 연결을 쥐고 있으면 'blocked' 가 뜨고, 핸들러가 없으면 이 promise 는
+    // resolve 도 reject 도 되지 않는다. boot() 가 여기서 await 하므로 라이브러리가 영영 안 뜬다.
+    const timer = window.setTimeout(() => {
+      done(() => reject(new Error('workspace db open timeout — 이 앱을 연 다른 탭을 닫고 새로고침해 주세요')))
+    }, 4000)
+    req.onblocked = () => {
+      done(() => reject(new Error('workspace db blocked — 이 앱을 연 다른 탭을 닫고 새로고침해 주세요')))
+    }
     req.onupgradeneeded = () => {
       const db = req.result
       if (!db.objectStoreNames.contains(DRAFT_STORE)) db.createObjectStore(DRAFT_STORE)
       if (!db.objectStoreNames.contains(VERSION_STORE)) db.createObjectStore(VERSION_STORE, { keyPath: 'id' })
     }
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error || new Error('workspace db open failed'))
+    req.onsuccess = () => done(() => resolve(req.result))
+    req.onerror = () => done(() => reject(req.error || new Error('workspace db open failed')))
   })
 }
 

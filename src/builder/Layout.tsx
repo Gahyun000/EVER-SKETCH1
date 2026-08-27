@@ -14,6 +14,7 @@ import Help from './Help'
 import { useCanvasCommands } from './useCanvasCommands'
 import Present from './Present'
 import TutorialCoach from './TutorialCoach'
+import TutorialPlayer from './TutorialPlayer'
 import Hotkeys from './Hotkeys'
 import SettingsPage from '../settings/SettingsPage'
 import ChatPanel from '../chat/ChatPanel'
@@ -33,6 +34,7 @@ export default function Layout() {
   const [help, setHelp] = useState(false)
   const [present, setPresent] = useState(false)
   const [tutorial, setTutorial] = useState(false)
+  const [tutorialPlay, setTutorialPlay] = useState(false)
   const [settings, setSettings] = useState(false)
   const [chat, setChat] = useState(false)
   const [demo, setDemo] = useState(false)
@@ -45,7 +47,8 @@ export default function Layout() {
     if (!hasUnsavedChanges()) { action(); return }
     setConfirmSave({
       message,
-      onSaveAndContinue: async () => { await saveNow(); action() },
+      // 저장이 실패하면 진행하지 않는다(false 반환). 그대로 진행하면 아직 서버에 없는 작업을 덮어쓴다.
+      onSaveAndContinue: async () => { const ok = await saveNow(); if (ok) action(); return ok },
       onContinueWithoutSave: action,
     })
   }
@@ -100,11 +103,12 @@ export default function Layout() {
     <Hotkeys
       presentOpen={present} helpOpen={help} tutorialOpen={tutorial}
       onBuild={() => window.dispatchEvent(new CustomEvent('ebook:build'))}
+      onSave={() => { void saveNow() }}
       onPresent={() => setPresent(true)} onHelp={() => setHelp(true)}
       onCloseHelp={() => setHelp(false)} onCloseTutorial={() => setTutorial(false)}
     />
     <TitleBar onPresent={() => setPresent(true)} />
-    <MenuBar onHelp={() => setHelp(true)} onSettings={() => setSettings(true)} onImport={() => withSaveGuard(() => classicRef.current?.openImport(), '새 HTML을 불러오면 현재 작업 화면이 바뀔 수 있습니다.')} onPresent={() => setPresent(true)} />
+    <MenuBar onHelp={() => setHelp(true)} onTutorial={() => setTutorialPlay(true)} onSettings={() => setSettings(true)} onImport={() => withSaveGuard(() => classicRef.current?.openImport(), '새 HTML을 불러오면 현재 작업 화면이 바뀔 수 있습니다.')} onPresent={() => setPresent(true)} />
     <EditToolbar />
     <ClassicBar ref={classicRef} onSettings={() => setSettings(true)} onDemo={() => withSaveGuard(() => setDemo(true), '데모 실행 중 현재 작업 화면이 임시로 바뀔 수 있습니다.')} onAiCleanup={() => setAi(true)} />
 
@@ -127,6 +131,7 @@ export default function Layout() {
     <Help open={help} onClose={() => setHelp(false)} onStartTutorial={() => { setHelp(false); setTutorial(true) }} />
     <Present open={present} onClose={() => setPresent(false)} />
     <TutorialCoach open={tutorial} onClose={() => setTutorial(false)} />
+    <TutorialPlayer open={tutorialPlay} onClose={() => setTutorialPlay(false)} />
     {settings ? (
       <div className="scrim on settings-scrim" onClick={(e) => { if ((e.target as HTMLElement).classList.contains('scrim')) setSettings(false) }}>
         <div className="settings-modal">

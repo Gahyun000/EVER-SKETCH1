@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>튜토리얼 A→B 이어붙인 목업</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background:#eceef2;color:#111318;padding:26px 18px 50px;overflow-x:auto}
+  .wrap{width:780px;margin:0 auto}
+
+  .bar{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+  .bar button{font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+    padding:9px 15px;border-radius:8px;border:1px solid #d9dde5;background:#fff;color:#5b6270}
+  .bar button.on{background:#2462EB;border-color:#2462EB;color:#fff}
+  .bar .sp{margin-left:auto}
+
+  /* ── 진행 막대 ── */
+  .prog{display:flex;gap:3px;height:5px;margin-bottom:12px}
+  .prog i{flex:1;background:#dadee6;border-radius:3px;transition:background .3s}
+  .prog i.done{background:#9ab6f4}
+  .prog i.now{background:#2462EB}
+  .prog i.sep{flex:0 0 16px;background:transparent}
+
+  .app{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 6px 24px rgba(20,25,40,.14)}
+  .tb{display:flex;align-items:center;gap:6px;height:46px;padding:0 12px;
+    border-bottom:1px solid #e8eaef;background:#fafbfd}
+  .ib{width:30px;height:30px;border-radius:7px;border:1px solid transparent;background:transparent;
+    font-size:14px;color:#5b6270;display:flex;align-items:center;justify-content:center}
+  .ib.on{background:#e7effe;border-color:#b9d0fa;color:#2462EB}
+  .ib.hl{box-shadow:0 0 0 3px rgba(36,98,235,.28)}
+  .dv{width:1px;height:20px;background:#e2e5eb;margin:0 5px}
+  .save-lab{font-size:11.5px;color:#8891a0;font-weight:600}
+
+  .body{display:flex;height:470px;position:relative}
+  .pal{width:78px;border-right:1px solid #e8eaef;background:#fafbfd;padding:12px 0;
+    display:flex;flex-direction:column;align-items:center;gap:9px}
+  .pal .lab{font-size:10.5px;font-weight:800;color:#8891a0;letter-spacing:.4px;margin-bottom:2px}
+  .chip{width:54px;height:34px;border-radius:7px;background:#eef4ff;border:1px solid #d3e0fb;
+    display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#23334f}
+  .chip.round{border-radius:17px}
+  .chip.dia{transform:rotate(45deg);width:32px;height:32px;font-size:0}
+  .chip.hl{box-shadow:0 0 0 3px rgba(36,98,235,.28)}
+
+  .cv{flex:1;background:#f4f6fa;display:flex;align-items:center;justify-content:center;
+    background-image:radial-gradient(#dfe3ea 1px,transparent 1px);background-size:15px 15px}
+  .page{position:relative;width:352px;height:420px;background:#fff;border-radius:8px;
+    box-shadow:0 2px 12px rgba(20,25,40,.10)}
+  #svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+  .node{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;
+    font-size:12.5px;font-weight:600;border-radius:8px;padding:4px 8px;
+    background:#eef4ff;border:1px solid #d3e0fb;color:#23334f;line-height:1.3;
+    transition:width .45s ease,height .45s ease,background .4s,border-color .4s,color .4s}
+  .node.changed{background:#2462EB;border-color:#2462EB;color:#fff;font-weight:700}
+  .node.added{background:#fff;border:1.5px dashed #2462EB;color:#2462EB;font-weight:700}
+  .node .cur{display:inline-block;width:1.5px;height:12px;background:currentColor;
+    vertical-align:-2px;margin-left:1px;animation:bl .8s steps(1) infinite}
+  @keyframes bl{50%{opacity:0}}
+  .hnd{position:absolute;width:7px;height:7px;background:#fff;border:1.5px solid #2462EB;border-radius:2px}
+  .badge{position:absolute;font-size:10px;font-weight:800;color:#2462EB;white-space:nowrap;
+    opacity:0;transition:opacity .4s}
+  .badge.show{opacity:1}
+
+  /* 시간 경과 연출 */
+  .dim{position:absolute;inset:0;background:rgba(244,246,250,.78);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .55s;z-index:5}
+  .dim.on{opacity:1}
+  .dim span{font-size:13px;font-weight:800;color:#23334f;background:#fff;
+    border:1px solid #dfe3ea;border-radius:999px;padding:9px 18px;box-shadow:0 3px 12px rgba(20,25,40,.12)}
+
+  .cap{height:62px;border-top:1px solid #e8eaef;background:#fff;
+    display:flex;align-items:center;gap:12px;padding:0 18px}
+  .cap .ch{font-size:11px;font-weight:800;border-radius:999px;padding:5px 11px;flex:none;
+    background:#eef4ff;color:#2462EB;transition:background .3s,color .3s}
+  .cap .ch.two{background:#2462EB;color:#fff}
+  .cap .t{font-size:14px;font-weight:600;color:#23334f}
+  .cap .tm{margin-left:auto;font-size:11.5px;font-weight:700;color:#b3bac6;flex:none}
+
+  .ovl{position:absolute;inset:0;pointer-events:none;z-index:20}
+  #hand{position:absolute;left:0;top:0;transition:transform .6s cubic-bezier(.4,.1,.25,1);
+    filter:drop-shadow(0 3px 6px rgba(20,25,40,.3));transform:translate(-120px,-120px)}
+  .ring{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;
+    border:2.5px solid #2462EB;animation:rg .55s ease-out forwards}
+  @keyframes rg{from{transform:scale(.2);opacity:.9}to{transform:scale(1.5);opacity:0}}
+  .ghost{position:absolute;width:96px;height:34px;border-radius:8px;background:rgba(36,98,235,.16);
+    border:1.5px dashed #2462EB;margin:-17px 0 0 -48px;display:flex;align-items:center;
+    justify-content:center;font-size:11px;font-weight:700;color:#2462EB}
+
+  .foot{font-size:12.5px;color:#5b6270;margin-top:12px;line-height:1.65}
+  .foot b{color:#111318}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="bar">
+    <button id="rep" class="on">↻ 처음부터 재생</button>
+    <span class="sp"></span>
+    <button id="s1" class="on">1배속</button>
+    <button id="s2">1.6배속</button>
+  </div>
+
+  <div class="prog" id="prog"></div>
+
+  <div class="app">
+    <div class="tb">
+      <div class="ib">↺</div><div class="ib">↻</div>
+      <span class="save-lab">저장됨</span><span class="dv"></span>
+      <div class="ib on" id="t-select">▣</div>
+      <div class="ib" id="t-text">T</div>
+      <div class="ib" id="t-conn">→</div>
+      <div class="ib" id="t-table">▦</div>
+      <div class="ib" id="t-wa">🅰</div>
+    </div>
+
+    <div class="body">
+      <div class="pal">
+        <div class="lab">도형</div>
+        <div class="chip" id="c1">사각</div>
+        <div class="chip round" id="c2">둥근</div>
+        <div class="chip dia" id="c3"></div>
+      </div>
+      <div class="cv">
+        <div class="page" id="page">
+          <svg id="svg"><defs>
+            <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+              <path d="M0,0 L7,3.5 L0,7 z" fill="#9aa4b5"/></marker></defs></svg>
+          <div class="dim" id="dim"><span id="dimt">2주 뒤</span></div>
+        </div>
+      </div>
+      <div class="ovl" id="ovl">
+        <svg id="hand" width="32" height="40" viewBox="0 0 34 42">
+          <path d="M12 3.5c0-1.6 1.3-2.9 2.9-2.9s2.9 1.3 2.9 2.9v13.2c.2-1.4 1.1-2.4 2.6-2.4 1.5 0 2.4 1 2.6 2.2.4-1 1.3-1.7 2.5-1.7 1.5 0 2.6 1.1 2.7 2.4.5-.8 1.3-1.3 2.3-1.3 1.5 0 2.7 1.2 2.7 2.7v8.6c0 6.6-4.3 11.9-11 11.9-4.2 0-7-1.9-9.2-5.3L4.6 24.9c-.8-1.3-.4-3 .9-3.8 1.3-.8 3-.4 3.8.9L12 26V3.5z"
+            fill="#fff" stroke="#1b2333" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <div class="cap">
+      <div class="ch" id="chap">1부 · 만든다</div>
+      <div class="t" id="capt">준비 중…</div>
+      <div class="tm" id="tm">0초</div>
+    </div>
+  </div>
+
+  <p class="foot">
+    <b>1부가 만든 페이지를 2부가 그대로 이어받습니다.</b> 1부에서 “방식 미정”으로 남겨둔 칸이 2부에서 고쳐지는 바로 그 칸입니다 —
+    데모 두 개가 아니라 한 이야기입니다.
+  </p>
+</div>
+
+<script>
+const ovl=document.getElementById('ovl'),hand=document.getElementById('hand'),
+      page=document.getElementById('page'),svg=document.getElementById('svg'),
+      capt=document.getElementById('capt'),chap=document.getElementById('chap'),
+      tm=document.getElementById('tm'),dim=document.getElementById('dim'),
+      dimt=document.getElementById('dimt'),prog=document.getElementById('prog');
+
+const STEPS=[
+ {c:1,t:'빈 페이지 — 아무것도 없습니다'},
+ {c:1,t:'도형을 끌어와, 칸 안에 바로 씁니다'},
+ {c:1,t:'나머지 칸은 같은 방식으로'},
+ {c:1,t:'화살표로 이어 붙입니다'},
+ {c:1,t:'여기까지 한 장. 아직 못 정한 칸이 하나 남았습니다'},
+ {c:0,t:'⋯'},
+ {c:2,t:'2주 뒤, 이 페이지를 다시 엽니다'},
+ {c:2,t:'그때 정하지 못했던 칸'},
+ {c:2,t:'그 칸만 눌러 판단을 갱신합니다'},
+ {c:2,t:'새로 갈라진 갈래를 덧붙입니다'},
+ {c:2,t:'선을 다시 잇습니다'},
+ {c:2,t:'칸이 늘어난 게 아니라, 판단이 갱신됐습니다'},
+];
+// 진행 막대 (6번째는 챕터 구분)
+STEPS.forEach(s=>{const i=document.createElement('i');if(s.c===0)i.className='sep';prog.appendChild(i)});
+const bars=[...prog.children];
+
+let run=0,SPD=1,t0=0,timer=null;
+const wait=ms=>new Promise(r=>setTimeout(r,ms/SPD));
+const alive=my=>my===run;
+
+function say(i){const s=STEPS[i];
+  if(s.c){chap.textContent=s.c===1?'1부 · 만든다':'2부 · 고친다';chap.classList.toggle('two',s.c===2)}
+  capt.textContent=s.t;
+  bars.forEach((b,j)=>{b.classList.toggle('done',j<i&&STEPS[j].c!==0);b.classList.toggle('now',j===i)})}
+
+function rel(el,box){const r=el.getBoundingClientRect(),b=box.getBoundingClientRect();
+  return{x:r.left-b.left,y:r.top-b.top,w:r.width,h:r.height,cx:r.left-b.left+r.width/2,cy:r.top-b.top+r.height/2}}
+async function moveTo(x,y,d=620){hand.style.transitionDuration=(d/SPD)+'ms';
+  hand.style.transform=`translate(${x-14}px,${y-2}px)`;await wait(d)}
+async function moveToEl(el,d=620,dx=0,dy=0){const r=rel(el,ovl);await moveTo(r.cx+dx,r.cy+dy,d)}
+async function click(){const m=/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(hand.style.transform)||[0,0,0];
+  const rg=document.createElement('div');rg.className='ring';
+  rg.style.left=(+m[1]+14)+'px';rg.style.top=(+m[2]+4)+'px';ovl.appendChild(rg);
+  hand.style.transitionDuration=(90/SPD)+'ms';
+  hand.style.transform=`translate(${+m[1]}px,${+m[2]+4}px)`;await wait(100);
+  hand.style.transform=`translate(${+m[1]}px,${+m[2]}px)`;await wait(120);
+  setTimeout(()=>rg.remove(),600)}
+const hl=(el,on)=>el.classList.toggle('hl',on);
+
+function addNode(text,p,cls){const n=document.createElement('div');n.className='node '+(cls||'');
+  n.style.left=p.x+'px';n.style.top=p.y+'px';n.style.width=p.w+'px';n.style.height=p.h+'px';
+  n.textContent=text;page.appendChild(n);return n}
+
+async function dragIn(chip,p,my,fast){
+  await moveToEl(chip,fast?380:620);if(!alive(my))return;await click();hl(chip,true);
+  const g=document.createElement('div');g.className='ghost';g.textContent='도형';ovl.appendChild(g);
+  const s=rel(chip,ovl);g.style.left=s.cx+'px';g.style.top=s.cy+'px';
+  const D=fast?450:800;
+  g.style.transition=`left ${D/SPD}ms cubic-bezier(.4,.1,.25,1),top ${D/SPD}ms cubic-bezier(.4,.1,.25,1)`;
+  const pg=rel(page,ovl),tx=pg.x+p.x+p.w/2,ty=pg.y+p.y+p.h/2;
+  await wait(50);g.style.left=tx+'px';g.style.top=ty+'px';
+  hand.style.transitionDuration=(D/SPD)+'ms';hand.style.transform=`translate(${tx-14}px,${ty-2}px)`;
+  await wait(D+30);if(!alive(my)){g.remove();return}
+  g.remove();hl(chip,false);return addNode('',p,'')}
+
+async function resize(n,w,h,my){
+  const hs=[];for(let i=0;i<4;i++){const d=document.createElement('div');d.className='hnd';hs.push(d);n.appendChild(d)}
+  hs[0].style.cssText+='left:-4px;top:-4px';hs[1].style.cssText+='right:-4px;top:-4px';
+  hs[2].style.cssText+='left:-4px;bottom:-4px';hs[3].style.cssText+='right:-4px;bottom:-4px';
+  await wait(200);if(!alive(my))return;
+  await moveToEl(n,460,n.offsetWidth/2-2,n.offsetHeight/2-2);if(!alive(my))return;
+  n.style.width=w+'px';n.style.height=h+'px';await wait(120);
+  const r=rel(n,ovl);await moveTo(r.x+w-2,r.y+h-2,460);
+  await wait(240);hs.forEach(d=>d.remove())}
+
+async function type(n,text,my,fast){n.textContent='';
+  const c=document.createElement('span');c.className='cur';n.appendChild(c);
+  for(const ch of text){if(!alive(my))return;c.insertAdjacentText('beforebegin',ch);await wait(fast?26:52)}
+  await wait(fast?120:240);c.remove()}
+
+async function clearType(n,text,my){const old=n.textContent;
+  const c=document.createElement('span');c.className='cur';n.textContent=old;n.appendChild(c);
+  for(let i=old.length;i>=0;i--){if(!alive(my))return;n.textContent=old.slice(0,i);n.appendChild(c);await wait(26)}
+  for(const ch of text){if(!alive(my))return;c.insertAdjacentText('beforebegin',ch);await wait(52)}
+  await wait(220);c.remove()}
+
+function mkLine(){const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('stroke','#9aa4b5');l.setAttribute('stroke-width','1.6');
+  l.setAttribute('marker-end','url(#ah)');svg.appendChild(l);return l}
+
+async function arrow(a,b,my,fast){
+  const ax=a.offsetLeft+a.offsetWidth/2,ay=a.offsetTop+a.offsetHeight,
+        bx=b.offsetLeft+b.offsetWidth/2,by=b.offsetTop,pg=rel(page,ovl);
+  await moveTo(pg.x+ax,pg.y+ay,fast?330:480);if(!alive(my))return null;await click();
+  const l=mkLine();l.setAttribute('x1',ax);l.setAttribute('y1',ay);
+  l.setAttribute('x2',ax);l.setAttribute('y2',ay);
+  await moveTo(pg.x+bx,pg.y+by-6,fast?360:520);
+  l.setAttribute('x2',bx);l.setAttribute('y2',by-3);
+  await wait(fast?120:200);return l}
+
+function badge(x,y,txt){const b=document.createElement('div');b.className='badge';
+  b.style.left=x+'px';b.style.top=y+'px';b.textContent=txt;page.appendChild(b);
+  setTimeout(()=>b.classList.add('show'),40);return b}
+
+function reset(){[...page.querySelectorAll('.node,.badge')].forEach(e=>e.remove());
+  [...svg.querySelectorAll('line')].forEach(e=>e.remove());
+  [...ovl.querySelectorAll('.ring,.ghost')].forEach(e=>e.remove());
+  dim.classList.remove('on');
+  ['t-select','t-text','t-conn','t-table','t-wa'].forEach((id,i)=>{
+    const e=document.getElementById(id);e.classList.toggle('on',i===0);e.classList.remove('hl')});
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('hl'));
+  hand.style.transitionDuration='0ms';hand.style.transform='translate(-120px,-120px)';
+  bars.forEach(b=>b.classList.remove('done','now'))}
+
+async function play(){
+  const my=++run;reset();
+  t0=Date.now();clearInterval(timer);
+  timer=setInterval(()=>{if(my!==run)return clearInterval(timer);
+    tm.textContent=Math.round((Date.now()-t0)/1000)+'초'},250);
+  await wait(350);if(!alive(my))return;
+
+  /* ───── 1부 · 만든다 (축약) ───── */
+  say(0);await wait(1100);if(!alive(my))return;
+
+  say(1);
+  const a=await dragIn(document.getElementById('c1'),{x:112,y:30,w:128,h:34},my,false);if(!alive(my))return;
+  await resize(a,150,38,my);if(!alive(my))return;a.style.left='101px';
+  await moveToEl(a,420);await click();await type(a,'문서 업로드',my,false);if(!alive(my))return;
+
+  say(2);
+  const b=await dragIn(document.getElementById('c2'),{x:86,y:132,w:180,h:44},my,true);if(!alive(my))return;
+  await moveToEl(b,300);await click();await type(b,'문서 파싱 — 방식 미정',my,true);if(!alive(my))return;
+  const c=await dragIn(document.getElementById('c1'),{x:101,y:350,w:150,h:38},my,true);if(!alive(my))return;
+  await moveToEl(c,300);await click();await type(c,'이북 생성',my,true);if(!alive(my))return;
+
+  say(3);
+  const tc=document.getElementById('t-conn');
+  await moveToEl(tc,400);await click();
+  document.getElementById('t-select').classList.remove('on');tc.classList.add('on');hl(tc,true);
+  await wait(200);if(!alive(my))return;
+  await arrow(a,b,my,true);if(!alive(my))return;
+  let l2=await arrow(b,c,my,true);if(!alive(my))return;
+  hl(tc,false);tc.classList.remove('on');document.getElementById('t-select').classList.add('on');
+
+  say(4);
+  await moveTo(-120,-120,500);if(!alive(my))return;
+  const bd0=badge(272,142,'← 미정');
+  await wait(1500);if(!alive(my))return;bd0.remove();
+
+  /* ───── 전환 ───── */
+  say(5);dimt.textContent='2주 뒤';dim.classList.add('on');
+  await wait(1700);if(!alive(my))return;dim.classList.remove('on');await wait(600);
+  if(!alive(my))return;
+
+  /* ───── 2부 · 고친다 ───── */
+  say(6);await wait(1100);if(!alive(my))return;
+
+  say(7);
+  await moveToEl(b,700);if(!alive(my))return;
+  const bd=badge(272,142,'← 아직 미정');await wait(1200);if(!alive(my))return;bd.remove();
+
+  say(8);
+  await click();await clearType(b,'문서 파싱 — LLM 활용',my);if(!alive(my))return;
+  b.classList.add('changed');badge(272,145,'← 결정됨');
+  await wait(900);if(!alive(my))return;
+
+  say(9);
+  const d=await dragIn(document.getElementById('c2'),{x:101,y:248,w:150,h:38},my,false);if(!alive(my))return;
+  d.classList.add('added');
+  await moveToEl(d,380);await click();await type(d,'유료 API 검토',my,false);if(!alive(my))return;
+  badge(258,260,'← 새 갈래');await wait(500);if(!alive(my))return;
+
+  say(10);
+  await moveToEl(tc,420);await click();
+  document.getElementById('t-select').classList.remove('on');tc.classList.add('on');
+  if(l2)l2.remove();
+  await arrow(b,d,my,true);if(!alive(my))return;
+  await arrow(d,c,my,true);if(!alive(my))return;
+  tc.classList.remove('on');document.getElementById('t-select').classList.add('on');
+
+  say(11);
+  await moveTo(-120,-120,600);
+  clearInterval(timer)}
+
+document.getElementById('rep').onclick=play;
+document.getElementById('s1').onclick=()=>{SPD=1;s1.classList.add('on');s2.classList.remove('on')};
+document.getElementById('s2').onclick=()=>{SPD=1.6;s2.classList.add('on');s1.classList.remove('on')};
+play();
+</script>
+</body>
+</html>

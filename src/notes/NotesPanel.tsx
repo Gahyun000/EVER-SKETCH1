@@ -51,7 +51,7 @@ export default function NotesPanel() {
   function setOpen(v: boolean) { setOpenState(v); if (activeId) { try { localStorage.setItem('notepad-open-' + activeId, v ? '1' : '0') } catch { /* noop */ } } }
   function pickSize(s: Size) { setSize(s); try { localStorage.setItem('notepad-size', s) } catch { /* noop */ } }
 
-  // 프로젝트 전환 시: 그 이북 메모 로드 + 열림 상태 복원(첫 방문은 열림).
+  // 프로젝트 전환 시: 그 이북 메모 로드 + 열림 상태 복원(저장된 값이 없으면 닫힘 — 메모는 '메모' 버튼으로만 연다).
   useEffect(() => {
     if (!activeId) { setNotes([]); setOpenState(false); return }
     let alive = true
@@ -62,7 +62,7 @@ export default function NotesPanel() {
     })()
     let stored: string | null = null
     try { stored = localStorage.getItem('notepad-open-' + activeId) } catch { /* noop */ }
-    setOpenState(stored === null ? true : stored === '1')
+    setOpenState(stored === '1')
     setView('list'); setCurrentId(null); setQ('')
     return () => { alive = false }
   }, [activeId])

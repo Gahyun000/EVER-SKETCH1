@@ -49,23 +49,36 @@
 .ax-tb .ib{width:32px;height:32px;border-radius:7px;border:0;background:none;cursor:pointer;display:grid;place-items:center;font-size:15px;color:#3a3a3a}
 .ax-tb .ib:hover{background:#e6e8ec}
 .ax-tb .ib.on{background:var(--ax-blue-100);color:var(--ax-blue-d)}
-/* 도형 묶음 버튼 + 팝오버 */
+/* 도형 버튼 + 갤러리 팝오버
+   주의: .shp-pop 은 createPortal 로 document.body 에 붙으므로 .ax-app 밖이다.
+   --ax-* 변수가 해석되지 않으니 팝오버 쪽 색은 반드시 폴백을 함께 적는다. */
 .shp-wrap{display:inline-flex}
-.ax-tb .ib.shp-btn{width:auto;padding:0 6px;gap:1px;display:inline-flex;align-items:center}
-.shp-ic{font-size:15px;line-height:1}
-.shp-ca{font-size:9px;opacity:.6;margin-left:1px}
+.shp-ic{width:19px;height:19px;display:block}
+/* 사각형이 원을 가려 겹쳐 보이게 — 파낸 색은 버튼 상태별 배경과 같아야 한다 */
+.shp-ic rect{fill:var(--ax-plane,#f6f7f9)}
+.ax-tb .ib.shp-btn:hover .shp-ic rect{fill:#e6e8ec}
+.ax-tb .ib.shp-btn.on .shp-ic rect{fill:var(--ax-blue-100,#eaf2fd)}
 .shp-back{position:fixed;inset:0;z-index:120}
-.shp-pop{position:fixed;z-index:121;background:#fff;border:1px solid var(--ax-line);border-radius:10px;box-shadow:0 12px 30px rgba(20,25,40,.18);padding:5px;display:flex;flex-direction:column;min-width:150px}
-.shp-item{display:flex;align-items:center;gap:9px;border:none;background:transparent;border-radius:7px;padding:7px 10px;font-size:12.5px;color:var(--ax-ink);text-align:left;cursor:pointer}
-.shp-item:hover{background:#f0f5ff}
-.shp-item.on{background:var(--ax-blue-100);color:var(--ax-blue-d)}
-.shp-iic{display:inline-flex;width:18px;justify-content:center;font-size:15px}
+.shp-pop{position:fixed;z-index:121;background:#fff;border:1px solid var(--ax-line,#e3e4e8);border-radius:10px;box-shadow:0 12px 30px rgba(20,25,40,.18);padding:5px;display:flex;flex-direction:column;min-width:150px}
 .shp-pop.cats{min-width:210px;max-height:60vh;overflow:auto;gap:2px}
 .shp-cat-h{font-size:10.5px;font-weight:700;color:#9aa3b2;letter-spacing:.4px;padding:6px 6px 3px}
 .shp-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
-.shp-cell{display:flex;align-items:center;justify-content:center;height:30px;border:none;background:transparent;border-radius:7px;font-size:16px;color:var(--ax-ink);cursor:pointer}
+.shp-cell{display:flex;align-items:center;justify-content:center;height:30px;border:none;background:transparent;border-radius:7px;color:var(--ax-ink,#1a1a1a);cursor:pointer}
 .shp-cell:hover{background:#f0f5ff}
-.shp-cell.on{background:var(--ax-blue-100);color:var(--ax-blue-d)}
+.shp-cell.on{background:var(--ax-blue-100,#eaf2fd)}
+
+/* 갤러리 셀 미리보기 — 형상(clip-path)은 index.css 의 .fel.* 와 같은 규칙을 공유한다.
+   여기서는 크기와 색만 정한다. 비율에 무관한 polygon 만 공유하고,
+   px 단위인 모서리 반경(round/ellipse)은 미리보기 크기에 맞춰 따로 준다. */
+.shp-sh{display:block;width:22px;height:16px;background:#5b6270;border-radius:2px}
+.shp-cell:hover .shp-sh{background:#3a4150}
+.shp-cell.on .shp-sh{background:var(--ax-blue-d,#184f95)}
+.shp-sh.round{border-radius:6px}
+.shp-sh.ellipse{border-radius:50%}
+.shp-sh.ellipse,.shp-sh.diamond,.shp-sh.triangle,.shp-sh.hexagon,.shp-sh.pentagon,.shp-sh.star5{width:20px;height:20px}
+.shp-sh.arrowU,.shp-sh.arrowD{width:16px;height:22px}
+.shp-sh.arrowR,.shp-sh.arrowL{width:23px;height:17px}
+.shp-sh.parallelogram{width:23px;height:15px}
 .ax-tb .dv{width:1px;height:22px;background:var(--ax-line);margin:0 4px}
 .ax-grp{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:9px}
 .ax-grp.gs{background:rgba(42,120,214,.08);outline:1px solid rgba(42,120,214,.2)}
@@ -82,6 +95,8 @@
 .save-modal h2{font-size:18px;line-height:1.25;margin:0 0 8px;color:var(--ax-ink)}
 .save-modal p{font-size:13.5px;line-height:1.5;margin:0 0 6px;color:var(--ax-ink2)}
 .save-modal small{display:block;font-size:12px;color:var(--ax-muted);margin-top:4px}
+.save-modal .save-err{margin:10px 0 0;padding:9px 11px;border-radius:8px;background:#FDE8E6;border:1px solid #F6C6C1;color:#a12a21;font-size:12.5px;font-weight:600}
+.save-actions .ax-tbtn:disabled{opacity:.55;cursor:default}
 .save-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap}
 .ax-fsel{font-size:12px;border:1px solid var(--ax-line);border-radius:6px;padding:5px 6px;background:#fff;color:var(--ax-ink)}
 .ax-fnum{font-size:12px;border:1px solid var(--ax-line);border-radius:6px;padding:5px 4px;width:46px;background:#fff;color:var(--ax-ink)}
@@ -115,6 +130,21 @@
 .axth-tools button{width:18px;height:18px;border:0;border-radius:4px;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(0,0,0,.2);font-size:9px;line-height:1;cursor:pointer;color:#444;padding:0}
 .axth-tools button.del{color:#d1435b}
 .axth-tools button:hover{background:#fff}
+
+/* 썸네일 드래그 재정렬 */
+.axth-list.dragging{cursor:grabbing;user-select:none}
+.axth-list.dragging .axth-tools{display:none}          /* 드래그 중엔 도구 버튼을 숨겨 오조작 방지 */
+.axth-no{cursor:grab}
+.axth-list.dragging .axth-no{cursor:grabbing}
+.axth.lifted{opacity:.45}
+.axth.lifted .axth-mini{box-shadow:0 8px 20px -8px rgba(20,25,40,.45)}
+/* 놓을 자리 표시선 — 카드 위/아래에 붙인다 */
+.axth{position:relative}
+.axth.dropbefore::before,
+.axth.dropafter::after{content:'';position:absolute;left:24px;right:2px;height:3px;border-radius:2px;
+  background:var(--ax-blue);box-shadow:0 0 0 2px rgba(42,120,214,.18);pointer-events:none}
+.axth.dropbefore::before{top:-6px}
+.axth.dropafter::after{bottom:-6px}
 .ax-stage-wrap{background:#e9eaed;overflow:hidden;min-height:0;display:flex;flex-direction:column;position:relative}
 .ax-rightcell{min-width:0;overflow:hidden}
 .ax-rightcell>.ax-panelcol{width:100%;height:100%}
@@ -257,6 +287,7 @@
 .insp-body{flex:1 1 auto;min-height:0;overflow:auto;padding:14px 14px 22px}
 .insp-h{font-size:13px;font-weight:800;color:var(--ax-ink);margin:0 0 8px}
 .insp-sec{font-size:11px;font-weight:800;color:var(--ax-muted);letter-spacing:.02em;margin:14px 2px 6px}
+.insp-hint{font-size:11.5px;color:var(--ax-muted,#8a8883);line-height:1.5;padding:2px 2px 6px}
 .insp-sec:first-child{margin-top:2px}
 .insp-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .insp-b{width:30px;height:28px;border:1px solid var(--ax-line);background:#fff;border-radius:7px;cursor:pointer;font-size:13px;color:var(--ax-ink)}

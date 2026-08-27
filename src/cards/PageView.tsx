@@ -71,6 +71,78 @@ function FitBox({ children, maxH }: { children: ReactNode; maxH: number }) {
   )
 }
 
+
+// 인라인 편집 필드들 — PageView 함수 "밖"에 둔다.
+// 안에 두면 렌더마다 새 컴포넌트 타입이 만들어져 React 가 이 서브트리를 언마운트/재마운트한다.
+// 그러면 옆 칸을 클릭하는 순간 그 DOM 노드가 파괴되어 커서가 빠지고, 한글 IME 조합도 깨진다.
+// (NoteBlocks.tsx 가 같은 이유로 이미 피하고 있는 패턴)
+interface EfCtx {
+  f: Record<string, string>
+  page: Page
+  editable: boolean
+  updateField: (pageId: number, key: string, value: string) => void
+  selectAllOnFocus: (e: React.FocusEvent<HTMLElement>) => void
+  startDetachDrag: (e: React.PointerEvent<HTMLElement>, boxEl: HTMLElement, styleEl: HTMLElement, k: string, text: string) => void
+  startDetachBox: (e: React.PointerEvent<HTMLElement>, boxEl: HTMLElement, k: string) => void
+}
+
+function Ef({ ctx, k, ph, style }: { ctx: EfCtx; k: string; ph?: string; style?: CSSProperties }): ReactNode {
+  const v = ctx.f[k] || ''
+  if (ctx.page.detached && ctx.page.detached.includes(k)) return <span style={{ ...style, visibility: 'hidden' }}>{v}</span>
+  if (!ctx.editable) return <>{v || ph || ''}</>
+  return (
+    <span className="cardedit" data-ph={ph || '내용 입력'} style={style}
+      contentEditable suppressContentEditableWarning
+      onFocus={ctx.selectAllOnFocus}
+      onPointerDown={(e) => { e.stopPropagation(); ctx.startDetachDrag(e, e.currentTarget, e.currentTarget, k, e.currentTarget.textContent || '') }}
+      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
+      onBlur={(e) => { const t = e.currentTarget.textContent || ''; if (t !== (ctx.f[k] || '')) ctx.updateField(ctx.page.id, k, t) }}
+    >{v}</span>
+  )
+}
+
+function EfBox({ ctx, k, boxStyle, children }: { ctx: EfCtx; k: string; boxStyle?: CSSProperties; children: ReactNode }): ReactNode {
+  const hidden = !!(ctx.page.detached && ctx.page.detached.includes(k))
+  if (!ctx.editable) return <div style={boxStyle}>{children}</div>
+  return (
+    <div style={hidden ? { ...boxStyle, visibility: 'hidden' } : boxStyle}
+      onPointerDown={hidden ? undefined : (e) => { e.stopPropagation(); ctx.startDetachBox(e, e.currentTarget, k) }}>
+      {children}
+    </div>
+  )
+}
+
+function EfIn({ ctx, k, ph, style }: { ctx: EfCtx; k: string; ph?: string; style?: CSSProperties }): ReactNode {
+  const v = ctx.f[k] || ''
+  if (!ctx.editable) return <>{v || ph || ''}</>
+  return (
+    <span className="cardedit" data-ph={ph || '내용 입력'} style={style}
+      contentEditable suppressContentEditableWarning
+      onFocus={ctx.selectAllOnFocus}
+      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
+      onBlur={(e) => { const t = e.currentTarget.textContent || ''; if (t !== (ctx.f[k] || '')) ctx.updateField(ctx.page.id, k, t) }}
+    >{v}</span>
+  )
+}
+
+function EfPair({ ctx, k, sep, lph, rph, lStyle, rStyle, noStop }: { ctx: EfCtx; k: string; sep: string; lph?: string; rph?: string; lStyle?: CSSProperties; rStyle?: CSSProperties; noStop?: boolean }): ReactNode {
+  const raw = ctx.f[k] || ''
+  const i = raw.indexOf(sep)
+  const lv = i >= 0 ? raw.slice(0, i) : raw
+  const rv = i >= 0 ? raw.slice(i + sep.length) : ''
+  if (ctx.page.detached && ctx.page.detached.includes(k)) return <span style={{ visibility: 'hidden' }}>{raw}</span>
+  if (!ctx.editable) return (<>{<span style={lStyle}>{lv}</span>}{rv ? <span style={rStyle}>{rv}</span> : null}</>)
+  const commit = (nl: string, nr: string) => { const c = nr ? nl + sep + nr : nl; if (c !== raw) ctx.updateField(ctx.page.id, k, c) }
+  const cell = (val: string, ph: string, st: CSSProperties | undefined, done: (t: string) => void): ReactNode => (
+    <span className="cardedit" data-ph={ph} style={st} contentEditable suppressContentEditableWarning
+      onFocus={ctx.selectAllOnFocus}
+      onPointerDown={noStop ? undefined : (e) => e.stopPropagation()}
+      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
+      onBlur={(e) => done(e.currentTarget.textContent || '')}>{val}</span>
+  )
+  return (<>{cell(lv, lph || '', lStyle, (t) => commit(t, rv))}{cell(rv, rph || '', rStyle, (t) => commit(lv, t))}</>)
+}
+
 export default function PageView({ page, docTitle, orientation, size, font, tocItems = [], editable = false }: PageViewProps) {
   const updateField = useBuilder((s) => s.updateField)
   const moveEls = useBuilder((s) => s.moveEls)
@@ -122,20 +194,6 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
     const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
   }
-  const Ef = ({ k, ph, style }: { k: string; ph?: string; style?: CSSProperties }): ReactNode => {
-    const v = f[k] || ''
-    if (page.detached && page.detached.includes(k)) return <span style={{ ...style, visibility: 'hidden' }}>{v}</span>
-    if (!editable) return <>{v || ph || ''}</>
-    return (
-      <span className="cardedit" data-ph={ph || '내용 입력'} style={style}
-        contentEditable suppressContentEditableWarning
-        onFocus={selectAllOnFocus}
-        onPointerDown={(e) => { e.stopPropagation(); startDetachDrag(e, e.currentTarget, e.currentTarget, k, e.currentTarget.textContent || '') }}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
-        onBlur={(e) => { const t = e.currentTarget.textContent || ''; if (t !== (f[k] || '')) updateField(page.id, k, t) }}
-      >{v}</span>
-    )
-  }
   // 스타일 박스(배경/테두리 있는 칸)를 통째로 떼어낸다 — 드래그 시 박스 객체로 분리, 그 칸은 숨김.
   function startDetachBox(e: React.PointerEvent<HTMLElement>, boxEl: HTMLElement, k: string) {
     const sx = e.clientX, sy = e.clientY
@@ -165,47 +223,9 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
   }
   // 스타일 박스 래퍼 — 안의 글자는 클릭하면 편집, 드래그하면 박스째 떼어냄. 떼어내면 그 칸은 자리만 남기고 숨김.
-  const EfBox = ({ k, boxStyle, children }: { k: string; boxStyle?: CSSProperties; children: ReactNode }): ReactNode => {
-    const hidden = !!(page.detached && page.detached.includes(k))
-    if (!editable) return <div style={boxStyle}>{children}</div>
-    return (
-      <div style={hidden ? { ...boxStyle, visibility: 'hidden' } : boxStyle}
-        onPointerDown={hidden ? undefined : (e) => { e.stopPropagation(); startDetachBox(e, e.currentTarget, k) }}>
-        {children}
-      </div>
-    )
-  }
   // 박스 안에서 쓰는 인라인 편집(자체 떼어내기 없음 — 클릭=편집, 드래그는 부모 박스가 처리).
-  const EfIn = ({ k, ph, style }: { k: string; ph?: string; style?: CSSProperties }): ReactNode => {
-    const v = f[k] || ''
-    if (!editable) return <>{v || ph || ''}</>
-    return (
-      <span className="cardedit" data-ph={ph || '내용 입력'} style={style}
-        contentEditable suppressContentEditableWarning
-        onFocus={selectAllOnFocus}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
-        onBlur={(e) => { const t = e.currentTarget.textContent || ''; if (t !== (f[k] || '')) updateField(page.id, k, t) }}
-      >{v}</span>
-    )
-  }
   // 복합 필드(한 칸에 두 값: "이름:값" / "제목|설명") — 두 조각을 각각 인라인 편집, blur 시 합쳐 저장.
-  const EfPair = ({ k, sep, lph, rph, lStyle, rStyle, noStop }: { k: string; sep: string; lph?: string; rph?: string; lStyle?: CSSProperties; rStyle?: CSSProperties; noStop?: boolean }): ReactNode => {
-    const raw = f[k] || ''
-    const i = raw.indexOf(sep)
-    const lv = i >= 0 ? raw.slice(0, i) : raw
-    const rv = i >= 0 ? raw.slice(i + sep.length) : ''
-    if (page.detached && page.detached.includes(k)) return <span style={{ visibility: 'hidden' }}>{raw}</span>
-    if (!editable) return (<>{<span style={lStyle}>{lv}</span>}{rv ? <span style={rStyle}>{rv}</span> : null}</>)
-    const commit = (nl: string, nr: string) => { const c = nr ? nl + sep + nr : nl; if (c !== raw) updateField(page.id, k, c) }
-    const cell = (val: string, ph: string, st: CSSProperties | undefined, done: (t: string) => void): ReactNode => (
-      <span className="cardedit" data-ph={ph} style={st} contentEditable suppressContentEditableWarning
-        onFocus={selectAllOnFocus}
-        onPointerDown={noStop ? undefined : (e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
-        onBlur={(e) => done(e.currentTarget.textContent || '')}>{val}</span>
-    )
-    return (<>{cell(lv, lph || '', lStyle, (t) => commit(t, rv))}{cell(rv, rph || '', rStyle, (t) => commit(lv, t))}</>)
-  }
+  const ctx: EfCtx = { f, page, editable, updateField, selectAllOnFocus, startDetachDrag, startDetachBox }
   const gc = groupColor(card ? card.group : undefined)
   const noteBg = (card && card.viz === 'note' && page.bg) ? page.bg : T.page
   const isCover = !!(card && card.kind === 'cover')
@@ -226,15 +246,15 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
     inner = (<div style={{ ...pg, color: T.coverInk }}>
       <div style={{ ...eyebrow, color: 'rgba(255,255,255,.55)' }}>{docTitle}</div>
       <div style={{ margin: 'auto 0' }}>
-        <div style={{ fontSize: H1 * 1.2, fontWeight: 800, lineHeight: 1.15, letterSpacing: -1, color: '#fff' }}><Ef k="title" ph={card.title} /></div>
-        {f.sub ? <div style={{ color: 'rgba(255,255,255,.78)', fontSize: BODY, marginTop: 10 }}><Ef k="sub" ph="부제" /></div> : null}
+        <div style={{ fontSize: H1 * 1.2, fontWeight: 800, lineHeight: 1.15, letterSpacing: -1, color: '#fff' }}><Ef ctx={ctx} k="title" ph={card.title} /></div>
+        {(f.sub || editable) ? <div style={{ color: 'rgba(255,255,255,.78)', fontSize: BODY, marginTop: 10 }}><Ef ctx={ctx} k="sub" ph="부제" /></div> : null}
       </div>
       <div style={{ height: 8, width: 52, borderRadius: 4, background: T.blue }} />
     </div>)
   } else if (card && card.kind === 'back') {
     inner = (<div style={{ ...pg, justifyContent: 'center', textAlign: 'center' }}>
-      <div style={{ fontSize: H1, fontWeight: 700, lineHeight: 1.15, color: T.ink }}><Ef k="title" ph={card.title} /></div>
-      {f.sub ? <div style={{ color: T.sub, fontSize: BODY, marginTop: 10 }}><Ef k="sub" ph="부제(선택)" /></div> : null}
+      <div style={{ fontSize: H1, fontWeight: 700, lineHeight: 1.15, color: T.ink }}><Ef ctx={ctx} k="title" ph={card.title} /></div>
+      {(f.sub || editable) ? <div style={{ color: T.sub, fontSize: BODY, marginTop: 10 }}><Ef ctx={ctx} k="sub" ph="부제(선택)" /></div> : null}
     </div>)
   } else if (card && card.kind === 'toc') {
     // EVER-PEAK 목차 — 번호칩 + 제목 + 페이지번호. 각 줄에 data-goto-seq(M2 핫스팟 좌표 산출용).
@@ -259,13 +279,13 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
     const cols = f.cols === '2' ? 2 : 3
     const items = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'].map((k) => ({ k, v: f[k] })).filter((x) => x.v)
     inner = (<div style={pg}>
-      {f.markN ? <div style={{ ...eyebrow, letterSpacing: 1.5, color: T.blue }}><Ef k="markN" ph="번호" /></div> : null}
-      <div style={{ fontSize: H1, fontWeight: 800, marginTop: 6, lineHeight: 1.15, letterSpacing: -0.6, color: T.ink }}><Ef k="title" ph="섹션" /></div>
-      {f.sub ? <div style={{ color: T.sub, fontSize: BODY, marginTop: 8, lineHeight: 1.5 }}><Ef k="sub" ph="부제(선택)" /></div> : null}
+      {(f.markN || editable) ? <div style={{ ...eyebrow, letterSpacing: 1.5, color: T.blue }}><Ef ctx={ctx} k="markN" ph="번호" /></div> : null}
+      <div style={{ fontSize: H1, fontWeight: 800, marginTop: 6, lineHeight: 1.15, letterSpacing: -0.6, color: T.ink }}><Ef ctx={ctx} k="title" ph="섹션" /></div>
+      {(f.sub || editable) ? <div style={{ color: T.sub, fontSize: BODY, marginTop: 8, lineHeight: 1.5 }}><Ef ctx={ctx} k="sub" ph="부제(선택)" /></div> : null}
       <div style={{ marginTop: 'auto', display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: Math.round(10 * SC) }}>
         {items.map((it, i) => (
-          <EfBox key={i} k={it.k} boxStyle={{ background: T.card, border: divider, borderRadius: 10, padding: Math.round(13 * SC) + 'px ' + Math.round(14 * SC) + 'px', minHeight: Math.round(56 * SC), wordBreak: 'keep-all', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <EfPair k={it.k} sep="|" noStop lph="제목" rph="설명" lStyle={{ fontSize: BODY * 1.02, fontWeight: 800, color: T.ink, letterSpacing: -0.3 }} rStyle={{ fontSize: BODY * 0.86, color: T.sub, lineHeight: 1.4 }} />
+          <EfBox ctx={ctx} key={i} k={it.k} boxStyle={{ background: T.card, border: divider, borderRadius: 10, padding: Math.round(13 * SC) + 'px ' + Math.round(14 * SC) + 'px', minHeight: Math.round(56 * SC), wordBreak: 'keep-all', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <EfPair ctx={ctx} k={it.k} sep="|" noStop lph="제목" rph="설명" lStyle={{ fontSize: BODY * 1.02, fontWeight: 800, color: T.ink, letterSpacing: -0.3 }} rStyle={{ fontSize: BODY * 0.86, color: T.sub, lineHeight: 1.4 }} />
           </EfBox>
         ))}
       </div>
@@ -274,18 +294,18 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
   } else if (card && card.kpi) {
     const rows = ['k1', 'k2', 'k3'].map((k) => ({ k, v: f[k] })).filter((x) => x.v).map((row, i) => (
       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '9px 0', borderTop: divider }}>
-        <EfPair k={row.k} sep=":" lph="지표" rph="값" lStyle={{ color: T.sub }} rStyle={{ fontSize: '1.4em', fontWeight: 800, color: T.ink }} />
+        <EfPair ctx={ctx} k={row.k} sep=":" lph="지표" rph="값" lStyle={{ color: T.sub }} rStyle={{ fontSize: '1.4em', fontWeight: 800, color: T.ink }} />
       </div>
     ))
-    inner = (<div style={pg}><div style={eyebrow}>성과</div><div style={{ fontSize: H1, fontWeight: 700, marginTop: 6, color: T.ink }}><Ef k="title" ph={card.title} /></div><div style={{ marginTop: 'auto', fontSize: BODY }}>{rows}</div></div>)
+    inner = (<div style={pg}><div style={eyebrow}>성과</div><div style={{ fontSize: H1, fontWeight: 700, marginTop: 6, color: T.ink }}><Ef ctx={ctx} k="title" ph={card.title} /></div><div style={{ marginTop: 'auto', fontSize: BODY }}>{rows}</div></div>)
   } else if (card && card.viz === 'flow') {
     const steps = ['s1', 's2', 's3', 's4'].map((k) => ({ k, v: f[k] })).filter((x) => x.v)
     const items: ReactNode[] = []
     steps.forEach((s, i) => {
       if (i > 0) items.push(<span key={'a' + i} style={{ color: T.muted, fontWeight: 700, fontSize: 16 }}>{land ? '→' : '↓'}</span>)
-      items.push(<EfBox key={'n' + i} k={s.k} boxStyle={{ background: T.card, border: '1.5px solid ' + T.line, borderRadius: 8, padding: '8px 13px', fontSize: BODY, fontWeight: 600, color: T.body }}><EfIn k={s.k} ph={'단계 ' + (i + 1)} /></EfBox>)
+      items.push(<EfBox ctx={ctx} key={'n' + i} k={s.k} boxStyle={{ background: T.card, border: '1.5px solid ' + T.line, borderRadius: 8, padding: '8px 13px', fontSize: BODY, fontWeight: 600, color: T.body }}><EfIn ctx={ctx} k={s.k} ph={'단계 ' + (i + 1)} /></EfBox>)
     })
-    inner = (<div style={pg}><div style={eyebrow}>프로세스</div><div style={{ fontSize: H1, fontWeight: 700, marginTop: 6, color: T.ink }}><Ef k="title" ph={card.title} /></div>
+    inner = (<div style={pg}><div style={eyebrow}>프로세스</div><div style={{ fontSize: H1, fontWeight: 700, marginTop: 6, color: T.ink }}><Ef ctx={ctx} k="title" ph={card.title} /></div>
       <div style={{ margin: 'auto 0', display: 'flex', flexDirection: land ? 'row' : 'column', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{items}</div></div>)
   } else if (card && card.viz === 'mindmap') {
     const brs = ['b1', 'b2', 'b3', 'b4', 'b5'].map((k) => ({ k, v: f[k] })).filter((x) => x.v || editable)
@@ -293,7 +313,7 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
     const n = Math.max(brs.length, 1)
     const pts = brs.map((b, i) => { const a = (-90 + i * (360 / n)) * Math.PI / 180; return { k: b.k, x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) } })
     const MW = vw * SC, MH = vh * SC
-    inner = (<div style={pg}><div style={eyebrow}>마인드맵</div><div style={{ fontSize: H1, fontWeight: 700, marginTop: 6, color: T.ink }}><Ef k="title" ph={card.title} /></div>
+    inner = (<div style={pg}><div style={eyebrow}>마인드맵</div><div style={{ fontSize: H1, fontWeight: 700, marginTop: 6, color: T.ink }}><Ef ctx={ctx} k="title" ph={card.title} /></div>
       <div style={{ display: 'flex', justifyContent: 'center', margin: 'auto 0' }}>
         <div style={{ position: 'relative', width: MW, height: MH }}>
           <svg width={MW} height={MH} viewBox={`0 0 ${vw} ${vh}`} style={{ position: 'absolute', inset: 0 }}>
@@ -301,17 +321,17 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
             {pts.map((p, i) => (<circle key={'d' + i} cx={p.x} cy={p.y} r={3.5} fill="#2f6df6" />))}
             <rect x={cx - 48} y={cy - 15} width={96} height={30} rx={15} fill="#111318" />
           </svg>
-          <div style={{ position: 'absolute', left: cx * SC, top: cy * SC, transform: 'translate(-50%,-50%)', color: '#fff', fontWeight: 700, fontSize: 11 * SC, maxWidth: 92 * SC, textAlign: 'center', lineHeight: 1.1 }}><Ef k="center" ph="중심 주제" /></div>
-          {pts.map((p, i) => (<div key={'t' + i} style={{ position: 'absolute', left: p.x * SC, top: p.y * SC, transform: 'translate(-50%,-50%)', fontSize: 10.5 * SC, color: '#3a4150', background: 'rgba(255,255,255,.9)', padding: '1px 5px', borderRadius: 5, whiteSpace: 'nowrap', boxShadow: '0 1px 3px rgba(0,0,0,.12)' }}><Ef k={p.k} ph={'가지 ' + (i + 1)} /></div>))}
+          <div style={{ position: 'absolute', left: cx * SC, top: cy * SC, transform: 'translate(-50%,-50%)', color: '#fff', fontWeight: 700, fontSize: 11 * SC, maxWidth: 92 * SC, textAlign: 'center', lineHeight: 1.1 }}><Ef ctx={ctx} k="center" ph="중심 주제" /></div>
+          {pts.map((p, i) => (<div key={'t' + i} style={{ position: 'absolute', left: p.x * SC, top: p.y * SC, transform: 'translate(-50%,-50%)', fontSize: 10.5 * SC, color: '#3a4150', background: 'rgba(255,255,255,.9)', padding: '1px 5px', borderRadius: 5, whiteSpace: 'nowrap', boxShadow: '0 1px 3px rgba(0,0,0,.12)' }}><Ef ctx={ctx} k={p.k} ph={'가지 ' + (i + 1)} /></div>))}
         </div>
       </div></div>)
   } else if (card && (card.viz === 'sticky' || card.viz === 'board')) {
     const cols = ['#fdf3b6', '#cdeacf', '#f4d2c1', '#e7e3fb', '#dceeb1', '#f9d0e0']
     const keys = card.viz === 'board' ? ['n1', 'n2', 'n3', 'n4', 'n5', 'n6'] : ['n1', 'n2', 'n3', 'n4']
     const notes = keys.map((k) => ({ k, v: f[k] })).filter((x) => x.v)
-    inner = (<div style={pg}><div style={eyebrow}>{card.viz === 'board' ? '자유 보드' : '메모'}</div><div style={{ fontSize: H1, fontWeight: 700, marginTop: 6, color: T.ink }}><Ef k="title" ph={card.title} /></div>
+    inner = (<div style={pg}><div style={eyebrow}>{card.viz === 'board' ? '자유 보드' : '메모'}</div><div style={{ fontSize: H1, fontWeight: 700, marginTop: 6, color: T.ink }}><Ef ctx={ctx} k="title" ph={card.title} /></div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginTop: 16, alignContent: 'flex-start' }}>
-        {notes.map((nt, i) => (<EfBox key={i} k={nt.k} boxStyle={{ width: 'calc(50% - 5px)', minHeight: 60, borderRadius: 3, padding: '10px 11px', fontSize: 12.5, lineHeight: 1.35, color: '#39371f', boxShadow: '0 2px 6px rgba(0,0,0,.12)', background: cols[i % cols.length], transform: card.viz === 'board' ? (i % 2 ? 'rotate(2.5deg)' : 'rotate(-2.5deg)') : 'none' }}><EfIn k={nt.k} ph={'메모 ' + (i + 1)} /></EfBox>))}
+        {notes.map((nt, i) => (<EfBox ctx={ctx} key={i} k={nt.k} boxStyle={{ width: 'calc(50% - 5px)', minHeight: 60, borderRadius: 3, padding: '10px 11px', fontSize: 12.5, lineHeight: 1.35, color: '#39371f', boxShadow: '0 2px 6px rgba(0,0,0,.12)', background: cols[i % cols.length], transform: card.viz === 'board' ? (i % 2 ? 'rotate(2.5deg)' : 'rotate(-2.5deg)') : 'none' }}><EfIn ctx={ctx} k={nt.k} ph={'메모 ' + (i + 1)} /></EfBox>))}
       </div></div>)
   } else if (card && card.viz === 'note') {
     const blocks = page.blocks || []
@@ -351,8 +371,8 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
     const bodyFields = (card ? card.fields : []).filter((fd) => fd.key !== 'title')
     const pts = bodyFields.map((fd) => ({ k: fd.key, v: f[fd.key], ph: fd.label })).filter((x) => x.v)
     inner = (<div style={pg}><div style={eyebrow}>{card ? card.label : ''}</div>
-      <div style={{ fontSize: H1, fontWeight: 800, marginTop: 6, lineHeight: 1.15, letterSpacing: -1, color: T.ink }}><Ef k="title" ph={card ? card.title : '제목'} /></div>
-      <ul style={{ marginTop: 'auto', listStyle: 'none', padding: 0, fontSize: BODY }}>{pts.map((pt, i) => (<li key={i} style={{ padding: '9px 0', borderTop: divider, fontWeight: 500, color: T.sub }}><Ef k={pt.k} ph={pt.ph} /></li>))}</ul>
+      <div style={{ fontSize: H1, fontWeight: 800, marginTop: 6, lineHeight: 1.15, letterSpacing: -1, color: T.ink }}><Ef ctx={ctx} k="title" ph={card ? card.title : '제목'} /></div>
+      <ul style={{ marginTop: 'auto', listStyle: 'none', padding: 0, fontSize: BODY }}>{pts.map((pt, i) => (<li key={i} style={{ padding: '9px 0', borderTop: divider, fontWeight: 500, color: T.sub }}><Ef ctx={ctx} k={pt.k} ph={pt.ph} /></li>))}</ul>
       <div style={{ height: 8, width: 40, borderRadius: 4, background: gc }} /></div>)
   }
   return (<div ref={pageRef} style={bookStyle}>{inner}</div>)
