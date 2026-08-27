@@ -36,16 +36,10 @@ export function mkFreeEl(type: string, x: number, y: number): FreeEl {
   return el
 }
 export const FCOLORS = ['#eaf0ff', '#dceeb1', '#f4d2c1', '#e7e3fb', '#cdeacf', '#fdf3b6', '#ffffff', '#111318']
-const undoStacks = new Map<number, string[]>()
-const redoStacks = new Map<number, string[]>()
-function push(map: Map<number, string[]>, pageId: number, snap: string) { const a = map.get(pageId) || []; a.push(snap); if (a.length > 60) a.shift(); map.set(pageId, a) }
-function pop(map: Map<number, string[]>, pageId: number): string | null { const a = map.get(pageId); return a && a.length ? (a.pop() as string) : null }
-// 새 작업: undo에 쌓고 redo는 무효화
-export function pushSnap(pageId: number, snap: string) { push(undoStacks, pageId, snap); redoStacks.delete(pageId) }
-export function popSnap(pageId: number): string | null { return pop(undoStacks, pageId) }
-// redo용: redo가 undo로 되돌릴 수 있도록 무효화 없이 쌓기
-export function pushUndoRaw(pageId: number, snap: string) { push(undoStacks, pageId, snap) }
-export function pushRedo(pageId: number, snap: string) { push(redoStacks, pageId, snap) }
-export function popRedo(pageId: number): string | null { return pop(redoStacks, pageId) }
-export function canUndo(pageId: number): boolean { const a = undoStacks.get(pageId); return !!(a && a.length) }
-export function canRedo(pageId: number): boolean { const a = redoStacks.get(pageId); return !!(a && a.length) }
+
+// 되돌리기 스택은 canvas/history.ts 로 옮겼다(store.ts 와의 순환 참조를 피하기 위해).
+// 기존 import 경로를 유지하기 위해 여기서 다시 내보낸다.
+export {
+  pushSnap, popSnap, pushUndoRaw, pushRedo, popRedo,
+  canUndo, canRedo, resetHistory, dropHistory,
+} from './history'

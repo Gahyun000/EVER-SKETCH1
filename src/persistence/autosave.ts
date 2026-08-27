@@ -11,7 +11,7 @@ interface AutosaveState {
   error?: string
   savedAt?: string
   setStatus: (status: SaveStatus, patch?: Partial<AutosaveState>) => void
-  saveNow: () => Promise<void>
+  saveNow: () => Promise<boolean>   // 성공 여부. 호출부가 실패를 구분할 수 있어야 한다
 }
 
 let timer: number | null = null
@@ -35,16 +35,20 @@ export const useAutosave = create<AutosaveState>((set) => ({
   setStatus: (status, patch) => set({ ...patch, status }),
   saveNow: async () => {
     const pid = getActiveProjectId()
-    if (!pid) { set({ status: 'idle', error: undefined }); return }
-    if (readOnly) { set({ status: 'idle', error: undefined }); return }
+    if (!pid) { set({ status: 'idle', error: undefined }); return false }
+    // 열람자·배부 잠금 상태에서는 저장할 것이 없다. 실패가 아니므로 true 로 돌려
+    // '저장하고 계속' 이 막히지 않게 한다.
+    if (readOnly) { set({ status: 'idle', error: undefined }); return true }
     set({ status: 'saving', error: undefined })
     try {
       const snap = snapshotFromState(useBuilder.getState())
       const r = await apiSaveProject(pid, snap, snap.title)   // 카드 이름 = 문서 제목(자동 동기화)
       const savedAt = new Date(r.updated_at || Date.now()).toISOString()
       set({ status: 'saved', savedAt, error: undefined })
+      return true
     } catch (e) {
       set({ status: 'error', error: e instanceof Error ? e.message : String(e) })
+      return false
     }
   },
 }))

@@ -10,7 +10,7 @@ import { PAPER_OPTIONS } from '../../cards/paper'
 import { FCOLORS } from '../../canvas/model'
 import { pushSnap } from '../../canvas/model'
 import type { FreeEl } from '../../state/store'
-import { addRow, delRow, addCol, delCol, mergeRange, unmergeAt, setAlignRange, setCellBgRange } from '../../canvas/tableOps'
+import { addRow, delRow, addCol, delCol, mergeRange, unmergeAt, setAlignRange, setVAlignRange, setCellFsRange, setCellBgRange } from '../../canvas/tableOps'
 import AnchorLossDialog from '../../comments/AnchorLossDialog'
 import { anchorLostBy } from '../../comments/anchor'
 import { useComments } from '../../comments/store'
@@ -132,10 +132,39 @@ export default function RightPanel() {
         && anchorLostBy(t.cell, loss.axis, loss.at))
     : []
 
+  // 선택한 사진의 실제 비율을 읽어 상자를 다시 잡는다. 자동으로 하지 않고 사용자가 누를 때만 —
+  // 일부러 잘라 쓰던 구도를 멋대로 바꾸면 안 되기 때문.
+  function fitImageBox() {
+    if (!page || !el || el.type !== 'image' || !el.src) return
+    const img = new Image()
+    img.onload = () => {
+      const iw = img.naturalWidth, ih = img.naturalHeight
+      if (!iw || !ih) return
+      const base = Math.max(el.w, el.h)          // 지금 크기감을 유지한 채 비율만 교정
+      const k = base / Math.max(iw, ih)
+      pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached }))
+      updateEl(page.id, el.id, { w: Math.max(24, Math.round(iw * k)), h: Math.max(24, Math.round(ih * k)) })
+    }
+    img.src = el.src
+  }
+
   function patchTable(pt: Partial<FreeEl>) {
     if (!page || !el) return
     pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached }))
     updateEl(page.id, el.id, pt)
+    // 행/열이 줄었으면 활성 셀을 새 범위 안으로 당겨 준다.
+    // 안 그러면 마지막 행을 두 번 지울 때 두 번째 삭제가 범위 밖을 가리켜 표가 어긋난다.
+    const nr = pt.rows, ncl = pt.cols
+    if ((nr != null || ncl != null) && tableSel && tableSel.elId === el.id) {
+      const maxR = (nr != null ? nr : Infinity) - 1
+      const maxC = (ncl != null ? ncl : Infinity) - 1
+      const cl = (v: number, m: number) => Math.max(0, Math.min(m, v))
+      setTableSel({
+        elId: el.id,
+        r0: cl(tableSel.r0, maxR), c0: cl(tableSel.c0, maxC),
+        r1: cl(tableSel.r1, maxR), c1: cl(tableSel.c1, maxC),
+      })
+    }
   }
   const ts = (tableSel && el && tableSel.elId === el.id) ? tableSel : null
   const ar = ts ? ts.r1 : 0, ac = ts ? ts.c1 : 0
@@ -152,6 +181,10 @@ export default function RightPanel() {
   // 헤더 행이 선택돼 있으면 행 삭제를 막는다 — 표준 양식이 깨진다.
   const headRowSelected = inTemplate && ts != null && Math.min(ts.r0, ts.r1) < headLocked
   const curBg = (el?.cbg && ts) ? el.cbg[Math.min(ts.r0, ts.r1) + '_' + Math.min(ts.c0, ts.c1)] : undefined
+  // 선택 범위(없으면 활성 셀 한 칸). 정렬·크기 버튼이 전부 이 네 값을 쓴다.
+  const rng = (): [number, number, number, number] => (ts ? [ts.r0, ts.c0, ts.r1, ts.c1] : [ar, ac, ar, ac])
+  const cellFs = (el && ts && el.cfs && el.cfs[Math.min(ts.r0, ts.r1) + '_' + Math.min(ts.c0, ts.c1)]) || (el ? el.fs : 12)
+  const selCount = ts ? (Math.abs(ts.r1 - ts.r0) + 1) * (Math.abs(ts.c1 - ts.c0) + 1) : 0
 
   return (
     <div className="ax-inspector">
@@ -215,11 +248,22 @@ export default function RightPanel() {
                   <button className="insp-pill" onClick={() => patchTable(unmergeAt(el, ar, ac))}>병합 해제</button>
                 </div>
               </>) : null}
-              <div className="insp-sec">셀 정렬</div>
+              <div className="insp-sec">셀 정렬{selCount > 1 ? ` (${selCount}칸)` : ''}</div>
               <div className="insp-row seg">
-                <button onClick={() => patchTable(setAlignRange(el, ts ? ts.r0 : ar, ts ? ts.c0 : ac, ar, ac, 'left'))}>⇤</button>
-                <button onClick={() => patchTable(setAlignRange(el, ts ? ts.r0 : ar, ts ? ts.c0 : ac, ar, ac, 'center'))}>⇔</button>
-                <button onClick={() => patchTable(setAlignRange(el, ts ? ts.r0 : ar, ts ? ts.c0 : ac, ar, ac, 'right'))}>⇥</button>
+                <button title="왼쪽" onClick={() => patchTable(setAlignRange(el, ...rng(), 'left'))}>⇤</button>
+                <button title="가운데" onClick={() => patchTable(setAlignRange(el, ...rng(), 'center'))}>⇔</button>
+                <button title="오른쪽" onClick={() => patchTable(setAlignRange(el, ...rng(), 'right'))}>⇥</button>
+              </div>
+              <div className="insp-row seg">
+                <button title="위" onClick={() => patchTable(setVAlignRange(el, ...rng(), 'top'))}>⤒</button>
+                <button title="세로 가운데" onClick={() => patchTable(setVAlignRange(el, ...rng(), 'middle'))}>⇕</button>
+                <button title="아래" onClick={() => patchTable(setVAlignRange(el, ...rng(), 'bottom'))}>⤓</button>
+              </div>
+              <div className="insp-sec">셀 글자 크기</div>
+              <div className="insp-row">
+                <label className="insp-num sm"><span>크기</span>
+                  <input type="number" value={Math.round(cellFs)} onChange={(e) => patchTable(setCellFsRange(el, ...rng(), Math.max(6, Number(e.target.value) || 6)))} /></label>
+                <button className="insp-pill" onClick={() => patchTable(setCellFsRange(el, ...rng(), null))}>표 기본으로</button>
               </div>
               <div className="insp-sec">테두리 · 헤더</div>
               <div className="insp-row">
@@ -229,10 +273,17 @@ export default function RightPanel() {
                 </select>
                 <label className="insp-check"><input type="checkbox" checked={el.headRow !== false} onChange={(e) => patchTable({ headRow: e.target.checked })} /> 헤더행</label>
               </div>
-              <span style={cap}>표에서 셀을 클릭해 고르고(Shift+클릭=범위) 위 버튼으로 편집하세요. 글자 수정은 표를 더블클릭.</span>
+              <span style={cap}>셀을 드래그하면 범위가 잡힙니다(Shift+클릭도 범위). 글자 수정은 표를 더블클릭. 표 자체를 옮길 땐 표 가장자리를 끌거나 방향키를 쓰세요.</span>
             </>)}
 
             {tab === 'style' && (<>
+              {el.type === 'image' && el.src ? (<>
+                <div className="insp-sec">사진</div>
+                <div className="insp-row">
+                  <button className="insp-pill" onClick={() => fitImageBox()}>⤢ 사진 비율 맞추기</button>
+                </div>
+                <div className="insp-hint">상자를 사진 원래 비율로 맞춰 위아래 여백을 없앱니다.</div>
+              </>) : null}
               <div className="insp-sec">프리셋 스타일</div>
               <div className="insp-sw">{PRESETS.map((ps) => (<span key={ps.name} className="insp-preset" title={ps.name} style={{ background: ps.color, color: ps.tcolor }} onClick={() => patch({ color: ps.color, tcolor: ps.tcolor })}>가</span>))}</div>
               <div className="insp-sec">채우기</div>

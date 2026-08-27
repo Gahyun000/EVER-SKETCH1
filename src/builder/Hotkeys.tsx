@@ -7,7 +7,7 @@ import { pushSnap, popSnap, pushRedo, popRedo, pushUndoRaw, mkFreeEl } from '../
 
 interface Props {
   presentOpen: boolean; helpOpen: boolean; tutorialOpen: boolean
-  onBuild: () => void; onPresent: () => void; onHelp: () => void
+  onBuild: () => void; onPresent: () => void; onHelp: () => void; onSave: () => void
   onCloseHelp: () => void; onCloseTutorial: () => void
 }
 
@@ -37,6 +37,15 @@ export default function Hotkeys(props: Props) {
       const el = p.els.find((e) => e.id === id); if (!el) return null
       return { page: p, el }
     }
+    // 삭제·잘라내기는 다중 선택 전부를 대상으로 한다.
+    // (버튼·메뉴는 useCanvasCommands.del() 로 이미 전부 지우는데 단축키만 1개만 지우고 있었다)
+    function selectedEls(): { page: Page; els: FreeEl[] } | null {
+      const p = curPage(); if (!p) return null
+      const ui = useCanvasUI.getState()
+      const ids = ui.selEls.length ? ui.selEls : (ui.selEl != null ? [ui.selEl] : [])
+      const els = ids.map((id) => p.els.find((e) => e.id === id)).filter((e): e is FreeEl => !!e)
+      return els.length ? { page: p, els } : null
+    }
     function cloneAt(src: FreeEl, dx: number, dy: number): FreeEl {
       const n = mkFreeEl(src.type, src.x + dx, src.y + dy)
       n.w = src.w; n.h = src.h; n.text = src.text; n.color = src.color; n.fs = src.fs
@@ -58,7 +67,10 @@ export default function Hotkeys(props: Props) {
       const lower = k.length === 1 ? k.toLowerCase() : k
 
       // --- 문서 단축키: 입력 중에도 동작 ---
-      if (mod && (lower === 's' || k === 'Enter')) { e.preventDefault(); p.onBuild(); return }
+      // ⌘S 는 메뉴가 '💾 저장 ⌘S' 로 안내하는 대로 저장이어야 한다.
+      // 이북 빌드(전 페이지 PNG 캡처)는 수십 초 걸리는 무거운 작업이라 ⌘Enter 로 분리했다.
+      if (mod && lower === 's') { e.preventDefault(); p.onSave(); return }
+      if (mod && k === 'Enter') { e.preventDefault(); p.onBuild(); return }
       if (mod && e.shiftKey && lower === 'p') { e.preventDefault(); p.onPresent(); return }
       if (k === 'F5') { e.preventDefault(); p.onPresent(); return }
       if (k === 'F1') { e.preventDefault(); p.onHelp(); return }
@@ -97,14 +109,15 @@ export default function Hotkeys(props: Props) {
       const sel = selectedEl()
 
       // 삭제
-      if ((k === 'Delete' || k === 'Backspace') && sel) { e.preventDefault(); snap(sel.page); bs.removeEl(sel.page.id, sel.el.id); ui.setSel(null); return }
+      const selMany = selectedEls()
+      if ((k === 'Delete' || k === 'Backspace') && selMany) { e.preventDefault(); snap(selMany.page); selMany.els.forEach((el) => bs.removeEl(selMany.page.id, el.id)); ui.setSel(null); return }
 
       // 복제
       if (mod && lower === 'd' && sel) { e.preventDefault(); snap(sel.page); const n = cloneAt(sel.el, 16, 16); bs.addEl(sel.page.id, n); ui.setSel(n.id); return }
 
       // 복사 / 잘라내기 / 붙여넣기
       if (mod && lower === 'c' && sel) { e.preventDefault(); CLIP = { ...sel.el }; return }
-      if (mod && lower === 'x' && sel) { e.preventDefault(); CLIP = { ...sel.el }; snap(sel.page); bs.removeEl(sel.page.id, sel.el.id); ui.setSel(null); return }
+      if (mod && lower === 'x' && selMany) { e.preventDefault(); CLIP = { ...selMany.els[selMany.els.length - 1] }; snap(selMany.page); selMany.els.forEach((el) => bs.removeEl(selMany.page.id, el.id)); ui.setSel(null); return }
       if (mod && lower === 'v' && CLIP && page) { e.preventDefault(); snap(page); const n = cloneAt(CLIP, 20, 20); bs.addEl(page.id, n); ui.setSel(n.id); return }
 
       // 앞으로/뒤로: ⌘/Ctrl + ] / [

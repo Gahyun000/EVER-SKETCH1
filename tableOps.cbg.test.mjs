@@ -21,10 +21,20 @@ const check = (cond, label) => {
 }
 
 // ── 1) 소스 계약: 네 함수가 모두 cbg 를 리맵하는가 ──
+//
+// 2026-08-27 ebook_html 이식으로 셀 맵이 넷(calign·cvalign·cfs·cbg)으로 늘면서,
+// 함수마다 따로 리맵하던 것을 remapCellStyles 한 곳으로 모았다. 계약도 그에 맞춘다:
+//   (a) 네 함수는 반드시 remapCellStyles 를 거쳐 결과를 펼친다
+//   (b) remapCellStyles 는 네 맵을 빠짐없이 리맵한다
+// 이렇게 하면 셀 맵이 또 늘어도 (b) 한 줄만 보면 되고, 빠뜨림은 여기서 걸린다.
+const styles = SRC.split('function remapCellStyles(')[1]?.split('\n}')[0] ?? ''
 for (const fn of ['addRow', 'delRow', 'addCol', 'delCol']) {
   const body = SRC.split(`export function ${fn}(`)[1]?.split('\nexport ')[0] ?? ''
-  check(body.includes('remapCells(el.cbg'), `${fn}: cbg 를 리맵한다`)
-  check(body.includes('cbg }') || body.includes('cbg,'), `${fn}: 반환값에 cbg 를 담는다`)
+  check(body.includes('remapCellStyles(el,'), `${fn}: 셀 서식 맵을 리맵한다`)
+  check(body.includes('...st'), `${fn}: 반환값에 리맵 결과를 담는다`)
+}
+for (const m of ['calign', 'cvalign', 'cfs', 'cbg']) {
+  check(styles.includes(`remapCells<`) && styles.includes(`(el.${m}, fn)`), `remapCellStyles: ${m} 를 리맵한다`)
 }
 check(!SRC.includes('remapCalign'), '구형 remapCalign 이 남아 있지 않다')
 

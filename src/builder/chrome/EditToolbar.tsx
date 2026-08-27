@@ -25,52 +25,53 @@ const PEN_COLORS = ['#111318', '#2462EB', '#e0483d', '#0f9d58']
 const HL_COLORS = ['#ffd600', '#8ef58a', '#ff9ecb', '#9ad7ff']
 
 
-const SHAPE_CATS: { cat: string; items: { t: Tool; icon: string; label: string }[] }[] = [
+// 갤러리에 노출하는 도형 목록. star4·banner·callout 은 "목록에서만" 뺀 것이라
+// Tool 타입 / .fel.* 렌더러 / exportPptx 매핑은 그대로 둔다 — 기존 문서가 깨지면 안 되므로.
+const SHAPE_CATS: { cat: string; items: { t: Tool; label: string }[] }[] = [
   { cat: '기본', items: [
-    { t: 'box', icon: '▭', label: '사각형' },
-    { t: 'round', icon: '▢', label: '둥근 사각형' },
-    { t: 'ellipse', icon: '◯', label: '원' },
-    { t: 'diamond', icon: '◇', label: '마름모' },
-    { t: 'triangle', icon: '△', label: '삼각형' },
-    { t: 'hexagon', icon: '⬡', label: '육각형' },
-    { t: 'pentagon', icon: '⬠', label: '오각형' },
-    { t: 'parallelogram', icon: '▱', label: '평행사변형' },
+    { t: 'box', label: '사각형' },
+    { t: 'round', label: '둥근 사각형' },
+    { t: 'ellipse', label: '원' },
+    { t: 'diamond', label: '마름모' },
+    { t: 'triangle', label: '삼각형' },
+    { t: 'hexagon', label: '육각형' },
+    { t: 'pentagon', label: '오각형' },
+    { t: 'parallelogram', label: '평행사변형' },
+    { t: 'star5', label: '별' },
   ] },
   { cat: '화살표', items: [
-    { t: 'arrowR', icon: '➡', label: '오른쪽 화살표' },
-    { t: 'arrowL', icon: '⬅', label: '왼쪽 화살표' },
-    { t: 'arrowU', icon: '⬆', label: '위 화살표' },
-    { t: 'arrowD', icon: '⬇', label: '아래 화살표' },
-    { t: 'chevron', icon: '❯', label: '갈매기(진행)' },
-  ] },
-  { cat: '별·배너', items: [
-    { t: 'star5', icon: '★', label: '별(5각)' },
-    { t: 'star4', icon: '✦', label: '별(4각)' },
-    { t: 'banner', icon: '▚', label: '리본 배너' },
-  ] },
-  { cat: '말풍선', items: [
-    { t: 'callout', icon: '💬', label: '말풍선' },
+    { t: 'arrowR', label: '오른쪽 화살표' },
+    { t: 'arrowL', label: '왼쪽 화살표' },
+    { t: 'arrowU', label: '위 화살표' },
+    { t: 'arrowD', label: '아래 화살표' },
+    { t: 'chevron', label: '갈매기(진행)' },
   ] },
 ]
-const SHAPES: { t: Tool; icon: string; label: string }[] = SHAPE_CATS.flatMap((c) => c.items)
+const SHAPES: { t: Tool; label: string }[] = SHAPE_CATS.flatMap((c) => c.items)
 
-// 도형 묶음 버튼 — 이모지 버튼처럼 하나로. 아이콘=마지막 고른 도형, ▾로 팝오버 열어 변경.
+// 도형 버튼 — PowerPoint 식. 아이콘은 항상 같은 심볼이고, 버튼 어디를 눌러도 갤러리가 열린다.
+// 셀 미리보기는 index.css 의 clip-path 를 재사용하므로 캔버스에 그려지는 모양과 동일하다.
+// 도형 무장 중이라는 신호는 버튼의 .on 하이라이트뿐 — 해제는 Esc(Hotkeys) 또는 다른 도구 선택.
 function ShapeTool() {
   const tool = useCanvasUI((s) => s.tool)
   const setTool = useCanvasUI((s) => s.setTool)
-  const [last, setLast] = useState<Tool>('box')
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const ref = useRef<HTMLButtonElement>(null)
   const active = SHAPES.some((sh) => sh.t === tool)
-  const cur = SHAPES.find((sh) => sh.t === (active ? tool : last)) || SHAPES[0]
-  const openPop = () => { const r = ref.current?.getBoundingClientRect(); if (r) setPos({ x: r.left, y: r.bottom + 6 }); setOpen(true) }
-  const pick = (t: Tool) => { setLast(t); setTool(t); setOpen(false) }
+  const toggle = () => {
+    if (open) { setOpen(false); return }
+    const r = ref.current?.getBoundingClientRect()
+    if (r) setPos({ x: r.left, y: r.bottom + 6 })
+    setOpen(true)
+  }
   return (
     <span className="shp-wrap">
-      <button ref={ref} className={'ib shp-btn' + (active ? ' on' : '')} title="도형(사각형·원·마름모·삼각형)" onClick={() => setTool(active ? 'select' : last)}>
-        <span className="shp-ic">{cur.icon}</span>
-        <span className="shp-ca" title="도형 바꾸기" onClick={(e) => { e.stopPropagation(); open ? setOpen(false) : openPop() }}>▾</span>
+      <button ref={ref} className={'ib shp-btn' + (active ? ' on' : '')} title="도형" onClick={toggle}>
+        <svg className="shp-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden>
+          <circle cx="9.5" cy="8.5" r="5.2" />
+          <rect x="9" y="10" width="10.5" height="10.5" rx="2.2" />
+        </svg>
       </button>
       {open && pos ? createPortal(
         <>
@@ -81,8 +82,9 @@ function ShapeTool() {
                 <div className="shp-cat-h">{c.cat}</div>
                 <div className="shp-grid">
                   {c.items.map((sh) => (
-                    <button key={sh.t} className={'shp-cell' + (cur.t === sh.t ? ' on' : '')} title={sh.label} onClick={() => pick(sh.t)}>
-                      <span className="shp-iic">{sh.icon}</span>
+                    <button key={sh.t} className={'shp-cell' + (tool === sh.t ? ' on' : '')} title={sh.label}
+                      onClick={() => { setTool(sh.t); setOpen(false) }}>
+                      <span className={'shp-sh ' + sh.t} />
                     </button>
                   ))}
                 </div>

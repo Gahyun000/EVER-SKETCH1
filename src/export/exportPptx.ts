@@ -158,7 +158,9 @@ export async function exportPptx(pages: Page[], opts: { title: string; W: number
           for (let c = 0; c < C; c++) {
             if (cov.has(r + '_' + c)) continue
             const m = mergeCovering(el.merges, r, c)
-            const o: any = { align: (el.calign && el.calign[r + '_' + c]) || 'left', valign: 'middle' }
+            const o: any = { align: (el.calign && el.calign[r + '_' + c]) || 'left', valign: (el.cvalign && el.cvalign[r + '_' + c]) || 'middle' }
+            const cf = el.cfs && el.cfs[r + '_' + c]
+            if (cf) o.fontSize = Math.max(6, cf * 0.72)   // 표 전체 fontSize 를 셀 단위로 덮어쓴다
             if (m) { o.colspan = m.cs; o.rowspan = m.rs }
             if (head && r === 0) { o.bold = true; o.fill = { color: 'F2F5FA' } }
             row.push({ text: (el.cells && el.cells[r] && el.cells[r][c]) || '', options: o })

@@ -8,6 +8,7 @@ import {
 import { setActiveProjectId } from './session'
 import { setAutosaveHydrated, setAutosaveReadOnly, markAutosaveHydrated, useAutosave, flushSave, cancelPendingSave } from './autosave'
 import { migrateLegacyDraftOnce } from './legacyMigration'
+import { resetHistory } from '../canvas/history'
 
 export type LibView = 'library' | 'editor' | 'cycles'
 
@@ -27,6 +28,7 @@ function fullState(st?: Partial<DraftStateSnapshot> | null): DraftStateSnapshot 
 
 function applyProject(p: ProjectFull): void {
   setAutosaveHydrated(false)                 // 로드 중 오저장 방지
+  resetHistory()                             // 이전 프로젝트의 되돌리기 스냅샷 폐기(페이지 id 가 겹친다)
   const st = fullState(p.state)
   reseedUids(st.pages || [])
   useBuilder.setState(st as Partial<BuilderState>)
@@ -72,8 +74,9 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     if (get().booted) return
     set({ booted: true, loading: true })
     try { await migrateLegacyDraftOnce() } catch { /* noop */ }
-    await get().loadList()
-    set({ view: 'library', loading: false })
+    // loadList 가 어떤 이유로든 던져도 라이브러리 화면은 반드시 띄운다.
+    // (여기서 멈추면 booted=true 라 재시도도 안 되고 로딩 화면에 영원히 갇힌다)
+    try { await get().loadList() } finally { set({ view: 'library', loading: false }) }
   },
 
   loadList: async () => {
@@ -113,14 +116,22 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   adoptCurrentAsNewProject: async () => {
     cancelPendingSave()
     setAutosaveHydrated(false)
-    const snap = snapshotFromState(useBuilder.getState())
-    const p = await apiCreateProject(snap.title || '가져온 이북', snap)
-    setActiveProjectId(p.id)
-    setAutosaveReadOnly(false)              // 내가 만든 것이니 잠금 해제
-    useProjects.setState({ activeId: p.id, view: 'editor', access: null })
-    useAutosave.setState({ status: 'saved', savedAt: new Date(p.updated_at || Date.now()).toISOString(), error: undefined })
-    markAutosaveHydrated()
-    await get().loadList()
+    try {
+      const snap = snapshotFromState(useBuilder.getState())
+      const p = await apiCreateProject(snap.title || '가져온 이북', snap)
+      setActiveProjectId(p.id)
+      setAutosaveReadOnly(false)              // 내가 만든 것이니 잠금 해제
+      useProjects.setState({ activeId: p.id, view: 'editor', access: null })
+      useAutosave.setState({ status: 'saved', savedAt: new Date(p.updated_at || Date.now()).toISOString(), error: undefined })
+      await get().loadList()
+    } catch (e) {
+      // 실패해도 게이트는 반드시 되돌린다. 안 그러면 이후 모든 편집이 조용히 저장되지 않는데
+      // 배지는 '저장됨'으로 남아 사용자가 작업을 통째로 잃는다.
+      useAutosave.setState({ status: 'error', error: e instanceof Error ? e.message : String(e) })
+      throw e
+    } finally {
+      markAutosaveHydrated()
+    }
   },
 
   backToLibrary: async () => {

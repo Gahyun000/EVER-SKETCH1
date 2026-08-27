@@ -1,5 +1,7 @@
 import type React from 'react'
 import { useState, useEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
+import { intakeImage } from '../builder/imageIntake'
 import type { CSSProperties } from 'react'
 import type { Page, FreeEl } from '../state/store'
 import { useBuilder } from '../state/store'
@@ -134,6 +136,23 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   const setCanvas = useBuilder((s) => s.setCanvas)
 
   const [editing, setEditing] = useState<number | null>(null)
+  // 편집 중인 노드와 "지금 값을 스토어에 반영하는 함수"를 들고 있는다.
+  // 텍스트 저장은 onBlur 하나뿐인데, Esc·빈 곳 클릭은 setEditing(null) 로 요소를 먼저 언마운트해
+  // onBlur 가 아예 안 붙은 상태로 사라진다 → 방금 친 글자가 통째로 유실된다.
+  // 그래서 편집을 끝내는 모든 경로가 endEditing() 을 거치게 하고, 거기서 먼저 커밋한다.
+  const editRef = useRef<{ id: number; node: HTMLElement; commit: () => void } | null>(null)
+  const layerRef = useRef<HTMLDivElement>(null)
+  function commitEditing() {
+    const cur = editRef.current
+    if (!cur) return
+    editRef.current = null
+    cur.commit()
+  }
+  function endEditing() { commitEditing(); setEditing(null) }
+  // 더블클릭한 화면 좌표. 편집을 켠 뒤 그 자리에 커서를 놓는 데 쓴다 —
+  // contentEditable 은 다음 렌더에야 켜지므로 브라우저가 놓아 준 커서는 남지 않는다.
+  const editAtRef = useRef<{ x: number; y: number } | null>(null)
+  function startEditing(id: number, at?: { x: number; y: number }) { if (editRef.current && editRef.current.id !== id) commitEditing(); editAtRef.current = at || null; setEditing(id) }
   const [penPts, setPenPts] = useState<[number, number][] | null>(null)
   const [mouse, setMouse] = useState<Pt | null>(null)
   const [bending, setBending] = useState<Pt | null>(null)
@@ -146,7 +165,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   useEffect(() => {
     if (!interactive) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setSel(null); setConnSrc(null); setSelConn(null); setEditing(null); setMarquee(null); setTool('select'); return }
+      if (e.key === 'Escape') { setSel(null); setConnSrc(null); setSelConn(null); endEditing(); setMarquee(null); setTool('select'); return }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const st = connKeyRef.current
         if (st.selConn == null || st.editing != null) return
@@ -160,6 +179,40 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [interactive, setSel, setConnSrc, setTool, setSelConn, removeConn, page])
+
+  // 메뉴 '삽입 → 이미지' 는 파워포인트처럼 곧바로 파일창이 떠야 한다.
+  // 도구만 켜두면 "캔버스를 한 번 더 클릭해야 한다"는 걸 모르는 사람이 아무 반응 없다고 느낀다.
+  useEffect(() => {
+    if (!interactive) return
+    const onInsert = () => {
+      const el = mkFreeEl('image', Math.round(W / 2) - 130, Math.round(H / 2) - 90)
+      addEl(page.id, el)
+      setSel(el.id)
+      setTool('select')
+      pickImage(el, true)
+    }
+    window.addEventListener('ebook:insert-image', onInsert)
+    return () => window.removeEventListener('ebook:insert-image', onInsert)
+  })
+
+  // 편집 중일 때, 편집 중인 요소 "밖"을 누르면 값을 저장하고 편집을 끝낸다.
+  // 카드 페이지는 레이어가 pointer-events:none 이라 onLayerDown 이 안 오므로 여기서 받는다.
+  useEffect(() => {
+    if (!interactive) return
+    const onDown = (e: PointerEvent) => {
+      const cur = editRef.current
+      if (cur == null) return
+      const t = e.target as Node | null
+      if (!t) return
+      const host = cur.node.closest('.fel')
+      if (host && host.contains(t)) return          // 편집 중인 요소 안 → 그대로
+      const page = layerRef.current?.parentElement
+      if (!page || !page.contains(t)) return        // 툴바·패널 클릭은 native blur 가 처리
+      endEditing()
+    }
+    window.addEventListener('pointerdown', onDown, true)
+    return () => window.removeEventListener('pointerdown', onDown, true)
+  }, [interactive])
   const active = interactive
 
   // 검토 의견 핀 — 지적이 붙은 자리를 문서 위에서 바로 가리킨다.
@@ -229,6 +282,72 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   const markerStartId = 'fas' + page.id
 
   function snap() { pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached })) }
+
+  // ── 표 셀 키보드 조작 ──────────────────────────────────────────────
+  // 칸을 고른 상태에서 바로 글자를 치면 그 칸이 갈아끼워지고, Tab·방향키로 칸을 옮긴다.
+  function focusCell(elId: number, r: number, c: number, mode: 'all' | 'end') {
+    const n = layerRef.current?.querySelector(`[data-el-id="${elId}"] [data-rc="${r}_${c}"]`) as HTMLElement | null
+    if (!n) return
+    n.focus()
+    const s = window.getSelection(); if (!s) return
+    const rg = document.createRange(); rg.selectNodeContents(n)
+    if (mode === 'end') rg.collapse(false)
+    s.removeAllRanges(); s.addRange(rg)
+  }
+  function editCellNow(el: FreeEl, r: number, c: number, mode: 'all' | 'end') {
+    // flushSync 로 편집 상태를 즉시 DOM 에 반영해야 이어지는 키 입력이 그 칸으로 들어간다.
+    flushSync(() => { if (editRef.current && editRef.current.id !== el.id) commitEditing(); editAtRef.current = null; setEditing(el.id) })
+    focusCell(el.id, r, c, mode)
+  }
+  function clearCells(el: FreeEl, ts: { r0: number; c0: number; r1: number; c1: number }) {
+    const R = el.rows || 2, C = el.cols || 2
+    const R0 = Math.max(0, Math.min(ts.r0, ts.r1)), R1 = Math.min(R - 1, Math.max(ts.r0, ts.r1))
+    const C0 = Math.max(0, Math.min(ts.c0, ts.c1)), C1 = Math.min(C - 1, Math.max(ts.c0, ts.c1))
+    const cells = (el.cells || []).map((row) => row.slice())
+    while (cells.length < R) cells.push([])
+    for (let r = R0; r <= R1; r++) { while (cells[r].length < C) cells[r].push(''); for (let c = C0; c <= C1; c++) cells[r][c] = '' }
+    snap(); updateEl(page.id, el.id, { cells })
+  }
+  // capture 단계로 잡아야 Hotkeys 의 한 글자 도구 단축키·방향키 이동보다 먼저 처리된다.
+  useEffect(() => {
+    if (!active || editing != null || tool !== 'select' || !tableSel) return
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const ts = useCanvasUI.getState().tableSel
+      if (!ts) return
+      const el = page.els.find((x) => x.id === ts.elId)
+      if (!el || el.type !== 'table' || el.locked) return
+      const R = el.rows || 2, C = el.cols || 2
+      const r = Math.max(0, Math.min(R - 1, ts.r1)), c = Math.max(0, Math.min(C - 1, ts.c1))
+      const eat = () => { e.preventDefault(); e.stopPropagation() }
+      const k = e.key
+      if (k === 'Escape') { eat(); setTableSel(null); return }
+      if (k === 'Tab') { eat(); const nc = Math.max(0, Math.min(C - 1, c + (e.shiftKey ? -1 : 1))); setTableSel({ elId: el.id, r0: r, c0: nc, r1: r, c1: nc }); return }
+      if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight') {
+        eat()
+        const dr = k === 'ArrowUp' ? -1 : k === 'ArrowDown' ? 1 : 0
+        const dc = k === 'ArrowLeft' ? -1 : k === 'ArrowRight' ? 1 : 0
+        if (e.shiftKey) {   // Shift+방향키 = 잡은 범위를 넓히거나 좁힌다
+          const nr = Math.max(0, Math.min(R - 1, ts.r1 + dr)), nc = Math.max(0, Math.min(C - 1, ts.c1 + dc))
+          setTableSel({ elId: el.id, r0: ts.r0, c0: ts.c0, r1: nr, c1: nc }); return
+        }
+        const nr = Math.max(0, Math.min(R - 1, r + dr)), nc = Math.max(0, Math.min(C - 1, c + dc))
+        setTableSel({ elId: el.id, r0: nr, c0: nc, r1: nr, c1: nc }); return
+      }
+      if (k === 'Enter' || k === 'F2') { eat(); editCellNow(el, r, c, 'end'); return }
+      if (k === 'Delete' || k === 'Backspace') { eat(); clearCells(el, ts); return }
+      // 글자 입력 → 그 칸을 통째로 갈아끼우며 편집 시작. preventDefault 를 하지 않는 게 핵심이다:
+      // 눌린 키가 방금 포커스를 준 칸으로 그대로 들어가야 한글 조합도 첫 글자가 안 씹힌다.
+      if (k === 'Process' || e.isComposing || (k.length === 1 && !e.repeat)) {
+        e.stopPropagation()
+        editCellNow(el, r, c, 'all')
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  })
   const emit = (n: string) => window.dispatchEvent(new CustomEvent(n))
   const NO_CPT = ['text', 'icon', 'wordart', 'note']            // 연결점 안 띄우는(순수 글자) 타입
   const NO_FILL = ['text', 'icon', 'wordart', 'image', 'note', 'table']  // 채우기색 안 쓰는 타입
@@ -240,12 +359,41 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     if (!e || e.groupId == null) return [id]
     return page.els.filter((x) => x.groupId === e.groupId).map((x) => x.id)
   }
-  function pickImage(el: FreeEl) {
+  // 사진의 원래 비율에 맞춰 상자 크기를 정한다. 긴 변을 base 로 맞추고 페이지를 넘지 않게 한다.
+  function fitBox(iw: number, ih: number, base = 260): { w: number; h: number } {
+    if (!iw || !ih) return { w: base, h: Math.round(base * 0.68) }
+    const k = base / Math.max(iw, ih)
+    let w = Math.round(iw * k), h = Math.round(ih * k)
+    const maxW = Math.round(W * 0.9), maxH = Math.round(H * 0.9)
+    const s2 = Math.min(1, maxW / w, maxH / h)
+    if (s2 < 1) { w = Math.round(w * s2); h = Math.round(h * s2) }
+    return { w: Math.max(24, w), h: Math.max(24, h) }
+  }
+  // fit=true 면 사진 비율대로 상자를 다시 잡는다(새로 넣을 때).
+  // 교체(더블클릭)에서는 false — 사용자가 맞춰 둔 상자를 멋대로 바꾸지 않는다.
+  function pickImage(el: FreeEl, fit = false) {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'
+    // 문서에 붙이지 않은 input 은 브라우저에 따라 .click() 해도 파일 창이 안 뜬다
+    // (Safari 계열에서 특히). 화면에 안 보이게 붙였다가 쓰고 나서 치운다.
+    inp.style.position = 'fixed'; inp.style.left = '-9999px'; inp.style.opacity = '0'
+    document.body.appendChild(inp)
+    const cleanup = () => { if (inp.parentNode) inp.parentNode.removeChild(inp) }
     inp.onchange = () => {
-      const f = inp.files && inp.files[0]; if (!f) return
-      const r = new FileReader(); r.onload = () => { snap(); updateEl(page.id, el.id, { src: String(r.result) }) }; r.readAsDataURL(f)
+      const f = inp.files && inp.files[0]
+      if (!f) { cleanup(); return }
+      // 원본 그대로 넣으면 자동저장이 매번 수십 MB 를 통째로 올린다 — 넣기 전에 줄인다.
+      intakeImage(f)
+        .then((r) => {
+          snap()
+          const patch: Partial<FreeEl> = { src: r.src }
+          if (fit && r.w && r.h) Object.assign(patch, fitBox(r.w, r.h))
+          updateEl(page.id, el.id, patch)
+        })
+        .catch(() => { /* 읽기 실패: 빈 이미지 상자로 남는다 */ })
+        .finally(cleanup)
     }
+    // 사용자가 파일 창을 그냥 닫은 경우에도 정리한다.
+    inp.addEventListener('cancel', cleanup)
     inp.click()
   }
 
@@ -312,9 +460,11 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       }
       window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); return
     }
-    if (ADDABLE.indexOf(tool) >= 0) { snap(); const el = mkFreeEl(tool, x - 50, y - 25); addEl(page.id, el); setSel(el.id); setTool('select'); if (tool === 'image') pickImage(el); if (tool === 'note') setEditing(el.id); return }
+    // stopPropagation 이 없으면 부모(PageWithCanvas)의 onPointerDown 이 곧바로 setSel(null) 로 덮어써서
+    // 방금 그린 도형에 핸들·서식 바가 안 뜨고 Delete 도 안 먹는다.
+    if (ADDABLE.indexOf(tool) >= 0) { e.stopPropagation(); snap(); const el = mkFreeEl(tool, x - 50, y - 25); addEl(page.id, el); setSel(el.id); setTool('select'); if (tool === 'image') pickImage(el, true); if (tool === 'note') startEditing(el.id); return }
     if (tool === 'select') {
-      setSel(null); setConnSrc(null); setSelConn(null); setEditing(null)
+      setSel(null); setConnSrc(null); setSelConn(null); endEditing()
       const s0 = { x, y }
       setMarquee({ x, y, w: 0, h: 0 })
       const mv = (ev: PointerEvent) => { const cx = (ev.clientX - rect.left) / z, cy = (ev.clientY - rect.top) / z; setMarquee({ x: Math.min(s0.x, cx), y: Math.min(s0.y, cy), w: Math.abs(cx - s0.x), h: Math.abs(cy - s0.y) }) }
@@ -332,7 +482,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       }
       window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); return
     }
-    setSel(null); setConnSrc(null); setEditing(null)
+    setSel(null); setConnSrc(null); endEditing()
   }
   function onLayerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!active || tool !== 'connect' || connSrc === null) { if (mouse) setMouse(null); return }
@@ -348,8 +498,16 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       else if (connSrc !== el.id) { snap(); addConn(page.id, { from: connSrc, to: el.id }); setConnSrc(null); setMouse(null); setTool('select') }
       return
     }
-    if (tool === 'pen' || tool === 'highlighter' || tool === 'eraser') return
+    if (tool === 'pen' || tool === 'highlighter' || tool === 'eraser') { e.stopPropagation(); return }
     e.preventDefault(); e.stopPropagation()
+    // 다른 요소를 편집 중이었으면 값을 저장하고 끝낸다(안 그러면 편집 모드가 계속 남아 Delete 가 먹통).
+    if (editRef.current && editRef.current.id !== el.id) endEditing()
+    // preventDefault 때문에 native 포커스 이동이 없다 → 카드 텍스트칸이 포커스를 계속 쥐고 있으면
+    // Hotkeys 의 '입력 중' 가드가 Delete 를 통째로 삼킨다. 여기서 직접 떼어 준다(그 칸의 onBlur 로 값도 저장됨).
+    if (editRef.current == null) {
+      const ae = document.activeElement as HTMLElement | null
+      if (ae && ae !== document.body && (ae.isContentEditable || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur()
+    }
     if (el.locked) { setSel(el.id); return }   // 잠금: 선택만, 이동 없음
     if (e.shiftKey) { toggleSel(el.id); return }   // Shift 클릭: 선택 토글(이동 없음)
     // 선택 대상 결정: 이미 다중 선택된 요소를 잡으면 그 세트 전체를, 아니면 이 요소(그룹이면 그룹 전체)를
@@ -508,7 +666,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       nb.text = ''
       addEl(page.id, nb)
       addConn(page.id, { from: el.id, to: nb.id })
-      setSel(nb.id); setEditing(nb.id)
+      setSel(nb.id); startEditing(nb.id)
     }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
   }
@@ -580,7 +738,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   ] : null
 
   return (
-    <div className={'freelayer' + (active ? '' : ' off') + (active && tool === 'select' && !page.free ? ' passthru' : '')} style={{ width: W, height: H, cursor: !active ? undefined : tool === 'pen' ? PEN_CUR : tool === 'highlighter' ? HL_CUR : tool === 'eraser' ? eraserCur(eraserWidth) : undefined }} onPointerDown={onLayerDown} onPointerMove={active ? onLayerMove : undefined}>
+    <div ref={layerRef} className={'freelayer' + (active ? '' : ' off') + (active && tool === 'select' && !page.free ? ' passthru' : '')} style={{ width: W, height: H, cursor: !active ? undefined : tool === 'pen' ? PEN_CUR : tool === 'highlighter' ? HL_CUR : tool === 'eraser' ? eraserCur(eraserWidth) : ADDABLE.indexOf(tool) >= 0 ? 'crosshair' : undefined }} onPointerDown={onLayerDown} onPointerMove={active ? onLayerMove : undefined}>
       <svg className="freeconn" width={W} height={H}>
         <defs>
           <marker id={markerId} markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="context-stroke" /></marker>
@@ -618,14 +776,16 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
         if (el.underline) txtStyle.textDecoration = 'underline'
         if (el.align) txtStyle.textAlign = el.align
         const cls = 'fel ' + el.type + (selEls.includes(el.id) ? ' sel' : '') + (connSrc === el.id ? ' connsrc' : '')
+          + (el.type === 'image' && el.src ? ' filled' : '')
         const editingThis = editing === el.id
         return (
           <div key={el.id} className={cls} style={style}
+            data-el-id={el.id}
             data-goto-seq={el.gotoSeq || undefined}
             onPointerDown={active ? (e) => onElDown(e, el) : undefined}
             onPointerEnter={active && tool === 'select' ? () => setHoverId(el.id) : undefined}
             onPointerLeave={active && tool === 'select' ? () => setHoverId((h) => (h === el.id ? null : h)) : undefined}
-            onDoubleClick={active ? () => { if (isImg) pickImage(el); else setEditing(el.id) } : undefined}>
+            onDoubleClick={active ? (e) => { if (isImg) pickImage(el); else startEditing(el.id, { x: e.clientX, y: e.clientY }) } : undefined}>
             {isNote
               ? (<div className="note-inner" style={{ pointerEvents: editingThis ? 'auto' : 'none' }}
                   onPointerDown={editingThis ? (e) => e.stopPropagation() : undefined}
@@ -651,7 +811,11 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                         const m = mergeCovering(el.merges, r, c)
                         const val = (el.cells && el.cells[r] && el.cells[r][c]) || ''
                         const al = (el.calign && el.calign[r + '_' + c]) || undefined
-                        const sel = inSel(r, c)
+                        // 셀별 세로 정렬·글자 크기(ebook_html 이식). 지정이 없으면 표 기본값을 쓴다.
+                        const va = (el.cvalign && el.cvalign[r + '_' + c]) || undefined
+                        const cfs = (el.cfs && el.cfs[r + '_' + c]) || el.fs
+                        // 편집 중에는 칸 선택 하이라이트를 걷는다 — 글자와 겹쳐 읽기 어렵다.
+                        const sel = !editingThis && inSel(r, c)
                         const isHead = r < headRows
                         // 셀 배경색 — 로드맵 진행 셀. 선택 하이라이트가 항상 우선한다.
                         const bg = el.cbg && el.cbg[r + '_' + c]
@@ -665,9 +829,10 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                         const rgC = rgE ? (rgE.done ? '#2f9e59' : '#e08b2c') : ''
                         return (
                           <div key={k} className={'feltd' + (sel ? ' cellsel' : '') + (rgE ? ' cmt-rg' : '') + (editingThis && !canEdit ? ' cell-locked' : '')} suppressContentEditableWarning
-                            data-tel={el.id} data-r={r} data-c={c}
+                            data-tel={el.id} data-r={r} data-c={c} data-rc={r + '_' + c}
                             title={editingThis && !canEdit ? '이 칸은 표준 양식이라 수정할 수 없어요' : undefined}
-                            style={{ border: bw + 'px solid ' + border, fontSize: el.fs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}`,
+                            style={{ border: bw + 'px solid ' + border, fontSize: cfs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}`, userSelect: canEdit ? 'text' : 'none', cursor: canEdit ? 'text' : 'default',
+                              ...(va ? { display: 'flex', flexDirection: 'column' as const, justifyContent: va === 'middle' ? 'center' : va === 'bottom' ? 'flex-end' : 'flex-start' } : null),
                               ...(rgE ? {
                                 boxShadow: `inset 0 0 0 999px ${rgE.done ? 'rgba(47,158,89,.08)' : 'rgba(224,139,44,.10)'}`,
                                 borderTopColor: rgE.t ? rgC : undefined,
@@ -680,6 +845,13 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                                 borderRightWidth: rgE.r ? 2 : undefined,
                               } : {}) }}
                             contentEditable={canEdit}
+                            onKeyDown={canEdit ? (e) => {
+                              // 값은 endEditing() 이 먼저 커밋한다. 칸을 옮기기 전에 반드시 거쳐야 한다.
+                              const to = (nr: number, nc: number) => { e.preventDefault(); e.stopPropagation(); endEditing(); setTableSel({ elId: el.id, r0: nr, c0: nc, r1: nr, c1: nc }) }
+                              if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endEditing(); return }
+                              if (e.key === 'Enter' && !e.shiftKey) { to(Math.min(R - 1, r + 1), c); return }
+                              if (e.key === 'Tab') { to(r, e.shiftKey ? Math.max(0, c - 1) : Math.min(C - 1, c + 1)) }
+                            } : undefined}
                             onPointerDown={(e) => {
                               if (editingThis) { e.stopPropagation(); return }
                               // Shift+클릭은 요소 다중 선택에 쓴다 — 표가 아직 안 골라졌으면 흘려보낸다.
@@ -704,12 +876,22 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                               // 것처럼 보이는 게 문제였다.
                               if (editingThis) return        // 이미 편집 중이면 기본 동작(단어 선택)에 맡긴다
                               e.stopPropagation()
-                              setEditing(el.id)
+                              startEditing(el.id)          // 이전 편집분을 먼저 저장하고 시작
                               if (!cellEditable(el.slot, r, c)) return
                               const node = e.currentTarget
                               requestAnimationFrame(() => requestAnimationFrame(() => node.focus()))
                             }}
-                            onBlur={canEdit ? (e) => { const cells = (el.cells || []).map((row) => row.slice()); while (cells.length < R) cells.push([]); while (cells[r].length < C) cells[r].push(''); cells[r][c] = e.currentTarget.textContent || ''; updateEl(page.id, el.id, { cells }) } : undefined}
+                            onFocus={canEdit ? (e) => {
+                              const n = e.currentTarget
+                              editRef.current = { id: el.id, node: n, commit: () => {
+                                const cells = (el.cells || []).map((row) => row.slice())
+                                while (cells.length < R) cells.push([])
+                                while (cells[r].length < C) cells[r].push('')
+                                cells[r][c] = n.textContent || ''
+                                updateEl(page.id, el.id, { cells })
+                              } }
+                            } : undefined}
+                            onBlur={canEdit ? () => { commitEditing() } : undefined}
                           >{val}
                             {(() => {
                               const ps = pinByCell.get(el.id + '_' + r + '_' + c)
@@ -718,6 +900,11 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                           </div>
                         )
                       })}
+                      {ts && ts.elId === el.id && !editingThis ? (() => {
+                        const R0 = Math.min(ts.r0, ts.r1), R1 = Math.max(ts.r0, ts.r1)
+                        const C0 = Math.min(ts.c0, ts.c1), C1 = Math.max(ts.c0, ts.c1)
+                        return <div className="feltsel" style={{ gridColumn: `${C0 + 1} / ${C1 + 2}`, gridRow: `${R0 + 1} / ${R1 + 2}`, border: '2px solid #2f6df6', margin: -1, borderRadius: 2, pointerEvents: 'none', zIndex: 3 }} />
+                      })() : null}
                       {/* 이동 손잡이 — 표가 선택되면 셀 클릭이 드래그 선택으로 바뀌어서
                           셀을 잡고 표를 옮길 수 없다. 그래서 잡을 곳을 따로 만든다.
                           잠긴 템플릿 표에는 띄우지 않는다(어차피 못 옮긴다). */}
@@ -739,16 +926,33 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                   ? <img src={el.src} draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
                   : <div className="feltext" style={{ fontSize: 11, color: '#8a93a5' }}>더블클릭해서 이미지 올리기</div>)
               : (editingThis
-                  ? <div className="feltext" contentEditable suppressContentEditableWarning spellCheck={spell} ref={(n) => { if (n) n.focus() }} style={txtStyle}
-                      onFocus={(e) => { const n = e.currentTarget; requestAnimationFrame(() => { const sel = window.getSelection(); if (sel && sel.isCollapsed) { const r = document.createRange(); r.selectNodeContents(n); sel.removeAllRanges(); sel.addRange(r) } }) }}
-                      onBlur={(e) => { updateEl(page.id, el.id, { text: e.currentTarget.textContent || '' }); setEditing(null) }}>{el.text}</div>
+                  ? <div className="feltext" contentEditable suppressContentEditableWarning spellCheck={spell} style={txtStyle}
+                      ref={(n) => {
+                        // 인라인 ref 는 렌더마다 다시 붙는다. 같은 노드면 아무 것도 하지 않는다 —
+                        // 예전처럼 매번 focus() 하면 마우스를 움직이기만 해도 포커스를 되훔쳐
+                        // 다른 도형을 골라 Delete 했을 때 엉뚱하게 이 텍스트가 지워진다.
+                        if (!n) return
+                        if (editRef.current && editRef.current.node === n) return
+                        editRef.current = { id: el.id, node: n, commit: () => updateEl(page.id, el.id, { text: n.textContent || '' }) }
+                        n.focus()
+                      }}
+                      onFocus={(e) => { const n = e.currentTarget; requestAnimationFrame(() => {
+                        const sel = window.getSelection(); if (!sel || !sel.isCollapsed) return
+                        const at = editAtRef.current; editAtRef.current = null
+                        const cr = at && (document as any).caretRangeFromPoint ? (document as any).caretRangeFromPoint(at.x, at.y) as Range | null : null
+                        const r = document.createRange()
+                        if (cr && n.contains(cr.startContainer)) { r.setStart(cr.startContainer, cr.startOffset); r.collapse(true) }
+                        else r.selectNodeContents(n)   // 좌표를 못 얻으면 예전처럼 전체 선택
+                        sel.removeAllRanges(); sel.addRange(r)
+                      }) }}
+                      onBlur={() => { endEditing() }}>{el.text}</div>
                   : <div className="feltext" style={txtStyle}>{el.text}</div>)}
             {active && isNote && editingThis ? <div className="note-drag" title="드래그해서 이동">⠿</div> : null}
             {(() => { const ps = pinByEl.get(el.id); return ps ? <Pin list={ps} /> : null })()}
           </div>
         )
       })}
-      {active && selEls.length === 1 && selEl != null && editing == null && tool === 'select' ? (() => {
+      {active && selEls.length === 1 && selEl != null && editing == null && tool === 'select' && !(tableSel && tableSel.elId === selEl) ? (() => {
         const se = page.els.find((e) => e.id === selEl)
         if (!se || se.locked) return null
         const w = se.w, h = se.h
@@ -816,7 +1020,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
             onPointerDown={(e) => onNodeDown(e, he, pt.d)} />
         ))}</>)
       })() : null}
-      {active && selEls.length === 1 && selEl != null && editing == null && tool === 'select' ? (() => {
+      {active && selEls.length === 1 && selEl != null && editing == null && tool === 'select' && !(tableSel && tableSel.elId === selEl) ? (() => {
         const se = page.els.find((e) => e.id === selEl)
         if (!se || se.locked) return null
         const top0 = se.y - 42

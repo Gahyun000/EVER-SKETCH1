@@ -20,6 +20,8 @@ type Preview = {
   editableDoc?: ImportedDoc; ir?: { meta?: Record<string, unknown>; pages?: unknown[] }
   // (P4) IR→카드 모델. 미리보기·캔버스가 공유하는 '그 카드' — WYSIWYG.
   cards?: Page[]
+  // 변환 결과가 요구하는 테마. 가져오기를 "확정"할 때만 실제 스토어에 반영한다(닫으면 원상 유지).
+  irTheme?: 'dark' | 'light'
   // 실시간 진행(스트리밍): 진행률·현재 단계 문구·총 슬라이드 수·도착한 썸네일들
   pct?: number; stage?: string; total?: number; live?: string[]
 }
@@ -57,13 +59,15 @@ const ClassicBar = forwardRef<ClassicBarHandle, { onSettings: () => void; onDemo
     function finishPreview(name: string, r: DeckResult, editableDoc?: ImportedDoc) {
       const ir = (r.ir as Preview['ir']) || undefined
       let cards: Page[] | undefined
+      let irTheme: 'dark' | 'light' | undefined
       if (ir && ir.pages && ir.pages.length) {
-        setOrientation('portrait')
+        // 여기서 setOrientation/setTheme 을 부르면 미리보기를 "닫아도" 현재 이북의 방향·테마가
+        // 이미 바뀌어 있고 자동저장까지 된다. 실제 반영은 사용자가 가져오기를 확정할 때만 한다.
         const th = (ir.meta as { theme?: string } | undefined)?.theme
-        if (th === 'dark' || th === 'light') setTheme(th)
+        if (th === 'dark' || th === 'light') irTheme = th
         cards = deckIrToPages(ir as never, 'portrait')
       }
-      setPreview({ name, busy: false, ok: true, pages: r.pages, pptx_url: r.pptx_url, pdf_url: r.pdf_url, thumbs: r.thumbs || [], editableDoc, ir, cards })
+      setPreview({ name, busy: false, ok: true, pages: r.pages, pptx_url: r.pptx_url, pdf_url: r.pdf_url, thumbs: r.thumbs || [], editableDoc, ir, cards, irTheme })
     }
 
     async function onImportFile(e: ChangeEvent<HTMLInputElement>) {
@@ -141,10 +145,15 @@ const ClassicBar = forwardRef<ClassicBarHandle, { onSettings: () => void; onDemo
       } else if (preview.editableDoc) {
         importDoc(preview.editableDoc)
       }
+      // 테마는 여기서 — 즉 사용자가 가져오기를 확정한 뒤에만 바꾼다.
+      // (방향은 위 각 분기에서 이미 portrait 으로 맞춘다)
+      if (preview.irTheme) setTheme(preview.irTheme)
       setStatus('가져옴: ' + preview.name)
       setPreview(null)
       // 가져온 HTML은 '새 이북'으로 라이브러리에 추가(현재 이북 덮어쓰지 않음).
-      void useProjects.getState().adoptCurrentAsNewProject()
+      useProjects.getState().adoptCurrentAsNewProject().catch((e) => {
+        setStatus('라이브러리 추가 실패: ' + (e instanceof Error ? e.message : String(e)))
+      })
     }
 
     async function make() {
