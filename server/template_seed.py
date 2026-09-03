@@ -175,8 +175,15 @@ def build_roadmap_el(el_id: int, period_ym: str, data_rows: int = DEFAULT_DATA_R
         "merges": merges, "calign": calign, "cbg": cbg,
         "colw": list(ROADMAP_COLW),
         "headRow": True,
-        # Today 마커 — 회차 기준월의 열 index. 사용자가 옮기지 않는다.
+        # Today 마커.
+        # **기본은 자동이다** — 열 때마다 실제 오늘을 따라간다. 한 달 쓰고 버리는
+        # 자료가 아니라서, 만든 달을 박아 두면 두 달 뒤에 연 사람이 지난 달을
+        # 오늘로 믿게 된다. 계산은 화면이 한다(`src/template/slots.ts::todayColumn`).
+        # 여기 `today` 는 고정 모드로 바꿨을 때의 출발점이고,
+        # `todayYear` 는 자동 모드가 "이 해에만 그린다"를 판정하는 근거다.
         "today": COL_MONTH_FIRST + (month - 1),
+        "todayMode": "auto",
+        "todayYear": year,
         "locked": True,
     }
 
@@ -303,7 +310,7 @@ SLOT_POLICY: dict[str, dict] = {
     "head": {"edit": []},
     "foot": {"edit": []},
     "SLOT-A": {
-        "edit": ["cell", "merge", "row", "align", "cbg", "format"],
+        "edit": ["cell", "merge", "row", "align", "cbg", "format", "today"],
         "cbgPalette": list(STAGE_COLORS),
         "lockedRows": ROADMAP_HEADER_ROWS,
     },

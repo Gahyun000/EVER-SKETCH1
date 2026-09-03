@@ -10,7 +10,7 @@ import { useBuilder, type PaperType } from '../../state/store'
 import { PAPER_OPTIONS } from '../../cards/paper'
 import type { FreeEl } from '../../state/store'
 import { mergeCovering, mergeRange, unmergeAt } from '../../canvas/tableOps'
-import { isSlotEl, slotAllows } from '../../template/slots'
+import { ROADMAP_MONTH_COL0, isSlotEl, slotAllows, todayColumn, type TodayMode } from '../../template/slots'
 import { tableAnchorLabel } from '../../comments/anchorLabel'
 import { cellKey } from '../../comments/anchor'
 import CommentComposer from '../../comments/CommentComposer'
@@ -201,7 +201,24 @@ function TableTools() {
     : !ranged ? '두 칸 이상을 끌어서 고르세요'
     : `${rows}행 ${cols}열을 하나로 합칩니다`
 
+  // ── TODAY 마커 ──
+  // 로드맵에만 있다. 기본은 자동(열 때마다 실제 오늘)이고, 발표용으로 특정 시점을
+  // 붙잡아야 할 때만 사람이 고정한다. 어느 상태인지 글자로 같이 보여준다 —
+  // 버튼 세 개만 있으면 지금 자동인지 고정인지 알 수가 없다.
+  const canToday = slotAllows(table.slot, 'today')
+  const todayMode: TodayMode = table.todayMode ?? 'auto'
+  const shownCol = todayColumn(table)
+  const monthOf = (c: number) => c - ROADMAP_MONTH_COL0 + 1
+  const pickedCol = ts ? Math.min(ts.c0, ts.c1) : null
+  const todayWhere =
+    shownCol == null
+      ? (todayMode === 'off' ? '숨김'
+        : todayMode === 'auto' ? '올해가 아님'
+        : '자리 없음')
+      : (monthOf(shownCol) >= 1 && monthOf(shownCol) <= 12 ? `${monthOf(shownCol)}월` : `${shownCol + 1}열`)
+
   return (
+    <>
     <span className="ax-grp gs">
       <span className="lab">표</span>
       <button className="tbtn" title={why} disabled={!canMerge || !ranged}
@@ -216,6 +233,24 @@ function TableTools() {
           : '칸을 끌어서 선택'}
       </span>
     </span>
+
+    {canToday ? (
+      <span className="ax-grp gs">
+        <span className="lab">TODAY</span>
+        <button className={'tbtn' + (todayMode === 'auto' ? ' on' : '')}
+          title="열 때마다 실제 오늘 달로 옮겨갑니다"
+          onClick={() => patch({ todayMode: 'auto' })}>오늘</button>
+        <button className={'tbtn' + (todayMode === 'fixed' ? ' on' : '')}
+          title={pickedCol == null ? '고정할 달의 칸을 먼저 고르세요' : `${monthOf(pickedCol) >= 1 && monthOf(pickedCol) <= 12 ? monthOf(pickedCol) + '월' : (pickedCol + 1) + '열'}에 고정합니다`}
+          disabled={pickedCol == null}
+          onClick={() => { if (pickedCol != null) patch({ todayMode: 'fixed', today: pickedCol }) }}>이 칸에 고정</button>
+        <button className={'tbtn' + (todayMode === 'off' ? ' on' : '')}
+          title="마커를 그리지 않습니다"
+          onClick={() => patch({ todayMode: 'off' })}>숨기기</button>
+        <span className="tbtn-hint">{todayWhere}</span>
+      </span>
+    ) : null}
+    </>
   )
 }
 

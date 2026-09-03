@@ -9,7 +9,7 @@ import { useCanvasUI } from '../state/canvasUI'
 import { mkFreeEl, pushSnap, FCOLORS } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, mergeCovering, sizeTracks } from './tableOps'
-import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount } from '../template/slots'
+import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount, todayColumn } from '../template/slots'
 import { tableAnchorLabel } from '../comments/anchorLabel'
 import { parseCell } from '../comments/anchor'
 import { pinsOfPage, useComments } from '../comments/store'
@@ -912,12 +912,16 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                         <div className="tbl-move" title="드래그해서 표 이동"
                           onPointerDown={(e) => { e.stopPropagation(); onElDown(e, el) }}>⠿</div>
                       ) : null}
-                      {/* Today 마커 — 회차 기준월. 사용자가 옮기지 않는다(회차에서 계산). */}
-                      {el.today != null && el.today >= 0 && el.today < C ? (
-                        <div className="fel-today"
-                          style={{ gridColumn: `${el.today + 1}`, gridRow: `1 / span ${R}` }}
-                          aria-label="이번 달" />
-                      ) : null}
+                      {/* Today 마커 — 기본은 실제 오늘을 따라간다(slots.todayColumn).
+                          위 도구모음에서 특정 달에 고정하거나 끌 수 있다. */}
+                      {(() => {
+                        const tc = todayColumn(el)
+                        return tc != null && tc < C ? (
+                          <div className="fel-today"
+                            style={{ gridColumn: `${tc + 1}`, gridRow: `1 / span ${R}` }}
+                            aria-label="이번 달" />
+                        ) : null
+                      })()}
                     </div>
                   )
                 })()

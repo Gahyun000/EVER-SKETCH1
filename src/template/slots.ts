@@ -6,7 +6,7 @@
 //
 // 사양: start_docs/화면설계/표준템플릿_정본_사양_v2.0.md §5
 
-export type SlotOp = 'cell' | 'merge' | 'row' | 'col' | 'align' | 'cbg' | 'format'
+export type SlotOp = 'cell' | 'merge' | 'row' | 'col' | 'align' | 'cbg' | 'format' | 'today'
 
 export interface SlotPolicy {
   edit: SlotOp[]
@@ -43,7 +43,7 @@ export const SLOT_POLICY: Record<string, SlotPolicy> = {
   head: { edit: [] },
   foot: { edit: [] },
   'SLOT-A': {
-    edit: ['cell', 'merge', 'row', 'align', 'cbg', 'format'],
+    edit: ['cell', 'merge', 'row', 'align', 'cbg', 'format', 'today'],
     cbgPalette: [...STAGE_COLORS],
     lockedRows: 2,        // 연도 행 + 월 행
   },
@@ -128,4 +128,73 @@ export function cellTextColor(bg: string | undefined): string | undefined {
  *  구분은 색이 아니라 **셀 안의 단계 이름**이 한다. */
 export function cellBackground(bg: string | undefined): string | undefined {
   return bg || undefined
+}
+
+// ── TODAY 마커 ────────────────────────────────────────
+//
+// 예전에는 만들 때의 달을 열 번호로 박아 두고 끝이었다. 그런데 이 자료는
+// 한 달 쓰고 버리는 물건이 아니다 — 9월에 만든 로드맵을 11월에 다시 열면
+// 마커는 여전히 9월에 서 있고, 보는 사람은 그게 오늘이라고 믿는다.
+// 눈으로는 잡히지 않는 종류의 오류다.
+//
+// 그래서 기본은 **자동**이다. 열 때마다 실제 오늘을 따라간다.
+// 발표용으로 특정 시점을 고정해야 할 때만 사람이 도구로 붙잡는다.
+
+/** 로드맵 표에서 1월이 놓이는 열 index.
+ *  서버 `template_seed.COL_MONTH_FIRST` 와 같아야 한다
+ *  (`server/test_slot_policy_sync.py` 가 검사한다).
+ *  SLOT-A 는 열 추가·삭제가 금지라 이 값은 문서마다 달라지지 않는다. */
+export const ROADMAP_MONTH_COL0 = 2
+
+/** auto = 실제 오늘 · fixed = 사람이 정한 열 · off = 그리지 않음 */
+export type TodayMode = 'auto' | 'fixed' | 'off'
+
+export interface TodayMarker {
+  /** 고정 열 index. fixed 모드에서 쓰고, 연도를 못 알아낼 때의 폴백이기도 하다. */
+  today?: number
+  todayMode?: TodayMode
+  /** 이 로드맵이 다루는 해. 자동 모드는 이 해에만 마커를 그린다. */
+  todayYear?: number
+  /** 머리글에서 연도를 읽기 위해서만 쓴다(옛 문서 대비). */
+  cells?: string[][]
+}
+
+/** 이 로드맵이 다루는 해.
+ *
+ *  `todayYear` 가 없는 자료는 이 기능이 생기기 전에 만들어진 것이다. 그때도
+ *  머리글 0행에는 '2026년' 이 적혀 있었으므로 거기서 읽는다 — 이게 없으면
+ *  옛 자료에서 「오늘」 버튼을 눌러도 아무 일이 일어나지 않는다(자동으로 바뀌었는데
+ *  판정할 연도가 없어 폴백으로 되돌아간다). 버튼이 죽은 것처럼 보이는 종류의 버그다. */
+function roadmapYear(el: TodayMarker): number | null {
+  if (typeof el.todayYear === 'number') return el.todayYear
+  const head = el.cells?.[0]?.[ROADMAP_MONTH_COL0]
+  const m = typeof head === 'string' ? head.match(/(\d{4})/) : null
+  return m ? Number(m[1]) : null
+}
+
+/** 지금 서울이 몇 년 몇 월인가. UTC 로 재면 새해 첫날 아침에 아직 작년이 된다. */
+function kstYearMonth(now: Date): { year: number; month: number } {
+  const [y, m] = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).split('-')
+  return { year: Number(y), month: Number(m) }
+}
+
+/**
+ * TODAY 마커가 설 열. 그리지 않아야 하면 null.
+ *
+ * 해가 바뀌면 자동 모드는 마커를 지운다. 2027년이 되면 2027 로드맵을 새로 만들지,
+ * 지난해 표에 오늘을 표시하지 않는다 — 지난해 자료가 오늘을 주장하면 안 된다.
+ *
+ * 기준 연도는 `todayYear`, 없으면 머리글에서 읽는다. 둘 다 없으면 저장된 자리에
+ * 그대로 둔다 — 갑자기 마커가 사라지면 사용자는 자기가 지운 줄 안다.
+ */
+export function todayColumn(el: TodayMarker, now: Date = new Date()): number | null {
+  const fixedCol = typeof el.today === 'number' && el.today >= 0 ? el.today : null
+  const mode: TodayMode = el.todayMode ?? 'auto'
+  if (mode === 'off') return null
+  if (mode === 'fixed') return fixedCol
+  const base = roadmapYear(el)
+  if (base == null) return fixedCol
+  const { year, month } = kstYearMonth(now)
+  if (year !== base) return null
+  return ROADMAP_MONTH_COL0 + (month - 1)
 }

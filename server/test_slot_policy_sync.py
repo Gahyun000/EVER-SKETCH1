@@ -129,3 +129,16 @@ def test_슬롯_수가_같다(ts_src):
     ts_slots = set(re.findall(r"'(SLOT-[A-Z])':", body)) | set(re.findall(r"^\s+(head|foot):", body, re.M))
     assert ts_slots == set(T.SLOT_POLICY.keys()), \
         "슬롯 목록이 다릅니다\n  서버: %s\n  프런트: %s" % (sorted(T.SLOT_POLICY), sorted(ts_slots))
+
+
+def test_로드맵_1월_열_index가_같다(ts_src):
+    """TODAY 마커의 자동 계산이 이 값 위에 서 있다.
+
+    프런트가 `ROADMAP_MONTH_COL0 + (이번달 - 1)` 로 열을 구하는데, 이 값이
+    서버 표 구조와 어긋나면 마커가 엉뚱한 달 위에 선다 — 화면에는 멀쩡히
+    'TODAY' 라고 적혀 있어서 틀린 줄 모른다.
+    """
+    m = re.search(r"ROADMAP_MONTH_COL0\s*=\s*(\d+)", ts_src)
+    assert m, "프런트에 ROADMAP_MONTH_COL0 이 없습니다"
+    assert int(m.group(1)) == T.COL_MONTH_FIRST, \
+        "1월 열 index 가 다릅니다 — 서버 %d / 프런트 %s" % (T.COL_MONTH_FIRST, m.group(1))

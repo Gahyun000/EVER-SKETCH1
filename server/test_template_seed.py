@@ -245,3 +245,23 @@ def test_헤더_행이_잠금_대상으로_표시된다():
 
 def test_버전이_v2다():
     assert T.TEMPLATE_VERSION == "v2.0"
+
+
+# ══════════ TODAY 마커 ══════════
+
+def test_새_양식은_TODAY를_자동으로_둔다():
+    """만든 달을 박아 두면 두 달 뒤에 연 사람이 지난 달을 오늘로 믿는다."""
+    el = el_of(page("2026-09"), "SLOT-A")
+    assert el["todayMode"] == "auto"
+
+
+def test_TODAY_자동_계산의_근거가_함께_저장된다():
+    """기준 연도가 없으면 화면이 '이 해가 맞는지'를 판정할 수 없다."""
+    el = el_of(page("2026-09"), "SLOT-A")
+    assert el["todayYear"] == 2026
+    assert el["today"] == T.COL_MONTH_FIRST + 8      # 고정 모드로 바꿨을 때의 출발점
+
+
+def test_TODAY를_옮기는_것은_허용된_편집이다():
+    """도구모음의 버튼은 슬롯 정책을 보고 켜진다. 정책에 없으면 버튼이 죽는다."""
+    assert T.slot_allows("SLOT-A", "today")

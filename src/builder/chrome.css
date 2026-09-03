@@ -361,3 +361,5 @@
 }
 .ax-stage-wrap .pv-h .pv-todo:hover{background:#ffe8c6}
 .ax-stage-wrap .pv-h .pv-todo b{color:#6f450b}
+/* 도구모음 토글 버튼의 '켜짐' 상태 — 지금 어느 쪽인지 보이게 한다. */
+.ax-tb .tbtn.on{background:rgba(42,120,214,.22);font-weight:800;color:#12386f}
