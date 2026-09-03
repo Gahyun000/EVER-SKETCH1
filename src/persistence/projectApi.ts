@@ -72,6 +72,14 @@ export async function apiCreateProject(name?: string, state?: DraftStateSnapshot
     body: JSON.stringify({ name, state }),
   }))
 }
+/** 표준 양식 1장으로 새 이북을 시작한다. 양식은 서버가 만든다 —
+ *  화면이 양식을 조립하면 정본이 두 곳에 생기고, 반드시 어긋난다. */
+export async function apiCreateFromTemplate(periodYm: string): Promise<ProjectFull> {
+  return j<ProjectFull>(await fetch(`${API}/projects/from-template`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ period_ym: periodYm }),
+  }))
+}
 export async function apiGetProject(id: string): Promise<ProjectFull> {
   return j<ProjectFull>(await fetch(`${API}/projects/${id}`))
 }

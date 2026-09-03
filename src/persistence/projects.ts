@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { useBuilder, reseedUids, type BuilderState } from '../state/store'
 import { snapshotFromState, type DraftStateSnapshot } from './draftStorage'
 import {
-  apiListProjects, apiCreateProject, apiGetProject, apiRenameProject,
+  apiListProjects, apiCreateProject, apiCreateFromTemplate, apiGetProject, apiRenameProject,
   apiDeleteProject, apiDuplicateProject, type ProjectMeta, type ProjectFull, type ProjectAccess,
 } from './projectApi'
 import { setActiveProjectId } from './session'
@@ -54,6 +54,7 @@ interface ProjectsState {
   loadList: () => Promise<void>
   openProject: (id: string) => Promise<void>
   newProject: () => Promise<void>
+  newFromTemplate: (periodYm: string) => Promise<void>
   adoptCurrentAsNewProject: () => Promise<void>
   backToLibrary: () => Promise<void>
   renameProject: (id: string, name: string) => Promise<void>
@@ -105,6 +106,20 @@ export const useProjects = create<ProjectsState>((set, get) => ({
       applyProject(p)
       // 새 이북은 빈 슬라이드 한 장으로 시작(구글 슬라이드식). 추가가 자동저장을 유발한다.
       useBuilder.getState().addCard('slide')
+      await get().loadList()
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  // 표준 양식으로 시작. 빈 슬라이드와 달리 `addCard` 를 부르지 않는다 —
+  // 서버가 이미 한 장을 채워 보냈고, 여기서 한 장을 더 붙이면 '1인 1장'이 깨진다.
+  newFromTemplate: async (periodYm) => {
+    try { await flushSave() } catch { /* noop */ }
+    set({ loading: true })
+    try {
+      const p = await apiCreateFromTemplate(periodYm)
+      applyProject(p)
       await get().loadList()
     } finally {
       set({ loading: false })

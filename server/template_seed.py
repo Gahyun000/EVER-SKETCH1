@@ -117,9 +117,9 @@ def parse_period(period_ym: str) -> tuple[int, int]:
         y, m = period_ym.split("-")
         year, month = int(y), int(m)
     except Exception:
-        raise TemplateError("회차 기간은 'YYYY-MM' 형식이어야 합니다: %r" % (period_ym,))
+        raise TemplateError("기간은 'YYYY-MM' 형식이어야 합니다: %r" % (period_ym,))
     if not (2000 <= year <= 2100) or not (1 <= month <= 12):
-        raise TemplateError("회차 기간 값이 범위를 벗어났습니다: %r" % (period_ym,))
+        raise TemplateError("기간 값이 범위를 벗어났습니다: %r" % (period_ym,))
     return year, month
 
 
@@ -238,7 +238,7 @@ def build_template_page(period_ym: str, owner_name: str = "", dept: str = "",
                  ("작성 %s" % who) if who else "작성자",
                  PAGE_W - MARGIN - 348, 26, 348, 18, 12, align="right", tcolor="#5b6270"),
         _text_el(nid(), "head",
-                 "회차 %s%s" % (period_ym, ("  ·  제출기한 %s" % due_label) if due_label else ""),
+                 "기간 %s%s" % (period_ym, ("  ·  제출기한 %s" % due_label) if due_label else ""),
                  PAGE_W - MARGIN - 348, 46, 348, 18, 12, align="right", tcolor="#98a1b2"),
 
         _text_el(nid(), "SLOT-A", "① 로드맵 / 마일스톤", MARGIN, 72, 400, 18, 13, bold=True),

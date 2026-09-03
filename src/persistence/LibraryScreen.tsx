@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, CalendarDays } from 'lucide-react'
 import { useProjects } from './projects'
+import NewProjectDialog from './NewProjectDialog'
 import type { ProjectMeta } from './projectApi'
 
 const PAGE_SIZE = 12
@@ -18,6 +19,7 @@ export default function LibraryScreen() {
   const loading = useProjects((s) => s.loading)
   const openProject = useProjects((s) => s.openProject)
   const newProject = useProjects((s) => s.newProject)
+  const newFromTemplate = useProjects((s) => s.newFromTemplate)
   const renameProject = useProjects((s) => s.renameProject)
   const deleteProject = useProjects((s) => s.deleteProject)
   const duplicateProject = useProjects((s) => s.duplicateProject)
@@ -28,6 +30,7 @@ export default function LibraryScreen() {
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null)
   const [pendingDel, setPendingDel] = useState<ProjectMeta | null>(null)
+  const [picking, setPicking] = useState(false)
 
   useEffect(() => { if (view === 'library') setPage(1) }, [view])
 
@@ -62,7 +65,7 @@ export default function LibraryScreen() {
         <div style={{ display: 'flex', gap: 8 }}>
           {/* 회차는 임원회의 자료의 진입점이다 — '새 이북'보다 먼저 보이게 둔다. */}
           <button className="lib-new ghost" onClick={showCycles}><CalendarDays className="h-4 w-4" /> 회차</button>
-          <button className="lib-new" onClick={() => void newProject()}><Plus className="h-4 w-4" /> 새 이북</button>
+          <button className="lib-new" onClick={() => setPicking(true)}><Plus className="h-4 w-4" /> 새 이북</button>
         </div>
       </div>
 
@@ -120,6 +123,14 @@ export default function LibraryScreen() {
           ))
         )}
       </div>
+
+      {picking && (
+        <NewProjectDialog
+          onClose={() => setPicking(false)}
+          onBlank={() => newProject()}
+          onTemplate={(ym) => newFromTemplate(ym)}
+        />
+      )}
 
       {/* 프로젝트 자체 확인 다이얼로그(표준: 브라우저 confirm 금지) */}
       {pendingDel && (

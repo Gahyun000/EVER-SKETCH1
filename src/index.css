@@ -542,3 +542,19 @@ button{font-family:inherit;cursor:pointer}
 .tutp-x{margin-left:auto;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#dbe1ea;border-radius:8px;padding:6px 12px;font-weight:700;font-size:12.5px;cursor:pointer}
 .tutp-x:hover{background:rgba(255,255,255,.16)}
 .tutp-frame{flex:1;width:100%;border:0;background:#eceef2}
+
+/* ── 새 자료 만들기 창 (표준 양식 / 빈 슬라이드) ── */
+.np-modal .ui-modal-foot{display:flex;justify-content:flex-end;gap:8px}
+.np-picks{display:grid;gap:10px}
+.np-pick{display:grid;grid-template-columns:22px 1fr;grid-template-rows:auto auto;column-gap:12px;row-gap:2px;
+  text-align:left;background:#fff;border:1.6px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--ink)}
+.np-pick svg{grid-row:1 / span 2;align-self:center;color:var(--muted)}
+.np-pick:hover:not(:disabled){border-color:#c7cddb}
+.np-pick.on{border-color:var(--blue);background:#f5f8ff}
+.np-pick.on svg{color:var(--blue)}
+.np-pick:disabled{opacity:.55;cursor:default}
+.np-pick-t{font-weight:800;font-size:14px}
+.np-pick-d{font-size:12.5px;color:var(--muted);line-height:1.45}
+.np-period{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;font-weight:700;color:var(--muted)}
+.np-period input{border:1.4px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13.5px;color:var(--ink);font-family:inherit}
+.np-period input:focus{outline:none;border-color:var(--blue)}

@@ -18,6 +18,7 @@ from server import comments as comments_store
 from server import notes as notes_store
 from server import permissions as perm
 from server import projects as projects_store
+from server import template_seed
 from server.authdeps import require_action, require_active, require_project
 
 router = APIRouter(tags=["projects"])
@@ -26,6 +27,10 @@ router = APIRouter(tags=["projects"])
 class ProjectCreateIn(BaseModel):
     name: Optional[str] = None
     state: Optional[dict] = None
+
+
+class TemplateProjectIn(BaseModel):
+    period_ym: str
 
 
 class ProjectSaveIn(BaseModel):
@@ -86,6 +91,27 @@ def projects_create(req: ProjectCreateIn, user: dict = Depends(require_active)):
     # 새 이북의 소유자는 만든 사람. owner 없는 프로젝트가 다시 생기지 않게 한다.
     require_action(user, perm.WRITE, perm.Resource(owner_id=user["id"]))
     return projects_store.create_project(req.name, req.state, owner_id=user["id"])
+
+
+@router.post("/api/projects/from-template")
+def projects_create_from_template(req: TemplateProjectIn, user: dict = Depends(require_active)):
+    """표준 양식 1장으로 새 이북을 시작한다.
+
+    **이 라우트가 없으면 표준 양식은 죽는다.** 지금까지 표준 양식이 세상에 나오는
+    길은 `POST /api/cycles/{cid}/distribute` 하나뿐이었고, 그 API 는 회차 id 를
+    요구한다. 회차를 걷어내는 순간 파일은 멀쩡한데 아무도 못 쓰는 상태가 된다.
+
+    양식 자체는 `template_seed` 가 만든다. 여기서 정하는 것은 **누구 것인가** 뿐이다.
+    권한은 빈 슬라이드를 만들 때와 같다(`WRITE`) — 표준 양식이라고 더 높은 권한을
+    요구할 이유가 없고, 실제로 만들 수 있는 사람도 정확히 같다.
+    """
+    require_action(user, perm.WRITE, perm.Resource(owner_id=user["id"]))
+    try:
+        state = template_seed.build_template_state(
+            req.period_ym, user.get("name") or "", user.get("dept") or "")
+    except template_seed.TemplateError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return projects_store.create_project(state["title"], state, owner_id=user["id"])
 
 
 @router.get("/api/projects/{pid}")
