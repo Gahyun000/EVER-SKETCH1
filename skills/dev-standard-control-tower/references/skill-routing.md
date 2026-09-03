@@ -25,6 +25,8 @@ These seven are the baseline routing set, even when a non-code task records TDD 
 | received review feedback | `receiving-code-review` | verify technical validity before applying |
 | any completion claim | `verification-before-completion` | fresh evidence at every gate exit |
 | UI design or implementation | `frontend-design` | use with approved HTML/UI contract; aesthetics cannot override it |
+| screen composition check, UI preflight, screen flow, or screen review | `visualize` → `screen-review` → `frontend-design` / UI standard | after the mandatory seven and before implementation; require one owner-approved Markdown review deck with state coverage, evidence IDs, snapshot, privacy, validation, accessibility checks, and raw Markdown fallback before HTML implementation |
+| architecture/process diagram, ERD, data chart, knowledge graph, dashboard, Mermaid, Excalidraw, or non-UI visual validation | `visualize` | retain the existing specialist route, portable canonical source, and documented fallback |
 | bounded agent/tool loop | `harness-loop-engineer` | T2/T3 design under approved harness controls |
 | data understanding and modeling | `modeling-harness-loop` | T-level/resource gates still apply |
 | explicit classification metric target | `ml-performance-harness` | after baseline modeling, one-change experiment loop |
@@ -35,4 +37,4 @@ These seven are the baseline routing set, even when a non-code task records TDD 
 | video evidence | `watch-video` | privacy, copyright, tool, and resource constraints apply |
 | uncertain skill choice | `find-skills` | prefer installed skills; audit before external install |
 
-Typical order: mandatory seven → signal-specific conditional skill(s) → independent verification → gate evidence. Conditional skills may run only within the authority and current gate assigned by the control tower.
+Typical order: mandatory seven → signal-specific conditional skill(s) → independent verification → gate evidence. Use the repository `standard-skill-catalog.json` and `scripts/select_standard_skills.py` to record the request/profile, reasons, rejected candidates, and dependency order. `screen-review` is conditional, never an eighth mandatory skill. Its raw Markdown deck is canonical; Marp/presenterm may be used only when already available and approved, and are never auto-installed or connected. Conditional skills may run only within the authority and current gate assigned by the control tower.

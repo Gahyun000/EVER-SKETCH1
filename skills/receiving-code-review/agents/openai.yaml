@@ -1,0 +1,4 @@
+interface:
+  display_name: "Receiving Code Review"
+  short_description: "리뷰 의견을 맹목적으로 따르지 않고 기술적으로 검증합니다."
+  default_prompt: "Use $receiving-code-review to evaluate this review feedback before changing the code."

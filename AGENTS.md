@@ -19,6 +19,12 @@
 - UI/디자인: frontend-design (DESIGN 토큰 준수)
 - 로컬 웹앱 UI 검증: webapp-testing
 - 게이트·문서·포트: dev-standard-control-tower
+- 코드베이스 구조 파악(착수 전): understand-codebase
+- 다단계 작업 진행 순서: superpowers-workflow
+- 버그 재현·근본 원인 좁히기: systematic-debugging
+- 변경 영향·위험 분석(diff/PR): understand-diff
+- 리뷰 의견 검증(맹목 수용 금지): receiving-code-review
+- 화면 리뷰·시각 자료: screen-review, visualize
 
 ## 불변 계약
 - `uniever_ebook`은 수정하지 않는다. 연결은 PNG 폴더 산출 → `generator.py` CLI.
@@ -41,7 +47,7 @@
 | frontend/ | `src/` | Vite/React 표준 관례. 이동 시 vite.config·index.html·import 경로 파손 |
 | backend/ | `server/` | FastAPI 패키지(`server.app`). 이동 시 import·실행기 경로 파손 |
 | tests/ | `e2e/`, `server/test_*.py`, `tests/harness/` | 노드 스모크 + pytest 병행. 하네스 테스트만 `tests/harness/` |
-| SKILL/ | `skills/` | default_skill 표준팩 7종 이식(`UNIEVER_SKILL_MANIFEST.txt`) |
+| SKILL/ | `skills/` | default_skill 표준팩 14종 이식(`skills/UNIEVER_SKILL_MANIFEST.json`) |
 | scripts/ | 루트 `run.command`, `run.cmd` | 원클릭 실행기(단일 파일). 별도 scripts/ 미사용 |
 
 최종 문서(`end_docs/`)는 G6 준비 또는 책임자 지시 시 작성한다.

@@ -1,0 +1,849 @@
+{
+  "format": "uniever-standard-skills/v2",
+  "source": "/sessions/rcw-01vsbjpmkbxkqscl1xegqqjd/mnt/default_skill",
+  "generated_at_utc": "2026-09-03T08:19:03.366953+00:00",
+  "skills": [
+    {
+      "name": "uniever-development-standard",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "05f30d47f46fb56828529bf2f711d194db62d03d93214135f3b756b17f1fa981"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "27688c96081cac3d85cdf358dfa0f72164acfa70eba72f83000eb5389a395d9d"
+        },
+        {
+          "path": "references/source-standard/01_개발거버넌스.md",
+          "sha256": "7771b9e60bba6112e54e45bc7a47e2a4d358d62fce30dc5827befefdc4582921"
+        },
+        {
+          "path": "references/source-standard/02_프로젝트수행절차.md",
+          "sha256": "b4beb9b6df7ec20e6481d5032dae2db41eaf7aac28d5110279bab7d00923aac0"
+        },
+        {
+          "path": "references/source-standard/03_요구사항및설계.md",
+          "sha256": "feefb4dcf15feeb03f8c717cd20baed3713a61add8c934addde514906dd57e23"
+        },
+        {
+          "path": "references/source-standard/04_AI개발표준.md",
+          "sha256": "6ee6da1fb124c3a24ef2b5b260b730fa08c76e88e1c0d9b7552f3cf2fbd75006"
+        },
+        {
+          "path": "references/source-standard/05_코딩및형상관리.md",
+          "sha256": "7dbd7caa5e479d2227631a5b041d63a9272a4327c56f7c2b3639b7ede28aae29"
+        },
+        {
+          "path": "references/source-standard/06_테스트및품질.md",
+          "sha256": "fe72e8a536f2b34cd9178f2b1130c2f89976e68b7c1e4790eb01e63dc5900ebe"
+        },
+        {
+          "path": "references/source-standard/07_보안및개인정보.md",
+          "sha256": "524f37e4e554974fe7af6637cc1bbfdc2f3fb66360ebacaa9ff5f14764bcadd6"
+        },
+        {
+          "path": "references/source-standard/08_배포및운영.md",
+          "sha256": "6ec0084615abf67a5c570f0a64ecaa00cf1df68f46b003a91fb63c4ed5842204"
+        },
+        {
+          "path": "references/source-standard/09_문서및기록관리.md",
+          "sha256": "25f90257ba3f10009aaf8791ce0f7ad9d8448889fffbb14b2a3d87accf1305c1"
+        },
+        {
+          "path": "references/source-standard/10_프로젝트폴더표준.md",
+          "sha256": "50761ccffc0763abd4ec030c077b8a3a53f4593bd761edff3edadaa6e86b4439"
+        },
+        {
+          "path": "references/source-standard/11_하네스및루프엔지니어링.md",
+          "sha256": "d770a00eb9ba4f49ccac3c8036d1a8131ea18e75641694afd61baca51e602a39"
+        },
+        {
+          "path": "references/source-standard/AGENTS.md",
+          "sha256": "92bbeb904f6cdc00b373e7d0e46610507e20bf48b80c90c3ff3a01f0bf4f0703"
+        },
+        {
+          "path": "references/source-standard/README.md",
+          "sha256": "c781050ab0202b444fd48c4306f91e932ef9cde9bd10b32938d2f38eb894518c"
+        },
+        {
+          "path": "references/source-standard/skills/SKILL_템플릿.md",
+          "sha256": "a0529d650b0aa6ed3b53662e07b16fc6b88bf32ebb0d02767f25c7a56ea001b7"
+        },
+        {
+          "path": "references/source-standard/skills/UI_개발표준_SKILL.md",
+          "sha256": "baa377996b3ea1eaed5f9a66af083918936cdc62831bbf65f3015724dfd3ab9c"
+        },
+        {
+          "path": "references/source-standard/skills/하네스_루프_엔지니어링_SKILL.md",
+          "sha256": "1e96cdcac50ba4ef2ebf7355689199b920e09af2058cdfeebb07403de2fcf3b5"
+        },
+        {
+          "path": "references/source-standard/skills/하네스_엔지니어링_SKILL.md",
+          "sha256": "70781a117c2a61ac087f569d381981fe3649eda483e4c497d5fb4aeaef153c72"
+        },
+        {
+          "path": "references/source-standard/신규프로젝트_생성_마스터프롬프트.md",
+          "sha256": "338fe4c7b42ac885bc8c039bc81f8d89a8f74c23d1182edcb87499180d86f5cd"
+        }
+      ]
+    },
+    {
+      "name": "dev-standard-control-tower",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ef6656a67901dfdf5e1d392ef6f50f85871816b4a3959b6686b9cb2e96263eba"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "08f4bdc4dca5e0b11cdcb84e709edc8eb5f48fe74b7e325a8f02afb8fcb7e105"
+        },
+        {
+          "path": "assets/devctl.py",
+          "sha256": "051a7f4ca3b0e30b4fdf002fa2aacbc2eed09c3ca465e4688e72bea0e900b38d"
+        },
+        {
+          "path": "assets/project-templates/end_docs/01_사용자매뉴얼_템플릿.md",
+          "sha256": "8eee1d317454efc4fde463bd8e0204b52220c5c15e0d897a46da58b6d8bebe5d"
+        },
+        {
+          "path": "assets/project-templates/end_docs/02_개발자매뉴얼_템플릿.md",
+          "sha256": "c103e3d9edffad063a2be48a9b63254e79d7b90e8d8426a7d65144f0a63d1df2"
+        },
+        {
+          "path": "assets/project-templates/end_docs/03_운영배포매뉴얼_템플릿.md",
+          "sha256": "76deb7431a56328441eade14c8d5b889517b085f1df1fef3323ebad14b1dd12c"
+        },
+        {
+          "path": "assets/project-templates/qc_docs/01_품질계획서_템플릿.md",
+          "sha256": "2e4f32824d6e2af23ec89d66436f6b0375736b475ac045ea8a9cda95fa1c20f0"
+        },
+        {
+          "path": "assets/project-templates/qc_docs/02_테스트케이스_템플릿.md",
+          "sha256": "fcc1bc3fa66ad87ff830e70e25327c1ea9ae9be3d938991af8ac9cac145c92b8"
+        },
+        {
+          "path": "assets/project-templates/qc_docs/03_품질검사체크리스트.md",
+          "sha256": "63f41bea3a9d8747b422aeb5eb96ac3902c90ff376b2c586ecb4ecd22141dac3"
+        },
+        {
+          "path": "assets/project-templates/qc_docs/04_하네스검증체크리스트.md",
+          "sha256": "cb8d617f6081328fe5bd56c6b1c18925bd147701ffce95b9a0e7ea6e17056f29"
+        },
+        {
+          "path": "assets/project-templates/qc_docs/05_산출물별품질검사기준서_템플릿.md",
+          "sha256": "509898e87c574ba09eeba9397b95e9809f6ee571a783ecf90bf4c0f2fcb070b5"
+        },
+        {
+          "path": "assets/project-templates/start_docs/01_프로젝트개요서_템플릿.md",
+          "sha256": "fe046ba140030069e3632dc50c30e897cac6b8dd5754a709dc4a145168da94fb"
+        },
+        {
+          "path": "assets/project-templates/start_docs/02_회의록_템플릿.md",
+          "sha256": "222d430ac45565ecbd965840e8164dbf6ffd2618441e01cd41b5db9570fd13ca"
+        },
+        {
+          "path": "assets/project-templates/start_docs/03_요구사항정의서_템플릿.md",
+          "sha256": "0a21c5d893c8e4e4a5d5e0b1a8ff4d38493e08ad19e64825a5aa5cc1c6eba68c"
+        },
+        {
+          "path": "assets/project-templates/start_docs/04_화면설계서_템플릿.md",
+          "sha256": "4cbc378e279233b61f7d54e051da4be22afe4e6d41a5cf8c00ff998933a0700a"
+        },
+        {
+          "path": "assets/project-templates/start_docs/05_DB설계서_템플릿.md",
+          "sha256": "c361c47bb0f6ae42b911ed7b177f5c8480265ed3e36b46739f9cdbebcc1dddc4"
+        },
+        {
+          "path": "assets/project-templates/start_docs/06_요구사항추적표_템플릿.md",
+          "sha256": "f9156f6cfa2c9944cedd0c1652879293b7903508daea75b6b693a220e02844af"
+        },
+        {
+          "path": "assets/project-templates/start_docs/07_변경요청서_템플릿.md",
+          "sha256": "e344694b706ce6e56ee5fda787943990355ea478958d931d7f1f307c8920f3a9"
+        },
+        {
+          "path": "assets/project-templates/start_docs/08_프로세스정의서_템플릿.md",
+          "sha256": "4dcb0a5cbabfa48c331705cf95d3e187047ee9cdbf2c621f937ad785ab3bc4ac"
+        },
+        {
+          "path": "assets/project-templates/start_docs/09_사용자매뉴얼_약식_템플릿.md",
+          "sha256": "63a32db83e753af1dd12fadc093f747b4ad809e55b6e2fee2b24ffc9eac95c62"
+        },
+        {
+          "path": "assets/project-templates/start_docs/10_개발자매뉴얼_약식_템플릿.md",
+          "sha256": "cd51028cccc8ec4ad27b5e317526d27b8d7f73ee428bcaac362e1efcae3382f5"
+        },
+        {
+          "path": "assets/project-templates/start_docs/11_운영배포매뉴얼_약식_템플릿.md",
+          "sha256": "4ee556ba0580f7d236626266fb325bf830654df31ee6acf799a63dc5afd1e4ba"
+        },
+        {
+          "path": "assets/project-templates/start_docs/14_개발기법선정서_템플릿.md",
+          "sha256": "571d3344e1fb56fc6cd76511184e2cced39e2f6ded196837e05f69ed9e4e44b1"
+        },
+        {
+          "path": "assets/project-templates/start_docs/15_하네스설계서_템플릿.md",
+          "sha256": "ac986c825c024a2eb40ddcdd677adcbd5d55a589e92e83f1afed017da34cc970"
+        },
+        {
+          "path": "assets/project-templates/프로젝트착수_체크리스트.md",
+          "sha256": "3c748dfe7e93be896726610c6eea64a7287e70292106736f29710a5d7b3dbc9f"
+        },
+        {
+          "path": "assets/run.cmd",
+          "sha256": "a69e2e54be0b6895430a6c54fc1d017a3f58202438136ad7d6398e7c66b5a9ef"
+        },
+        {
+          "path": "assets/run.command",
+          "sha256": "03f00a30c7fd5b67445ffd888543303b614d58bd9c94b52c6bf601f55986d7a4"
+        },
+        {
+          "path": "references/agent-port-registry.json",
+          "sha256": "e6e9fdfa7c42c605ba390067c0b70772ec786263f07d8d69a4d56ca32975a765"
+        },
+        {
+          "path": "references/agent-projects.json",
+          "sha256": "817096e6aa8d8e8eb56cdb43805ca731439f40c6dc97b94e4d29708a67dc6407"
+        },
+        {
+          "path": "references/documentation-contract.md",
+          "sha256": "76399bfce9789109bc2d5707924a8267ebc1c018c88a591dae355edcc9b667de"
+        },
+        {
+          "path": "references/governance.md",
+          "sha256": "4c90979cc1d17f3a9dc9a47100175d123b2b295962d94e83977ccda2a5c5abbf"
+        },
+        {
+          "path": "references/one-click-runtime.md",
+          "sha256": "73c0b8c18c0ea374f319fb1d84e3c70140483b0103dbfac3343b1d396d4a5d45"
+        },
+        {
+          "path": "references/port-governance.md",
+          "sha256": "701782e4355869cef07e19fefe910bcde65009012c2239669fd004cc0c28b9db"
+        },
+        {
+          "path": "references/quality-and-operations.md",
+          "sha256": "15596cc44ff09ea51bbcb973879dedd48c990095d0d2e1608fa2a1b08b9c2a79"
+        },
+        {
+          "path": "references/sketch-control-tower-contract.md",
+          "sha256": "38f7d1a49fb8c0b6b51a755c9ba28443ad8b04dd9195a73da84817a46c75df04"
+        },
+        {
+          "path": "references/skill-routing.md",
+          "sha256": "e906e037ce8014de69425fa8361c3038480b1a86a4235553b901df2e4738dc9e"
+        },
+        {
+          "path": "references/source-audit-checklist.html",
+          "sha256": "46af07832e7befa401ff6db232fc3a992c2cc0ed730358a4b977531d9b035654"
+        },
+        {
+          "path": "references/source-audit-mapping.json",
+          "sha256": "de97258e66dc84bac68b6da8546514bfb774938c002d22245cc82c138576feb3"
+        },
+        {
+          "path": "references/source-index.md",
+          "sha256": "3635aae28209083d42e44776b320867e1e6223ef8b90a397a801f8869922de3f"
+        },
+        {
+          "path": "references/source-standard/01_개발거버넌스.md",
+          "sha256": "7771b9e60bba6112e54e45bc7a47e2a4d358d62fce30dc5827befefdc4582921"
+        },
+        {
+          "path": "references/source-standard/02_프로젝트수행절차.md",
+          "sha256": "cc9d4228c91b4e0e9649e25c583e280aefd2b05042537f424e7e0b91b8de84c8"
+        },
+        {
+          "path": "references/source-standard/03_요구사항및설계.md",
+          "sha256": "bb00c8b73dd62db7e845b7f133c4dc1c7da915c11224fff94605ef5ff4c69814"
+        },
+        {
+          "path": "references/source-standard/04_AI개발표준.md",
+          "sha256": "6ee6da1fb124c3a24ef2b5b260b730fa08c76e88e1c0d9b7552f3cf2fbd75006"
+        },
+        {
+          "path": "references/source-standard/05_코딩및형상관리.md",
+          "sha256": "7dbd7caa5e479d2227631a5b041d63a9272a4327c56f7c2b3639b7ede28aae29"
+        },
+        {
+          "path": "references/source-standard/06_테스트및품질.md",
+          "sha256": "a7d6f94006b272416442585dd582e75eb3c754c61e5f398b5a9b6d5b42f834c5"
+        },
+        {
+          "path": "references/source-standard/07_보안및개인정보.md",
+          "sha256": "351437913af0e79e9424e8efa56be67921d3375e6ffe0ce51511c26045f9be29"
+        },
+        {
+          "path": "references/source-standard/08_배포및운영.md",
+          "sha256": "6ec0084615abf67a5c570f0a64ecaa00cf1df68f46b003a91fb63c4ed5842204"
+        },
+        {
+          "path": "references/source-standard/09_문서및기록관리.md",
+          "sha256": "fde6069ade59e530fe7b3570a4884c3eb64ab3f4a3aefc6a6910a43a46476e21"
+        },
+        {
+          "path": "references/source-standard/10_프로젝트폴더표준.md",
+          "sha256": "50761ccffc0763abd4ec030c077b8a3a53f4593bd761edff3edadaa6e86b4439"
+        },
+        {
+          "path": "references/source-standard/11_하네스및루프엔지니어링.md",
+          "sha256": "d770a00eb9ba4f49ccac3c8036d1a8131ea18e75641694afd61baca51e602a39"
+        },
+        {
+          "path": "references/source-standard/skills/SKILL_템플릿.md",
+          "sha256": "a0529d650b0aa6ed3b53662e07b16fc6b88bf32ebb0d02767f25c7a56ea001b7"
+        },
+        {
+          "path": "references/source-standard/skills/UI_개발표준_SKILL.md",
+          "sha256": "23fe092a4013f88dd4b7e752f3b20cdb46b729100d8ed142b7acbdf645b68a92"
+        },
+        {
+          "path": "references/source-standard/skills/하네스_루프_엔지니어링_SKILL.md",
+          "sha256": "1e96cdcac50ba4ef2ebf7355689199b920e09af2058cdfeebb07403de2fcf3b5"
+        },
+        {
+          "path": "references/source-standard/skills/하네스_엔지니어링_SKILL.md",
+          "sha256": "70781a117c2a61ac087f569d381981fe3649eda483e4c497d5fb4aeaef153c72"
+        },
+        {
+          "path": "references/source-standard/신규프로젝트_생성_마스터프롬프트.md",
+          "sha256": "338fe4c7b42ac885bc8c039bc81f8d89a8f74c23d1182edcb87499180d86f5cd"
+        },
+        {
+          "path": "references/ui-contract.md",
+          "sha256": "07927fb50d4d2e6ec7fc435dbbb0ce7e27c53f95d6ac1ec7d21a01717632a240"
+        },
+        {
+          "path": "scripts/audit_ports.py",
+          "sha256": "1ac40d5404ce396fad7b0e082159ff67e1c9d16c27fb1657152a633ef75beef7"
+        },
+        {
+          "path": "scripts/bootstrap_project.py",
+          "sha256": "15ec5a076109ce53ae4686d25a39f6cb19e4787d429e5cc6c54524f2a5ecabd8"
+        },
+        {
+          "path": "scripts/render_port_audit.py",
+          "sha256": "ed418f58c3f91fcf3357eb3f8d1dc478154b4ef5e7fd0d4ba9f52f3825674453"
+        },
+        {
+          "path": "scripts/validate_audit.py",
+          "sha256": "4e29f7a396d9de33df7cd8845639aa4095ea0b875591d3565b5d7c3b75d71c44"
+        }
+      ]
+    },
+    {
+      "name": "karpathy-guidelines",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "88cfc22f516dda4b4c66470b67a17cda527bce4eae06fdf8915bffee5bc6a45a"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "c6775f110f684700f5f4c883e59a398b30d6d4fd121333c8baebf116ae8fd983"
+        }
+      ]
+    },
+    {
+      "name": "understand-codebase",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "4d84f266eb12d9637517e0ec98c24b873aa5e550c1322d5a60c435b4d172b08c"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "574bf5e38a85d0d2d28af435655dee5eb7ffd023604620d1848bcc3af4368350"
+        }
+      ]
+    },
+    {
+      "name": "superpowers-workflow",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "4b5ba38b5f5b4767b6eba85712c43bffc8a6a84792a10c140b29849a6c5808bb"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "2800c0706079c10e72a4ef940bf9f8cfde3ac2d692373e4d2cb8f1e8178c9a91"
+        }
+      ]
+    },
+    {
+      "name": "test-driven-development",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "7eba2f465d924f03091c7c95ca303023ea91077bbebbdfcdba394021f52bf689"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "36d1d0dbfd6fdf851d1704e2ee2192cdcede9073a9154db03a9c58563c2b83a9"
+        },
+        {
+          "path": "testing-anti-patterns.md",
+          "sha256": "bde453bc258f06543987477c837939afaa774ea2acbd9f308d702fc452bc4283"
+        }
+      ]
+    },
+    {
+      "name": "verification-before-completion",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "052a1e943b4e8af9ec560e985a6e304f99bb4a619fb461a9fa80eab800e4617b"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "c0a64df114e16caea2c5bc7975fbfc900b3d7ebaf62855dde54f3cf2d77de89d"
+        }
+      ]
+    },
+    {
+      "name": "understand-diff",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "b5a74e13bed6d861d49ca3754ac9b2c03951fc76e2457f49fd30228792095e1e"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "f9280f6de400ab057996e568760c5dc923249f3d0f7ea8adda8a9778887dade1"
+        }
+      ]
+    },
+    {
+      "name": "receiving-code-review",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "1246b398c784ab63680268bf7d53e349b6eca3f478220b8c4c830e33dcc44564"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "431f3478807004ab64d5d77411e81c0db767070fa89dd4afa63b4f6b0a3fb4cc"
+        }
+      ]
+    },
+    {
+      "name": "systematic-debugging",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "e0166293acebec053967f4f6a4311e1a5ac2c5048d9e3a07765a0e06473105da"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "5175be1788320ffc548f8392a8fe58dc7fb979cc190701025bb3712ca6055f88"
+        },
+        {
+          "path": "condition-based-waiting-example.ts",
+          "sha256": "40ae5ebe497fdf310200e43fe986552546d0a22837c0d39e855db1cfd33eb88e"
+        },
+        {
+          "path": "condition-based-waiting.md",
+          "sha256": "e89fec8400d6cd50f43407cec9fab50976ba4d55d0ec2eb51c0bd68036b54c26"
+        },
+        {
+          "path": "defense-in-depth.md",
+          "sha256": "1e175fb86fc357e58c6aebf5441e481e1b7868b4380c0456b63a17eefbd18ba7"
+        },
+        {
+          "path": "find-polluter.sh",
+          "sha256": "6462747eae9b175ac145b78bcfaeab755654a75e32637f08eb633f065a9e1d7c"
+        },
+        {
+          "path": "root-cause-tracing.md",
+          "sha256": "6b0622269e098ca1399e123e553fd385f0b6412d88ef0e9c4f5a8ea9cf1cec7b"
+        }
+      ]
+    },
+    {
+      "name": "visualize",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "c239b7a6707eb49d3f341b2ae43c61524e687d0b7288146571841b7879dfbbd7"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "c88b68ae702fbe35266138b00fddb99c61a712c63726d956e28b53b7ab9d24b6"
+        },
+        {
+          "path": "references/tool-matrix.md",
+          "sha256": "5d49bd4ed543638a0347d7e97cc8e19098b9f7d7979bdd1f0f526dbf976836f8"
+        }
+      ]
+    },
+    {
+      "name": "screen-review",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "4d07863437a4f613ca7135b5ded25edfb6e25d0e301b797b625cbdd4dbd2e1d7"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "3807aa5a929c2d52989edb108744bb924f9ee70be524f7e5782df82571dba3b6"
+        },
+        {
+          "path": "references/markdown-page-contract.md",
+          "sha256": "98a0ddb9e5a927f3d7d906eb3c23802b0acd4871537a4859d406a971afd53c02"
+        }
+      ]
+    },
+    {
+      "name": "frontend-design",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "d70604c94450f3e43326ba7ac0a7f1204de8b6ad588085c5dc6e11632541d3d4"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "80d41cacc519b3514884867ee1cef5a15f7f550c39a9d11a03ad9c554dd9e4f2"
+        }
+      ]
+    },
+    {
+      "name": "webapp-testing",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "a7d5ed8eb09c05f0c0f3d5270d731b2139d4cadac5c84cc13d4454a7d606cebd"
+        },
+        {
+          "path": "examples/console_logging.py",
+          "sha256": "ea46877289acb82da7e7ce59d0bc37c8977cd57e2a006d0c88d7a1c625bf95da"
+        },
+        {
+          "path": "examples/element_discovery.py",
+          "sha256": "d63c89604a22f8845d724e95dda45db49b1bf57c25ce0a83afbb7b8da3d402f0"
+        },
+        {
+          "path": "examples/static_html_automation.py",
+          "sha256": "9d533aafb875ee3ab8b8ebf8f5b9003ac8d999da3d09b285cce252e623140064"
+        },
+        {
+          "path": "scripts/with_server.py",
+          "sha256": "b0dcf4918935b795f4eda9821579b9902119235ff4447f687a30286e7d0925fd"
+        }
+      ]
+    }
+  ],
+  "source_commit": "0d0da6602178eed444880c8b4788247a915b17ae",
+  "catalog_version": "2026-08-17",
+  "selection_sha256": "ef6c7d7542b4e3e355e164a146a830ebcf031b5efae4dde1f44101f82cee326f",
+  "selection": {
+    "format": "uniever-skill-selection/v1",
+    "selection_mode": "plan",
+    "request": "React TypeScript 프런트와 파이썬 백엔드로 된 웹앱에서 회차·배부 기능을 제거하고 폴더·결재 기능을 이식한다. 권한 판정과 화면 개편, e2e 회귀 테스트가 포함된다.",
+    "profiles": [
+      "general-code",
+      "ui-preflight",
+      "webapp-verification"
+    ],
+    "catalog_version": "2026-08-17",
+    "source_commit": "0d0da6602178eed444880c8b4788247a915b17ae",
+    "mandatory": [
+      "uniever-development-standard",
+      "dev-standard-control-tower",
+      "karpathy-guidelines",
+      "understand-codebase",
+      "superpowers-workflow",
+      "test-driven-development",
+      "verification-before-completion"
+    ],
+    "selected": [
+      "uniever-development-standard",
+      "dev-standard-control-tower",
+      "karpathy-guidelines",
+      "understand-codebase",
+      "superpowers-workflow",
+      "test-driven-development",
+      "verification-before-completion",
+      "understand-diff",
+      "receiving-code-review",
+      "systematic-debugging",
+      "visualize",
+      "screen-review",
+      "frontend-design",
+      "webapp-testing"
+    ],
+    "reasons": {
+      "uniever-development-standard": [
+        "mandatory baseline",
+        "required by: dev-standard-control-tower",
+        "required by: dev-standard-control-tower",
+        "required by: dev-standard-control-tower",
+        "required by: dev-standard-control-tower"
+      ],
+      "dev-standard-control-tower": [
+        "mandatory baseline",
+        "required by: visualize",
+        "required by: visualize",
+        "required by: visualize"
+      ],
+      "karpathy-guidelines": [
+        "mandatory baseline"
+      ],
+      "understand-codebase": [
+        "mandatory baseline",
+        "required by: understand-diff"
+      ],
+      "superpowers-workflow": [
+        "mandatory baseline"
+      ],
+      "test-driven-development": [
+        "mandatory baseline"
+      ],
+      "verification-before-completion": [
+        "mandatory baseline",
+        "required by: webapp-testing"
+      ],
+      "understand-diff": [
+        "required by: receiving-code-review"
+      ],
+      "receiving-code-review": [
+        "profile: general-code"
+      ],
+      "systematic-debugging": [
+        "profile: general-code"
+      ],
+      "visualize": [
+        "profile: ui-preflight",
+        "required by: screen-review",
+        "required by: screen-review"
+      ],
+      "screen-review": [
+        "profile: ui-preflight",
+        "required by: frontend-design"
+      ],
+      "frontend-design": [
+        "profile: ui-preflight"
+      ],
+      "webapp-testing": [
+        "profile: webapp-verification"
+      ]
+    },
+    "rejected": [
+      {
+        "name": "agent-handovers",
+        "reason": "no matching request/profile signal",
+        "review_when": "멀티에이전트, 인수인계, handoff"
+      },
+      {
+        "name": "agent-memory",
+        "reason": "no matching request/profile signal",
+        "review_when": "기억해, 기억, recall memory"
+      },
+      {
+        "name": "brand-guidelines",
+        "reason": "no matching request/profile signal",
+        "review_when": "브랜드, 브랜드가이드, brand"
+      },
+      {
+        "name": "erp-mes-graph-engineering",
+        "reason": "no matching request/profile signal",
+        "review_when": "그래프엔지니어링, 근거 그래프, graph engineering"
+      },
+      {
+        "name": "erp-mes-reverse-analysis",
+        "reason": "no matching request/profile signal",
+        "review_when": "erp mes, erp/mes, c# erp"
+      },
+      {
+        "name": "erp-process-analysis",
+        "reason": "no matching request/profile signal",
+        "review_when": "erp, 구매, 영업"
+      },
+      {
+        "name": "evaluator-optimizer",
+        "reason": "no matching request/profile signal",
+        "review_when": "독립 평가, 평가자, evaluator"
+      },
+      {
+        "name": "find-skills",
+        "reason": "no matching request/profile signal",
+        "review_when": "스킬 찾아, 스킬 추천, find skills"
+      },
+      {
+        "name": "harness-loop-engineer",
+        "reason": "no matching request/profile signal",
+        "review_when": "에이전트 루프, 하네스 루프, 자동화 루프"
+      },
+      {
+        "name": "humanizer",
+        "reason": "no matching request/profile signal",
+        "review_when": "문체, 윤문, 자연스럽게"
+      },
+      {
+        "name": "manufacturing-quality-analysis",
+        "reason": "no matching request/profile signal",
+        "review_when": "제조 품질, 불량, ncr"
+      },
+      {
+        "name": "markdown-screen-design",
+        "reason": "no matching request/profile signal",
+        "review_when": "화면 설계, markdown 화면, screen design"
+      },
+      {
+        "name": "mcp-builder",
+        "reason": "no matching request/profile signal",
+        "review_when": "mcp 서버, mcp, 외부 도구 서버"
+      },
+      {
+        "name": "mes-process-analysis",
+        "reason": "no matching request/profile signal",
+        "review_when": "mes, 생산, 공정"
+      },
+      {
+        "name": "mes-traceability-analysis",
+        "reason": "no matching request/profile signal",
+        "review_when": "lot, serial, genealogy"
+      },
+      {
+        "name": "ml-performance-harness",
+        "reason": "no matching request/profile signal",
+        "review_when": "f1, auc, 분류 성능"
+      },
+      {
+        "name": "modeling-harness-loop",
+        "reason": "no matching request/profile signal",
+        "review_when": "데이터셋, 모델링, eda"
+      },
+      {
+        "name": "plm-process-analysis",
+        "reason": "no matching request/profile signal",
+        "review_when": "plm, bom, 설계변경"
+      },
+      {
+        "name": "project-kickoff-visualizer",
+        "reason": "no matching request/profile signal",
+        "review_when": "프로젝트 착수 시각화, 프로젝트 전체 워크플로우, 개발 워크플로우 다이어그램"
+      },
+      {
+        "name": "scada-ot-integration",
+        "reason": "no matching request/profile signal",
+        "review_when": "scada, plc, opc ua"
+      },
+      {
+        "name": "supply-chain-planning-analysis",
+        "reason": "no matching request/profile signal",
+        "review_when": "s&op, mrp, 수요계획"
+      },
+      {
+        "name": "understand-api-integration",
+        "reason": "no matching request/profile signal",
+        "review_when": "api, edi, 메시지 연계"
+      },
+      {
+        "name": "understand-chat",
+        "reason": "no matching request/profile signal",
+        "review_when": "코드베이스 질문, 지식 그래프 질의, ai chat"
+      },
+      {
+        "name": "understand-dashboard",
+        "reason": "no matching request/profile signal",
+        "review_when": "그래프 대시보드, 대시보드 실행, graph dashboard"
+      },
+      {
+        "name": "understand-data-lineage",
+        "reason": "no matching request/profile signal",
+        "review_when": "데이터 계보, data lineage, 데이터 흐름"
+      },
+      {
+        "name": "understand-database",
+        "reason": "no matching request/profile signal",
+        "review_when": "데이터베이스, db 구조, ddl"
+      },
+      {
+        "name": "understand-domain",
+        "reason": "no matching request/profile signal",
+        "review_when": "도메인 분석, 업무 프로세스, 업무 용어"
+      },
+      {
+        "name": "understand-erd",
+        "reason": "no matching request/profile signal",
+        "review_when": "erd, 관계도, 테이블 관계"
+      },
+      {
+        "name": "understand-explain",
+        "reason": "no matching request/profile signal",
+        "review_when": "함수 설명, 파일 설명, 모듈 설명"
+      },
+      {
+        "name": "understand-knowledge",
+        "reason": "no matching request/profile signal",
+        "review_when": "지식베이스, knowledge graph, 문서 그래프"
+      },
+      {
+        "name": "understand-onboard",
+        "reason": "no matching request/profile signal",
+        "review_when": "온보딩, 신규 팀원, 인수인계 문서"
+      },
+      {
+        "name": "understand-runtime",
+        "reason": "no matching request/profile signal",
+        "review_when": "실행환경, 포트, 서비스"
+      },
+      {
+        "name": "uniever-workflow-router",
+        "reason": "no matching request/profile signal",
+        "review_when": "워크플로우 라우팅, 다음 스킬, 작업 흐름 선택"
+      },
+      {
+        "name": "watch-video",
+        "reason": "no matching request/profile signal",
+        "review_when": "영상 분석, youtube, 동영상"
+      },
+      {
+        "name": "wms-process-analysis",
+        "reason": "no matching request/profile signal",
+        "review_when": "wms, 창고, 입고"
+      }
+    ],
+    "order": [
+      "uniever-development-standard",
+      "dev-standard-control-tower",
+      "karpathy-guidelines",
+      "understand-codebase",
+      "superpowers-workflow",
+      "test-driven-development",
+      "verification-before-completion",
+      "understand-diff",
+      "receiving-code-review",
+      "systematic-debugging",
+      "visualize",
+      "screen-review",
+      "frontend-design",
+      "webapp-testing"
+    ],
+    "warnings": [],
+    "verification": [
+      "scripts/validate_skills.py"
+    ],
+    "generated_at_utc": "2026-09-03T08:18:55.433610+00:00",
+    "selection_sha256": "ef6c7d7542b4e3e355e164a146a830ebcf031b5efae4dde1f44101f82cee326f"
+  },
+  "mandatory_baseline": [
+    "uniever-development-standard",
+    "dev-standard-control-tower",
+    "karpathy-guidelines",
+    "understand-codebase",
+    "superpowers-workflow",
+    "test-driven-development",
+    "verification-before-completion"
+  ]
+}

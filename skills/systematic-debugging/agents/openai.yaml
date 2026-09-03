@@ -1,0 +1,4 @@
+interface:
+  display_name: "Systematic Debugging"
+  short_description: "증상 수정 전에 재현과 근본 원인을 먼저 입증합니다."
+  default_prompt: "Use $systematic-debugging to reproduce this failure and identify its root cause."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Understand Codebase"
+  short_description: "코드베이스 구조와 의존성을 지식 그래프로 정리합니다."
+  default_prompt: "Use $understand-codebase to map this repository and explain its architecture."

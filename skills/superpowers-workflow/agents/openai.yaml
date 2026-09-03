@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superpowers Workflow"
+  short_description: "요구사항부터 검증까지 개발 절차를 위험도에 맞게 조정합니다."
+  default_prompt: "Use $superpowers-workflow to structure this implementation from requirements through verification."

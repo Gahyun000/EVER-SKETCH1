@@ -51,7 +51,7 @@ PNG 폴더 규칙 → `python3 generator.py build <폴더> --style image --full-
 ```
 src/          프런트 (승인된 이탈: 표준 frontend/ 대신)
 server/       백엔드 (승인된 이탈: 표준 backend/ 대신)
-skills/       default_skill 표준팩 이식본 (UNIEVER_SKILL_MANIFEST.txt)
+skills/       default_skill 표준팩 이식본 14종 (UNIEVER_SKILL_MANIFEST.json)
 docs/         기획·설계 문서
 start_docs/   착수 문서 (요구사항·화면설계·DB설계·승인)
 qc_docs/      품질 문서 (테스트케이스·테스트증적·결함)

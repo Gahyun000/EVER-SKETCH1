@@ -1,0 +1,4 @@
+interface:
+  display_name: "Screen Review"
+  short_description: "Review screens before UI implementation"
+  default_prompt: "Use $screen-review to build one Markdown page-deck that reviews screen layout, states, navigation, and approval before implementation."

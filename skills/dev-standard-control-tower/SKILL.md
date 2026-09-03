@@ -11,6 +11,8 @@ Treat approved human-owned documents as the source of truth. AI output remains a
 
 Every user request starts with these seven skills as the mandatory baseline: `uniever-development-standard`, `dev-standard-control-tower`, `karpathy-guidelines`, `understand-codebase`, `superpowers-workflow`, `test-driven-development`, and `verification-before-completion`. The other skills remain in `skills/` and are loaded only when the request signal requires them. For non-code work, TDD is recorded as an applicability/acceptance check when no software test is applicable.
 
+Use the repository-root `standard-skill-catalog.json` with `scripts/select_standard_skills.py` to make conditional selection reproducible. Use `scripts/port_standard_skills.py --selection <plan>` for approved copying and `scripts/verify_standard_skills.py` before the receiving agent begins work. A selection plan must preserve the exact mandatory seven, reasons, order, rejected candidates, catalog version, and source commit.
+
 Act as the development-guideline control tower: own the lifecycle state, gate decisions, standard interpretation, routed-skill boundaries, evidence index, and stop/advance decision. Do not silently delegate this ownership to an implementation skill.
 
 When a task asks to apply, interpret, audit, or update Uniever(주) development standards, use `uniever-development-standard` as the authoritative standard source, then use this control tower for project orchestration, document generation, port governance, launcher generation, and gate evidence.
@@ -26,7 +28,7 @@ Read only the references needed for the current gate:
 - Governance, gates, precedence, and stop conditions: [governance.md](references/governance.md)
 - Required project folders, documents, naming, and templates: [documentation-contract.md](references/documentation-contract.md)
 - Skill routing and composition: [skill-routing.md](references/skill-routing.md)
-- HTML baseline and UI completion rules: [ui-contract.md](references/ui-contract.md)
+- Markdown screen design and UI completion rules: [ui-contract.md](references/ui-contract.md)
 - Testing, security, deployment, and evidence: [quality-and-operations.md](references/quality-and-operations.md)
 - One-click startup and automatic dependency installation: [one-click-runtime.md](references/one-click-runtime.md)
 - Existing-agent audit, shared port registry, and reservation rules: [port-governance.md](references/port-governance.md)
@@ -50,6 +52,7 @@ The approved standard resolves sketch conflicts. In particular:
 2. **Plan before execution.** At project start and for important work, establish a reviewable plan containing scope, priorities, dependencies, risks, resource limits, gates, owners, and measurable completion conditions. Recommend plan approval to the user when it is absent.
 3. **Build the trace.** Assign requirement and acceptance IDs. Link each requirement to approved process, screen/HTML, API, DB, security, code, and test evidence as applicable.
 4. **Enforce the gate.** Evaluate G0-G6 from [governance.md](references/governance.md). If a required artifact or approval is missing, incomplete, contradictory, or untestable, stop implementation and create or repair the document first.
+4a. **Enforce visual-first evidence.** When the request has a visual dimension, route `visualize` after the mandatory seven and before implementation or analysis execution. For screen composition, UI preflight, screen-flow, or screen-review requests, route `visualize` → conditional `screen-review` → `frontend-design` / project UI standard. Before HTML implementation, require one canonical Markdown review deck with source snapshot, requirement/design/API/DB/test evidence IDs, privacy status, validation, accessibility checks, page-state coverage, and `owner_approval: approved`. The raw Markdown deck is the fallback; Marp/presenterm remain optional and are never auto-installed or connected. Non-UI work still requires the appropriate architecture/process/ERD/lineage/graph/data visual with the same evidence fields.
 5. **Route skills.** Select the minimum sufficient set from [skill-routing.md](references/skill-routing.md), announce the order, and read each selected skill completely. Before any work action, output the selected skill name, exact `SKILL.md` path, selection reason, scope, and rejected candidates. If no skill applies, explicitly output `적용 스킬 없음 — 일반 작업 절차로 진행`. A skill may be recorded as used only when it was announced, read completely, applied to the work, and supported by evidence; never infer skill usage retrospectively. For standard interpretation or conflict resolution, route through `uniever-development-standard` first. The control tower owns lifecycle state; a routed skill owns only its bounded task.
 6. **Execute narrowly.** Preserve user changes, follow existing repository patterns, reserve ports from the shared registry before generating launchers, install only approved locked dependencies, and keep external effects behind explicit approval checkpoints.
 7. **Verify safely and independently.** Before tests, inspect available memory/CPU/GPU and set concurrency, timeout, data-size, cleanup, and stop limits that avoid system instability. Use deterministic checks and fresh execution evidence. An LLM's confidence, prose claim, or self-authored test alone is not acceptance.
@@ -77,7 +80,7 @@ The work ledger is required activity evidence; it does not replace canonical req
 |---|---|---|
 | G0 Intake | Goal, scope, roles, level, risks, source inventory | Undefined owner/scope |
 | G1 Requirements | IDs, measurable acceptance, glossary, trace, human approval | Missing or conflicting requirements |
-| G2 Design | Process, HTML/screens, API, DB, security, T-level/harness design approved | UI without approved exceptional-state baseline |
+| G2 Design | Process, approved UI preflight Markdown deck before HTML/screens for UI (or architecture/process/ERD/lineage/graph/data visual for non-UI), API, DB, security, T-level/harness design approved | Missing or unapproved UI review deck, missing visual baseline, UI without approved exceptional-state baseline, or untraceable visual evidence |
 | G3 Development | Reviewed code, unit/static checks, technical docs, project-specific Windows/macOS launchers | Generic/unverified runner or undocumented core logic |
 | G4 Quality | Integration, regression, security, performance, harness/resource tests and evidence | Blocker/Critical, untested approved requirement |
 | G5 Deployment | Approved deployment, rollback, observation, smoke test, operational owner | No G4 approval or recovery path |

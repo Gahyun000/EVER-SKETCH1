@@ -2,6 +2,7 @@
   "schema_version": 1,
   "projects": [
     {"name": "Agentic-PM", "path": "/Users/uniever1/Uniever_AI/Agentic-PM", "override": {"frontend_ports": [5273], "backend_ports": [18800], "auxiliary_ports": [7878], "note": "run_app 및 Vite 설정 기준; 7878은 FileMetric 연계"}},
+    {"name": "AI_Prompt_Ssam", "path": "/Users/uniever1/Dev/AI_Prompt_Ssam", "override": {"frontend_ports": [], "backend_ports": [8801], "auxiliary_ports": [], "note": "수동등록(2026-07-26): run.cmd/run.command·server/app.py 기준 BE 8801. 정적 HTML을 백엔드가 서빙해 별도 FE 리스너 없음"}},
     {"name": "ARIA_AI_Agent", "path": "/Users/uniever1/Uniever_AI/ARIA_AI_Agent", "override": {"frontend_ports": [], "backend_ports": [8910], "auxiliary_ports": [8004, 11434], "note": "단일 FastAPI 서비스; 8004·11434는 외부 추론 연계"}},
     {"name": "Auto_ML_Agent_Pilot", "path": "/Users/uniever1/Uniever_AI/Auto_ML_Agent_Pilot", "override": {"frontend_ports": [], "backend_ports": [], "auxiliary_ports": [], "note": "문서·압축 소스만 존재하여 실행 포트 미확정"}},
     {"name": "Business_Plan_ai_Agent", "path": "/Users/uniever1/Uniever_AI/Business_Plan_ai_Agent", "override": {"frontend_ports": [3000], "backend_ports": [], "auxiliary_ports": [], "note": "Vite 단독 프론트엔드"}},

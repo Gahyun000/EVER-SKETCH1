@@ -1,0 +1,4 @@
+interface:
+  display_name: "Understand Diff"
+  short_description: "Analyze code changes and affected components"
+  default_prompt: "Use $understand-diff to analyze current changes, affected components, and risks."

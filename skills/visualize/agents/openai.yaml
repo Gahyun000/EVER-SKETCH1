@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visualize Engineering"
+  short_description: "Route visual outputs across UI, ERD, graph, and data"
+  default_prompt: "Use $visualize to create an evidence-backed visualization bundle with a portable source and fallback."

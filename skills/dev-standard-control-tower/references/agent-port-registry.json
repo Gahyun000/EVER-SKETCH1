@@ -868,6 +868,17 @@
         7878
       ],
       "note": "수동등록: 코드상 FE 5200 / BE 8800(.dev-standard.json,vite,main.py) / FileMetric 7878. 데모 README의 8801 표기는 코드와 불일치(별도 정리 필요)."
+    },
+    {
+      "name": "AI_Prompt_Ssam",
+      "path": "/Users/uniever1/Dev/AI_Prompt_Ssam",
+      "status": "registered-manual",
+      "frontend_ports": [],
+      "backend_ports": [
+        8801
+      ],
+      "auxiliary_ports": [],
+      "note": "수동등록(2026-07-26): 2026-07-24 예약분(FE5201/BE8801)을 실사용 확정으로 승격. run.cmd/run.command·server/app.py 기준 BE 8801. 정적 HTML을 백엔드가 서빙해 별도 FE 리스너 없음."
     }
   ],
   "collisions": {
@@ -1008,11 +1019,18 @@
       "note": "Tauri 설치형 앱 개발 서버. FE 5204 사용, BE 8804는 향후 로컬 adapter 예약만 하며 현재 프로세스는 없음. LLM 8004는 외부 auxiliary 서비스."
     },
     {
-      "name": "AI_Prompt_Ssam",
-      "project_root": "/Users/uniever1/Dev/AI_Prompt_Ssam",
-      "frontend_port": 5201,
-      "backend_port": 8801,
-      "reserved_at": "2026-07-24T13:58:42+09:00"
+      "name": "EVER-SKETCH",
+      "project_root": "/Users/kimgahyun/Desktop/git/EVER-SKETCH",
+      "frontend_port": 5207,
+      "backend_port": 8808,
+      "reserved_at": "2026-09-02T23:44:48+09:00",
+      "frontend_ports": [
+        5207
+      ],
+      "backend_ports": [
+        8808
+      ],
+      "note": "수동등록(2026-09-02): 조사 루트 밖(맥북 /Users/kimgahyun/Desktop/git). 교정 — 자동할당 5201/8802가 에이전트대장 20260831의 Intelligent_Execution_Dashboard(FE 5201 / BE 8802)와 충돌하여 5207/8808로 재지정. 레지스트리(2026-07-06 감사)가 대장(2026-08-31)보다 오래되어 자동할당이 대장 기재 포트를 보지 못한다."
     }
   ]
 }

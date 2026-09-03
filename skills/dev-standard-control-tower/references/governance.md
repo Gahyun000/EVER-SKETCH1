@@ -3,7 +3,7 @@
 ## Core philosophy
 
 1. AI is an executor and analyst, not the final authority, product owner, or approver.
-2. Human-approved requirements, designs, HTML baselines, policies, and acceptance criteria are the source of truth.
+2. Human-approved requirements, Markdown screen designs, policies, and acceptance criteria are the source of truth.
 3. Missing, contradictory, ambiguous, or untestable mandatory documents stop implementation.
 4. Every outcome must trace through requirement → design → code/change → test → evidence → approval.
 5. Tests must respect CPU, memory, storage, GPU, time, cost, token, and external-service limits.
@@ -25,7 +25,7 @@
 |---|---|---|
 | G0 | overview, stakeholder/source inventory, scope/exclusions, roles, level, initial risk | business owner |
 | G1 | meeting record, requirements and acceptance IDs, glossary, trace matrix | PM/PO and customer |
-| G2 | process, screen/HTML, API, DB, security/operations, T selection; T1+ harness; T2+ loop controls | technical owner and customer |
+| G2 | process, Markdown screen design, API, DB, security/operations, T selection; T1+ harness; T2+ loop controls | technical owner and customer |
 | G3 | implementation, review, unit/static evidence, technical docs, real Windows/macOS one-click launchers | technical owner |
 | G4 | integration/regression/permissions/security/performance/harness/resource tests, defects, acceptance review | QA and security owner |
 | G5 | deployment/rollback/observation, backups, smoke test; T3 dry-run/alerts/kill switch | operations owner |

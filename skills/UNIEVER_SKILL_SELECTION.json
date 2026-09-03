@@ -1,0 +1,292 @@
+{
+  "format": "uniever-skill-selection/v1",
+  "selection_mode": "plan",
+  "request": "React TypeScript 프런트와 파이썬 백엔드로 된 웹앱에서 회차·배부 기능을 제거하고 폴더·결재 기능을 이식한다. 권한 판정과 화면 개편, e2e 회귀 테스트가 포함된다.",
+  "profiles": [
+    "general-code",
+    "ui-preflight",
+    "webapp-verification"
+  ],
+  "catalog_version": "2026-08-17",
+  "source_commit": "0d0da6602178eed444880c8b4788247a915b17ae",
+  "mandatory": [
+    "uniever-development-standard",
+    "dev-standard-control-tower",
+    "karpathy-guidelines",
+    "understand-codebase",
+    "superpowers-workflow",
+    "test-driven-development",
+    "verification-before-completion"
+  ],
+  "selected": [
+    "uniever-development-standard",
+    "dev-standard-control-tower",
+    "karpathy-guidelines",
+    "understand-codebase",
+    "superpowers-workflow",
+    "test-driven-development",
+    "verification-before-completion",
+    "understand-diff",
+    "receiving-code-review",
+    "systematic-debugging",
+    "visualize",
+    "screen-review",
+    "frontend-design",
+    "webapp-testing"
+  ],
+  "reasons": {
+    "uniever-development-standard": [
+      "mandatory baseline",
+      "required by: dev-standard-control-tower",
+      "required by: dev-standard-control-tower",
+      "required by: dev-standard-control-tower",
+      "required by: dev-standard-control-tower"
+    ],
+    "dev-standard-control-tower": [
+      "mandatory baseline",
+      "required by: visualize",
+      "required by: visualize",
+      "required by: visualize"
+    ],
+    "karpathy-guidelines": [
+      "mandatory baseline"
+    ],
+    "understand-codebase": [
+      "mandatory baseline",
+      "required by: understand-diff"
+    ],
+    "superpowers-workflow": [
+      "mandatory baseline"
+    ],
+    "test-driven-development": [
+      "mandatory baseline"
+    ],
+    "verification-before-completion": [
+      "mandatory baseline",
+      "required by: webapp-testing"
+    ],
+    "understand-diff": [
+      "required by: receiving-code-review"
+    ],
+    "receiving-code-review": [
+      "profile: general-code"
+    ],
+    "systematic-debugging": [
+      "profile: general-code"
+    ],
+    "visualize": [
+      "profile: ui-preflight",
+      "required by: screen-review",
+      "required by: screen-review"
+    ],
+    "screen-review": [
+      "profile: ui-preflight",
+      "required by: frontend-design"
+    ],
+    "frontend-design": [
+      "profile: ui-preflight"
+    ],
+    "webapp-testing": [
+      "profile: webapp-verification"
+    ]
+  },
+  "rejected": [
+    {
+      "name": "agent-handovers",
+      "reason": "no matching request/profile signal",
+      "review_when": "멀티에이전트, 인수인계, handoff"
+    },
+    {
+      "name": "agent-memory",
+      "reason": "no matching request/profile signal",
+      "review_when": "기억해, 기억, recall memory"
+    },
+    {
+      "name": "brand-guidelines",
+      "reason": "no matching request/profile signal",
+      "review_when": "브랜드, 브랜드가이드, brand"
+    },
+    {
+      "name": "erp-mes-graph-engineering",
+      "reason": "no matching request/profile signal",
+      "review_when": "그래프엔지니어링, 근거 그래프, graph engineering"
+    },
+    {
+      "name": "erp-mes-reverse-analysis",
+      "reason": "no matching request/profile signal",
+      "review_when": "erp mes, erp/mes, c# erp"
+    },
+    {
+      "name": "erp-process-analysis",
+      "reason": "no matching request/profile signal",
+      "review_when": "erp, 구매, 영업"
+    },
+    {
+      "name": "evaluator-optimizer",
+      "reason": "no matching request/profile signal",
+      "review_when": "독립 평가, 평가자, evaluator"
+    },
+    {
+      "name": "find-skills",
+      "reason": "no matching request/profile signal",
+      "review_when": "스킬 찾아, 스킬 추천, find skills"
+    },
+    {
+      "name": "harness-loop-engineer",
+      "reason": "no matching request/profile signal",
+      "review_when": "에이전트 루프, 하네스 루프, 자동화 루프"
+    },
+    {
+      "name": "humanizer",
+      "reason": "no matching request/profile signal",
+      "review_when": "문체, 윤문, 자연스럽게"
+    },
+    {
+      "name": "manufacturing-quality-analysis",
+      "reason": "no matching request/profile signal",
+      "review_when": "제조 품질, 불량, ncr"
+    },
+    {
+      "name": "markdown-screen-design",
+      "reason": "no matching request/profile signal",
+      "review_when": "화면 설계, markdown 화면, screen design"
+    },
+    {
+      "name": "mcp-builder",
+      "reason": "no matching request/profile signal",
+      "review_when": "mcp 서버, mcp, 외부 도구 서버"
+    },
+    {
+      "name": "mes-process-analysis",
+      "reason": "no matching request/profile signal",
+      "review_when": "mes, 생산, 공정"
+    },
+    {
+      "name": "mes-traceability-analysis",
+      "reason": "no matching request/profile signal",
+      "review_when": "lot, serial, genealogy"
+    },
+    {
+      "name": "ml-performance-harness",
+      "reason": "no matching request/profile signal",
+      "review_when": "f1, auc, 분류 성능"
+    },
+    {
+      "name": "modeling-harness-loop",
+      "reason": "no matching request/profile signal",
+      "review_when": "데이터셋, 모델링, eda"
+    },
+    {
+      "name": "plm-process-analysis",
+      "reason": "no matching request/profile signal",
+      "review_when": "plm, bom, 설계변경"
+    },
+    {
+      "name": "project-kickoff-visualizer",
+      "reason": "no matching request/profile signal",
+      "review_when": "프로젝트 착수 시각화, 프로젝트 전체 워크플로우, 개발 워크플로우 다이어그램"
+    },
+    {
+      "name": "scada-ot-integration",
+      "reason": "no matching request/profile signal",
+      "review_when": "scada, plc, opc ua"
+    },
+    {
+      "name": "supply-chain-planning-analysis",
+      "reason": "no matching request/profile signal",
+      "review_when": "s&op, mrp, 수요계획"
+    },
+    {
+      "name": "understand-api-integration",
+      "reason": "no matching request/profile signal",
+      "review_when": "api, edi, 메시지 연계"
+    },
+    {
+      "name": "understand-chat",
+      "reason": "no matching request/profile signal",
+      "review_when": "코드베이스 질문, 지식 그래프 질의, ai chat"
+    },
+    {
+      "name": "understand-dashboard",
+      "reason": "no matching request/profile signal",
+      "review_when": "그래프 대시보드, 대시보드 실행, graph dashboard"
+    },
+    {
+      "name": "understand-data-lineage",
+      "reason": "no matching request/profile signal",
+      "review_when": "데이터 계보, data lineage, 데이터 흐름"
+    },
+    {
+      "name": "understand-database",
+      "reason": "no matching request/profile signal",
+      "review_when": "데이터베이스, db 구조, ddl"
+    },
+    {
+      "name": "understand-domain",
+      "reason": "no matching request/profile signal",
+      "review_when": "도메인 분석, 업무 프로세스, 업무 용어"
+    },
+    {
+      "name": "understand-erd",
+      "reason": "no matching request/profile signal",
+      "review_when": "erd, 관계도, 테이블 관계"
+    },
+    {
+      "name": "understand-explain",
+      "reason": "no matching request/profile signal",
+      "review_when": "함수 설명, 파일 설명, 모듈 설명"
+    },
+    {
+      "name": "understand-knowledge",
+      "reason": "no matching request/profile signal",
+      "review_when": "지식베이스, knowledge graph, 문서 그래프"
+    },
+    {
+      "name": "understand-onboard",
+      "reason": "no matching request/profile signal",
+      "review_when": "온보딩, 신규 팀원, 인수인계 문서"
+    },
+    {
+      "name": "understand-runtime",
+      "reason": "no matching request/profile signal",
+      "review_when": "실행환경, 포트, 서비스"
+    },
+    {
+      "name": "uniever-workflow-router",
+      "reason": "no matching request/profile signal",
+      "review_when": "워크플로우 라우팅, 다음 스킬, 작업 흐름 선택"
+    },
+    {
+      "name": "watch-video",
+      "reason": "no matching request/profile signal",
+      "review_when": "영상 분석, youtube, 동영상"
+    },
+    {
+      "name": "wms-process-analysis",
+      "reason": "no matching request/profile signal",
+      "review_when": "wms, 창고, 입고"
+    }
+  ],
+  "order": [
+    "uniever-development-standard",
+    "dev-standard-control-tower",
+    "karpathy-guidelines",
+    "understand-codebase",
+    "superpowers-workflow",
+    "test-driven-development",
+    "verification-before-completion",
+    "understand-diff",
+    "receiving-code-review",
+    "systematic-debugging",
+    "visualize",
+    "screen-review",
+    "frontend-design",
+    "webapp-testing"
+  ],
+  "warnings": [],
+  "verification": [
+    "scripts/validate_skills.py"
+  ],
+  "generated_at_utc": "2026-09-03T08:18:55.433610+00:00",
+  "selection_sha256": "ef6c7d7542b4e3e355e164a146a830ebcf031b5efae4dde1f44101f82cee326f"
+}

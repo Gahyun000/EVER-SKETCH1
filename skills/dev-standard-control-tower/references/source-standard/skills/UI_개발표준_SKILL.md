@@ -5,7 +5,7 @@ description: Apply the Uniever AI Team mandatory UI standard when planning, desi
 
 # Uniever UI Development Standard
 
-Use this skill together with the approved requirements, screen design, HTML baseline, API design, and project `AGENTS.md`. Stop implementation and update those documents first when they are missing, contradictory, or not testable.
+Use this skill together with the approved requirements, screen design, Markdown screen design, API design, and project `AGENTS.md`. Stop implementation and update those documents first when they are missing, contradictory, or not testable.
 
 ## Required Inputs
 
@@ -13,7 +13,7 @@ Confirm these inputs before editing UI code:
 
 - Approved requirements and acceptance criteria
 - Screen IDs and menu inventory
-- Approved HTML baseline for normal and exceptional states
+- Approved Markdown screen design for normal and exceptional states
 - API contracts and permission matrix
 - Project design system or existing component patterns
 
@@ -26,7 +26,7 @@ Do not invent menus, fields, permissions, business rules, status values, or succ
 3. Apply the common screen rules.
 4. Apply the relevant list, detail, registration, analysis, modal, and button rules.
 5. Implement loading, empty, validation-error, server-error, permission-denied, long-text, and narrow-screen states.
-6. Compare the result with the approved HTML baseline.
+6. Compare the result with the approved Markdown screen design.
 7. Run the completion checks. Do not report completion while any mandatory check fails.
 
 ## Common Screen Rules
@@ -138,7 +138,7 @@ Verify each applicable item with code inspection and a rendered screen:
 - [ ] Execute, save, delete, and modify use the shared confirmation component.
 - [ ] Analysis shows sanitized real-time logs in a modal and terminal states are handled.
 - [ ] Every menu has a completed menu-specific matrix.
-- [ ] Loading, empty, error, permission, long-text, and narrow-screen states match the approved HTML baseline.
+- [ ] Loading, empty, error, permission, long-text, and narrow-screen states match the approved Markdown screen design.
 - [ ] Screen, API, permission, requirement, and test IDs are traceable.
 
 Treat any unchecked applicable item as a failed completion condition. Record exceptions in an approved change request; do not silently waive them.
