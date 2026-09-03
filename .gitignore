@@ -33,3 +33,6 @@ _deck_out/
 _to_delete_*
 
 _to_delete_gitjunk/
+
+# 전환 작업 전 DB 백업본 — 9MB 짜리가 커밋에 딸려 들어가면 안 된다
+server/_db_backup/
