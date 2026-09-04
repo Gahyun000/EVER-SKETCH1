@@ -305,37 +305,69 @@ def _frontend_sources():
     return [f for f in src.rglob("*.ts")] + [f for f in src.rglob("*.tsx")]
 
 
-def test_UDS107_5_비밀번호를_브라우저_저장소에_넣지_않는다():
-    """localStorage·sessionStorage·쿠키에 비밀번호를 저장하면 XSS 한 번에 전부 털린다.
+# ── 승인된 이탈 (2026-09-04) ────────────────────────────
+# 원래 이 절의 계약은 "비밀번호를 브라우저 저장소에 절대 넣지 않는다" 였다.
+# 사내망 전용이라는 전제에서, 더 안전한 두 대안(세션 30일 유지 · 브라우저 비밀번호
+# 관리자)을 함께 제시한 뒤 **책임자가 저장 방식을 선택했다.**
+# 기록: docs/작업대장/작업이력대장_2026-09-03_결재전환_표준팩재이식_P0_P1.md
+#
+# 그래서 계약을 없애지 않고 **좁혔다.** 비밀번호를 저장할 수 있는 파일은 딱 하나다.
+# 다른 곳에서 같은 일이 시작되면 여기서 걸린다 — 예외가 조용히 번지는 것을 막는 것이
+# 이 테스트의 새 임무다.
+PW_STORE_ALLOWED = "remember.ts"
 
-    '아이디 기억하기'는 아이디만 저장한다. 비밀번호 기억은 브라우저 비밀번호 관리자에 맡긴다
-    (그래서 입력란에 autocomplete 속성을 정확히 붙였다).
+
+def test_UDS107_5_비밀번호_저장은_지정된_파일_한_곳에서만():
+    """예외는 한 파일에 가둔다. 번지기 시작하면 어디까지 퍼졌는지 아무도 모른다.
+
+    줄 단위가 아니라 **파일 단위**로 본다. 예전 검사는 `localStorage` 와 `password` 가
+    같은 줄에 있을 때만 걸렸는데, 저장을 헬퍼 함수로 한 겹 감싸면 그대로 빠져나갔다.
+    실제로 그런 일이 있었고 검사는 통과했다 — 안전해서가 아니라 못 봐서.
     """
     import re
-    bad = re.compile(
-        r"(localStorage|sessionStorage|document\.cookie)[^\n]*"
-        r"(password|passwd|\bpw\b|비밀번호)",
-        re.IGNORECASE,
-    )
+    storage = re.compile(r"localStorage|sessionStorage|document\.cookie")
+    secret = re.compile(r"password|passwd|\bpw\b|비밀번호", re.IGNORECASE)
     hits = []
     for f in _frontend_sources():
-        for i, line in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
-            if bad.search(line):
-                hits.append("%s:%d  %s" % (f.name, i, line.strip()[:90]))
-    assert not hits, "브라우저 저장소에 비밀번호가 저장됩니다:\n" + "\n".join(hits)
+        if f.name == PW_STORE_ALLOWED:
+            continue
+        body = f.read_text(encoding="utf-8")
+        if storage.search(body) and secret.search(body):
+            hits.append(f.name)
+    assert not hits, (
+        "비밀번호와 브라우저 저장소를 함께 다루는 파일이 늘었습니다: %s\n"
+        "저장은 %s 한 곳에서만 합니다." % (", ".join(sorted(hits)), PW_STORE_ALLOWED))
 
 
-def test_UDS107_5_아이디_기억하기는_아이디만_저장한다():
+def test_UDS107_5_저장_키는_아이디와_비밀번호_둘뿐이다():
     root = pathlib.Path(__file__).resolve().parent.parent
-    f = root / "src" / "auth" / "rememberId.ts"
-    if not f.exists():
-        pytest.skip("rememberId.ts 없음")
-    body = f.read_text(encoding="utf-8")
-    assert "es_remember_login_id" in body
-    # 저장 키가 하나뿐이어야 한다 — 슬쩍 늘어나면 여기서 걸린다.
+    f = root / "src" / "auth" / PW_STORE_ALLOWED
+    assert f.exists(), "%s 가 없습니다 — 파일을 옮겼다면 이 검사도 함께 옮기세요" % PW_STORE_ALLOWED
     import re
-    keys = set(re.findall(r"localStorage\.(?:setItem|getItem|removeItem)\(([A-Za-z_]+)", body))
-    assert keys == {"KEY"}, "저장 키가 늘었습니다: %s" % keys
+    keys = dict(re.findall(r"const (\w+_KEY) = '([^']+)'", f.read_text(encoding="utf-8")))
+    assert keys == {"ID_KEY": "es_remember_login_id", "PW_KEY": "es_remember_pw"}, \
+        "저장 키가 바뀌었거나 늘었습니다: %s" % keys
+
+
+def test_UDS107_5_비밀번호_저장은_켠_사람에게만_일어난다():
+    """기본값이 켜져 있으면 아무도 고르지 않은 위험을 전원이 지게 된다."""
+    root = pathlib.Path(__file__).resolve().parent.parent
+    body = (root / "src" / "auth" / "LoginScreen.tsx").read_text(encoding="utf-8")
+    assert "useState(!!remembered.password)" in body, \
+        "비밀번호 저장 체크박스의 기본값이 '이미 저장된 경우'가 아닙니다"
+    assert "공용 PC" in body, "비밀번호 저장 위험을 알리는 문구가 없습니다"
+
+
+def test_UDS107_5_비밀번호를_바꾸면_저장된_값을_지운다():
+    """낡은 값이 자동으로 채워지면 사용자는 계정이 잠긴 줄 안다.
+
+    이 프로젝트에서 실제로 두 번 난 혼란이다(비밀번호를 바꾸고 예전 값으로 로그인
+    → 실패 → '계정이 사라졌다'). 자동 채움이 붙으면 더 자주 난다.
+    """
+    root = pathlib.Path(__file__).resolve().parent.parent
+    body = (root / "src" / "auth" / "ChangePasswordForm.tsx").read_text(encoding="utf-8")
+    assert "clearRememberedPassword()" in body, \
+        "비밀번호 변경 후 저장된 비밀번호를 지우지 않습니다"
 
 
 def test_UDS107_5_로그인_입력란에_autocomplete가_붙어있다():

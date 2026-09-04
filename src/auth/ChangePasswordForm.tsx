@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ApiError, apiChangePassword } from './authApi'
 import PasswordField from './PasswordField'
+import { clearRememberedPassword } from './remember'
 
 /**
  * 비밀번호 변경 입력부 — **한 벌만 있다.**
@@ -35,6 +36,10 @@ export default function ChangePasswordForm({
     setErr(''); setBusy(true)
     try {
       await apiChangePassword(oldPw, newPw)
+      // 기기에 저장해 둔 비밀번호가 있으면 이제 낡은 값이다.
+      // 두면 다음 로그인 화면이 틀린 값을 자동으로 채우고, 사용자는 계정이
+      // 잠긴 줄 안다 — 지우면 한 번만 새로 치면 되고 그때 다시 저장된다.
+      clearRememberedPassword()
       onSuccess()
     } catch (e2) {
       setErr(e2 instanceof ApiError ? e2.message : '변경에 실패했어요.')

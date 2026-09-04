@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { clearRememberedId, loadRememberedId, saveRememberedId } from './rememberId'
+import { clearRemembered, clearRememberedPassword, loadRemembered, saveRemembered } from './remember'
 import { ApiError, apiSignup, ROLE_DESC, ROLE_LABEL, ROLE_ORDER, type Role } from './authApi'
 import PasswordField from './PasswordField'
 import { useAuth } from './useAuth'
@@ -12,11 +12,12 @@ export default function LoginScreen() {
   const clearSessionLost = useAuth((s) => s.clearSessionLost)
 
   const [mode, setMode] = useState<Mode>('login')
-  // 저장해 둔 아이디가 있으면 채워 두고, 커서는 비밀번호로 보낸다.
-  const [remembered] = useState(() => loadRememberedId())
-  const [loginId, setLoginId] = useState(remembered)
-  const [remember, setRemember] = useState(!!remembered)
-  const [password, setPassword] = useState('')
+  // 저장해 둔 것이 있으면 채워 두고, 커서는 빈 칸으로 보낸다.
+  const [remembered] = useState(() => loadRemembered())
+  const [loginId, setLoginId] = useState(remembered.loginId)
+  const [remember, setRemember] = useState(!!remembered.loginId)
+  const [rememberPw, setRememberPw] = useState(!!remembered.password)
+  const [password, setPassword] = useState(remembered.password)
   const [name, setName] = useState('')
   const [dept, setDept] = useState('')
   // 기본은 작성자 — 임원·부서 담당자가 대다수다.
@@ -36,9 +37,9 @@ export default function LoginScreen() {
     try {
       if (mode === 'login') {
         await login(loginId, password)
-        // 로그인에 성공한 뒤에만 저장한다 — 오타난 아이디를 기억하면 오히려 방해가 된다.
-        if (remember) saveRememberedId(loginId)
-        else clearRememberedId()
+        // 로그인에 성공한 뒤에만 저장한다 — 틀린 값을 기억하면 오히려 방해가 된다.
+        if (remember) saveRemembered(loginId, rememberPw ? password : undefined)
+        else clearRemembered()
       } else {
         const r = await apiSignup({ login_id: loginId, password, name, dept, requested_role: role })
         setDone(r.message)
@@ -75,7 +76,7 @@ export default function LoginScreen() {
           <div className="es-field">
             <label htmlFor="es-login-id">아이디</label>
             <input id="es-login-id" value={loginId} autoComplete="username"
-              autoFocus={!remembered}
+              autoFocus={!remembered.loginId}
               onChange={(e) => setLoginId(e.target.value)} placeholder="사내 아이디" />
           </div>
 
@@ -85,20 +86,34 @@ export default function LoginScreen() {
             value={password}
             onChange={setPassword}
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            autoFocus={!!remembered && mode === 'login'}
+            autoFocus={!!remembered.loginId && !remembered.password && mode === 'login'}
             placeholder={mode === 'signup' ? '8자 이상' : ''}
           />
 
           {mode === 'login' && (
-            <label className="es-check">
-              <input type="checkbox" checked={remember}
-                onChange={(e) => {
-                  setRemember(e.target.checked)
-                  if (!e.target.checked) clearRememberedId()
-                }} />
-              <span>아이디 기억하기</span>
-              <em>비밀번호는 저장되지 않습니다</em>
-            </label>
+            <>
+              <label className="es-check">
+                <input type="checkbox" checked={remember}
+                  onChange={(e) => {
+                    setRemember(e.target.checked)
+                    if (!e.target.checked) { setRememberPw(false); clearRemembered() }
+                  }} />
+                <span>아이디 기억하기</span>
+              </label>
+              {/* 비밀번호 저장은 **켠 사람에게만** 일어난다. 무슨 일이 벌어지는지
+                  숨기지 않고 그대로 적는다 — 공용 PC 에서 켜면 다음 사람이 그대로 들어간다. */}
+              {remember && (
+                <label className="es-check">
+                  <input type="checkbox" checked={rememberPw}
+                    onChange={(e) => {
+                      setRememberPw(e.target.checked)
+                      if (!e.target.checked) clearRememberedPassword()
+                    }} />
+                  <span>비밀번호도 저장</span>
+                  <em>이 기기에 그대로 저장됩니다. 공용 PC 에서는 켜지 마세요</em>
+                </label>
+              )}
+            </>
           )}
 
           {mode === 'signup' && (
