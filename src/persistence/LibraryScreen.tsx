@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import UserBar from '../auth/UserBar'
-import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home } from 'lucide-react'
+import { useAuth } from '../auth/useAuth'
+import ApprovalsPanel from '../approvals/ApprovalsPanel'
+import {
+  ApprovalApiError, STATUS_LABEL, apiRequestApproval, apiStatusMap, type StatusChip,
+} from '../approvals/approvalApi'
+import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home, Send, Inbox } from 'lucide-react'
 import { useProjects } from './projects'
 import NewProjectDialog from './NewProjectDialog'
 import type { ProjectMeta } from './projectApi'
@@ -54,6 +59,23 @@ export default function LibraryScreen() {
   const [fEditing, setFEditing] = useState<{ id: string; value: string } | null>(null)
   const [fPendingDel, setFPendingDel] =
     useState<{ id: string; name: string; folder_count: number; project_count: number } | null>(null)
+
+  // ── 결재 (P5) ──────────────────────────────
+  // 상태 칩은 **한 번에** 받아 온다. 자료마다 되물으면 12건에 요청이 13번 나간다.
+  const me = useAuth((s) => s.me)
+  const [chips, setChips] = useState<Record<string, StatusChip>>({})
+  const [inbox, setInbox] = useState(false)
+  const [submitting, setSubmitting] = useState<ProjectMeta | null>(null)
+  const [submitMsg, setSubmitMsg] = useState('')
+  const [aErr, setAErr] = useState('')
+
+  const loadChips = async () => {
+    try { setChips(await apiStatusMap()) } catch { /* 칩은 부가 정보다 — 조용히 넘어간다 */ }
+  }
+  useEffect(() => { if (view === 'library') void loadChips() }, [view, list])   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 열람자는 결재를 내지 않는다(D13 — 순수 개인 작업 공간).
+  const canSubmit = me?.role === 'writer' || me?.role === 'admin'
 
   const loadFolders = async () => {
     setFErr('')
@@ -126,6 +148,11 @@ export default function LibraryScreen() {
             예전에는 UserBar 가 화면 밖 오버레이로 떠서 이 버튼 위에 포개졌다. */}
         <div className="lib-head-right">
           <UserBar />
+          {canSubmit && (
+            <button className="lib-btn" onClick={() => setInbox(true)}>
+              <Inbox className="h-4 w-4" /> 결재함
+            </button>
+          )}
           <button className="lib-btn" disabled={!canCreateHere(path.length, maxDepth)}
             title={canCreateHere(path.length, maxDepth) ? '' : `폴더는 ${maxDepth}단까지만 만들 수 있어요`}
             onClick={() => { setMkOpen(true); setMkName('') }}>
@@ -276,13 +303,27 @@ export default function LibraryScreen() {
                   ) : (
                     <div className="lib-name">{p.name || '제목 없음'}</div>
                   )}
-                  <div className="lib-sub">{fmtKst(p.updated_at)} · {p.page_count}페이지{p.published_id ? ' · 발행됨' : ''}</div>
+                  <div className="lib-sub">
+                    {fmtKst(p.updated_at)} · {p.page_count}페이지{p.published_id ? ' · 발행됨' : ''}
+                    {chips[p.id] && (
+                      <span className={'lib-chip ' + chips[p.id].status}>
+                        {STATUS_LABEL[chips[p.id].status]}
+                        {chips[p.id].round > 1 ? ` ${chips[p.id].round}회차` : ''}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
               <div className="lib-actions">
                 {p.published_id ? (
                   <a className="lib-act" title="발행본 보기(EVER-FOLIO)" href={`${FOLIO_URL}/ebooks/${p.published_id}/index.html`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></a>
                 ) : null}
+                {canSubmit && chips[p.id]?.status !== 'pending' && (
+                  <button className="lib-act" title="결재 제출"
+                    onClick={() => { setSubmitting(p); setSubmitMsg('') }}>
+                    <Send className="h-4 w-4" />
+                  </button>
+                )}
                 <button className="lib-act" title="이름 바꾸기" onClick={() => setEditing({ id: p.id, value: p.name || '' })}><Pencil className="h-4 w-4" /></button>
                 <button className="lib-act" title="복제" onClick={() => void duplicateProject(p.id)}><Copy className="h-4 w-4" /></button>
                 <button className="lib-act danger" title="삭제" onClick={() => setPendingDel(p)}><Trash2 className="h-4 w-4" /></button>
@@ -346,6 +387,42 @@ export default function LibraryScreen() {
 
       {/* 새 이북은 **지금 보고 있는 폴더**에 만든다 —
           만들고 나서 옮기게 하면 사람은 매번 두 번 일한다(만들기 → 찾기 → 옮기기). */}
+      {inbox && <ApprovalsPanel onClose={() => { setInbox(false); void loadChips() }} />}
+
+      {/* 제출 — **낸 순간 문서가 얼어붙는다.** 뒤에 고쳐도 결재본은 안 바뀐다. */}
+      {submitting && (
+        <div className="lib-confirm" onClick={() => setSubmitting(null)}>
+          <div className="lib-confirm-box" onClick={(e) => e.stopPropagation()}>
+            <div className="lib-confirm-title">결재 제출</div>
+            <div className="lib-confirm-msg">
+              <b>{submitting.name || '제목 없음'}</b> 을(를) 관리자에게 제출합니다.
+              <br /><br />
+              <b>지금 이 문서가 그대로 얼어붙습니다.</b> 제출한 뒤에 고쳐도 결재본은 바뀌지 않습니다.
+              <br />
+              한 번이라도 제출하면 <b>이 자료는 지울 수 없습니다.</b>
+              {aErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{aErr}</div>}
+              <input className="lib-mkin" value={submitMsg} placeholder="전달할 말 (선택)"
+                onChange={(e) => setSubmitMsg(e.target.value)} />
+            </div>
+            <div className="lib-confirm-actions">
+              <button className="lib-btn" onClick={() => setSubmitting(null)}>취소</button>
+              <button className="lib-btn dark" onClick={() => {
+                const target = submitting
+                setAErr('')
+                void (async () => {
+                  try {
+                    await apiRequestApproval(target.id, submitMsg.trim())
+                    setSubmitting(null); await loadChips()
+                  } catch (e) {
+                    setAErr(e instanceof ApprovalApiError ? e.message : '제출하지 못했습니다.')
+                  }
+                })()
+              }}>제출</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {picking && (
         <NewProjectDialog
           onClose={() => setPicking(false)}
