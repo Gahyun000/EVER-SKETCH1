@@ -44,10 +44,15 @@ def test_본인_자료는_읽고_쓴다():
     assert decide(ME, WRITE, MINE) is True
 
 
-def test_본인_자료도_삭제는_못_한다():
-    """「결재 이력이 없으면 본인도 삭제」(D16)는 결재 테이블이 생기는 P5 이후에 붙는다.
-    지금은 판정할 이력이 없다 — 없는 근거로 열어 두지 않는다."""
-    assert decide(ME, DELETE, MINE) is False
+def test_본인_자료는_결재_전에만_지운다():
+    """**D16 — P5 에서 열렸다.** 이 자리에는 원래 「본인 자료도 삭제는 못 한다」가 있었다.
+    결재 테이블이 없어 판정할 이력이 없었기 때문이고, 없는 근거로 열어 두지 않았다.
+
+    이제 갈리는 것은 **결재를 탔는가**다. 제출한 적 없는 초안은 제 것이니 지운다.
+    한 번이라도 냈으면 못 지운다 — 거둬들인 건도 마찬가지다(남이 봤을 수 있다).
+    """
+    assert decide(ME, DELETE, Resource(owner_id=ME.id, has_approval_history=False)) is True
+    assert decide(ME, DELETE, Resource(owner_id=ME.id, has_approval_history=True)) is False
 
 
 def test_본인_자료에는_언제나_의견을_단다():

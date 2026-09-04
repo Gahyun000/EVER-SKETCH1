@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import Cookie, HTTPException, Request, Response
 
+from server import approvals as approvals_store
 from server import auth as auth_store
 from server import permissions as perm
 from server import projects as projects_store
@@ -64,12 +65,19 @@ def require_active(es_session: Optional[str] = Cookie(default=None)) -> dict:
 
 # ── 권한 판정 ─────────────────────────────────────────
 def _resource_of(pid: str, user: Optional[dict] = None) -> Optional[perm.Resource]:
-    """판정 대상을 만든다."""
+    """판정 대상을 만든다.
+
+    **결재 이력을 반드시 채운다**(D16). `Resource.has_approval_history` 의 기본값은
+    False 이고, `decide()` 의 DELETE 규칙은 그 값이 False 면 **지울 수 있는 쪽**으로 떨어진다.
+    여기서 안 채우면 이미 결재를 탄 자료가 지워진다 — 기본값이 안전한 쪽이 아니라서,
+    채우는 일을 잊지 않는 것이 이 함수의 몫이다.
+    """
     del user           # 회차 동료 판정이 사라지면서 더는 쓰지 않는다
     sc = projects_store.project_scope(pid)
     if not sc:
         return None
-    return perm.Resource(owner_id=sc["owner_id"], published=sc["published"])
+    return perm.Resource(owner_id=sc["owner_id"], published=sc["published"],
+                         has_approval_history=approvals_store.has_history(pid))
 
 
 def require_action(user: Optional[dict], action: str, res: Optional[perm.Resource] = None) -> None:

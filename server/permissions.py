@@ -64,6 +64,8 @@ COMMENT_READ = "comment_read"
 COMMENT_WRITE = "comment_write"
 COMMENT_RESOLVE = "comment_resolve"
 COMMENT_FIX = "comment_fix"       # 「고쳤습니다」 — 지적받은 쪽이 답하는 표시
+SUBMIT = "submit"                 # 결재 제출 — 본인 자료만. 열람자는 못 한다 (D13)
+DECIDE = "decide"                 # 승인·반려 — 결재자는 L1 한 명이다 (D11)
 FOLDER_MANAGE = "folder_manage"   # 개인 폴더 — **관리자도 남의 것은 못 만진다** (D20)
 TEAM_MANAGE = "team_manage"       # 팀 편성 — 누가 누구 자료를 보게 되는지를 정한다 (D1)
 USER_MANAGE = "user_manage"       # 가입 승인·역할 변경·비활성화
@@ -74,11 +76,12 @@ AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작
 ALL_ACTIONS = (
     READ, WRITE, DELETE,
     COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE, COMMENT_FIX,
+    SUBMIT, DECIDE,
     FOLDER_MANAGE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH, AI_USE,
 )
 
 # 관리자 전용 액션. 새 관리 기능을 추가하면 여기에 넣는다.
-_ADMIN_ONLY = (TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH)
+_ADMIN_ONLY = (DECIDE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH)
 
 
 @dataclass(frozen=True)
@@ -104,6 +107,10 @@ class Resource:
     """판정 대상. 프로젝트가 아닌 액션(USER_MANAGE 등)은 None 을 넘긴다."""
     owner_id: Optional[str] = None
     published: bool = False
+    # **결재를 한 번이라도 탄 자료인가**(D16). 탔으면 작성자는 못 지운다 —
+    # 남의 눈에 든 자료가 조용히 사라지면 「분명히 봤는데 없다」가 된다.
+    # 거둬들인 건(withdrawn)도 이력으로 센다. 자료 하나를 두고 판정할 때만 채운다.
+    has_approval_history: bool = False
     # 그 지적을 **누가 썼는가.** 해결(닫기)은 지적한 사람 몫이다 —
     # 담당자가 자기에게 온 지적을 스스로 닫으면 검토가 형식이 된다.
     # 지적 하나를 두고 판정할 때만 채운다(목록 조회 등에는 None).
@@ -170,14 +177,21 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
         # **본인 것만.** 목록 필터(visible_project_filter)의 'own' 과 짝이 맞아야 한다 —
         # 어긋나면 '목록엔 없는데 열리는' 또는 '보이는데 403' 이 난다.
         return owns
+    if action == SUBMIT:
+        # **열람자는 여기 오지 않는다** — 위 VIEWER 분기에서 이미 걸렸다(D13:
+        # L3 도 개인 스케치는 만들지만 제출은 못 하는 순수 개인 작업 공간).
+        return owns
     if action == WRITE:
         # 고치는 것은 본인 것만. 회차 단계에 따른 잠금은 사라졌고,
         # 결재 상태에 따른 잠금이 P5 에서 그 자리에 온다.
         return owns
     if action == DELETE:
-        # 삭제는 아직 관리자만. 「결재 이력이 없으면 본인도 삭제」(D16)는
-        # 결재 테이블이 생기는 P5 이후에 붙인다 — 지금은 판정할 이력이 없다.
-        return False
+        # **D16 (P5 에서 열었다)** — 결재를 한 번도 안 탄 자료는 작성자가 지운다.
+        # 한 번이라도 탔으면 못 지운다: 남의 눈에 든 자료가 조용히 사라지면
+        # 「분명히 봤는데 없다」가 되고, 결재 이력만 남아 무엇을 승인했는지 알 수 없어진다.
+        # 이력을 아직 안 채워 넣은 호출부는 기본값 False 라 **지울 수 있는 쪽**으로 떨어진다 —
+        # 그래서 라우터가 반드시 채운다(test_routes_perm 이 지킨다).
+        return owns and not res.has_approval_history
     if action == COMMENT_READ:
         # 볼 수 있는 자료의 의견은 볼 수 있다. 따로 가르면 '자료는 보이는데
         # 거기 달린 지적은 안 보이는' 상태가 되어 같은 지적이 두 번 달린다.

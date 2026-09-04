@@ -210,12 +210,29 @@ def test_작성자는_본인_이북을_수정한다(ctx):
                  json={"state": {"pages": [{"id": 1}]}}).status_code == 200
 
 
-def test_작성자는_본인_것도_삭제_불가(ctx):
-    """회차 자료 유실 방지 — 삭제는 L3만."""
+def test_작성자는_결재_전_본인_자료를_지운다(ctx):
+    """**D16 (P5 에서 열렸다).** 이 자리에는 원래 「작성자는 본인 것도 삭제 불가」가 있었다 —
+    결재 테이블이 없어 판정할 이력이 없었다.
+
+    HTTP 로 확인하는 이유: 규칙 자체는 `test_permissions` 가 보고, 여기서는
+    **라우터가 결재 이력을 실제로 채워 넘기는지**를 본다. 그 배선이 빠지면
+    `Resource.has_approval_history` 기본값(False) 때문에 **이미 결재를 탄 자료가 지워진다.**
+    """
+    from server import approvals as approvals_store
+    from server import teams as teams_store
+
     c = ctx["as_user"]("writer")
-    assert c.delete("/api/projects/%s" % ctx["own"]).status_code == 403
+    # 아직 결재를 안 탔다 → 지워진다
+    assert c.delete("/api/projects/%s" % ctx["own"]).status_code == 200
     assert c.delete("/api/projects/%s" % ctx["other"]).status_code == 403
-    assert c.delete("/api/projects/%s/versions/%s" % (ctx["own"], ctx["ver"])).status_code == 403
+
+    # 한 번 제출하면 → 못 지운다
+    r = c.post("/api/projects", json={"name": "낼 자료", "state": {"pages": [{"id": 1}]}})
+    pid = r.json()["id"]
+    t = teams_store.create_team("영업1팀", ctx["admin"]["id"])
+    teams_store.add_member(t["id"], ctx["l2"]["id"], ctx["admin"]["id"])
+    approvals_store.request(pid, ctx["l2"]["id"])
+    assert c.delete("/api/projects/%s" % pid).status_code == 403
 
 
 def test_작성자가_만든_이북은_본인_소유(ctx):

@@ -3,6 +3,8 @@
 W1 완료 게이트. 이 스위트가 깨지면 권한이 뚫린 것이므로 배포하지 않는다.
 `decide()` 는 순수 함수라 DB·서버 없이 전 조합을 돌릴 수 있다.
 """
+import pathlib
+
 import pytest
 
 from server.permissions import (
@@ -78,10 +80,36 @@ def test_작성자에게는_남의_발행본이_보이지_않는다():
     assert decide(WRITER_U, WRITE, PUB) is False
 
 
-def test_작성자는_본인_것도_삭제_불가():
-    """삭제는 L3만. 회차 자료 유실 방지."""
-    assert decide(WRITER_U, DELETE, OWN) is False
+def test_작성자는_결재_전_자료만_지운다():
+    """**D16 (P5 에서 열렸다).** 예전에는 「삭제는 관리자만」이었다 —
+    결재 테이블이 없어 판정할 이력이 없었기 때문이고, 없는 근거로 열어 두지 않았다.
+
+    이제 규칙은 **결재를 한 번이라도 탔는가**다. 안 탔으면 제 초안이니 지운다.
+    탔으면 못 지운다 — 남의 눈에 든 자료가 조용히 사라지면 「분명히 봤는데 없다」가 되고,
+    결재 이력만 남아 무엇을 승인했는지 알 수 없어진다.
+    """
+    fresh = Resource(owner_id=WRITER_U.id, has_approval_history=False)
+    used = Resource(owner_id=WRITER_U.id, has_approval_history=True)
+    assert decide(WRITER_U, DELETE, fresh) is True
+    assert decide(WRITER_U, DELETE, used) is False
+    # 남의 것은 이력과 무관하게 못 지운다
+    assert decide(WRITER_U, DELETE, Resource(owner_id="u_other")) is False
     assert decide(WRITER_U, DELETE, OTHER) is False
+
+
+def test_삭제_이력_기본값은_지울_수_있는_쪽이다():
+    """`has_approval_history` 의 기본값은 False 이고, 그러면 **지워진다.**
+    안전한 쪽으로 실패하지 않으므로 **라우터가 반드시 채워야 한다** —
+    `authdeps._resource_of` 가 그 일을 하고, 아래 테스트가 그걸 지킨다."""
+    assert Resource(owner_id="x").has_approval_history is False
+    assert decide(WRITER_U, DELETE, Resource(owner_id=WRITER_U.id)) is True
+
+
+def test_라우터가_결재_이력을_채운다():
+    """위 기본값 때문에 이 배선이 빠지면 **이미 결재를 탄 자료가 지워진다.**"""
+    src = (pathlib.Path(__file__).resolve().parent / "authdeps.py").read_text(encoding="utf-8")
+    assert "has_approval_history=" in src and "has_history(" in src, \
+        "_resource_of 가 결재 이력을 채우지 않습니다 (D16 이 뚫립니다)"
 
 
 def test_작성자는_본인_이북_메모만():

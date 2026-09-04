@@ -54,6 +54,7 @@ ALL_ROUTES = (
     + _routes("routes_auth.py", "router", prefix="/api/auth")   # APIRouter(prefix=...)
     + _routes("routes_teams.py", "router", prefix="/api/teams")
     + _routes("routes_folders.py", "router", prefix="/api/folders")
+    + _routes("routes_approvals.py", "router", prefix="/api/approvals")
 )
 
 
@@ -88,9 +89,14 @@ def test_모든_엔드포인트가_권한을_판정한다(method, path, body):
     # 폴더는 「없음」과 「남의 것」을 구분해 알려주면 안 되므로 403 대신 404 를 낸다.
     # require_action 은 403 을 던지므로 쓸 수 없고, 대신 _mine() 이
     # perm.decide(FOLDER_MANAGE) 를 거친다 — 아래 test_폴더는_단일_판정을_거친다 가 그걸 강제한다.
+    # 폴더·결재는 「없음」과 「남의 것」을 구분해 알려주면 안 되므로 403 대신 404 를 낸다.
+    # require_action 은 403 을 던지므로 쓸 수 없다. 대신 소유 확인 헬퍼가
+    # perm.decide 를 거친다 — 아래 두 테스트가 그걸 강제한다.
     assert ("require_action" in body or "require_project" in body
             or "can_grant_role" in body or "visible_project_filter" in body
             or (path.startswith("/api/folders") and "_mine(" in body)
+            or (path.startswith("/api/approvals")
+                and ("_mine_or_404(" in body or "_own_comment_or_404(" in body))
             ), \
         "%s %s 가 권한을 판정하지 않습니다" % (method, path)
 
@@ -138,6 +144,27 @@ def test_폴더는_단일_판정을_거친다():
             assert "_mine(" in body, "%s %s 가 소유 확인을 건너뜁니다" % (m, p)
 
 
+def test_결재는_남의_건에_404_를_낸다():
+    """결재 건 id 에 403 을 주면 「그 id 는 있다」가 확인된다 — 남이 무엇을 냈는지가 샌다.
+    없음과 남의 것을 똑같이 404 로 뭉갠다(폴더와 같은 이유)."""
+    src = (SRC_DIR / "routes_approvals.py").read_text(encoding="utf-8")
+    assert "status_code=404" in src
+    assert "status_code=403" not in src, \
+        "결재 라우트가 403 을 냅니다 — 그 자체로 남의 결재 건 존재를 알려줍니다"
+    assert "perm.decide(" in src or "require_action" in src, \
+        "결재 판정이 permissions 를 거치지 않습니다"
+
+
+def test_결재_코멘트는_제_것만_고친다():
+    """**관리자도 남의 말은 못 고친다.** 남의 말을 고칠 수 있으면
+    결재 이력이 기록이 아니라 편집물이 된다."""
+    src = (SRC_DIR / "routes_approvals.py").read_text(encoding="utf-8")
+    assert 'c["author"] != user["id"]' in src, "코멘트 작성자 확인이 없습니다"
+    for m, p, body in ALL_ROUTES:
+        if p.startswith("/api/approvals/comments/"):
+            assert "_own_comment_or_404(" in body, "%s %s 가 작성자를 확인하지 않습니다" % (m, p)
+
+
 def test_공개_허용목록이_최소한으로_유지된다():
     """허용목록이 늘어나면 그만큼 구멍이 늘어난다. 늘릴 때 이 테스트를 함께 고치게 한다."""
     assert len(PUBLIC_ALLOWLIST) == 1, "공개 엔드포인트가 늘었습니다: %s" % list(PUBLIC_ALLOWLIST)
@@ -173,7 +200,7 @@ def _perm_sources():
     """권한 판정에 관여하는 서버 파일들."""
     names = ["permissions.py", "authdeps.py", "auth.py", "app.py",
              "routes_auth.py", "routes_projects.py", "routes_teams.py",
-             "routes_folders.py", "admin_cli.py"]
+             "routes_folders.py", "routes_approvals.py", "admin_cli.py"]
     return [(n, (SRC_DIR / n).read_text(encoding="utf-8")) for n in names
             if (SRC_DIR / n).exists()]
 
