@@ -110,6 +110,20 @@ export async function apiApprove(uid: string, role: Role): Promise<Me> {
   return d.user
 }
 
+/**
+ * 비밀번호 초기화 — 관리자 전용. 돌려주는 것은 **임시 비밀번호**다.
+ *
+ * 관리자가 값을 고르지 않는다(보낼 수도 없다). 고르게 하면 관리자가 그 값을 계속
+ * 알고 있어서 그 계정을 사칭할 수 있는 창이 열린 채로 남는다. 서버가 무작위로
+ * 발급하고 대상자는 최초 로그인 시 반드시 바꾼다 — 한 번 쓰고 폐기되는 값이다.
+ */
+export async function apiResetPassword(uid: string): Promise<string> {
+  const d = await req<{ ok: boolean; password: string }>(`/users/${uid}/reset-pw`, {
+    method: 'POST',
+  })
+  return d.password
+}
+
 export async function apiSetStatus(uid: string, status: 'active' | 'disabled'): Promise<Me> {
   const d = await req<{ ok: boolean; user: Me }>(`/users/${uid}/status`, {
     method: 'POST', body: JSON.stringify({ status }),

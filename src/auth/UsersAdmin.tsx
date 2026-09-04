@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ApiError, apiApprove, apiListUsers, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
+import { ApiError, apiApprove, apiListUsers, apiResetPassword, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
 import { useAuth } from './useAuth'
 
 type Tab = 'pending' | 'active' | 'all'
@@ -17,8 +17,12 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
   // 중요 작업(관리자 권한 부여 · 계정 중지)은 한 번 더 확인받는다.
   // 클릭 한 번으로 임원 계정이 끊기거나 관리자가 늘어나면 사고가 조용히 지나간다.
   const [confirm, setConfirm] = useState<
-    { kind: 'grantAdmin' | 'disable'; user: Me } | null
+    { kind: 'grantAdmin' | 'disable' | 'resetPw'; user: Me } | null
   >(null)
+  // 발급된 임시 비밀번호. **화면에만 있다** — 감사로그에도, 목록에도 남지 않는다.
+  // 창을 닫으면 사라지므로 관리자가 당사자에게 전달할 때까지만 떠 있다.
+  const [issued, setIssued] = useState<{ user: Me; password: string } | null>(null)
+  const [copied, setCopied] = useState(false)
   // 승인 시 부여할 역할. 기본값은 본인이 신청한 역할이지만 관리자가 낮출 수 있다.
   const [grant, setGrant] = useState<Record<string, Role>>({})
 
@@ -48,6 +52,19 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
       await load()
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : '처리하지 못했어요.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  const resetPw = async (u: Me) => {
+    setBusyId(u.id); setErr('')
+    try {
+      const password = await apiResetPassword(u.id)
+      setIssued({ user: u, password }); setCopied(false)
+      await load()          // 상태(중지→사용 중)가 바뀔 수 있어 목록을 다시 받는다
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : '초기화하지 못했어요.')
     } finally {
       setBusyId('')
     }
@@ -135,6 +152,13 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
                           title={self ? '자기 자신은 중지할 수 없습니다' : ''}
                           onClick={() => setConfirm({ kind: 'disable', user: u })}>중지</button>
                       )}
+                      {/* 이 제품에는 비밀번호 찾기가 없다 — 잊으면 관리자만 풀어줄 수 있다.
+                          본인은 제외한다: 본인 것을 무작위로 날리면 화면에 뜬 글자를
+                          놓치는 순간 관리자가 스스로 잠긴다(「비밀번호 변경」을 쓴다). */}
+                      <button className="es-mini" disabled={self || busy || u.status === 'pending'}
+                        title={self ? '본인은 「비밀번호 변경」을 쓰세요'
+                          : u.status === 'pending' ? '가입을 먼저 승인해 주세요' : ''}
+                        onClick={() => setConfirm({ kind: 'resetPw', user: u })}>비밀번호 초기화</button>
                     </td>
                   </tr>
                 )
@@ -147,10 +171,20 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
           <div className="es-confirm" onClick={() => setConfirm(null)}>
             <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
               <div className="es-confirm-title">
-                {confirm.kind === 'grantAdmin' ? '관리자 권한 부여' : '계정 사용 중지'}
+                {confirm.kind === 'grantAdmin' ? '관리자 권한 부여'
+                  : confirm.kind === 'resetPw' ? '비밀번호 초기화' : '계정 사용 중지'}
               </div>
               <div className="es-confirm-msg">
-                {confirm.kind === 'grantAdmin' ? (
+                {confirm.kind === 'resetPw' ? (
+                  <>
+                    <b>{confirm.user.name}({confirm.user.login_id})</b> 님의 비밀번호를 초기화합니다.
+                    <br /><br />
+                    <b>임시 비밀번호를 이 화면에 한 번만 보여드립니다.</b> 당사자에게 전달해 주세요.
+                    그 사람은 <b>다음 로그인에서 반드시 새 비밀번호로 바꿔야</b> 합니다.
+                    <br /><br />
+                    지금 접속 중이라면 <b>즉시 로그아웃</b>되고, 예전 비밀번호는 더 이상 쓸 수 없습니다.
+                  </>
+                ) : confirm.kind === 'grantAdmin' ? (
                   <>
                     <b>{confirm.user.name}({confirm.user.login_id})</b> 님에게 <b>Lv1 관리자</b> 권한을 부여합니다.
                     <br /><br />
@@ -173,10 +207,42 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
                     const c = confirm
                     setConfirm(null)
                     if (c.kind === 'grantAdmin') void act(() => apiApprove(c.user.id, 'admin'), c.user.id)
+                    else if (c.kind === 'resetPw') void resetPw(c.user)
                     else void act(() => apiSetStatus(c.user.id, 'disabled'), c.user.id)
                   }}>
-                  {confirm.kind === 'grantAdmin' ? '관리자로 지정' : '중지'}
+                  {confirm.kind === 'grantAdmin' ? '관리자로 지정'
+                    : confirm.kind === 'resetPw' ? '초기화' : '중지'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 임시 비밀번호는 **여기에만** 있다 — 감사로그에도 목록에도 남지 않는다.
+            닫으면 사라지므로, 닫기 전에 전달하라고 분명히 말한다. */}
+        {issued && (
+          <div className="es-confirm">
+            <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
+              <div className="es-confirm-title">임시 비밀번호</div>
+              <div className="es-confirm-msg">
+                <b>{issued.user.name}({issued.user.login_id})</b> 님에게 아래 비밀번호를 전달해 주세요.
+                <br />
+                <b>이 창을 닫으면 다시 볼 수 없습니다.</b> 다시 필요하면 한 번 더 초기화해야 합니다.
+                <div style={{
+                  marginTop: 12, padding: '11px 13px', background: '#f6f8fc',
+                  border: '1px solid #e6e8ee', borderRadius: 7,
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                  fontSize: 15, fontWeight: 700, color: '#0F1B3D',
+                  userSelect: 'all', wordBreak: 'break-all',
+                }}>{issued.password}</div>
+              </div>
+              <div className="es-confirm-actions">
+                <button className="es-mini"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(issued.password)
+                      .then(() => setCopied(true)).catch(() => setCopied(false))
+                  }}>{copied ? '복사했습니다' : '복사'}</button>
+                <button className="es-mini primary" onClick={() => setIssued(null)}>닫기</button>
               </div>
             </div>
           </div>

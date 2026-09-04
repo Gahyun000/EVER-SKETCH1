@@ -141,6 +141,24 @@ def approve(uid: str, req: ApproveIn, user: dict = Depends(require_login)):
     return {"ok": True, "user": _public(updated)}
 
 
+@router.post("/users/{uid}/reset-pw")
+def reset_password(uid: str, user: dict = Depends(require_login)):
+    """비밀번호 초기화 — 관리자 전용.
+
+    **본문을 받지 않는다.** 관리자가 값을 고를 수 있으면 그 값이 관리자 머릿속에 남고,
+    그 계정을 사칭할 수 있는 창이 열린 채로 남는다. 서버가 무작위로 발급하고
+    화면은 그것을 한 번 보여주기만 한다.
+    """
+    require_action(user, perm.USER_MANAGE)
+    if not auth_store.get_user(uid):
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    try:
+        pw = auth_store.admin_reset_password(user["id"], uid)
+    except auth_store.AuthError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True, "password": pw}
+
+
 class StatusIn(BaseModel):
     status: str
 

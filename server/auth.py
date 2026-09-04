@@ -565,6 +565,43 @@ def change_password(user_id: str, old_pw: str, new_pw: str) -> None:
     audit(user_id, "change_pw", user_id)
 
 
+def admin_reset_password(actor_id: str, target_id: str) -> str:
+    """관리자가 남의 비밀번호를 **무작위로 재발급**한다. 돌려주는 값은 임시 비밀번호.
+
+    **관리자가 값을 고르지 못한다.** 고르게 하면 관리자가 그 값을 계속 알고 있어서
+    그 계정을 사칭할 수 있는 창이 열린 채로 남는다. 무작위로 발급하고
+    `must_change_pw=1` 로 최초 로그인 시 변경을 강제하면, 관리자가 아는 값은
+    **한 번 쓰고 폐기된다.**
+
+    **본인은 대상이 아니다.** 본인 것을 무작위로 날리면 화면에 뜬 글자를 놓치는 순간
+    관리자가 스스로 잠긴다. 본인은 `change_password`(옛 비밀번호를 아는 채로 바꾸기)를 쓴다.
+
+    `status='active'` 로 되돌리는 것은 터미널 도구(`admin_cli reset-pw`)와 같게 맞춘 것이다 —
+    두 길이 다르게 동작하면 어느 쪽으로 풀었는지에 따라 결과가 갈린다.
+
+    임시 비밀번호는 **감사로그에 남기지 않는다.** 적으면 로그를 볼 수 있는 사람이
+    그 계정에 들어갈 수 있다. 남기는 것은 "누가 누구를 언제"뿐이다.
+    """
+    if actor_id == target_id:
+        raise AuthError("본인 비밀번호는 「비밀번호 변경」에서 바꿔 주세요.")
+    target = get_user(target_id)
+    if not target:
+        raise AuthError("사용자를 찾을 수 없습니다.")
+
+    pw = secrets.token_urlsafe(12)
+    c = _conn()
+    try:
+        c.execute("UPDATE Users SET pw_hash=?, must_change_pw=1, status='active' WHERE id=?",
+                  (hash_pw(pw), target_id))
+        c.commit()
+    finally:
+        c.close()
+    # 초기화했는데 그 사람이 열어 둔 창이 계속 살아 있으면 초기화는 절반만 된 것이다.
+    _kill_sessions(target_id)
+    audit(actor_id, "reset_pw", target_id, "login_id=%s" % target["login_id"])
+    return pw
+
+
 def ensure_seed_admin(initial_pw: Optional[str] = None) -> Optional[str]:
     """최초 관리자 1명을 시드로 만든다. 이미 있으면 아무것도 하지 않는다(멱등).
 
