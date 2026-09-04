@@ -43,6 +43,13 @@ export interface Approval {
   /** 상세에서만 온다 — 목록에 실으면 문서 전체가 응답에 딸려 나간다. */
   snapshot?: DraftStateSnapshot
   comments?: ApprovalComment[]
+  /**
+   * **결재 대화는 당사자만 본다**(P6). 같은 팀 사람이 승인본을 열면 `comments` 는
+   * 비어 오고 이 값이 `true` 다 — 자료는 팀의 것이지만 그 자료를 두고 오간 지적은
+   * 낸 사람과 결재자 사이의 일이기 때문이다.
+   * **감춘 사실 자체는 감추지 않는다** — 몇 건인지는 `comment_count` 로 온다.
+   */
+  comments_hidden?: boolean
 }
 
 export interface StatusChip {

@@ -631,3 +631,9 @@ button{font-family:inherit;cursor:pointer}
 .lib-mkin{width:100%;height:36px;margin-top:12px;padding:0 11px;border:1.4px solid #e5e7eb;
   border-radius:10px;font-size:13.5px;font-family:inherit;color:#0f172a;outline:none}
 .lib-mkin:focus{border-color:#2462EB;box-shadow:0 0 0 3px #EAF1FE}
+/* 새 자료 — 고를 것이 하나뿐일 때(열람자의 개인 스케치, D13).
+   흐린 라디오 두 칸 대신 무엇을 만드는지 한 줄로 말한다. */
+.np-solo{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;background:#f8fafc;border:1.4px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin:0}
+.np-solo b{font-size:14px;font-weight:800;color:#0f172a}
+.np-solo span{grid-column:2;font-size:12.5px;color:#64748b;line-height:1.7}
+.np-solo>svg{grid-row:span 2;color:#2462EB}

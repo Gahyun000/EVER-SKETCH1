@@ -12,6 +12,11 @@ import Modal from '../ui/Modal'
  * 기본값을 표준 양식으로 두는 이유: 이 도구로 만드는 것의 대부분이 임원보고다.
  * 빈 슬라이드가 필요한 사람은 알고 찾아오지만, 양식이 있는 줄 모르는 사람은
  * 빈 화면을 받고 그냥 쓴다.
+ *
+ * **열람자에게는 고르는 자리가 없다** (D13 · P6). 열람자의 개인 스케치는 제출되지
+ * 않으므로 회사 서식이 나갈 데가 없고, 서버도 `TEMPLATE_USE` 로 막는다.
+ * 고를 수 없는 칸을 흐리게 띄워 두면 「왜 안 눌리지」를 남길 뿐이라
+ * **아예 감추고 한 줄로 말한다** — 감춘 사실 자체는 감추지 않는다.
  */
 type Kind = 'template' | 'blank'
 
@@ -21,13 +26,15 @@ function thisMonthKst(): string {
 }
 
 export default function NewProjectDialog({
-  onClose, onBlank, onTemplate,
+  onClose, onBlank, onTemplate, canTemplate = true,
 }: {
   onClose: () => void
   onBlank: () => Promise<void>
   onTemplate: (periodYm: string) => Promise<void>
+  /** 회사 서식을 쓸 수 있는가(`TEMPLATE_USE`). 열람자는 못 쓴다. */
+  canTemplate?: boolean
 }) {
-  const [kind, setKind] = useState<Kind>('template')
+  const [kind, setKind] = useState<Kind>(canTemplate ? 'template' : 'blank')
   const [ym, setYm] = useState(thisMonthKst())
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -64,6 +71,16 @@ export default function NewProjectDialog({
         </>
       }
     >
+      {!canTemplate ? (
+        <p className="np-solo">
+          <Square className="h-5 w-5" />
+          <b>빈 슬라이드</b>
+          <span>
+            아무것도 없는 한 장에서 시작합니다.<br />
+            개인 스케치는 <b>나만 봅니다</b> — 결재에 내지 않고, 팀에도 뜨지 않습니다.
+          </span>
+        </p>
+      ) : (
       <div className="np-picks" role="radiogroup" aria-label="시작 방식">
         <button
           className={'np-pick' + (kind === 'template' ? ' on' : '')}
@@ -85,6 +102,7 @@ export default function NewProjectDialog({
           <span className="np-pick-d">아무것도 없는 한 장에서 자유롭게 시작</span>
         </button>
       </div>
+      )}
 
       {kind === 'template' ? (
         <label className="np-period">

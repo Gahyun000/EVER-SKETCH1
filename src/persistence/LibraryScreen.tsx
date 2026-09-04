@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import UserBar from '../auth/UserBar'
 import { useAuth } from '../auth/useAuth'
 import ApprovalsPanel from '../approvals/ApprovalsPanel'
+import TeamLibraryPanel from '../teamlib/TeamLibraryPanel'
 import {
   ApprovalApiError, STATUS_LABEL, apiRequestApproval, apiStatusMap, type StatusChip,
 } from '../approvals/approvalApi'
-import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home, Send, Inbox } from 'lucide-react'
+import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home, Send, Inbox, Users } from 'lucide-react'
 import { useProjects } from './projects'
 import NewProjectDialog from './NewProjectDialog'
 import type { ProjectMeta } from './projectApi'
@@ -65,6 +66,7 @@ export default function LibraryScreen() {
   const me = useAuth((s) => s.me)
   const [chips, setChips] = useState<Record<string, StatusChip>>({})
   const [inbox, setInbox] = useState(false)
+  const [shared, setShared] = useState(false)
   const [submitting, setSubmitting] = useState<ProjectMeta | null>(null)
   const [submitMsg, setSubmitMsg] = useState('')
   const [aErr, setAErr] = useState('')
@@ -76,6 +78,11 @@ export default function LibraryScreen() {
 
   // 열람자는 결재를 내지 않는다(D13 — 순수 개인 작업 공간).
   const canSubmit = me?.role === 'writer' || me?.role === 'admin'
+
+  // **팀 공유는 등급으로 가리지 않는다** (P6). 열람자도 팀에 배정되면 그 팀의 승인본을
+  // 보고, 그게 열람자가 이 도구를 쓰는 주된 이유다. 무엇이 보이는지는 서버가 건마다
+  // 정하므로(`can_see_approval`) 화면이 미리 거르면 규칙이 두 벌이 된다.
+  // 볼 게 없는 사람에게는 오류가 아니라 **이유가 적힌 빈 화면**이 뜬다.
 
   const loadFolders = async () => {
     setFErr('')
@@ -143,11 +150,18 @@ export default function LibraryScreen() {
   return (
     <div className="lib-screen">
       <div className="lib-head">
-        <div className="lib-brand"><div className="logo" aria-label="EVER-SKETCH" /> 내 이북</div>
+        {/* 열람자에게 이 화면은 **개인 스케치**다(D13) — 제출하지 않고 팀에도 안 뜬다.
+            이름을 그대로 「내 이북」으로 두면 결재에 낼 것으로 오해하고 만든다. */}
+        <div className="lib-brand">
+          <div className="logo" aria-label="EVER-SKETCH" /> {canSubmit ? '내 이북' : '개인 스케치'}
+        </div>
         {/* 신원 표시와 「새 이북」이 **같은 줄 안에서** 자리를 나눈다.
             예전에는 UserBar 가 화면 밖 오버레이로 떠서 이 버튼 위에 포개졌다. */}
         <div className="lib-head-right">
           <UserBar />
+          <button className="lib-btn" onClick={() => setShared(true)}>
+            <Users className="h-4 w-4" /> 팀 공유
+          </button>
           {canSubmit && (
             <button className="lib-btn" onClick={() => setInbox(true)}>
               <Inbox className="h-4 w-4" /> 결재함
@@ -287,7 +301,9 @@ export default function LibraryScreen() {
             ? `${scopeLabel(path)} 조건에 맞는 이북이 없어요.`
             : path.length
               ? '이 폴더에는 아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'
-              : '아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'}</div>
+              : canSubmit
+                ? '아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'
+                : '아직 만든 것이 없어요.\n여기에 만든 것은 나만 봅니다.\n팀에 올라온 자료는 「팀 공유」에서 봅니다.'}</div>
         ) : (
           shown.map((p) => (
             <div key={p.id} className="lib-card">
@@ -388,6 +404,7 @@ export default function LibraryScreen() {
       {/* 새 이북은 **지금 보고 있는 폴더**에 만든다 —
           만들고 나서 옮기게 하면 사람은 매번 두 번 일한다(만들기 → 찾기 → 옮기기). */}
       {inbox && <ApprovalsPanel onClose={() => { setInbox(false); void loadChips() }} />}
+      {shared && <TeamLibraryPanel onClose={() => setShared(false)} />}
 
       {/* 제출 — **낸 순간 문서가 얼어붙는다.** 뒤에 고쳐도 결재본은 안 바뀐다. */}
       {submitting && (
@@ -428,6 +445,7 @@ export default function LibraryScreen() {
           onClose={() => setPicking(false)}
           onBlank={() => newProject(here)}
           onTemplate={(ym) => newFromTemplate(ym, here)}
+          canTemplate={canSubmit}
         />
       )}
 
