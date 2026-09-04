@@ -53,6 +53,7 @@ ALL_ROUTES = (
     + _routes("routes_projects.py", "router")
     + _routes("routes_auth.py", "router", prefix="/api/auth")   # APIRouter(prefix=...)
     + _routes("routes_teams.py", "router", prefix="/api/teams")
+    + _routes("routes_folders.py", "router", prefix="/api/folders")
 )
 
 
@@ -84,8 +85,12 @@ def test_모든_엔드포인트가_권한을_판정한다(method, path, body):
     if path in NO_LOGIN_AUTH_ROUTES or path in ("/api/auth/me", "/api/auth/password"):
         return   # 로그인 전이거나 본인 계정 조작 — 레벨과 무관
     # 목록 계열은 permissions 의 가시성 판정 함수를 쓴다(라우터가 레벨을 직접 비교하면 안 된다).
+    # 폴더는 「없음」과 「남의 것」을 구분해 알려주면 안 되므로 403 대신 404 를 낸다.
+    # require_action 은 403 을 던지므로 쓸 수 없고, 대신 _mine() 이
+    # perm.decide(FOLDER_MANAGE) 를 거친다 — 아래 test_폴더는_단일_판정을_거친다 가 그걸 강제한다.
     assert ("require_action" in body or "require_project" in body
             or "can_grant_role" in body or "visible_project_filter" in body
+            or (path.startswith("/api/folders") and "_mine(" in body)
             ), \
         "%s %s 가 권한을 판정하지 않습니다" % (method, path)
 
@@ -111,6 +116,26 @@ def test_중복확인은_계정_정보를_돌려주지_않는다():
     for leak in ("_public(", "name", "dept", "role", "status"):
         assert leak not in body.split("return")[-1], \
             "/api/auth/check-id 응답에 %s 가 섞여 있습니다" % leak
+
+
+def test_폴더는_단일_판정을_거친다():
+    """폴더 라우트는 403 대신 404 를 내느라 `require_action` 을 못 쓴다.
+    **그 면제를 공짜로 두지 않는다** — 판정은 여전히 `permissions.decide()` 하나가 해야 한다.
+
+    남의 폴더에 403 을 주면 「그 id 는 있다」가 확인되어 **남의 폴더 존재가 새어 나간다.**
+    폴더 이름은 사적 메모에 가깝다(D20). 그래서 없음과 남의 것을 똑같이 404 로 뭉갠다.
+    """
+    src = (SRC_DIR / "routes_folders.py").read_text(encoding="utf-8")
+    assert "perm.decide(" in src and "FOLDER_MANAGE" in src, \
+        "폴더 판정이 permissions.decide() 를 거치지 않습니다"
+    assert "status_code=404" in src, "남의 폴더에 404 를 주지 않습니다(존재가 샙니다)"
+    # 주석에서 「403 을 주면 안 된다」고 설명하는 것은 괜찮다. **내는 것**만 잡는다.
+    assert "status_code=403" not in src, \
+        "폴더 라우트가 403 을 냅니다 — 그 자체로 남의 폴더 존재를 알려줍니다"
+    # 모든 폴더 라우트가 _mine() 을 거친다(목록·생성은 부모가 있을 때만)
+    for m, p, body in ALL_ROUTES:
+        if p.startswith("/api/folders"):
+            assert "_mine(" in body, "%s %s 가 소유 확인을 건너뜁니다" % (m, p)
 
 
 def test_공개_허용목록이_최소한으로_유지된다():
@@ -147,7 +172,8 @@ def test_대화_조회는_소유를_확인한다():
 def _perm_sources():
     """권한 판정에 관여하는 서버 파일들."""
     names = ["permissions.py", "authdeps.py", "auth.py", "app.py",
-             "routes_auth.py", "routes_projects.py", "routes_teams.py", "admin_cli.py"]
+             "routes_auth.py", "routes_projects.py", "routes_teams.py",
+             "routes_folders.py", "admin_cli.py"]
     return [(n, (SRC_DIR / n).read_text(encoding="utf-8")) for n in names
             if (SRC_DIR / n).exists()]
 

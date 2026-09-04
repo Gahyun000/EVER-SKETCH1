@@ -64,6 +64,7 @@ COMMENT_READ = "comment_read"
 COMMENT_WRITE = "comment_write"
 COMMENT_RESOLVE = "comment_resolve"
 COMMENT_FIX = "comment_fix"       # 「고쳤습니다」 — 지적받은 쪽이 답하는 표시
+FOLDER_MANAGE = "folder_manage"   # 개인 폴더 — **관리자도 남의 것은 못 만진다** (D20)
 TEAM_MANAGE = "team_manage"       # 팀 편성 — 누가 누구 자료를 보게 되는지를 정한다 (D1)
 USER_MANAGE = "user_manage"       # 가입 승인·역할 변경·비활성화
 SETTINGS_MANAGE = "settings_manage"   # LLM 설정 — API 키를 다룬다(UDS-107 §5)
@@ -73,7 +74,7 @@ AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작
 ALL_ACTIONS = (
     READ, WRITE, DELETE,
     COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE, COMMENT_FIX,
-    TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH, AI_USE,
+    FOLDER_MANAGE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH, AI_USE,
 )
 
 # 관리자 전용 액션. 새 관리 기능을 추가하면 여기에 넣는다.
@@ -122,6 +123,14 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
         return False          # 오타난 액션명이 조용히 통과하지 않도록
     if actor.role not in ROLES:
         return False          # 미부여·알 수 없는 역할
+
+    # ── 개인 폴더 — 관리자보다 **먼저** 판정한다 ──
+    # 관리자는 남의 *자료*를 본다(결재해야 하므로). 그러나 *서랍*은 다르다 —
+    # 폴더는 정리 도구일 뿐이고(D20), 남의 정리를 대신할 이유가 없다.
+    # 폴더 이름은 사적 메모에 가깝다(「2026 재무 구조조정」 같은 이름 자체가 정보다).
+    # 그래서 이 한 줄이 관리자 전면 허용 **위**에 있다.
+    if action == FOLDER_MANAGE:
+        return bool(res and res.owner_id and res.owner_id == actor.id)
 
     # ── 관리자 ─────────────────────────────
     if actor.role == ADMIN:

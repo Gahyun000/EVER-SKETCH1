@@ -37,6 +37,10 @@ def _db_path() -> str:
 # W1 확장 컬럼 — 기존 DB에도 안전하게 덧붙인다(있으면 무시).
 _EXTRA_COLS = (
     ("owner_id", "TEXT"),
+    # P4 — 개인 폴더 위치. NULL = 최상위.
+    # **폴더는 권한과 무관하다**(D20). 가시성은 owner_id 가 정하고 folder_id 는
+    # 「어디에 넣어 뒀나」만 말한다 — 목록 조회에서 둘은 AND 로 결합한다.
+    ("folder_id", "TEXT"),
 )
 
 
@@ -60,6 +64,7 @@ def _conn() -> sqlite3.Connection:
         if col not in have:
             c.execute("ALTER TABLE Projects ADD COLUMN %s %s" % (col, decl))
     c.execute("CREATE INDEX IF NOT EXISTS idx_projects_owner ON Projects(owner_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_projects_folder ON Projects(folder_id)")
     c.commit()
     return c
 
@@ -88,43 +93,64 @@ def _title_of(state, fallback: str = "제목 없음") -> str:
 
 
 # ─────────────────────── 프로젝트 ───────────────────────
-_LIST_COLS = "id,name,created_at,updated_at,published_id,page_count,owner_id"
+_LIST_COLS = "id,name,created_at,updated_at,published_id,page_count,owner_id,folder_id"
 
 
 def _row_to_meta(r) -> dict:
+    # 인덱스는 _LIST_COLS 순서에 묶여 있다. 한쪽만 고치면 값이 통째로 밀린다.
     return {"id": r[0], "name": r[1] or "제목 없음", "created_at": r[2],
             "updated_at": r[3], "published_id": r[4], "page_count": r[5] or 0,
-            "owner_id": r[6]}
+            "owner_id": r[6], "folder_id": r[7] or None}
 
 
-def list_projects(visibility: str = "all", user_id: Optional[str] = None) -> list[dict]:
+def list_projects(visibility: str = "all", user_id: Optional[str] = None,
+                  folder_id: Optional[str] = None, all_folders: bool = True) -> list[dict]:
     """visibility 는 permissions.visible_project_filter() 가 정한다.
 
     목록 필터를 여기서 새로 판단하지 않는다 — 개별 판정(decide)과 어긋나면
     '목록엔 보이는데 열면 403'이 난다.
+
+    **폴더는 가시성과 별개다**(D20). `visibility` 가 「누가 볼 수 있나」를 정하고
+    `folder_id` 는 「어느 서랍에 있나」를 정한다 — 둘을 **AND 로 묶는다.**
+    폴더로 권한이 갈리면 「이 폴더에 넣으면 누가 보지」를 매번 생각해야 한다.
+
+      all_folders=True  (기본) 서랍을 가리지 않는다 — 예전 호출부가 그대로 돈다
+      all_folders=False, folder_id=None  최상위에 놓인 것만
+      folder_id='f...'  그 폴더 안에 놓인 것만
     """
     if visibility == "none":
         return []
+    where, args = [], []
+    if visibility == "all":
+        pass
+    elif visibility in ("own", "own_or_published"):
+        # 'own' — 본인 것만. decide() 의 READ 규칙과 짝이 맞아야 한다.
+        # 회차가 사라지면서 '같은 회차 동료' 분기도 함께 없앴다.
+        # **괄호가 중요하다** — folder 조건과 OR 이 섞이면 남의 발행본이 새어 나온다.
+        if visibility == "own_or_published":
+            where.append("(owner_id=? OR published_id IS NOT NULL)")
+        else:
+            where.append("owner_id=?")
+        args.append(user_id)
+    elif visibility == "published":
+        where.append("published_id IS NOT NULL")
+    else:
+        return []
+
+    if not all_folders:
+        if folder_id:
+            where.append("folder_id=?")
+            args.append(folder_id)
+        else:
+            where.append("(folder_id IS NULL OR folder_id='')")
+
+    sql = "SELECT %s FROM Projects" % _LIST_COLS
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY updated_at DESC"
     c = _conn()
     try:
-        if visibility == "all":
-            rows = c.execute(
-                "SELECT %s FROM Projects ORDER BY updated_at DESC" % _LIST_COLS
-            ).fetchall()
-        elif visibility in ("own", "own_or_published"):
-            # 'own' — 본인 것만. decide() 의 READ 규칙과 짝이 맞아야 한다.
-            # 회차가 사라지면서 '같은 회차 동료' 분기도 함께 없앴다.
-            sql = "SELECT %s FROM Projects WHERE owner_id=?" % _LIST_COLS
-            if visibility == "own_or_published":
-                sql += " OR published_id IS NOT NULL"
-            rows = c.execute(sql + " ORDER BY updated_at DESC", (user_id,)).fetchall()
-        elif visibility == "published":
-            rows = c.execute(
-                "SELECT %s FROM Projects WHERE published_id IS NOT NULL "
-                "ORDER BY updated_at DESC" % _LIST_COLS
-            ).fetchall()
-        else:
-            return []
+        rows = c.execute(sql, tuple(args)).fetchall()
     finally:
         c.close()
     return [_row_to_meta(r) for r in rows]
@@ -153,7 +179,7 @@ def project_scope(pid: str) -> Optional[dict]:
 
 
 def create_project(name: Optional[str] = None, state: Optional[dict] = None,
-                   owner_id: Optional[str] = None) -> dict:
+                   owner_id: Optional[str] = None, folder_id: Optional[str] = None) -> dict:
     pid = _new_id("p")
     ts = _now()
     st = state or {}
@@ -163,15 +189,15 @@ def create_project(name: Optional[str] = None, state: Optional[dict] = None,
         body = json.dumps(st, ensure_ascii=False)
         c.execute(
             "INSERT INTO Projects(id,name,created_at,updated_at,published_id,page_count,state,"
-            "owner_id) VALUES(?,?,?,?,?,?,?,?)",
-            (pid, nm, ts, ts, None, _page_count(st), body, owner_id),
+            "owner_id,folder_id) VALUES(?,?,?,?,?,?,?,?,?)",
+            (pid, nm, ts, ts, None, _page_count(st), body, owner_id, folder_id or None),
         )
         c.commit()
     finally:
         c.close()
     return {"id": pid, "name": nm, "created_at": ts, "updated_at": ts,
             "published_id": None, "page_count": _page_count(st), "state": st,
-            "owner_id": owner_id}
+            "owner_id": owner_id, "folder_id": folder_id or None}
 
 
 def get_project(pid: str) -> Optional[dict]:

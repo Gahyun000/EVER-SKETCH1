@@ -8,7 +8,7 @@ import pytest
 from server.permissions import (
     Actor, Resource, decide, visible_project_filter, can_grant_role,
     READ, WRITE, DELETE, COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE,
-    USER_MANAGE, SETTINGS_MANAGE, PUBLISH, ALL_ACTIONS,
+    USER_MANAGE, SETTINGS_MANAGE, PUBLISH, FOLDER_MANAGE, ALL_ACTIONS,
 )
 
 # ── 4계정 + 비활성 ─────────────────────────────
@@ -109,10 +109,41 @@ def test_작성자는_리소스_없으면_거부():
 
 
 # ── L3 관리자 ─────────────────────────────
-@pytest.mark.parametrize("action", ALL_ACTIONS)
+# **관리자에게도 열리지 않는 액션.** 여기 적힌 것만 예외다 —
+# 목록에 없는 액션이 관리자에게 막히면 아래 테스트가 잡는다.
+ADMIN_EXCEPTIONS = {FOLDER_MANAGE}
+
+
+@pytest.mark.parametrize("action", [a for a in ALL_ACTIONS if a not in ADMIN_EXCEPTIONS])
 @pytest.mark.parametrize("res", [OWN, OTHER, PUB, None])
 def test_관리자는_전부_허용(action, res):
     assert decide(ADMIN_U, action, res) is True
+
+
+def test_관리자에게도_남의_폴더는_안_열린다():
+    """**「관리자는 전부 허용」의 유일한 예외**(P4, 2026-09-04).
+
+    관리자는 남의 **자료**를 본다 — 결재해야 하므로 그래야 한다.
+    그러나 **서랍**은 다르다. 폴더는 정리 도구일 뿐이고(D20), 남의 정리를 대신할
+    이유가 없다. 폴더 이름은 사적 메모에 가깝다 —
+    「2026 재무 구조조정」 같은 이름이 목록에 뜨면 그 이름 자체가 정보다.
+
+    그래서 `decide()` 는 이 액션을 **관리자 전면 허용보다 먼저** 판정한다.
+    예외를 늘리려면 `ADMIN_EXCEPTIONS` 에 적고 여기에 사유를 함께 남긴다.
+    """
+    # 주의: OWN 은 **작성자**(u_l2)의 것이다. 관리자에게는 그것도 남의 서랍이다.
+    assert decide(ADMIN_U, FOLDER_MANAGE, OWN) is False
+    assert decide(ADMIN_U, FOLDER_MANAGE, OTHER) is False
+    assert decide(ADMIN_U, FOLDER_MANAGE, Resource(owner_id=ADMIN_U.id)) is True  # 제 서랍
+    assert decide(ADMIN_U, FOLDER_MANAGE, None) is False    # 소유자를 모르면 막힌다
+    # 자료는 여전히 본다. 두 규칙이 서로 다른 것을 말한다.
+    assert decide(ADMIN_U, READ, OTHER) is True
+
+
+def test_관리자_예외는_최소한으로_유지된다():
+    """예외가 늘면 그만큼 「관리자는 전부 허용」이라는 문장이 거짓에 가까워진다.
+    늘릴 때 이 테스트를 함께 고치게 한다."""
+    assert ADMIN_EXCEPTIONS == {FOLDER_MANAGE}
 
 
 # ── 방어적 기본값 ─────────────────────────────
