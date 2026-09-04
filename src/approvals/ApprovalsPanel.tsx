@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, X, Undo2, MessageSquare } from 'lucide-react'
+import { Check, X, Undo2, MessageSquare, PenLine } from 'lucide-react'
 import SlideViewer from './SlideViewer'
 import {
   ApprovalApiError, STATUS_LABEL, STATUS_ORDER,
-  apiAddComment, apiDecide, apiDeleteComment, apiGetApproval, apiListApprovals, apiWithdraw,
+  apiAddComment, apiDecide, apiDecideRevision, apiDeleteComment, apiEndRevision,
+  apiGetApproval, apiListApprovals, apiWithdraw,
   type Approval, type ApprovalStatus,
 } from './approvalApi'
 import { useAuth } from '../auth/useAuth'
@@ -43,7 +44,8 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
   const [idx, setIdx] = useState(0)
   const [msg, setMsg] = useState('')          // 결정 메시지
   const [cmt, setCmt] = useState('')          // 코멘트 입력
-  const [confirm, setConfirm] = useState<'approve' | 'reject' | 'withdraw' | null>(null)
+  const [confirm, setConfirm] =
+    useState<'approve' | 'reject' | 'withdraw' | 'end' | null>(null)
 
   const load = async () => {
     setErr('')
@@ -104,8 +106,17 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
     (detail?.comments || []).filter((c) => c.page_id === p.id).length
 
   const mine = !!detail && detail.requester === me?.id
-  const canDecide = admin && detail?.status === 'pending'
+  /**
+   * **수정 요청은 문서가 아니라 「고치게 해 달라」는 청이다**(P7 · D8).
+   * 그래서 스냅샷이 없고, 그릴 슬라이드도 없다. 같은 창을 쓰되 이 한 줄에서 갈린다 —
+   * 갈래를 여기저기 흩어 두면 어느 한 곳이 반드시 「문서인 척」 그린다.
+   */
+  const isRevision = detail?.kind === 'revision'
+  const canDecide = admin && detail?.status === 'pending' && !isRevision
+  const canDecideRevision = admin && detail?.status === 'pending' && isRevision
   const canWithdraw = mine && detail?.status === 'pending'
+  /** 「수정 중」을 그만둔다 — 이 길이 없으면 「수정 중」이 영원히 남는다. */
+  const canEndRevision = mine && isRevision && detail?.status === 'approved'
 
   return (
     <div className="es-auth ap" onClick={onClose}>
@@ -152,6 +163,9 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
                 onClick={() => setOpenId(a.id)}>
                 <div className="ap-item-top">
                   <span className="ap-item-name">{a.project_name}</span>
+                  {/* **무엇에 대한 결재인지를 먼저 말한다.** 수정 요청과 제출본이 같은
+                      모양으로 섞여 있으면 결재자가 슬라이드를 기대하고 열었다가 빈 화면을 본다. */}
+                  {a.kind === 'revision' && <span className="ap-kind">수정 요청</span>}
                   <span className={'ap-st ' + a.status}>{STATUS_LABEL[a.status]}</span>
                 </div>
                 <div className="ap-item-sub">
@@ -172,6 +186,7 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
                 <div className="ap-d-head">
                   <div>
                     <b>{detail.project_name}</b>
+                    {isRevision && <span className="ap-kind">수정 요청</span>}
                     <span className={'ap-st ' + detail.status}>{STATUS_LABEL[detail.status]}</span>
                     <div className="ap-d-sub">
                       {detail.round}회차 · {detail.requester_name || detail.requester} 제출 · {fmt(detail.created_at)}
@@ -186,12 +201,29 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
                   <div className={'ap-note ' + detail.status}>“{detail.decision_message}”</div>
                 )}
 
-                {/* 제출 시점에 얼린 문서. 뒤에 고쳐도 여기는 안 바뀐다. */}
-                <div className="ap-viewer">
-                  <SlideViewer snap={detail.snapshot as never} idx={idx} onIdx={setIdx} badge={badge} />
-                </div>
+                {/* 제출 시점에 얼린 문서. 뒤에 고쳐도 여기는 안 바뀐다.
+                    **수정 요청에는 문서가 없다** — 얼릴 것이 없어서다.
+                    빈 뷰어를 띄우는 대신 무엇을 정하는 자리인지 적는다. */}
+                {isRevision ? (
+                  <div className="ap-rev">
+                    <PenLine className="h-5 w-5" />
+                    <b>이 자료를 고칠 수 있게 해 달라는 요청입니다.</b>
+                    <p>
+                      허락해도 <b>승인본은 안 바뀝니다.</b> 팀은 직전 승인본을 계속 보고,
+                      작성자가 고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.<br />
+                      거절하면 자료는 <b>승인된 채로</b> 그대로 남습니다.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="ap-viewer">
+                    <SlideViewer snap={detail.snapshot as never} idx={idx} onIdx={setIdx} badge={badge} />
+                  </div>
+                )}
 
-                {/* 슬라이드별 코멘트 */}
+                {/* 슬라이드별 코멘트. **수정 요청에는 슬라이드가 없다** —
+                    「3번 슬라이드 의견」이라고 적힌 빈 칸을 띄우지 않는다.
+                    허락·거절에 붙일 말은 아래 결정 메시지 칸에 쓴다. */}
+                {!isRevision && (
                 <div className="ap-cmts">
                   <div className="ap-cmts-h">
                     {curPage ? `${idx + 1}번 슬라이드 의견` : '의견'}
@@ -238,27 +270,36 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
                       })}>등록</button>
                   </div>
                 </div>
+                )}
 
-                {/* 결정 — 대기 중일 때만. 되돌리기는 P7 의 「수정 요청」이 한다. */}
-                {(canDecide || canWithdraw) && (
+                {/* 결정 — 대기 중일 때만. 승인 자체를 뒤집는 길은 없고,
+                    되돌리는 일은 「수정 요청」이 한다. */}
+                {(canDecide || canDecideRevision || canWithdraw || canEndRevision) && (
                   <div className="ap-actions">
-                    {canDecide && (
+                    {(canDecide || canDecideRevision) && (
                       <>
                         <input value={msg} placeholder="의견 (선택)" disabled={busy}
                           onChange={(e) => setMsg(e.target.value)} />
+                        {/* **글자가 다르다.** 「승인」은 문서에, 「허락」은 요청에 하는 일이다 —
+                            같은 말을 쓰면 결재자가 무엇에 도장을 찍는지 흐려진다. */}
                         <button className="es-mini primary" disabled={busy}
                           onClick={() => setConfirm('approve')}>
-                          <Check className="h-4 w-4" /> 승인
+                          <Check className="h-4 w-4" /> {canDecideRevision ? '허락' : '승인'}
                         </button>
                         <button className="es-mini danger" disabled={busy}
                           onClick={() => setConfirm('reject')}>
-                          <X className="h-4 w-4" /> 반려
+                          <X className="h-4 w-4" /> {canDecideRevision ? '거절' : '반려'}
                         </button>
                       </>
                     )}
                     {canWithdraw && (
                       <button className="es-mini" disabled={busy} onClick={() => setConfirm('withdraw')}>
                         <Undo2 className="h-4 w-4" /> 거두기
+                      </button>
+                    )}
+                    {canEndRevision && (
+                      <button className="es-mini" disabled={busy} onClick={() => setConfirm('end')}>
+                        <Undo2 className="h-4 w-4" /> 수정 그만두기
                       </button>
                     )}
                   </div>
@@ -272,30 +313,60 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
         {confirm && detail && (
           <div className="es-confirm" onClick={() => setConfirm(null)}>
             <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
+              {/* **문구가 갈린다.** 같은 「승인」 버튼이라도 문서에 도장을 찍는 것과
+                  「고쳐도 된다」고 허락하는 것은 되는 일이 완전히 다르다 —
+                  한 문구를 돌려 쓰면 확인창이 거짓말을 한다. */}
               <div className="es-confirm-title">
-                {confirm === 'approve' ? '결재 승인' : confirm === 'reject' ? '결재 반려' : '요청 거두기'}
+                {confirm === 'end' ? '수정 그만두기'
+                  : confirm === 'withdraw' ? '요청 거두기'
+                    : isRevision ? (confirm === 'approve' ? '수정 허락' : '수정 거절')
+                      : (confirm === 'approve' ? '결재 승인' : '결재 반려')}
               </div>
               <div className="es-confirm-msg">
-                <b>{detail.project_name}</b> {detail.round}회차
-                {confirm === 'approve' ? (
+                <b>{detail.project_name}</b>{isRevision ? '' : ` ${detail.round}회차`}
+                {confirm === 'end' ? (
+                  <>
+                    의 <b>수정을 그만둡니다</b>.
+                    <br /><br />
+                    자료는 <b>다시 잠기고</b> 팀은 승인본을 그대로 봅니다.
+                    <b>고친 내용은 지워지지 않습니다</b> — 승인본에 반영되지 않을 뿐이고,
+                    나중에 다시 수정 요청을 낼 수 있습니다.
+                  </>
+                ) : confirm === 'withdraw' ? (
+                  <>
+                    를 <b>거둡니다</b>.
+                    <br /><br />
+                    고쳐서 다시 낼 수 있습니다. 다만 <b>결재 이력에는 남습니다</b> —
+                    이력이 있는 자료는 지울 수 없습니다.
+                  </>
+                ) : isRevision ? (
+                  confirm === 'approve' ? (
+                    <>
+                      를 고쳐도 좋다고 <b>허락</b>합니다.
+                      <br /><br />
+                      <b>승인본은 안 바뀝니다.</b> 팀은 직전 승인본을 계속 보고,
+                      작성자가 고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.
+                    </>
+                  ) : (
+                    <>
+                      의 수정 요청을 <b>거절</b>합니다.
+                      <br /><br />
+                      자료는 <b>승인된 채로 그대로</b> 남고 작성자는 고칠 수 없습니다.
+                      이유를 적어 두면 무엇 때문인지 압니다.
+                    </>
+                  )
+                ) : confirm === 'approve' ? (
                   <>
                     를 <b>승인</b>합니다.
                     <br /><br />
                     승인하면 <b>같은 팀에 바로 공유</b>됩니다. 되돌리려면 작성자가
                     수정 요청을 내야 합니다.
                   </>
-                ) : confirm === 'reject' ? (
+                ) : (
                   <>
                     를 <b>반려</b>합니다.
                     <br /><br />
                     작성자가 고쳐서 다시 낼 수 있습니다. 의견을 적어 두면 무엇을 고칠지 압니다.
-                  </>
-                ) : (
-                  <>
-                    를 <b>거둡니다</b>.
-                    <br /><br />
-                    고쳐서 다시 낼 수 있습니다. 다만 <b>결재 이력에는 남습니다</b> —
-                    이력이 있는 자료는 지울 수 없습니다.
                   </>
                 )}
               </div>
@@ -306,11 +377,18 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
                   onClick={() => {
                     const c = confirm
                     setConfirm(null)
-                    void act(() => c === 'withdraw'
-                      ? apiWithdraw(detail.id)
-                      : apiDecide(detail.id, c, msg.trim()))
+                    void act(() => c === 'end'
+                      ? apiEndRevision(detail.id)
+                      : c === 'withdraw'
+                        ? apiWithdraw(detail.id)
+                        : isRevision
+                          ? apiDecideRevision(detail.id, c, msg.trim())
+                          : apiDecide(detail.id, c, msg.trim()))
                   }}>
-                  {confirm === 'approve' ? '승인' : confirm === 'reject' ? '반려' : '거두기'}
+                  {confirm === 'end' ? '그만두기'
+                    : confirm === 'withdraw' ? '거두기'
+                      : isRevision ? (confirm === 'approve' ? '허락' : '거절')
+                        : (confirm === 'approve' ? '승인' : '반려')}
                 </button>
               </div>
             </div>

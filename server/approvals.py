@@ -229,6 +229,27 @@ def has_history(project_id: str) -> bool:
 
 
 # ── 제출 · 결정 ──────────────────────────────────
+def submit_block_reason(project_id: str) -> Optional[str]:
+    """지금 제출이 막혀 있다면 **왜 막혔는지 사람 말로** 돌려준다. 안 막혔으면 None.
+
+    **이 함수가 있는 이유**는 이유를 두 곳에서 말하지 않기 위해서다.
+    권한 판정(`decide`)은 잠긴 자료를 그냥 거부하고 「권한이 없습니다」(403)만 낸다 —
+    맞는 말이지만, 제 승인본을 다시 내려던 사람은 「내 자료인데 왜 권한이 없지」에서
+    멈춘다. 라우터가 이 함수로 먼저 물어 사람 말로 거절하고, 판정은 그대로 둔다.
+    """
+    st = state_of(project_id)
+    if st == doc_state.PENDING:
+        return "이미 결재 대기 중입니다."
+    if st == doc_state.APPROVED:
+        return "승인된 자료입니다. 고치려면 먼저 수정 요청을 내 주세요."
+    if st == doc_state.REVISION_PENDING:
+        return "수정 요청을 낸 상태입니다. 관리자 허락을 기다려 주세요."
+    if not doc_state.can_submit(st):
+        # 여기 오면 상태를 새로 만들고 문구를 안 적은 것이다 — 막되, 무엇인지는 말한다.
+        return "지금은 제출할 수 없습니다. (%s)" % (doc_state.label(st) or st)
+    return None
+
+
 def request(project_id: str, requester_id: str, message: str = "") -> dict:
     """결재 요청. **지금 문서를 스냅샷으로 얼린다** — 승인은 「그때 본 것」에 대한 승인이다."""
     p = projects_store.get_project(project_id)
@@ -247,16 +268,9 @@ def request(project_id: str, requester_id: str, message: str = "") -> dict:
 
     # **잠긴 자료는 못 낸다**(P7). 「이미 대기 중」만 막으면 승인된 자료를 그대로
     # 다시 낼 수 있고, 그러면 수정 요청 흐름(D8)을 우회하는 뒷문이 된다.
-    st = state_of(project_id)
-    if st == doc_state.PENDING:
-        raise ApprovalError("이미 결재 대기 중입니다.")
-    if st == doc_state.APPROVED:
-        raise ApprovalError("승인된 자료입니다. 고치려면 먼저 수정 요청을 내 주세요.")
-    if st == doc_state.REVISION_PENDING:
-        raise ApprovalError("수정 요청을 낸 상태입니다. 관리자 허락을 기다려 주세요.")
-    if not doc_state.can_submit(st):
-        # 여기 오면 상태를 새로 만들고 문구를 안 적은 것이다 — 막되, 무엇인지는 말한다.
-        raise ApprovalError("지금은 제출할 수 없습니다. (%s)" % (doc_state.label(st) or st))
+    why = submit_block_reason(project_id)
+    if why:
+        raise ApprovalError(why)
 
     c = _conn()
     try:

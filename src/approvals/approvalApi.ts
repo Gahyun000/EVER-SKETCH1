@@ -7,6 +7,23 @@ const API = '/api/approvals'
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn'
 
+/**
+ * 자료의 **파생 상태** (P7). `Approvals` 최신 행 하나에서 서버가 계산해서 준다.
+ *
+ * **화면이 `kind` 와 `status` 를 보고 스스로 짜맞추지 않는다** — 그러면 서버와 화면이
+ * 서로 다른 상태를 말하는 날이 오고, 그때 사용자에게는 「목록엔 승인됨인데 열면
+ * 수정 중」으로 보인다.
+ */
+export type DocState =
+  | 'draft' | 'pending' | 'rejected' | 'approved' | 'revision_pending' | 'revising'
+
+/** 배지 글자. `draft`·`approved` 가 빈 이유: 목록의 기본값이라 모든 줄에 붙으면
+ *  배지가 아니라 배경이 된다. 잠금은 자물쇠로 따로 보인다. */
+export const DOC_STATE_LABEL: Record<DocState, string> = {
+  draft: '', pending: '결재 중', rejected: '반려',
+  approved: '', revision_pending: '수정 요청 중', revising: '수정 중',
+}
+
 export interface ApprovalComment {
   id: string
   approval_id: string
@@ -59,6 +76,10 @@ export interface StatusChip {
   kind: 'approval' | 'revision'
   decided_at: number | null
   created_at: number
+  /** 파생 상태 — **이걸 보고 그린다.** `status` 는 결재 행 하나의 상태일 뿐이다. */
+  state: DocState
+  /** 지금 편집이 막혀 있는가. 서버 판정을 그대로 받는다. */
+  locked: boolean
 }
 
 export class ApprovalApiError extends Error {
@@ -117,6 +138,41 @@ export async function apiDecide(
 ): Promise<Approval> {
   const d = await req<{ ok: boolean; approval: Approval }>(`/${aid}/decide`, {
     method: 'POST', body: JSON.stringify({ action, message }),
+  })
+  return d.approval
+}
+
+// ── 수정 요청 (P7 · D8) ──
+/**
+ * 승인된 자료를 **고치게 해 달라**고 청한다.
+ * **승인본은 여기서 아무것도 안 바뀐다** — 팀은 요청이 들어와도, 허락이 나도
+ * 직전 승인본을 그대로 본다. 재승인이 나야 그림이 바뀐다.
+ */
+export async function apiRequestRevision(projectId: string, message = ''): Promise<Approval> {
+  const d = await req<{ ok: boolean; approval: Approval }>('/revision-request', {
+    method: 'POST', body: JSON.stringify({ project_id: projectId, message }),
+  })
+  return d.approval
+}
+
+/** 수정 요청 허락 · 거절 — 관리자만. 허락해도 승인본은 그대로다. */
+export async function apiDecideRevision(
+  aid: string, action: 'approve' | 'reject', message = '',
+): Promise<Approval> {
+  const d = await req<{ ok: boolean; approval: Approval }>(`/${aid}/revision-decide`, {
+    method: 'POST', body: JSON.stringify({ action, message }),
+  })
+  return d.approval
+}
+
+/**
+ * 수정을 **그만둔다.** 고치기로 해 놓고 안 고칠 수도 있다 —
+ * 이 길이 없으면 「수정 중」이 영원히 남는다.
+ * **고친 내용은 안 지운다.** 승인본에 반영되지 않을 뿐이다.
+ */
+export async function apiEndRevision(aid: string): Promise<Approval> {
+  const d = await req<{ ok: boolean; approval: Approval }>(`/${aid}/revision-end`, {
+    method: 'POST',
   })
   return d.approval
 }

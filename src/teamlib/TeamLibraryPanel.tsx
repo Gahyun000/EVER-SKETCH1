@@ -3,7 +3,8 @@ import { Search, History, Users, X } from 'lucide-react'
 import SlideViewer from '../approvals/SlideViewer'
 import { STATUS_LABEL, type Approval } from '../approvals/approvalApi'
 import {
-  TeamLibraryError, apiTeamApproval, apiTeamHistory, apiTeamLibrary, type LibTeam,
+  TeamLibraryError, apiTeamApproval, apiTeamHistory, apiTeamLibrary,
+  type LibItem, type LibTeam,
 } from './teamLibraryApi'
 import {
   PAGE_SIZE, RELATION_HINT, RELATION_LABEL, flatten, pageOf, pickTeam,
@@ -40,7 +41,7 @@ export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
   const [page, setPage] = useState(1)
 
   const [openId, setOpenId] = useState<string | null>(null)
-  const [detail, setDetail] = useState<Approval | null>(null)
+  const [detail, setDetail] = useState<LibItem | null>(null)
   const [idx, setIdx] = useState(0)
   const [hist, setHist] = useState<Approval[] | null>(null)
 
@@ -178,6 +179,11 @@ export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
                       onClick={() => setOpenId(a.id)}>
                       <div className="ap-item-top">
                         <span className="ap-item-name">{a.project_name}</span>
+                        {/* **그림은 안 바뀌되 곧 바뀔 자료임은 알려준다**(D8).
+                            승인본은 얼어 있고, 여기 붙는 것은 글자뿐이다. */}
+                        {a.doc_state_label && (
+                          <span className={'tl-ds ' + (a.doc_state || '')}>{a.doc_state_label}</span>
+                        )}
                         <span className="ap-st approved">{STATUS_LABEL.approved}</span>
                       </div>
                       <div className="ap-item-sub">
@@ -211,6 +217,11 @@ export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
                     <div className="ap-d-head">
                       <div>
                         <b>{detail.project_name}</b>
+                        {(detail as LibItem).doc_state_label && (
+                          <span className={'tl-ds ' + ((detail as LibItem).doc_state || '')}>
+                            {(detail as LibItem).doc_state_label}
+                          </span>
+                        )}
                         <span className="ap-st approved">{STATUS_LABEL.approved}</span>
                         <div className="ap-d-sub">
                           {detail.round}회차 · {detail.requester_name || detail.requester} 제출 ·
@@ -222,6 +233,17 @@ export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
                       </button>
                     </div>
 
+                    {(detail as LibItem).doc_state === 'revising' && (
+                      <div className="tl-hint">
+                        작성자가 이 자료를 <b>고치는 중</b>입니다. 지금 보이는 것은
+                        <b> 직전 승인본</b>이고, 다시 승인이 나면 그때 바뀝니다.
+                      </div>
+                    )}
+                    {(detail as LibItem).doc_state === 'revision_pending' && (
+                      <div className="tl-hint">
+                        작성자가 <b>수정 요청</b>을 냈습니다. 아직 허락 전이라 자료는 그대로입니다.
+                      </div>
+                    )}
                     {detail.decision_message && (
                       <div className="ap-note approved">“{detail.decision_message}”</div>
                     )}

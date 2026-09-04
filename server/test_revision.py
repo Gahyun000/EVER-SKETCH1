@@ -463,3 +463,40 @@ def test_라우트_상태표가_파생_상태를_같이_준다():
 
     chip = ca.get("/api/approvals/status-map").json()["status_map"][p["id"]]
     assert chip["state"] == ds.REVISING and chip["locked"] is False
+
+
+def test_라우트_잠겨서_못_내는_것과_자격이_없는_것을_갈라_말한다():
+    """**「권한이 없습니다」로 뭉개면 사람이 멈춘다.**
+    제 승인본을 다시 내려던 사람은 「내 자료인데 왜 권한이 없지」에서 멈추고,
+    무엇을 해야 하는지(수정 요청) 알 길이 없다."""
+    app = make_app()
+    w = World()
+    p, _ = w.approved()
+
+    r = cli(app, "writer_a").post("/api/approvals/request", json={"project_id": p["id"]})
+    assert r.status_code == 400, "잠긴 내 자료는 400 + 이유"
+    assert "수정 요청" in r.json()["detail"]
+
+    # 남의 자료는 여전히 403 — **이유를 알려주지 않는다.** 상태를 말해 주면
+    # 남의 자료가 지금 어떤 상태인지가 새어 나간다.
+    r2 = cli(app, "writer_b").post("/api/approvals/request", json={"project_id": p["id"]})
+    assert r2.status_code == 403
+    assert "수정 요청" not in r2.json()["detail"]
+
+
+def test_이유는_한_곳에서만_말한다():
+    """`submit_block_reason` 이 없으면 저장소와 라우터가 각자 문구를 갖게 되고,
+    둘은 언젠가 다른 말을 한다."""
+    w = World()
+    p, _ = w.approved()
+    why = ap.submit_block_reason(p["id"])
+    assert why and "수정 요청" in why
+    with pytest.raises(ap.ApprovalError) as e:
+        ap.request(p["id"], w.a["id"])
+    assert str(e.value) == why
+
+
+def test_낼_수_있으면_막는_이유가_없다():
+    w = World()
+    p = projects_store.create_project("초안", DOC, owner_id=w.a["id"])
+    assert ap.submit_block_reason(p["id"]) is None

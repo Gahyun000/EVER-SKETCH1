@@ -5,17 +5,26 @@
 //
 // 남의 팀 승인본은 **404** 다. 없는 것과 구분되지 않는다(서버가 일부러 그렇게 답한다).
 import { checkAuth } from '../auth/session'
-import type { Approval } from '../approvals/approvalApi'
+import type { Approval, DocState } from '../approvals/approvalApi'
 
 const API = '/api/team-library'
 
 /** 이 팀이 나에게 무엇인가. **글자로 붙는다** — 색으로만 구분하지 않는다(표준). */
 export type Relation = 'current' | 'past' | 'other'
 
+/**
+ * 팀 목록의 자료 한 줄. `Approval` 에 **파생 상태**가 얹혀 온다(P7).
+ * 그림은 승인본 그대로고, 「수정 중」은 그림이 아니라 **글자**로만 나타난다(D8).
+ */
+export interface LibItem extends Approval {
+  doc_state?: DocState
+  doc_state_label?: string
+}
+
 export interface LibMonth {
   /** `YYYY-MM`. **승인 시각** 기준이다 — 9월에 내고 10월에 승인됐으면 10월이다. */
   ym: string
-  items: Approval[]
+  items: LibItem[]
 }
 
 export interface LibAuthor {
@@ -64,13 +73,13 @@ export async function apiTeamLibrary(): Promise<LibTeam[]> {
 }
 
 /** 승인본 한 건 — 스냅샷째. 결재 대화는 **당사자만** 보므로 남에게는 비어 온다. */
-export async function apiTeamApproval(aid: string): Promise<Approval> {
-  const d = await req<{ approval: Approval }>(`/approval/${aid}`)
+export async function apiTeamApproval(aid: string): Promise<LibItem> {
+  const d = await req<{ approval: LibItem }>(`/approval/${aid}`)
   return d.approval
 }
 
 /** 지난 승인본들. 목록에는 최신 1건만 뜨므로 여기서 거슬러 올라간다. */
-export async function apiTeamHistory(projectId: string): Promise<Approval[]> {
-  const d = await req<{ history: Approval[] }>(`/history/${projectId}`)
+export async function apiTeamHistory(projectId: string): Promise<LibItem[]> {
+  const d = await req<{ history: LibItem[] }>(`/history/${projectId}`)
   return d.history || []
 }

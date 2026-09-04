@@ -471,3 +471,28 @@
 .tl-empty { display: grid; gap: 8px; place-items: center; color: var(--sub); }
 .tl-empty b { font-size: 13.5px; color: var(--navy); }
 .tl-empty p { font-size: 12.5px; color: var(--muted); line-height: 1.7; margin: 0; }
+
+/* ─────────────────────────────────────────────
+   수정 요청 (P7 · D8) — 결재함과 팀 공유 양쪽에서 쓴다.
+   ───────────────────────────────────────────── */
+
+/* **무엇에 대한 결재인지를 먼저 말한다.** 제출본과 수정 요청이 같은 모양으로
+   섞여 있으면 결재자가 슬라이드를 기대하고 열었다가 빈 화면을 본다. */
+.ap-kind { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 99px;
+  margin-right: 5px; white-space: nowrap; background: #EEF2FF; color: #3730a3; }
+
+/* 수정 요청 상세 — 여기에는 문서가 없다(얼릴 것이 없어서다).
+   빈 뷰어 대신 무엇을 정하는 자리인지 적는다. */
+.ap-rev { display: grid; grid-template-columns: auto 1fr; gap: 5px 11px; align-items: center;
+  border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px;
+  background: var(--card); }
+.ap-rev > svg { grid-row: span 2; color: var(--blue); }
+.ap-rev b { font-size: 13px; color: var(--navy); }
+.ap-rev p { grid-column: 2; margin: 0; font-size: 12.5px; color: var(--sub); line-height: 1.75; }
+
+/* 팀 공유의 파생 상태 글자. **그림은 안 바뀌고 글자만 얹힌다** —
+   색으로만 구분하지 않으므로 글자가 먼저다. */
+.tl-ds { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 99px;
+  margin-right: 5px; white-space: nowrap; background: #eef0f3; color: #6b7480; }
+.tl-ds.revising { background: #EEF2FF; color: #3730a3; }
+.tl-ds.revision_pending { background: #FFF4E3; color: #8a5a10; }

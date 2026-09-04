@@ -48,8 +48,12 @@ check(/status-map/.test(api), '상태표 엔드포인트를 쓴다')
 
 // ── 색만으로 말하지 않는다 ──
 const css = read('./src/auth/auth.css') + read('./src/index.css')
-check(/STATUS_LABEL/.test(panel) && /STATUS_LABEL\[chips\[p\.id\]\.status\]/.test(libCode),
-  '상태는 **글자**로 먼저 말한다 (표준: 색상만으로 상태를 구분하지 않는다)')
+check(/STATUS_LABEL/.test(panel), '결재함의 상태는 **글자**로 먼저 말한다 (표준: 색상만으로 구분하지 않는다)')
+// P7 에서 바뀐 규칙 — 자료 목록의 칩은 결재 행 하나의 `status` 가 아니라
+// **파생 상태**(`state`)를 그린다. `status` 만 보면 수정 요청이 걸린 자료가
+// 「승인」이라고 적히면서 실제로는 「수정 중」인 상태가 된다.
+check(/DOC_STATE_LABEL\[chips\[p\.id\]\.state\]/.test(libCode),
+  '자료 목록의 칩은 **파생 상태**를 글자로 그린다 (status 가 아니다 — P7)')
 for (const st of ['pending', 'approved', 'rejected', 'withdrawn']) {
   check(new RegExp(`\\.ap-st\\.${st}`).test(css) && new RegExp(`\\.lib-chip\\.${st}`).test(css),
     `${st} 상태에 색이 있다 (글자를 거든다)`)

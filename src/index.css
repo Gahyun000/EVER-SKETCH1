@@ -628,6 +628,15 @@ button{font-family:inherit;cursor:pointer}
 .lib-chip.approved{background:#E9F5EF;color:#215c46}
 .lib-chip.rejected{background:#fdf0f0;color:#7d2027}
 .lib-chip.withdrawn{background:#eef0f3;color:#6b7480}
+/* 수정 요청 흐름(P7). 「수정 중」이 눈에 띄어야 하는 이유 — 팀은 이 자료를
+   지금도 보고 있고, 그림이 곧 바뀐다는 사실이 목록에서 보여야 한다. */
+.lib-chip.revision_pending{background:#FFF4E3;color:#8a5a10}
+.lib-chip.revising{background:#EEF2FF;color:#3730a3}
+/* 잠금 — **배지가 없는 상태(승인됨)일수록 이 자물쇠가 유일한 설명이다.**
+   자물쇠 그림만 두지 않고 「잠김」 글자를 함께 둔다(색·아이콘만으로 말하지 않는다). */
+.lib-lock{display:inline-flex;align-items:center;gap:3px;margin-left:7px;font-size:10.5px;
+  font-weight:800;padding:1px 7px;border-radius:99px;vertical-align:1px;white-space:nowrap;
+  background:#eef0f3;color:#6b7480}
 .lib-mkin{width:100%;height:36px;margin-top:12px;padding:0 11px;border:1.4px solid #e5e7eb;
   border-radius:10px;font-size:13.5px;font-family:inherit;color:#0f172a;outline:none}
 .lib-mkin:focus{border-color:#2462EB;box-shadow:0 0 0 3px #EAF1FE}

@@ -123,7 +123,20 @@ class RequestIn(BaseModel):
 
 @router.post("/request")
 def request_approval(req: RequestIn, user: dict = Depends(require_active)):
-    """제출 — **본인 자료만**(SUBMIT). 열람자는 못 한다(D13)."""
+    """제출 — **본인 자료만**(SUBMIT). 열람자는 못 한다(D13).
+
+    **「잠겨서 못 낸다」와 「자격이 없어서 못 낸다」를 갈라 말한다**(P7).
+    잠금은 권한 판정 안에 들어 있어서(`decide` 의 SUBMIT 규칙) 그냥 두면 둘 다
+    403 「권한이 없습니다」로 뭉개진다 — 제 승인본을 다시 내려던 사람은
+    「내 자료인데 왜 권한이 없지」에서 멈춘다.
+    그래서 **볼 수 있는 내 자료**면 상태를 먼저 물어 사람 말로 거절하고(400),
+    그 밖은 평소대로 권한이 판정한다(403). 판정 자체는 손대지 않는다.
+    """
+    res = require_project(user, req.project_id, perm.READ)
+    if res.owner_id == user["id"]:
+        why = approvals_store.submit_block_reason(req.project_id)
+        if why:
+            raise HTTPException(status_code=400, detail=why)
     require_project(user, req.project_id, perm.SUBMIT)
     try:
         a = approvals_store.request(req.project_id, user["id"], req.message)

@@ -12,8 +12,7 @@
  *
  * React 를 모른다 — 노드로 그냥 실행해서 검증한다(`team_library_screen.test.mjs`).
  */
-import type { Approval } from '../approvals/approvalApi'
-import type { LibTeam, Relation } from './teamLibraryApi'
+import type { LibItem, LibTeam, Relation } from './teamLibraryApi'
 
 /** 한 쪽에 담는 자료 수. 자료 목록(12)과 같은 눈금을 쓴다. */
 export const PAGE_SIZE = 12
@@ -46,7 +45,7 @@ export interface FlatItem {
   authorDept: string
   isMe: boolean
   ym: string
-  item: Approval
+  item: LibItem
 }
 
 export type Row =

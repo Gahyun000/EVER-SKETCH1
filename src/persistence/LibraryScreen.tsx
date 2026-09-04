@@ -4,9 +4,10 @@ import { useAuth } from '../auth/useAuth'
 import ApprovalsPanel from '../approvals/ApprovalsPanel'
 import TeamLibraryPanel from '../teamlib/TeamLibraryPanel'
 import {
-  ApprovalApiError, STATUS_LABEL, apiRequestApproval, apiStatusMap, type StatusChip,
+  ApprovalApiError, DOC_STATE_LABEL, apiRequestApproval, apiRequestRevision, apiStatusMap,
+  type StatusChip,
 } from '../approvals/approvalApi'
-import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home, Send, Inbox, Users } from 'lucide-react'
+import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home, Send, Inbox, Users, Lock, PenLine } from 'lucide-react'
 import { useProjects } from './projects'
 import NewProjectDialog from './NewProjectDialog'
 import type { ProjectMeta } from './projectApi'
@@ -68,6 +69,10 @@ export default function LibraryScreen() {
   const [inbox, setInbox] = useState(false)
   const [shared, setShared] = useState(false)
   const [submitting, setSubmitting] = useState<ProjectMeta | null>(null)
+  // 수정 요청 — **제출과 다른 창이다.** 되는 일이 달라서다: 제출은 문서를 얼리고,
+  // 수정 요청은 아무것도 안 얼린다(허락을 청할 뿐이다).
+  const [revising, setRevising] = useState<ProjectMeta | null>(null)
+  const [reviseMsg, setReviseMsg] = useState('')
   const [submitMsg, setSubmitMsg] = useState('')
   const [aErr, setAErr] = useState('')
 
@@ -321,10 +326,20 @@ export default function LibraryScreen() {
                   )}
                   <div className="lib-sub">
                     {fmtKst(p.updated_at)} · {p.page_count}페이지{p.published_id ? ' · 발행됨' : ''}
-                    {chips[p.id] && (
-                      <span className={'lib-chip ' + chips[p.id].status}>
-                        {STATUS_LABEL[chips[p.id].status]}
+                    {/* **파생 상태를 그린다**(P7). `status` 는 결재 행 하나의 상태일 뿐이라,
+                        수정 요청이 걸려 있으면 「승인」이라고 적히면서 실제로는 「수정 중」이다.
+                        상태를 짜맞추는 일은 서버가 한다 — 화면이 또 하면 두 곳이 어긋난다. */}
+                    {chips[p.id] && DOC_STATE_LABEL[chips[p.id].state] && (
+                      <span className={'lib-chip ' + chips[p.id].state}>
+                        {DOC_STATE_LABEL[chips[p.id].state]}
                         {chips[p.id].round > 1 ? ` ${chips[p.id].round}회차` : ''}
+                      </span>
+                    )}
+                    {/* 잠긴 자료는 **왜 안 고쳐지는지** 목록에서 바로 보인다.
+                        배지가 없는 상태(승인됨)일수록 이 자물쇠가 유일한 설명이다. */}
+                    {chips[p.id]?.locked && (
+                      <span className="lib-lock" title="결재 중이거나 승인된 자료라 잠겨 있어요">
+                        <Lock className="h-3 w-3" /> 잠김
                       </span>
                     )}
                   </div>
@@ -334,7 +349,15 @@ export default function LibraryScreen() {
                 {p.published_id ? (
                   <a className="lib-act" title="발행본 보기(EVER-FOLIO)" href={`${FOLIO_URL}/ebooks/${p.published_id}/index.html`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></a>
                 ) : null}
-                {canSubmit && chips[p.id]?.status !== 'pending' && (
+                {/* **한 자리에 한 가지 일만 놓는다.** 승인된 자료에 「제출」을 띄워 두면
+                    눌러 보고 400 을 받는다 — 그 자리에 오는 것은 「수정 요청」이다. */}
+                {canSubmit && chips[p.id]?.state === 'approved' && (
+                  <button className="lib-act" title="수정 요청"
+                    onClick={() => { setRevising(p); setReviseMsg('') }}>
+                    <PenLine className="h-4 w-4" />
+                  </button>
+                )}
+                {canSubmit && !chips[p.id]?.locked && chips[p.id]?.state !== 'approved' && (
                   <button className="lib-act" title="결재 제출"
                     onClick={() => { setSubmitting(p); setSubmitMsg('') }}>
                     <Send className="h-4 w-4" />
@@ -435,6 +458,41 @@ export default function LibraryScreen() {
                   }
                 })()
               }}>제출</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 수정 요청 — **아무것도 안 얼린다.** 제출과 헷갈리지 않게 그렇게 말한다. */}
+      {revising && (
+        <div className="lib-confirm" onClick={() => setRevising(null)}>
+          <div className="lib-confirm-box" onClick={(e) => e.stopPropagation()}>
+            <div className="lib-confirm-title">수정 요청</div>
+            <div className="lib-confirm-msg">
+              <b>{revising.name || '제목 없음'}</b> 을(를) 고칠 수 있게 해 달라고 요청합니다.
+              <br /><br />
+              <b>팀이 보는 화면은 지금 그대로입니다.</b> 허락이 나도 승인본은 안 바뀌고,
+              고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.
+              <br />
+              허락이 날 때까지는 아직 고칠 수 없습니다.
+              {aErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{aErr}</div>}
+              <input className="lib-mkin" value={reviseMsg} placeholder="무엇을 고칠지 (선택)"
+                onChange={(e) => setReviseMsg(e.target.value)} />
+            </div>
+            <div className="lib-confirm-actions">
+              <button className="lib-btn" onClick={() => setRevising(null)}>취소</button>
+              <button className="lib-btn dark" onClick={() => {
+                const target = revising
+                setAErr('')
+                void (async () => {
+                  try {
+                    await apiRequestRevision(target.id, reviseMsg.trim())
+                    setRevising(null); await loadChips()
+                  } catch (e) {
+                    setAErr(e instanceof ApprovalApiError ? e.message : '요청하지 못했습니다.')
+                  }
+                })()
+              }}>요청</button>
             </div>
           </div>
         </div>

@@ -170,6 +170,10 @@ def visible_approval(actor: Optional[perm.Actor], aid: str) -> Optional[dict]:
     a = approvals_store.get_approval(aid)
     if not a or not perm.can_see_approval(actor, a):
         return None
+    # **목록과 상세가 같은 말을 하게 한다.** 목록 줄에만 「수정 중」이 붙고 상세에는
+    # 안 붙으면, 열어 본 사람은 「아까 그 글자는 뭐였지」로 끝난다.
+    a["doc_state"] = approvals_store.state_of(a["project_id"])
+    a["doc_state_label"] = doc_state.label(a["doc_state"])
     if not perm.can_see_approval_thread(actor, a):
         # **결과물은 팀의 것이지만 대화는 아니다.** 「3쪽 수치가 작년 것입니다」 같은
         # 지적이 팀 전체에 흐르면 사람들이 결재함에서 솔직하게 지적하기를 그만둔다.
