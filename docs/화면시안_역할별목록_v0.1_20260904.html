@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVER-SKETCH 화면 시안 — 역할별 목록 (v0.1)</title>
+<style>
+  :root{
+    --ink:#111318; --navy:#0F1B3D; --muted:#616a7a; --line:#e6e8ee; --bg:#f4f5f7;
+    --panel:#fff; --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A; --red:#b4232a;
+    --pill:9999px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.6;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:36px 24px 80px}
+
+  /* ── 문서 머리 ── */
+  .doc-head{margin-bottom:28px}
+  .doc-kicker{font-size:12px; font-weight:800; letter-spacing:.06em; color:var(--blue); text-transform:uppercase}
+  .doc-head h1{margin:6px 0 8px; font-size:26px; letter-spacing:-.02em}
+  .doc-meta{font-size:13px; color:var(--muted)}
+  .doc-lede{margin:16px 0 0; padding:16px 18px; background:#fff; border:1px solid var(--line);
+    border-radius:12px; font-size:14px}
+  .doc-lede b{color:var(--navy)}
+
+  /* ── 단계 배지 ── */
+  .ph{display:inline-block; font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:var(--pill);
+    background:#eef2fb; color:#3355a8; vertical-align:middle; margin-left:6px; white-space:nowrap}
+  .ph.now{background:#e9f5ef; color:#2b7a55}
+
+  /* ── 역할 전환 ── */
+  .roles{display:flex; gap:8px; margin:30px 0 14px; flex-wrap:wrap}
+  .roles button{
+    border:1.4px solid var(--line); background:#fff; color:var(--muted); font-weight:800; font-size:13.5px;
+    border-radius:10px; padding:9px 18px; cursor:pointer; font-family:inherit;
+  }
+  .roles button.on{background:var(--navy); border-color:var(--navy); color:#fff}
+
+  /* ── 앱 껍데기 ── */
+  .app{display:grid; grid-template-columns:206px 1fr; background:var(--panel);
+    border:1px solid var(--line); border-radius:16px; overflow:hidden;
+    box-shadow:0 10px 34px rgba(15,27,61,.07)}
+  .side{background:#fbfcfe; border-right:1px solid var(--line); padding:16px 12px}
+  .side .brand{display:flex; align-items:center; gap:8px; padding:2px 8px 16px; font-weight:800; font-size:14px}
+  .side .logo{width:26px; height:26px; border-radius:8px; background:var(--blue); display:grid;
+    place-items:center; color:#fff; font-size:13px}
+  .nav{display:flex; align-items:center; gap:9px; padding:9px 10px; border-radius:9px;
+    font-size:13px; font-weight:700; color:var(--muted); margin-bottom:2px}
+  .nav.on{background:#eaf0fd; color:#1b47ad}
+  .nav .ico{width:16px; text-align:center; opacity:.75}
+  .nav .badge{margin-left:auto; background:var(--blue); color:#fff; font-size:10.5px; font-weight:800;
+    border-radius:var(--pill); padding:1px 7px}
+  .side hr{border:0; border-top:1px solid var(--line); margin:12px 4px}
+
+  .main{padding:20px 22px 26px; min-height:430px}
+  .main-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px}
+  .main-head h2{margin:0; font-size:18px; letter-spacing:-.01em}
+  .main-sub{font-size:12.5px; color:var(--muted); margin:2px 0 16px}
+  .btn{border:none; background:var(--blue); color:#fff; font-weight:800; font-size:13px;
+    border-radius:10px; padding:9px 15px; font-family:inherit}
+  .btn.ghost{background:#fff; color:#334155; border:1.4px solid var(--line)}
+
+  .filters{display:flex; gap:7px; margin-bottom:14px; flex-wrap:wrap}
+  .chipf{font-size:12px; font-weight:700; color:var(--muted); background:#fff;
+    border:1.3px solid var(--line); border-radius:var(--pill); padding:5px 12px}
+  .chipf.on{background:var(--ink); border-color:var(--ink); color:#fff}
+
+  /* ── 목록 카드 ── */
+  .row{display:flex; align-items:center; gap:13px; background:#fff; border:1.4px solid var(--line);
+    border-radius:12px; padding:13px 15px; margin-bottom:9px}
+  .row .thumb{width:38px; height:38px; border-radius:9px; background:#eef2fb; display:grid;
+    place-items:center; color:var(--blue); font-size:16px; flex:0 0 auto}
+  .row .body{min-width:0; flex:1}
+  .row .t{font-weight:800; font-size:14px; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .row .m{font-size:11.5px; color:#98a1b2; margin-top:2px}
+  .row .acts{display:flex; gap:5px; color:#98a1b2; font-size:13px; flex:0 0 auto}
+  .row .acts span{width:26px; height:26px; display:grid; place-items:center; border-radius:7px; background:#f7f8fb}
+
+  .owner{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700;
+    color:#4a5468; background:#f2f4f8; border-radius:var(--pill); padding:2px 9px 2px 3px; flex:0 0 auto}
+  .owner i{width:17px; height:17px; border-radius:50%; display:grid; place-items:center;
+    font-style:normal; font-size:9.5px; font-weight:800; color:#fff; background:#7b8496}
+  .owner.me{background:#eaf0fd; color:#1b47ad} .owner.me i{background:var(--blue)}
+  .owner.adm i{background:var(--navy)}
+
+  .st{font-size:11px; font-weight:800; border-radius:var(--pill); padding:3px 10px; flex:0 0 auto}
+  .st.draft{background:#f1f3f7; color:#5b6270}
+  .st.pending{background:#fdf3e3; color:#8a5510}
+  .st.rejected{background:#fdecec; color:var(--red)}
+  .st.approved{background:#e9f5ef; color:#2b7a55}
+  .st.revising{background:#eaf0fd; color:#1b47ad}
+
+  .empty{border:1.4px dashed var(--line); border-radius:12px; padding:40px 20px; text-align:center;
+    color:var(--muted); font-size:13.5px; background:#fcfcfd}
+  .empty b{display:block; color:var(--ink); font-size:14.5px; margin-bottom:5px}
+
+  .month{font-size:12px; font-weight:800; color:var(--muted); margin:16px 0 8px; letter-spacing:.02em}
+  .month:first-child{margin-top:0}
+
+  /* ── 주석 ── */
+  .notes{margin-top:18px; display:grid; gap:10px}
+  .note{display:flex; gap:11px; background:#fff; border:1px solid var(--line);
+    border-left:3px solid var(--blue); border-radius:10px; padding:12px 15px; font-size:13px}
+  .note .n{font-weight:800; color:var(--blue); flex:0 0 auto}
+  .note.warn{border-left-color:var(--amber)} .note.warn .n{color:var(--amber)}
+
+  /* ── 섹션 ── */
+  h3{margin:38px 0 12px; font-size:17px; letter-spacing:-.01em}
+  h3 .sub{font-weight:600; font-size:13px; color:var(--muted); margin-left:8px}
+  table{width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line);
+    border-radius:12px; overflow:hidden; font-size:13px}
+  th,td{padding:10px 13px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:#f8f9fc; font-size:12px; font-weight:800; color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  td code{background:#f2f4f8; padding:1px 5px; border-radius:5px; font-size:12px}
+
+  .ba{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .ba > div{background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px}
+  .ba h4{margin:0 0 4px; font-size:13px}
+  .ba .bad{color:var(--red)} .ba .good{color:var(--green)}
+  .ba p{margin:0; font-size:12.5px; color:var(--muted)}
+  .ba ul{margin:8px 0 0; padding-left:17px; font-size:12.5px; color:var(--muted)}
+
+  .q{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:10px}
+  .q b{display:block; font-size:14px; margin-bottom:4px}
+  .q p{margin:0; font-size:13px; color:var(--muted)}
+  .q .rec{margin-top:7px; font-size:12.5px; color:#2b7a55; font-weight:700}
+
+  @media (max-width:800px){
+    .app{grid-template-columns:1fr} .side{border-right:0; border-bottom:1px solid var(--line)}
+    .ba{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-head">
+    <div class="doc-kicker">화면 시안 · 검토 요청</div>
+    <h1>역할별 자료 목록 — 관리자 / 작성자</h1>
+    <div class="doc-meta">2026-09-04 · v0.1 · 검토 대기 · 근거: <code>docs/전환계획_결재중심_v0.2_20260903.md</code></div>
+
+    <div class="doc-lede">
+      <b>이 시안이 답하려는 질문 하나.</b> 목록에 무엇이 뜨는가 — 그리고 뜬 것은 전부 열리는가.<br>
+      지금은 작성자 화면에 남의 자료가 떴다가 눌러도 안 열립니다. 사용자는 그게 자기 것인지,
+      왜 안 열리는지 알 방법이 없습니다. <b>못 여는 항목은 목록에 없어야 한다</b>는 것이 이 시안의 기준선입니다.
+      <br><br>
+      화면에 붙은 <span class="ph">P2</span> 같은 표시는 그 요소가 어느 단계에서 실제로 붙는지를 뜻합니다.
+      <span class="ph now">지금</span> 은 이미 동작하는 것입니다.
+    </div>
+  </div>
+
+  <div class="roles">
+    <button class="on" data-r="admin">L1 관리자</button>
+    <button data-r="writer">L2 작성자</button>
+  </div>
+
+  <!-- ══════════ 관리자 ══════════ -->
+  <div id="admin">
+    <div class="app">
+      <div class="side">
+        <div class="brand"><span class="logo">E</span> EVER-SKETCH</div>
+        <div class="nav"><span class="ico">📥</span> 결재함 <span class="badge">2</span></div>
+        <div class="nav on"><span class="ico">📚</span> 전체 자료</div>
+        <div class="nav"><span class="ico">🗂</span> 팀 공유</div>
+        <hr>
+        <div class="nav"><span class="ico">👥</span> 팀 관리</div>
+        <div class="nav"><span class="ico">⚙️</span> 사용자 관리 <span class="badge">1</span></div>
+        <div class="nav"><span class="ico">🔧</span> 환경설정</div>
+      </div>
+
+      <div class="main">
+        <div class="main-head">
+          <h2>전체 자료</h2>
+          <button class="btn">＋ 새 자료</button>
+        </div>
+        <div class="main-sub">모든 팀의 모든 자료입니다. 관리자만 이 화면을 봅니다.</div>
+
+        <div class="filters">
+          <span class="chipf on">전체 12</span>
+          <span class="chipf">결재 대기 2</span>
+          <span class="chipf">반려 1</span>
+          <span class="chipf">승인됨 6</span>
+          <span class="chipf">작성 중 3</span>
+          <span class="chipf">사업1팀 ▾</span>
+        </div>
+
+        <div class="row">
+          <div class="thumb">📘</div>
+          <div class="body">
+            <div class="t">2026년 9월 임원회의 — 김가현</div>
+            <div class="m">09.04 09:45 · 1페이지 · 제출 2차</div>
+          </div>
+          <span class="owner"><i>김</i>김가현</span>
+          <span class="st pending">결재 대기</span>
+          <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+        </div>
+
+        <div class="row">
+          <div class="thumb">📘</div>
+          <div class="body">
+            <div class="t">3분기 품질 이슈 정리</div>
+            <div class="m">09.03 18:02 · 1페이지 · 승인 09.03</div>
+          </div>
+          <span class="owner"><i>홍</i>홍길동</span>
+          <span class="st revising">수정 중</span>
+          <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+        </div>
+
+        <div class="row">
+          <div class="thumb">📘</div>
+          <div class="body">
+            <div class="t">2026년 9월 임원회의 — 시스템 관리자</div>
+            <div class="m">09.04 09:45 · 1페이지</div>
+          </div>
+          <span class="owner me adm"><i>관</i>내 자료</span>
+          <span class="st draft">작성 중</span>
+          <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+        </div>
+
+        <div class="row">
+          <div class="thumb">📘</div>
+          <div class="body">
+            <div class="t">상반기 결산 보고</div>
+            <div class="m">08.28 11:20 · 1페이지 · 반려 08.29</div>
+          </div>
+          <span class="owner"><i>이</i>이순신</span>
+          <span class="st rejected">반려</span>
+          <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="note"><span class="n">1</span><div>
+        <b>「내 이북」이라는 이름을 버렸습니다.</b> 관리자 목록에는 남의 자료가 대부분입니다.
+        이름이 「내 이북」이면 화면이 거짓말을 하고, 지금 겪으신 혼란이 정확히 거기서 시작됩니다.
+        <span class="ph">P2</span>
+      </div></div>
+      <div class="note"><span class="n">2</span><div>
+        <b>모든 행에 소유자 칩이 붙습니다.</b> 제목에 이름이 들어 있는 것에 기대지 않습니다 —
+        제목은 사용자가 바꿀 수 있고, 「상반기 결산 보고」처럼 이름이 아예 없는 것도 있습니다.
+        본인 것은 <span class="owner me adm"><i>관</i>내 자료</span> 로 따로 표시합니다.
+        <span class="ph">P2</span>
+      </div></div>
+      <div class="note"><span class="n">3</span><div>
+        <b>관리자는 여기서 전부 열 수 있습니다.</b> 보이는데 안 눌리는 항목이 없습니다.
+        결재 판단을 하려면 남의 자료를 열어봐야 하니, 관리자에게는 열람이 곧 업무입니다.
+        <span class="ph now">지금</span>
+      </div></div>
+      <div class="note warn"><span class="n">!</span><div>
+        <b>상태 필터와 팀 필터는 자료가 쌓인 뒤에 의미가 생깁니다.</b> 지금처럼 3건일 때는 오히려 방해입니다.
+        20건이 넘어가면 붙이는 쪽으로 미뤄도 될지 검토 부탁드립니다. <span class="ph">P6</span>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ══════════ 작성자 ══════════ -->
+  <div id="writer" style="display:none">
+    <div class="app">
+      <div class="side">
+        <div class="brand"><span class="logo">E</span> EVER-SKETCH</div>
+        <div class="nav"><span class="ico">📤</span> 내 결재 현황</div>
+        <div class="nav on"><span class="ico">📚</span> 내 자료</div>
+        <div class="nav"><span class="ico">🗂</span> 팀 공유</div>
+        <hr>
+        <div class="nav"><span class="ico">🔧</span> 환경설정</div>
+      </div>
+
+      <div class="main">
+        <div class="main-head">
+          <h2>내 자료</h2>
+          <button class="btn">＋ 새 자료</button>
+        </div>
+        <div class="main-sub">내가 만든 것만 있습니다. 남의 자료는 여기 오지 않습니다.</div>
+
+        <div class="row">
+          <div class="thumb">📘</div>
+          <div class="body">
+            <div class="t">2026년 9월 임원회의 — 김가현</div>
+            <div class="m">09.04 09:45 · 1페이지 · 제출 2차</div>
+          </div>
+          <span class="st pending">결재 대기</span>
+          <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+        </div>
+
+        <div class="row">
+          <div class="thumb">📘</div>
+          <div class="body">
+            <div class="t">8월 진행보고 초안</div>
+            <div class="m">08.30 14:10 · 1페이지 · 반려 코멘트 3건</div>
+          </div>
+          <span class="st rejected">반려</span>
+          <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+        </div>
+
+        <div class="row">
+          <div class="thumb">📘</div>
+          <div class="body">
+            <div class="t">아이디어 스케치</div>
+            <div class="m">08.27 09:02 · 3페이지</div>
+          </div>
+          <span class="st draft">작성 중</span>
+          <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="note"><span class="n">1</span><div>
+        <b>소유자 칩이 없습니다.</b> 전부 본인 것이라 붙일 이유가 없습니다.
+        칩이 하나도 없다는 사실 자체가 "여긴 내 것뿐"이라는 신호입니다. <span class="ph">P2</span>
+      </div></div>
+      <div class="note"><span class="n">2</span><div>
+        <b>여기 있는 것은 전부 열립니다.</b> 결재 대기·승인된 자료는 열리되 <em>편집만</em> 잠깁니다.
+        열리지도 않는 항목은 애초에 목록에 없습니다. <span class="ph">P2</span>
+      </div></div>
+      <div class="note"><span class="n">3</span><div>
+        <b>동료 자료는 「팀 공유」에서만 봅니다.</b> 내 작업 공간과 남의 결과물을 같은 목록에 섞지 않습니다.
+        섞는 순간 다시 "이게 내 건가?"가 시작됩니다. <span class="ph">P6</span>
+      </div></div>
+    </div>
+
+    <h3>팀 공유 <span class="sub">같은 화면의 다른 메뉴 — 승인된 것만, 월별로 자동</span></h3>
+    <div class="app">
+      <div class="side">
+        <div class="brand"><span class="logo">E</span> EVER-SKETCH</div>
+        <div class="nav"><span class="ico">📤</span> 내 결재 현황</div>
+        <div class="nav"><span class="ico">📚</span> 내 자료</div>
+        <div class="nav on"><span class="ico">🗂</span> 팀 공유</div>
+        <hr>
+        <div class="nav"><span class="ico">🔧</span> 환경설정</div>
+      </div>
+      <div class="main">
+        <div class="main-head"><h2>팀 공유 · 사업1팀</h2></div>
+        <div class="main-sub">승인된 자료가 자동으로 올라옵니다. 읽기 전용입니다.</div>
+
+        <div class="month">2026-09</div>
+        <div class="row">
+          <div class="thumb">📗</div>
+          <div class="body">
+            <div class="t">3분기 품질 이슈 정리</div>
+            <div class="m">승인 09.03 · 1페이지</div>
+          </div>
+          <span class="owner"><i>홍</i>홍길동</span>
+          <span class="st revising">수정 중</span>
+        </div>
+        <div class="row">
+          <div class="thumb">📗</div>
+          <div class="body">
+            <div class="t">9월 인력 운영 계획</div>
+            <div class="m">승인 09.02 · 1페이지</div>
+          </div>
+          <span class="owner"><i>이</i>이순신</span>
+          <span class="st approved">승인됨</span>
+        </div>
+
+        <div class="month">2026-08</div>
+        <div class="row">
+          <div class="thumb">📗</div>
+          <div class="body">
+            <div class="t">상반기 결산 보고</div>
+            <div class="m">승인 08.21 · 2페이지</div>
+          </div>
+          <span class="owner"><i>김</i>김가현</span>
+          <span class="st approved">승인됨</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="note warn"><span class="n">!</span><div>
+        <b>「수정 중」 배지가 이 시안의 핵심입니다.</b> 홍길동이 승인본을 고치는 중이지만,
+        팀원이 보는 것은 <em>직전 승인본</em> 입니다. 고치는 동안에도 자료가 사라지지 않고,
+        재승인이 나야 내용이 바뀝니다. 배지는 "곧 바뀔 자료"라는 예고입니다. <span class="ph">P7</span>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ══════════ 지금 vs 이후 ══════════ -->
+  <h3>지금 무엇이 잘못됐나 <span class="sub">작성자 화면 기준</span></h3>
+  <div class="ba">
+    <div>
+      <h4 class="bad">지금 — 보이는데 안 열린다</h4>
+      <p>서버는 작성자에게 본인 것 1건만 내려줍니다. 그런데 화면에는 3건이 뜹니다.</p>
+      <ul>
+        <li>관리자로 보던 목록이 로그아웃 뒤에도 화면에 남습니다</li>
+        <li><code>useProjects</code> 는 전역 스토어라 <code>key={uid}</code> 로 안 지워집니다</li>
+        <li><code>boot()</code> 이 <code>booted</code> 를 보고 즉시 반환해 다시 조회하지 않습니다</li>
+        <li>편집 화면에서 로그아웃하면 <b>다음 사람이 앞사람 슬라이드에 착지합니다</b></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="good">이후 — 목록에 있으면 열린다</h4>
+      <p>계정이 바뀌면 목록·편집 상태를 비우고 서버에 다시 묻습니다.</p>
+      <ul>
+        <li>작성자 목록 = 본인 자료 <span class="ph">P2</span></li>
+        <li>동료 승인본 = 「팀 공유」에서만 <span class="ph">P6</span></li>
+        <li>관리자 목록 = 전부 + 소유자 칩 <span class="ph">P2</span></li>
+        <li>계정 전환 시 상태 초기화 <span class="ph">P1.5</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════ 상태 ══════════ -->
+  <h3>상태 표시 <span class="sub">두 역할이 같은 배지를 씁니다</span></h3>
+  <table>
+    <tr><th style="width:120px">배지</th><th style="width:130px">언제</th><th>작성자가 할 수 있는 일</th><th style="width:150px">팀에게</th></tr>
+    <tr><td><span class="st draft">작성 중</span></td><td>제출 전</td><td>편집 · 제출 · 삭제</td><td>안 보임</td></tr>
+    <tr><td><span class="st pending">결재 대기</span></td><td>제출함</td><td>열람 · 요청 취소 <b>(편집 잠김)</b></td><td>직전 승인본</td></tr>
+    <tr><td><span class="st rejected">반려</span></td><td>반려됨</td><td>편집 · 코멘트 확인 · 재제출</td><td>직전 승인본</td></tr>
+    <tr><td><span class="st approved">승인됨</span></td><td>승인됨</td><td>열람 · 수정 요청 <b>(편집 잠김)</b></td><td><b>이 승인본</b></td></tr>
+    <tr><td><span class="st revising">수정 중</span></td><td>수정 허락받음</td><td>편집 · 재제출</td><td>직전 승인본 + 배지</td></tr>
+  </table>
+
+  <!-- ══════════ 빈 화면 ══════════ -->
+  <h3>빈 화면 <span class="sub">가장 자주 보게 되는 첫 화면입니다</span></h3>
+  <div class="ba">
+    <div style="padding:0;border:0;background:none">
+      <div class="empty">
+        <b>아직 만든 자료가 없어요</b>
+        ＋ 새 자료로 시작해 보세요.<br>표준 양식과 빈 슬라이드 중에 고를 수 있습니다.
+      </div>
+      <p style="margin-top:8px;font-size:12px;color:var(--muted)">작성자 · 내 자료</p>
+    </div>
+    <div style="padding:0;border:0;background:none">
+      <div class="empty">
+        <b>아직 공유된 자료가 없어요</b>
+        팀원의 자료가 <b>승인되면</b> 여기에 자동으로 올라옵니다.
+      </div>
+      <p style="margin-top:8px;font-size:12px;color:var(--muted)">작성자 · 팀 공유 — 승인이 유일한 관문이라는 것을 여기서 알려줍니다</p>
+    </div>
+  </div>
+
+  <!-- ══════════ 검토 요청 ══════════ -->
+  <h3>확인해 주셔야 할 것</h3>
+
+  <div class="q">
+    <b>1. 관리자 메뉴 이름 — 「전체 자료」가 맞습니까?</b>
+    <p>지금은 「내 이북」인데 관리자에게는 남의 것이 대부분입니다. 「전체 자료」 외에 「자료 관리」도 후보입니다.</p>
+    <div class="rec">기본안: 전체 자료</div>
+  </div>
+
+  <div class="q">
+    <b>2. 작성자가 본인 자료를 삭제할 수 있습니까?</b>
+    <p>현재 코드는 작성자의 삭제를 전면 금지합니다. 시안에는 🗑 를 그려 뒀는데, 결재 이력이 없는
+       「작성 중」 자료만 허용하는 안입니다. 제출한 적 있는 자료는 기록이 남아야 하니 삭제 불가입니다.</p>
+    <div class="rec">기본안: 작성 중 · 결재 이력 없음일 때만 허용</div>
+  </div>
+
+  <div class="q">
+    <b>3. 관리자도 「내 자료」를 따로 봐야 합니까?</b>
+    <p>시안에서는 전체 목록 안에서 「내 자료」 칩으로만 구분했습니다. 관리자도 직접 자료를 만드니
+       별도 메뉴가 필요할 수 있습니다. 다만 메뉴가 하나 늘어납니다.</p>
+    <div class="rec">기본안: 별도 메뉴 없이 칩 + 필터로</div>
+  </div>
+
+  <div class="q">
+    <b>4. 상태·팀 필터를 지금 넣을까요?</b>
+    <p>자료가 3건일 때는 필터가 방해입니다. 20건이 넘어갈 때 붙이는 것으로 미뤄도 되는지 확인 부탁드립니다.</p>
+    <div class="rec">기본안: P6 으로 미룸</div>
+  </div>
+
+  <div class="q">
+    <b>5. 열람자(L3) 화면은 「팀 공유」 하나뿐입니다.</b>
+    <p>L3 은 개인 스케치가 없으므로 로그인하면 곧장 팀 공유로 떨어집니다.
+       위 「팀 공유」 화면에서 사이드바만 한 줄인 형태입니다. 별도 시안이 필요하면 말씀해 주세요.</p>
+    <div class="rec">기본안: 팀 공유 단일 화면</div>
+  </div>
+
+  <p style="margin-top:34px;font-size:12px;color:var(--muted)">
+    이 문서는 <b>합성 데이터</b>만 씁니다(홍길동·이순신 등). 실제 자료·개인정보는 들어 있지 않습니다.<br>
+    승인 상태: <b>검토 대기</b> — 승인 전에는 이 시안대로 화면을 구현하지 않습니다.
+  </p>
+</div>
+
+<script>
+  const btns = document.querySelectorAll('.roles button')
+  btns.forEach((b) => b.addEventListener('click', () => {
+    btns.forEach((x) => x.classList.toggle('on', x === b))
+    document.getElementById('admin').style.display = b.dataset.r === 'admin' ? '' : 'none'
+    document.getElementById('writer').style.display = b.dataset.r === 'writer' ? '' : 'none'
+  }))
+</script>
+</body>
+</html>
