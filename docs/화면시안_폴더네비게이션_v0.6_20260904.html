@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVER-SKETCH 화면 시안 — 폴더 네비게이션 (v0.6)</title>
+<style>
+  :root{--ink:#111318;--navy:#0F1B3D;--muted:#616a7a;--line:#e6e8ee;--bg:#f4f5f7;--panel:#fff;
+    --blue:#2462EB;--green:#3E9E6E;--amber:#D98A2A;--red:#b4232a;--pill:9999px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:36px 24px 80px}
+  .doc-kicker{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--blue);text-transform:uppercase}
+  h1{margin:6px 0 8px;font-size:26px;letter-spacing:-.02em}
+  .doc-meta{font-size:13px;color:var(--muted)}
+  .lede{margin:16px 0 0;padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:14px}
+  .lede b{color:var(--navy)}
+  .ph{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:var(--pill);
+    background:#eef2fb;color:#3355a8;vertical-align:middle;margin-left:6px}
+  h2.sec{margin:44px 0 10px;font-size:20px;letter-spacing:-.015em;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{margin:24px 0 10px;font-size:15.5px}
+  p.intro{font-size:14px;margin:0 0 14px}
+
+  /* 비교 스트립 */
+  .cmp{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:6px}
+  .cmp .r{display:grid;grid-template-columns:172px 1fr;gap:0;border-bottom:1px solid var(--line)}
+  .cmp .r:last-child{border-bottom:0}
+  .cmp .lab{background:#f8f9fc;padding:14px 16px;font-size:12.5px;font-weight:800;color:var(--muted);
+    display:flex;flex-direction:column;justify-content:center}
+  .cmp .lab small{font-weight:600;color:#98a1b2;font-size:11px;margin-top:2px}
+  .cmp .val{padding:14px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cmp .r.bad .lab{background:#fdf1f1;color:#a3272d}
+  .cmp .r.rec .lab{background:#eef7f2;color:#2b7a55}
+
+  .bc{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
+  .bc a{color:var(--blue);text-decoration:none;font-weight:700;cursor:pointer}
+  .bc b{color:var(--ink)}
+  .bc .sep{color:#c3c9d4}
+  .bc .dots{color:#98a1b2;font-weight:800;background:#f1f3f7;border-radius:6px;padding:0 7px}
+  .bc .home{background:#eef2fb;color:#1b47ad;border-radius:8px;padding:3px 9px;font-weight:800}
+  .bc .up{background:#fff;border:1.4px solid var(--line);border-radius:9px;padding:5px 12px;
+    font-weight:800;color:#334155;font-size:12.5px}
+
+  .app{display:grid;grid-template-columns:196px 1fr;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;box-shadow:0 10px 34px rgba(15,27,61,.07)}
+  .side{background:#fbfcfe;border-right:1px solid var(--line);padding:16px 12px}
+  .side .brand{display:flex;align-items:center;gap:8px;padding:2px 8px 16px;font-weight:800;font-size:14px}
+  .logo{width:26px;height:26px;border-radius:8px;background:var(--blue);display:grid;place-items:center;color:#fff;font-size:13px}
+  .nav{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;font-size:13px;
+    font-weight:700;color:var(--muted);margin-bottom:2px}
+  .nav.on{background:#eaf0fd;color:#1b47ad}
+  .nav .ico{width:16px;text-align:center;opacity:.75}
+  .side hr{border:0;border-top:1px solid var(--line);margin:12px 4px}
+  .main{padding:20px 22px 24px;min-height:300px}
+  .main-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .main-head h4{margin:0;font-size:17px}
+  .hbtns{display:flex;gap:7px}
+  .btn{border:none;background:var(--blue);color:#fff;font-weight:800;font-size:12.5px;border-radius:10px;
+    padding:8px 14px;font-family:inherit;cursor:pointer}
+  .btn.ghost{background:#fff;color:#334155;border:1.4px solid var(--line)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  .depth{font-size:11.5px;font-weight:800;border-radius:var(--pill);padding:3px 10px;margin-left:8px;
+    background:#f1f3f7;color:#7b8496}
+  .depth.max{background:#fdf3e3;color:#8a5510}
+
+  .folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:9px;margin-bottom:14px}
+  .fold{display:flex;align-items:center;gap:9px;background:#fff;border:1.4px solid var(--line);
+    border-radius:11px;padding:11px 13px;cursor:pointer}
+  .fold:hover{border-color:#c7cddb;background:#fcfdff}
+  .fold .fi{font-size:16px}
+  .fold .fn{font-weight:800;font-size:13px}
+  .fold .fc{font-size:11px;color:#98a1b2}
+  .row{display:flex;align-items:center;gap:12px;background:#fff;border:1.4px solid var(--line);
+    border-radius:12px;padding:12px 15px;margin-bottom:8px}
+  .row .thumb{width:34px;height:34px;border-radius:9px;background:#eef2fb;display:grid;place-items:center;
+    color:var(--blue);font-size:15px}
+  .row .t{font-weight:800;font-size:13.5px}
+  .row .m{font-size:11.5px;color:#98a1b2}
+  .empty{border:1.4px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;
+    color:var(--muted);font-size:13px;background:#fcfcfd}
+  .hint{background:#fffdf5;border:1px solid #f0e3c4;border-radius:10px;padding:10px 14px;
+    font-size:12.5px;color:#8a5510;margin-bottom:12px}
+
+  .notes{margin-top:16px;display:grid;gap:10px}
+  .note{display:flex;gap:11px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 15px;font-size:13px}
+  .note .n{font-weight:800;color:var(--blue);flex:0 0 auto}
+  .note.warn{border-left-color:var(--amber)}.note.warn .n{color:var(--amber)}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:13px}
+  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f8f9fc;font-size:12px;font-weight:800;color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  code{background:#f2f4f8;padding:1px 5px;border-radius:5px;font-size:12px}
+  .yes{color:var(--green);font-weight:800}.no{color:var(--red);font-weight:800}
+  .tagrec{display:inline-block;font-size:10.5px;font-weight:800;background:#e9f5ef;color:#2b7a55;
+    border-radius:var(--pill);padding:2px 8px;margin-left:6px}
+  @media (max-width:800px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--line)}
+    .cmp .r{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-kicker">화면 시안 · 검토 요청 (6차)</div>
+  <h1>폴더가 깊어져도 경로가 「…」으로 접히지 않게</h1>
+  <div class="doc-meta">2026-09-04 · v0.6 · 검토 대기 · 앞선 시안: <code>화면시안_팀공유구조_v0.5_20260904.html</code></div>
+
+  <div class="lede">
+    <b>요구사항.</b> 폴더가 많아지면 경로 이동으로 관리하되, 경로 중간이 <b>「…」으로 접히면 안 된다.</b>
+    한 화면에 보이는 경로 칸은 <b>3~5개로 적게.</b><br><br>
+    「…」이 생기는 이유는 간단합니다 — <b>경로가 화면보다 길어져서</b>입니다.
+    그러면 접는 방법을 고르는 게 아니라 <b>애초에 길어지지 않게</b> 하면 됩니다.
+  </div>
+
+  <!-- ════════ 1. 비교 ════════ -->
+  <h2 class="sec">1. 같은 자리를 네 가지 방식으로</h2>
+  <p class="intro">
+    <code>내 자료 / 2026 계획 / 3분기 / 9월 / 임원회의 / 초안</code> — 6단계 깊이에 있을 때입니다.
+  </p>
+
+  <div class="cmp">
+    <div class="r bad">
+      <div class="lab">흔한 방식<small>지금 막으려는 것</small></div>
+      <div class="val"><div class="bc">
+        <a>내 자료</a><span class="sep">›</span><a>2026 계획</a><span class="sep">›</span>
+        <span class="dots">…</span><span class="sep">›</span><a>임원회의</a><span class="sep">›</span><b>초안</b>
+      </div></div>
+    </div>
+    <div class="r rec">
+      <div class="lab">㉮ 깊이를 3단계로 제한<small>권장</small></div>
+      <div class="val"><div class="bc">
+        <a>내 자료</a><span class="sep">›</span><a>2026 계획</a><span class="sep">›</span>
+        <a>3분기</a><span class="sep">›</span><b>9월</b>
+      </div>
+      <span style="font-size:12px;color:var(--muted);margin-left:4px">
+        ← 4칸이 최대. 5·6단계는 <b>만들 수 없다</b></span></div>
+    </div>
+    <div class="r">
+      <div class="lab">㉯ 상위를 드롭다운으로<small>깊이 무제한</small></div>
+      <div class="val"><div class="bc">
+        <span class="home">🏠 상위 ▾</span><span class="sep">›</span><a>임원회의</a><span class="sep">›</span><b>초안</b>
+      </div>
+      <span style="font-size:12px;color:var(--muted);margin-left:4px">← 항상 3칸. 위쪽은 눌러서 목록으로</span></div>
+    </div>
+    <div class="r">
+      <div class="lab">㉰ 상위 버튼만<small>가장 짧음</small></div>
+      <div class="val"><div class="bc">
+        <span class="up">← 임원회의</span><span style="margin-left:4px"><b>초안</b></span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);margin-left:4px">← 2칸. 대신 지금 어디쯤인지 알 수 없다</span></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="n">1</span><div>
+      <b>㉮ 를 권합니다 — 문제를 표시가 아니라 구조에서 없앱니다.</b>
+      ㉯·㉰ 는 긴 경로를 <b>짧게 그리는</b> 방법이라, 사용자는 여전히 6단계 깊이에 있습니다.
+      들어가고 나오는 데 여섯 번을 눌러야 하고, 자료를 어디 뒀는지도 기억하기 어렵습니다.
+      ㉮ 는 <b>깊이 자체를 만들지 않아</b> 「…」이 생길 수가 없습니다.
+    </div></div>
+    <div class="note"><span class="n">2</span><div>
+      <b>3단계면 충분합니다.</b> 이 도구가 다루는 것은 월 단위 회의자료입니다 —
+      <code>2026 계획 / 3분기 / 9월</code> 이면 끝까지 갑니다.
+      팀 공유는 이미 <code>팀 / 작성자명</code> 2단계 고정이라 여기 해당하지 않습니다.
+    </div></div>
+  </div>
+
+  <!-- ════════ 2. 실제 화면 ════════ -->
+  <h2 class="sec">2. ㉮ 로 그린 화면 <span class="ph">P4</span></h2>
+  <p class="intro">폴더를 눌러 들어가 보세요. <b>3단계에 닿으면 「＋ 새 폴더」가 꺼집니다.</b></p>
+
+  <div class="app">
+    <div class="side">
+      <div class="brand"><span class="logo">E</span> EVER-SKETCH</div>
+      <div class="nav"><span class="ico">📤</span> 내 결재 현황</div>
+      <div class="nav on"><span class="ico">📚</span> 내 자료</div>
+      <div class="nav"><span class="ico">🗂</span> 팀 공유</div>
+      <hr>
+      <div class="nav"><span class="ico">🔧</span> 환경설정</div>
+    </div>
+    <div class="main">
+      <div class="main-head">
+        <h4>내 자료 <span class="depth" id="depth">깊이 0 / 3</span></h4>
+        <div class="hbtns"><button class="btn ghost" id="newFold">＋ 새 폴더</button><button class="btn">＋ 새로 만들기</button></div>
+      </div>
+      <div class="bc" id="crumb" style="margin:12px 0 14px"></div>
+      <div id="hint"></div>
+      <div id="body"></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note warn"><span class="n">!</span><div>
+      <b>막을 때는 이유를 말합니다.</b> 버튼만 꺼져 있으면 고장으로 보입니다.
+      <b>「여기는 3단계입니다. 더 나누는 대신 이름을 구체적으로 지어 보세요」</b> 처럼
+      다음에 무엇을 하면 되는지 함께 알려줍니다.
+    </div></div>
+    <div class="note"><span class="n">2</span><div>
+      <b>이미 만들어진 깊은 폴더는 막지 않습니다.</b> 제한은 <b>새로 만들 때만</b> 겁니다.
+      기존 자료가 갑자기 접근 불가가 되면 그게 더 큰 사고입니다. <span class="ph">P4</span>
+    </div></div>
+  </div>
+
+  <!-- ════════ 3. 그래도 많을 때 ════════ -->
+  <h2 class="sec">3. 한 단계 안에 폴더가 많아지면</h2>
+  <p class="intro">깊이를 막으면 대신 <b>같은 층에 폴더가 늘어납니다.</b> 그건 세로로 쌓이므로 「…」 문제가 아닙니다.</p>
+  <table>
+    <tr><th style="width:150px">개수</th><th>화면</th></tr>
+    <tr><td><b>~12개</b></td><td>지금처럼 카드로 늘어놓는다. 한눈에 들어온다</td></tr>
+    <tr><td><b>12개 초과</b></td><td>폴더 이름 <b>검색칸</b>이 위에 붙는다. 자료 검색과 같은 자리</td></tr>
+    <tr><td><b>정렬</b></td><td>이름순이 기본. 최근 연 순서는 검토 대상 — 위치가 매번 바뀌면 손이 기억하지 못한다</td></tr>
+  </table>
+
+  <!-- ════════ 4. 정리 ════════ -->
+  <h2 class="sec">4. 정리</h2>
+  <table>
+    <tr><th style="width:190px"></th><th>내 폴더</th><th>팀 공유</th></tr>
+    <tr><td><b>최대 깊이</b></td><td><b>3단계</b> (경로 칸 최대 4)</td><td><b>2단계 고정</b> — 팀 / 작성자명</td></tr>
+    <tr><td><b>「…」 접힘</b></td><td class="no">없음 — 생길 수 없음</td><td class="no">없음</td></tr>
+    <tr><td><b>한도에 닿으면</b></td><td>「＋ 새 폴더」가 꺼지고 이유를 안내</td><td>해당 없음 (사람이 안 만듦)</td></tr>
+    <tr><td><b>기존 깊은 폴더</b></td><td class="yes">그대로 쓸 수 있음</td><td>해당 없음</td></tr>
+  </table>
+
+  <p style="margin-top:34px;font-size:12px;color:var(--muted)">
+    합성 데이터만 사용. 실제 자료·개인정보 없음.<br>
+    승인 상태: <b>검토 대기</b> — ㉮ 로 가되 <b>깊이 3</b> 이 맞는지만 확인해 주시면 P1.5 부터 착수합니다.
+  </p>
+</div>
+
+<script>
+const MAX=3
+const TREE={
+  '':{f:[['2026 계획',6],['진행보고',3],['자료실',2],['임시',0]],i:[]},
+  '2026 계획':{f:[['3분기',4],['4분기',2]],i:[{t:'연간 계획 개요',m:'09.01 · 2페이지'}]},
+  '2026 계획/3분기':{f:[['9월',2],['8월',1]],i:[{t:'3분기 총괄',m:'09.02 · 1페이지'}]},
+  '2026 계획/3분기/9월':{f:[],i:[{t:'2026년 9월 임원회의',m:'09.04 · 제출 2차'},{t:'예산 재조정 검토',m:'09.04 · 1페이지'}]},
+  '2026 계획/3분기/8월':{f:[],i:[{t:'8월 진행보고',m:'08.30 · 1페이지'}]},
+  '2026 계획/4분기':{f:[],i:[{t:'4분기 초안',m:'09.03 · 1페이지'},{t:'예산 메모',m:'09.01 · 1페이지'}]},
+  '진행보고':{f:[],i:[{t:'7월 진행보고',m:'07.24 승인'},{t:'6월 진행보고',m:'06.25 승인'},{t:'5월 진행보고',m:'05.27 승인'}]},
+  '자료실':{f:[],i:[{t:'참고 양식',m:'08.10 · 3페이지'},{t:'용어 정리',m:'08.02 · 1페이지'}]},
+  '임시':{f:[],i:[]},
+}
+let path=''
+const crumb=document.getElementById('crumb'), body=document.getElementById('body'),
+      hint=document.getElementById('hint'), depth=document.getElementById('depth'),
+      newFold=document.getElementById('newFold')
+
+function go(p){path=p;render()}
+function render(){
+  const parts=path?path.split('/'):[]
+  const d=parts.length
+  let h=`<a data-p="">내 자료</a>`, acc=''
+  parts.forEach((p,i)=>{acc=acc?acc+'/'+p:p
+    h+='<span class="sep">›</span>'+(i===parts.length-1?`<b>${p}</b>`:`<a data-p="${acc}">${p}</a>`)})
+  crumb.innerHTML=h
+  crumb.querySelectorAll('a').forEach((a)=>a.onclick=()=>go(a.dataset.p))
+
+  depth.textContent=`깊이 ${d} / ${MAX}`
+  depth.className='depth'+(d>=MAX?' max':'')
+  newFold.disabled=d>=MAX
+  hint.innerHTML=d>=MAX
+    ? '<div class="hint">여기는 3단계입니다 — 더 아래로는 폴더를 만들지 않습니다. 나누는 대신 <b>자료 이름을 구체적으로</b> 지어 보세요.</div>'
+    : ''
+
+  const node=TREE[path]||{f:[],i:[]}
+  let out=''
+  if(node.f.length) out+='<div class="folders">'+node.f.map(([n,c])=>
+    `<div class="fold" data-p="${path?path+'/'+n:n}"><span class="fi">📁</span>
+      <div><div class="fn">${n}</div><div class="fc">${c?c+'건':'비어 있음'}</div></div></div>`).join('')+'</div>'
+  out+=node.i.length?node.i.map((x)=>
+    `<div class="row"><div class="thumb">📘</div><div><div class="t">${x.t}</div><div class="m">${x.m}</div></div></div>`).join('')
+    :(node.f.length?'':'<div class="empty">이 폴더는 비어 있어요.</div>')
+  body.innerHTML=out
+  body.querySelectorAll('.fold').forEach((f)=>f.onclick=()=>go(f.dataset.p))
+}
+render()
+</script>
+</body>
+</html>
