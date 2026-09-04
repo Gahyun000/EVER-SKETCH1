@@ -3,13 +3,14 @@ import { apiListUsers, isAdmin } from './authApi'
 import { useAuth } from './useAuth'
 import UsersAdmin from './UsersAdmin'
 import ChangePasswordDialog from './ChangePasswordDialog'
+import TeamsAdmin from '../teams/TeamsAdmin'
 
 /**
  * 로그인한 사람 표시 + 사용자 관리 + 로그아웃.
  *
  * 두 곳에서 쓴다.
  *   inline  = 편집 화면 툴바(TitleBar) 안
- *   기본     = 라이브러리·회차 화면 오른쪽 위 (툴바가 없는 화면)
+ *   기본     = 라이브러리 화면 오른쪽 위 (툴바가 없는 화면)
  *
  * 왜 나눴는가: 예전에는 이걸 `position: fixed; top:0; right:0` 전역 오버레이로
  * 띄웠다. 툴바가 없는 화면에서는 멀쩡했지만, 편집 화면에서는 툴바의 버튼들과
@@ -24,6 +25,7 @@ export default function UserBar({ inline = false }: { inline?: boolean }) {
   const me = useAuth((s) => s.me)
   const logout = useAuth((s) => s.logout)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [showTeams, setShowTeams] = useState(false)
   const [showPw, setShowPw] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const admin = isAdmin(me)
@@ -60,10 +62,14 @@ export default function UserBar({ inline = false }: { inline?: boolean }) {
             {pendingCount > 0 && <span className="es-badge">{pendingCount}</span>}
           </button>
         )}
+        {admin && (
+          <button className="es-linkbtn" onClick={() => setShowTeams(true)}>팀 관리</button>
+        )}
         <button className="es-linkbtn" onClick={() => setShowPw(true)}>비밀번호 변경</button>
         <button className="es-linkbtn" onClick={() => void logout()}>로그아웃</button>
       </div>
       {showAdmin && <UsersAdmin onClose={() => setShowAdmin(false)} />}
+      {showTeams && <TeamsAdmin onClose={() => setShowTeams(false)} />}
       {showPw && <ChangePasswordDialog onClose={() => setShowPw(false)} />}
     </>
   )

@@ -64,6 +64,7 @@ COMMENT_READ = "comment_read"
 COMMENT_WRITE = "comment_write"
 COMMENT_RESOLVE = "comment_resolve"
 COMMENT_FIX = "comment_fix"       # 「고쳤습니다」 — 지적받은 쪽이 답하는 표시
+TEAM_MANAGE = "team_manage"       # 팀 편성 — 누가 누구 자료를 보게 되는지를 정한다 (D1)
 USER_MANAGE = "user_manage"       # 가입 승인·역할 변경·비활성화
 SETTINGS_MANAGE = "settings_manage"   # LLM 설정 — API 키를 다룬다(UDS-107 §5)
 PUBLISH = "publish"               # 이북 발행 — 열람자 전원에게 공개된다. 되돌리기 어렵다
@@ -72,11 +73,11 @@ AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작
 ALL_ACTIONS = (
     READ, WRITE, DELETE,
     COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE, COMMENT_FIX,
-    USER_MANAGE, SETTINGS_MANAGE, PUBLISH, AI_USE,
+    TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH, AI_USE,
 )
 
 # 관리자 전용 액션. 새 관리 기능을 추가하면 여기에 넣는다.
-_ADMIN_ONLY = (USER_MANAGE, SETTINGS_MANAGE, PUBLISH)
+_ADMIN_ONLY = (TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH)
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,12 @@ class Actor:
     id: str
     role: str            # admin | writer | viewer | '' (미부여)
     status: str          # pending | active | disabled
+    # 지금 소속된 팀들. **매 요청 DB 에서 다시 읽는다**(auth.actor_of) —
+    # 토큰에 실어 두면 L1 이 팀을 옮겨도 그 사람 화면은 옛 팀을 계속 본다.
+    # 기본값이 빈 튜플인 이유: 팀을 모르는 판정(USER_MANAGE 등)이 훨씬 많고,
+    # 기존 `Actor(id, role, status)` 호출부가 인자 하나 늘었다고 깨지면 안 된다.
+    # P6 에서 "같은 팀 승인본"을 판정할 때부터 실제로 쓰인다.
+    team_ids: tuple[str, ...] = ()
 
     @property
     def is_active(self) -> bool:

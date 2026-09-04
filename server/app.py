@@ -25,6 +25,7 @@ from server import projects as projects_store
 from server import auth as auth_store
 from server.routes_auth import router as auth_router
 from server.routes_projects import router as projects_router
+from server.routes_teams import router as teams_router
 from server import permissions as perm
 from server.authdeps import require_action, require_active
 
@@ -631,6 +632,7 @@ def edit(req: EditIn, user: dict = Depends(require_active)):
 # app.py 는 chat·deck·pptx 등 무거운 의존성을 끌어와서, 여기 두면 권한 회귀 테스트를 돌릴 수 없다.
 app.include_router(auth_router)
 app.include_router(projects_router)
+app.include_router(teams_router)
 
 # 최초 관리자 시드 — 이미 있으면 아무것도 하지 않는다(멱등).
 _seed_pw = auth_store.ensure_seed_admin()

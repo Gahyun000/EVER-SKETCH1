@@ -24,6 +24,7 @@ import time
 import uuid
 from typing import Optional
 
+from server import teams as teams_store
 from server.permissions import ADMIN, Actor, ROLES, VIEWER, WRITER
 
 _HERE = pathlib.Path(__file__).resolve().parent
@@ -379,10 +380,17 @@ def user_by_token(token: Optional[str]) -> Optional[dict]:
 
 
 def actor_of(user: Optional[dict]) -> Optional[Actor]:
-    """dict → 권한 판정용 Actor. permissions.decide() 는 이것만 받는다."""
+    """dict → 권한 판정용 Actor. permissions.decide() 는 이것만 받는다.
+
+    소속 팀을 **여기서 매번 읽는다.** 세션 토큰에 넣어 두면 L1 이 팀을 옮긴 뒤에도
+    그 사람은 다시 로그인할 때까지 옛 팀 자료를 계속 본다 — 가시성 규칙에서는
+    그게 곧 유출이다. 대신 팀 변경 때 `_kill_sessions()` 를 부르지 않아도 된다
+    (부르면 L1 이 팀을 편성할 때마다 팀원 전원이 화면에서 튕긴다).
+    """
     if not user:
         return None
-    return Actor(id=user["id"], role=user.get("role") or "", status=user["status"])
+    return Actor(id=user["id"], role=user.get("role") or "", status=user["status"],
+                 team_ids=teams_store.team_ids_of(user["id"]))
 
 
 def _kill_sessions(user_id: str) -> None:

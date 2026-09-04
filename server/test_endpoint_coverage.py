@@ -42,6 +42,7 @@ ALL_ROUTES = (
     _routes("app.py", "app")
     + _routes("routes_projects.py", "router")
     + _routes("routes_auth.py", "router", prefix="/api/auth")   # APIRouter(prefix=...)
+    + _routes("routes_teams.py", "router", prefix="/api/teams")
 )
 
 
@@ -115,7 +116,7 @@ def test_대화_조회는_소유를_확인한다():
 def _perm_sources():
     """권한 판정에 관여하는 서버 파일들."""
     names = ["permissions.py", "authdeps.py", "auth.py", "app.py",
-             "routes_auth.py", "routes_projects.py", "admin_cli.py"]
+             "routes_auth.py", "routes_projects.py", "routes_teams.py", "admin_cli.py"]
     return [(n, (SRC_DIR / n).read_text(encoding="utf-8")) for n in names
             if (SRC_DIR / n).exists()]
 

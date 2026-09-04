@@ -155,7 +155,7 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
                     <b>{confirm.user.name}({confirm.user.login_id})</b> 님에게 <b>Lv1 관리자</b> 권한을 부여합니다.
                     <br /><br />
                     관리자는 <b>모든 임원의 자료를 열람·수정·삭제</b>할 수 있고, 다른 사람의 가입을 승인하고
-                    회차를 발행할 수 있습니다.
+                    팀을 편성할 수 있습니다.
                   </>
                 ) : (
                   <>
