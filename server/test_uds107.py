@@ -349,13 +349,25 @@ def test_UDS107_5_저장_키는_아이디와_비밀번호_둘뿐이다():
         "저장 키가 바뀌었거나 늘었습니다: %s" % keys
 
 
-def test_UDS107_5_비밀번호_저장은_켠_사람에게만_일어난다():
-    """기본값이 켜져 있으면 아무도 고르지 않은 위험을 전원이 지게 된다."""
+def test_UDS107_5_비밀번호가_저장된다는_사실을_라벨이_말한다():
+    """체크 하나가 아이디와 비밀번호를 함께 저장한다. 그러면 라벨이 그렇게 적혀 있어야 한다.
+
+    「아이디 기억하기」라고만 적힌 체크박스가 비밀번호까지 저장하면, 사용자는
+    자기가 무엇을 켰는지 모른 채 켠다. 동의가 아니라 사고다.
+    """
     root = pathlib.Path(__file__).resolve().parent.parent
     body = (root / "src" / "auth" / "LoginScreen.tsx").read_text(encoding="utf-8")
-    assert "useState(!!remembered.password)" in body, \
-        "비밀번호 저장 체크박스의 기본값이 '이미 저장된 경우'가 아닙니다"
+    assert "아이디, 비밀번호 기억하기" in body, \
+        "라벨이 비밀번호까지 저장한다는 사실을 말하지 않습니다"
     assert "공용 PC" in body, "비밀번호 저장 위험을 알리는 문구가 없습니다"
+
+
+def test_UDS107_5_기억하기_기본값은_저장된_것에서_온다():
+    """기본값을 켜 둔 채로 배포하면, 아무도 고르지 않은 위험을 전원이 지게 된다."""
+    root = pathlib.Path(__file__).resolve().parent.parent
+    body = (root / "src" / "auth" / "LoginScreen.tsx").read_text(encoding="utf-8")
+    assert "useState(!!remembered.loginId)" in body, \
+        "기억하기 체크박스의 기본값이 '이미 저장된 경우'에서 오지 않습니다"
 
 
 def test_UDS107_5_비밀번호를_바꾸면_저장된_값을_지운다():

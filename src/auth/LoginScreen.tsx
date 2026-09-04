@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { clearRemembered, clearRememberedPassword, loadRemembered, saveRemembered } from './remember'
+import { clearRemembered, loadRemembered, saveRemembered } from './remember'
 import { ApiError, apiSignup, ROLE_DESC, ROLE_LABEL, ROLE_ORDER, type Role } from './authApi'
 import PasswordField from './PasswordField'
 import { useAuth } from './useAuth'
@@ -16,7 +16,6 @@ export default function LoginScreen() {
   const [remembered] = useState(() => loadRemembered())
   const [loginId, setLoginId] = useState(remembered.loginId)
   const [remember, setRemember] = useState(!!remembered.loginId)
-  const [rememberPw, setRememberPw] = useState(!!remembered.password)
   const [password, setPassword] = useState(remembered.password)
   const [name, setName] = useState('')
   const [dept, setDept] = useState('')
@@ -38,7 +37,7 @@ export default function LoginScreen() {
       if (mode === 'login') {
         await login(loginId, password)
         // 로그인에 성공한 뒤에만 저장한다 — 틀린 값을 기억하면 오히려 방해가 된다.
-        if (remember) saveRemembered(loginId, rememberPw ? password : undefined)
+        if (remember) saveRemembered(loginId, password)
         else clearRemembered()
       } else {
         const r = await apiSignup({ login_id: loginId, password, name, dept, requested_role: role })
@@ -96,22 +95,18 @@ export default function LoginScreen() {
                 <input type="checkbox" checked={remember}
                   onChange={(e) => {
                     setRemember(e.target.checked)
-                    if (!e.target.checked) { setRememberPw(false); clearRemembered() }
+                    if (!e.target.checked) clearRemembered()
                   }} />
-                <span>아이디 기억하기</span>
+                <span>아이디, 비밀번호 기억하기</span>
               </label>
-              {/* 비밀번호 저장은 **켠 사람에게만** 일어난다. 무슨 일이 벌어지는지
-                  숨기지 않고 그대로 적는다 — 공용 PC 에서 켜면 다음 사람이 그대로 들어간다. */}
+              {/* 경고는 **켰을 때만** 띄운다. 그때가 사실이 되는 순간이고,
+                  꺼진 채로 늘 떠 있으면 읽히지 않는 글자가 하나 느는 것뿐이다.
+                  줄을 따로 쓰는 이유: 체크박스 옆에 붙이면 라벨과 자리를 다투다가
+                  '비밀번호도 저 / 장' 처럼 낱말 가운데가 끊긴다. */}
               {remember && (
-                <label className="es-check">
-                  <input type="checkbox" checked={rememberPw}
-                    onChange={(e) => {
-                      setRememberPw(e.target.checked)
-                      if (!e.target.checked) clearRememberedPassword()
-                    }} />
-                  <span>비밀번호도 저장</span>
-                  <em>이 기기에 그대로 저장됩니다. 공용 PC 에서는 켜지 마세요</em>
-                </label>
+                <p className="es-check-note">
+                  이 기기에 그대로 저장됩니다. 공용 PC 에서는 켜지 마세요.
+                </p>
               )}
             </>
           )}
