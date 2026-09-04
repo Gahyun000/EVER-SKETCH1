@@ -20,6 +20,14 @@ server/.venv/bin/python -m uvicorn server.app:app --reload --port 8000
 
 원클릭 실행기: `./run.command` (macOS) / `run.cmd` (Windows)
 
+`run.command`는 `package-lock.json`이 바뀌었을 때만 `npm install`을 돌린다(도장: `node_modules/.install-stamp`).
+
+| 환경변수 | 효과 |
+|---|---|
+| `SKIP_BUILD=1` | 설치·빌드 생략, 기존 `dist` 그대로 기동 (가장 빠른 재시작) |
+| `FORCE_INSTALL=1` | 도장을 무시하고 다시 설치 |
+| `PORT=8830` · `AUTO_OPEN=0` · `HOST=127.0.0.1` | 포트 · 브라우저 자동열기 · 바인딩 주소 |
+
 ## 스택
 
 | 계층 | 구성 |
