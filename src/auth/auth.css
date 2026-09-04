@@ -118,11 +118,17 @@
   box-shadow: 0 1px 4px rgba(15, 27, 61, .07);
 }
 .es-linkbtn:hover { background: #fff; border-color: #c6d5ff; color: #2462EB; }
-.es-linkbtn .es-badge {
-  display: inline-block; min-width: 16px; height: 16px; line-height: 16px; margin-left: 5px;
-  background: #D98A2A; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 800;
-  text-align: center; padding: 0 4px;
+/* 개수 배지.
+   **`.es-linkbtn .es-badge` 로만 정의돼 있었다** — 링크 버튼 안에서만 동그란 배지가 되고
+   그 밖(예: 팀 관리의 묶음 줄)에서는 스타일이 하나도 안 붙어 「사람 1」처럼
+   제목 글자에 숫자가 그대로 이어 붙었다. 2026-09-04 에 홀로 서게 풀었다. */
+.es-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  background: #D98A2A; color: #fff; border-radius: 99px;
+  font-size: 10.5px; font-weight: 800; text-align: center;
 }
+.es-linkbtn .es-badge { margin-left: 5px; min-width: 16px; height: 16px; font-size: 10px; padding: 0 4px; }
 
 /* 사용자 관리 표 */
 .es-admin-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
@@ -192,3 +198,121 @@
 .es-pweye:focus-visible { outline: 2px solid #2462EB; outline-offset: 1px; }
 .es-pweye[aria-pressed="true"] { color: #2462EB; }
 .es-hint.es-caps { color: #96601a; font-weight: 600; }
+
+
+/* ══════════════════════════════════════════════════════════
+   팀 관리 (SCR-TEAM-01) — 시안 docs/화면시안_팀관리_최종_v2.3_20260904.html
+   ══════════════════════════════════════════════════════════
+   화면 전체가 **가운데 정렬**이다. 조작 칸은 사람 줄과 팀 줄이 **똑같은 두 칸**을 쓰고,
+   안에 든 것이 무엇이든 칸 폭에 꽉 채운다 — 그래야 글자 수가 달라도
+   왼쪽 끝·가운데 경계·오른쪽 끝이 세 군데 다 맞는다. */
+.tm {
+  /* A칸: 팀 선택 / 이름 변경   ·   B칸: 넣기·옮기기 / 팀 삭제 */
+  --tm-a: 96px; --tm-b: 84px; --tm-gap: 6px;
+}
+
+/* 머리 — 제목은 가운데, 「＋ 새 팀」은 왼쪽 위, 「닫기」는 오른쪽 위.
+   닫는 버튼은 어느 창에서나 같은 구석에 있어야 손이 기억한다. */
+.tm-head { position: relative; text-align: center; margin-bottom: 14px; padding: 0 84px; min-height: 42px; }
+.tm-head .es-brand { justify-content: center; }
+.tm-head .es-lede { margin: 4px 0 0; }
+.tm-head .tm-new { position: absolute; top: 0; left: 0; }
+.tm-head .tm-close { position: absolute; top: 0; right: 0; }
+
+/* 새 팀 입력 — 평소에는 화면에 없다. 「＋ 새 팀」을 눌러야 열린다. */
+.tm-mk {
+  display: flex; gap: 7px; align-items: center; flex-wrap: wrap; justify-content: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+  padding: 10px; margin-bottom: 12px;
+}
+.tm-mk input {
+  flex: 0 1 260px; min-width: 0; height: 34px; padding: 0 11px;
+  border: 1px solid var(--line); border-radius: 7px; font-size: 13px;
+  font-family: inherit; background: #fff; outline: none; text-align: center;
+}
+.tm-mk input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--tint); }
+.tm-mk .tm-mkerr { width: 100%; text-align: center; font-size: 11.5px; color: var(--red); font-weight: 600; }
+
+/* 조회줄 — 날짜 칸은 없다. 이 화면은 「행을 눌러 들어가는 조회 화면」이 아니라
+   그 자리에서 고치는 목록 화면이라, 표준 261행(「필요한 검색조건」)을 따른다. */
+.tm-srch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+.tm-qbox {
+  display: flex; align-items: center; gap: 7px; flex: 0 1 300px; min-width: 180px;
+  background: #fff; border: 1.4px solid var(--line); border-radius: 10px;
+  padding: 0 11px; height: 36px; color: #64748b;
+}
+.tm-qbox input {
+  border: none; outline: none; flex: 1; min-width: 0; font-size: 13.5px;
+  color: var(--ink); background: transparent; font-family: inherit; text-align: center;
+}
+.tm-qbox:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--tint); }
+.tm-sbtn {
+  border: 1.4px solid var(--line); background: #fff; color: var(--sub); font-weight: 800;
+  font-size: 13px; border-radius: 10px; padding: 0 14px; height: 36px;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.tm-sbtn.dark { background: var(--navy); border-color: var(--navy); color: #fff; }
+.tm-sbtn:disabled { opacity: .5; cursor: not-allowed; }
+
+.tm-pager {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 0 0 8px; color: var(--sub); font-size: 12.5px; font-weight: 700;
+}
+.tm-pager b { color: var(--navy); }
+.tm-pager .tm-pg { display: flex; gap: 6px; }
+.tm-pager .tm-pg button {
+  border: 1px solid var(--line); background: #fff; border-radius: 7px;
+  width: 28px; height: 28px; cursor: pointer; color: var(--sub); font-family: inherit;
+}
+.tm-pager .tm-pg button:disabled { opacity: .4; cursor: not-allowed; }
+
+/* 표 — 셋 다 가운데. 칸 폭을 못박아 좁아져도 낱말이 안 끊긴다
+   (표준: 「표 셀은 … 의도치 않은 두 줄 깨짐이 없도록 한다」). */
+.tm-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+.tm-table th, .tm-table td {
+  border-bottom: 1px solid var(--line); padding: 9px 8px; vertical-align: middle; text-align: center;
+}
+.tm-table th { background: var(--card); color: var(--navy); font-weight: 700; font-size: 11.5px; white-space: nowrap; }
+.tm-table td { color: var(--sub); }
+/* 이름 위·부서 아래는 **일부러** 두 줄이다. 한 줄에 밀어 넣으면 「SI개발본 / 부」가 된다. */
+.tm-who { display: block; color: var(--ink); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-dept { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-lv { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-empty { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.tm-state { color: var(--muted); font-size: 13px; padding: 34px 0; line-height: 1.7; }
+.tm-mark { background: #fff1c2; color: inherit; border-radius: 3px; padding: 0 1px; }
+
+/* 조작 두 칸 */
+.tm-assign { display: inline-flex; gap: var(--tm-gap); align-items: center; max-width: 100%; }
+.tm-a { flex: 0 1 var(--tm-a); width: var(--tm-a); min-width: 0; }
+.tm-b { flex: 0 0 var(--tm-b); width: var(--tm-b); }
+.tm-a > *, .tm-b > * { width: 100%; }
+.tm-a select {
+  display: block; height: 31px; border: 1px solid var(--line); border-radius: 6px;
+  font-size: 12.5px; font-family: inherit; padding: 0 4px; background: #fff; text-align: center;
+}
+.tm-a .es-mini, .tm-b .es-mini { justify-content: center; overflow: hidden; text-overflow: ellipsis; }
+
+/* 묶음 줄 — 색 + 위쪽 굵은 선(시안 v2.3 ㉰).
+   미배정은 주황(「여기 할 일이 있다」), 팀은 남색(「여기서 새 묶음이 시작된다」).
+   **색만으로 말하지 않는다**(표준) — 두 줄 다 글자가 먼저 무엇인지 말한다. */
+.tm-grp td { background: #eef3fc; padding: 8px; text-align: center; border-top: 2px solid #c9d8f2; }
+.tm-grp.tm-none td { background: #fff4e3; border-top-color: #f0cf9e; }
+.tm-table tbody tr:first-child.tm-grp td { border-top: 0; }
+.tm-grp td.tm-namecell { position: relative; }
+.tm-grpname { font-size: 13px; font-weight: 800; color: var(--navy); white-space: nowrap; }
+.tm-grp.tm-none .tm-grpname { color: #8a5a10; }
+/* 개수 배지는 칸의 **오른쪽 끝에 고정**한다. 이름 옆에 붙이면 배지 폭만큼
+   묶음 이름이 왼쪽으로 밀려 아래 사람 이름과 세로 중심이 어긋난다. */
+.tm-cnt {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: #d7e3f8; color: #1a4fc4;
+}
+.tm-grp.tm-none .tm-cnt { background: var(--amber); color: #fff; }
+
+.tm-spin {
+  display: inline-block; width: 14px; height: 14px; border: 2px solid #dfe3ea;
+  border-top-color: var(--blue); border-radius: 50%; animation: tm-sp .7s linear infinite;
+  vertical-align: -2px; margin-right: 6px;
+}
+@keyframes tm-sp { to { transform: rotate(360deg); } }

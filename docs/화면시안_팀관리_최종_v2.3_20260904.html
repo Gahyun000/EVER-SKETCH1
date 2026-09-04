@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팀 관리 — 최종 시안 v2.3</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --ink:#1c2433; --sub:#5b6270; --muted:#98a1b2;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A; --red:#b4232a;
+    --tint:#EAF1FE; --line:#e6e8ee; --card:#f6f8fc;
+    --slot-a:96px; --slot-b:84px; --gap:6px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#f3f6fb 0%,#e9eef7 100%);
+    font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',Inter,system-ui,sans-serif;
+    color:var(--ink);letter-spacing:-.01em;padding:28px 20px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 4px}
+  .lede{font-size:13.5px;color:var(--sub);line-height:1.7;margin:0 0 24px}
+  h2{font-size:16px;font-weight:800;color:var(--navy);margin:34px 0 12px;
+     padding-bottom:8px;border-bottom:2px solid var(--navy)}
+  p{font-size:13px;color:var(--sub);line-height:1.75;margin:0 0 10px}
+  b{color:var(--ink)}
+  code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:8px;padding:13px 15px;font-size:12.8px;color:var(--sub);line-height:1.75;margin:12px 0}
+  .note.ok{border-left-color:var(--green);background:#f4faf7}
+  .note.warn{border-left-color:var(--amber);background:#fffbf3}
+  .note b{color:var(--navy)}
+
+  .bar{display:flex;gap:6px;align-items:center;margin:0 0 10px;flex-wrap:wrap}
+  .bar span.l{font-size:12px;color:var(--sub);margin-right:2px}
+  .bar span.sep{width:1px;height:20px;background:var(--line);margin:0 6px}
+  .wbtn{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;
+    font-size:12.5px;cursor:pointer;color:var(--sub);font-family:inherit;white-space:nowrap}
+  .wbtn.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+  .wbtn.dev{border-style:dashed;color:var(--muted)}
+  .wbtn.dev.on{background:var(--amber);border-color:var(--amber);color:#fff}
+
+  .stage{transition:max-width .18s}
+  .es-card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 8px 32px rgba(15,27,61,.10);padding:24px 22px 20px}
+  .head{position:relative;text-align:center;margin-bottom:14px;padding:0 82px;min-height:42px}
+  .es-brand{display:flex;align-items:baseline;gap:8px;justify-content:center}
+  .es-brand b{font-size:19px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+  .es-brand span{font-size:12px;color:var(--muted)}
+  .es-lede{font-size:13px;color:var(--sub);margin:4px 0 0;line-height:1.6}
+  .close{position:absolute;top:0;right:0}
+  .newteam{position:absolute;top:0;left:0}
+  .es-msg{border-radius:7px;padding:11px 13px;font-size:12.5px;line-height:1.55}
+  .es-msg.info{background:var(--tint);border:1px solid #c6d5ff;color:#1a4fc4}
+
+  .es-mini{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 8px;
+    font-size:12px;color:var(--ink);cursor:pointer;font-family:inherit;white-space:nowrap;
+    display:inline-flex;align-items:center;justify-content:center;gap:4px}
+  .es-mini.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  .es-mini.danger{color:var(--red);border-color:#f0d6d6}
+  .es-mini:disabled{opacity:.55;cursor:not-allowed}
+  .ic{width:16px;height:16px;flex:0 0 16px;stroke:currentColor;fill:none;
+    stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ic.sm{width:14px;height:14px;flex-basis:14px}
+
+  /* 「＋ 새 팀」을 눌러야 열린다 — 평소엔 화면에 없다 */
+  .mk{display:none;gap:7px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:12px}
+  .mkopen .mk{display:flex}
+  .mk input{flex:0 1 260px;min-width:0;height:34px;padding:0 11px;border:1px solid var(--line);
+    border-radius:7px;font-size:13px;font-family:inherit;background:#fff;outline:none;text-align:center}
+  .mk input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--tint)}
+  .mkerr{width:100%;text-align:center;font-size:11.5px;color:var(--red);font-weight:600}
+
+  .srch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+  .srch .qbox{display:flex;align-items:center;gap:7px;flex:0 1 300px;min-width:190px;background:#fff;
+    border:1.4px solid var(--line);border-radius:10px;padding:0 11px;height:36px;color:#64748b}
+  .srch .qbox input{border:none;outline:none;flex:1;min-width:0;font-size:13.5px;color:var(--ink);
+    background:transparent;font-family:inherit;text-align:center}
+  .srch .qbox:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--tint)}
+  .sbtn{border:1.4px solid var(--line);background:#fff;color:var(--sub);font-weight:800;font-size:13px;
+    border-radius:10px;padding:0 14px;height:36px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .sbtn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    margin:0 0 8px;color:var(--sub);font-size:12.5px;font-weight:700}
+  .pager b{color:var(--navy)}
+  .pager .pg{display:flex;gap:6px}
+  .pager .pg button{border:1px solid var(--line);background:#fff;border-radius:7px;
+    width:28px;height:28px;cursor:pointer;color:var(--sub);font-family:inherit}
+  .pager .pg button:disabled{opacity:.4;cursor:not-allowed}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:9px 8px;
+    vertical-align:middle;text-align:center}
+  table.t th{background:var(--card);color:var(--navy);font-weight:700;font-size:11.5px;white-space:nowrap}
+  table.t td{color:var(--sub)}
+  .who{display:block;color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dept{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .assign{display:inline-flex;gap:var(--gap);align-items:center;max-width:100%}
+  .slotA{flex:0 1 var(--slot-a);width:var(--slot-a);min-width:0}
+  .slotB{flex:0 0 var(--slot-b);width:var(--slot-b)}
+  .slotA > *,.slotB > *{width:100%}
+  .slotA select{height:31px;border:1px solid var(--line);border-radius:6px;display:block;
+    font-size:12.5px;font-family:inherit;padding:0 4px;background:#fff;text-align:center}
+  /* ── 묶음 줄 색 ──
+     미배정은 주황(할 일이 있다), 팀은 남색(정리된 칸).
+     **색만으로 말하지 않는다** — 두 줄 다 글자로 무엇인지 먼저 말하고, 색은 거들 뿐이다.
+     톤 3종을 토글로 비교할 수 있게 해 두었다(tone-a / tone-b / tone-c). */
+  tr.grp td{background:#eef3fc;padding:8px;text-align:center}
+  tr.grp.none td{background:#fff4e3}
+  /* ㉯ 왼쪽 띠 */
+  .tone-b tr.grp td:first-child{box-shadow:inset 3px 0 0 var(--navy)}
+  .tone-b tr.grp.none td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+  /* ㉰ 위쪽 굵은 선 — 묶음이 「여기서 새로 시작」임을 선으로 말한다 */
+  .tone-c tr.grp td{border-top:2px solid #c9d8f2}
+  .tone-c tr.grp.none td{border-top:2px solid #f0cf9e}
+  .tone-c tr.grp:first-child td{border-top:0}
+  tr.grp td.namecell{position:relative}
+  .grpname{font-size:13px;font-weight:800;color:var(--navy);white-space:nowrap}
+  tr.grp.none .grpname{color:#8a5a10}
+  .cnt{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+    padding:0 5px;border-radius:99px;background:#d7e3f8;color:#1a4fc4;font-size:10.5px;font-weight:800}
+  .cnt.warn{background:var(--amber);color:#fff}
+  .empty{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .state{color:var(--muted);font-size:13px;padding:34px 0;line-height:1.7}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid #dfe3ea;border-top-color:var(--blue);
+    border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  mark{background:#fff1c2;color:inherit;border-radius:3px;padding:0 1px}
+
+  .guide.on .slotA{background:rgba(36,98,235,.10);outline:1px dashed rgba(36,98,235,.55);outline-offset:-1px}
+  .guide.on .slotB{background:rgba(180,35,42,.09);outline:1px dashed rgba(180,35,42,.5);outline-offset:-1px}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0 4px}
+  table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:var(--card);color:var(--navy);font-weight:800;font-size:11.5px;white-space:nowrap}
+  table.cmp td{color:var(--sub);line-height:1.65}
+  table.cmp td b{color:var(--ink)}
+  table.cmp tr:last-child td{border-bottom:0}
+  .x{color:var(--red);font-weight:800}.o{color:#215c46;font-weight:800}
+  .log{background:#0F1B3D;color:#c8d4ee;border-radius:8px;padding:10px 13px;
+    font-size:11.5px;line-height:1.7;margin-top:10px;min-height:40px}
+  .log em{color:#7fe0b0;font-style:normal}
+  .fin{background:var(--navy);color:#fff;border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.8}
+  .fin b{color:#fff}
+  .fin ul{margin:8px 0 0;padding-left:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>팀 관리 — 최종 시안</h1>
+  <p class="lede">
+    v2.3 · 2026-09-04 · <b>SCR-TEAM-01</b> · 검토 후 이대로 구현합니다.<br>
+    이번 수정: <b>팀 묶음 줄에도 색을 넣었습니다</b>(남색). 미배정은 주황 그대로 —
+    두 색이 서로 다른 말을 합니다.<br>
+    앞서 확정: 미배정 먼저 · 날짜 칸 없음 · 「＋ 새 팀」 머리줄 버튼 ·
+    A칸 96 · 「팀 선택」 중앙 · 「팀원이 없습니다」는 권한 열.
+  </p>
+
+  <!-- ═══════════════════════════ -->
+  <h2>1. 묶음 줄 색 — 팀에도 넣었습니다</h2>
+  <table class="cmp">
+    <tr><th style="width:130px">묶음</th><th style="width:150px">색</th><th>무슨 말을 하나</th></tr>
+    <tr><td><b>아직 팀이 없는 사람</b></td>
+        <td><span style="display:inline-block;width:54px;height:16px;background:#fff4e3;border:1px solid #f0cf9e;border-radius:3px;vertical-align:-3px"></span>
+            주황</td>
+        <td><b>「여기 할 일이 있다」</b> — 손이 안 간 사람이 남아 있다는 뜻.
+            0명이 되면 <b>줄 자체가 사라집니다.</b></td></tr>
+    <tr><td><b>팀</b></td>
+        <td><span style="display:inline-block;width:54px;height:16px;background:#eef3fc;border:1px solid #c9d8f2;border-radius:3px;vertical-align:-3px"></span>
+            남색</td>
+        <td><b>「여기서 새 묶음이 시작된다」</b> — 할 일이 아니라 <b>구분</b>입니다.
+            그래서 주황보다 조용한 색을 씁니다.</td></tr>
+  </table>
+  <div class="note ok">
+    <b>왜 같은 주황을 쓰지 않았나</b> — 둘 다 주황이면 「할 일이 있다」는 뜻이 흐려집니다.
+    지금은 <b>주황이 한 곳에만</b> 있어서, 화면을 열자마자 손이 갈 곳이 눈에 들어옵니다.
+    팀 줄은 <b>보이기만 하면 되는 구분선</b>이라 남색이 맞습니다.
+    <br><br>
+    <b>색만으로 말하지 않습니다</b>(표준 「색상만으로 상태를 구분하지 않는다」) —
+    두 줄 다 <b>글자</b>가 먼저 무엇인지 말하고(「아직 팀이 없는 사람」 / 팀 이름),
+    색은 거들 뿐입니다. 개수 배지도 각자 제 줄과 같은 색 식구로 맞췄습니다.
+  </div>
+  <div class="note warn">
+    <b>톤은 세 가지를 준비했습니다.</b> 아래 「묶음 줄 톤」으로 바꿔 보시고 골라 주세요.
+    기본은 ㉮(색만)입니다 — 미배정 줄이 원래 색만 쓰고 있었으니, 팀도 같은 방식이어야 짝이 맞습니다.
+  </div>
+
+  <h2>2. 최종 화면</h2>
+  <div class="bar">
+    <span class="l">상태</span>
+    <button class="wbtn on" data-st="ok">정상</button>
+    <button class="wbtn" data-st="loading">로딩</button>
+    <button class="wbtn" data-st="empty">빈 데이터</button>
+    <button class="wbtn" data-st="error">서버 오류</button>
+    <button class="wbtn" data-st="long">긴 텍스트</button>
+    <span class="sep"></span>
+    <span class="l">창 폭</span>
+    <button class="wbtn on" data-w="1100">1100</button>
+    <button class="wbtn" data-w="860">860</button>
+    <button class="wbtn" data-w="640">640</button>
+    <span class="sep"></span>
+    <button class="wbtn dev" id="guideBtn">검토용: 칸 경계</button>
+  </div>
+  <div class="bar">
+    <span class="l">묶음 줄 톤</span>
+    <button class="wbtn on" data-tone="tone-a">㉮ 색만</button>
+    <button class="wbtn" data-tone="tone-b">㉯ 색 + 왼쪽 띠</button>
+    <button class="wbtn" data-tone="tone-c">㉰ 색 + 위쪽 굵은 선</button>
+  </div>
+
+  <div class="stage" id="stage" style="max-width:1100px">
+    <div class="es-card guide tone-a" id="card">
+      <div class="head">
+        <button class="es-mini newteam" id="newTeamBtn">
+          <svg class="ic sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> 새 팀
+        </button>
+        <div class="es-brand"><b>팀 관리</b><span>관리자 전용</span></div>
+        <p class="es-lede">팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.</p>
+        <button class="es-mini close">닫기</button>
+      </div>
+
+      <div class="mk">
+        <input id="newName" placeholder="새 팀 이름 (예: 영업1팀)" maxlength="30">
+        <button class="es-mini" id="mkBtn" disabled>만들기</button>
+        <button class="es-mini" id="mkCancel">취소</button>
+        <span class="mkerr" id="mkErr"></span>
+      </div>
+
+      <div class="srch">
+        <span class="qbox">
+          <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="q" placeholder="이름 · 부서 · 팀 이름" aria-label="검색어">
+        </span>
+        <button class="sbtn dark" id="goBtn">조회</button>
+        <button class="sbtn" id="resetBtn">초기화</button>
+      </div>
+
+      <div class="pager">
+        <span id="count"></span>
+        <span class="pg">
+          <button id="prev" disabled aria-label="이전 쪽">‹</button>
+          <button id="next" disabled aria-label="다음 쪽">›</button>
+        </span>
+      </div>
+
+      <table class="t">
+        <colgroup><col style="width:36%"><col style="width:20%"><col style="width:44%"></colgroup>
+        <thead><tr><th>이름 · 부서</th><th>권한</th><th>팀 배정</th></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+
+      <div class="es-msg info" style="margin-top:16px">
+        팀을 바꿔도 <b>로그인은 끊기지 않습니다</b> — 다음 요청부터 바로 새 팀이 적용됩니다. (권한 변경과 다릅니다.)
+        <br>한 사람은 <b>한 팀</b>에만 속합니다. 다른 팀에 넣으면 이전 팀에서 빠집니다.
+      </div>
+    </div>
+    <div class="log" id="log">
+      왼쪽 위 <b>「＋ 새 팀」</b>을 눌러 보세요. 검색은 <b>「조회」</b> 또는 <b>엔터</b>.
+      「영업」·「김」·「본부」로 찾아 보시고, 위에서 <b>상태</b>도 확인해 주세요.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>3. 화면 명세 (SCR-TEAM-01)</h2>
+  <table class="cmp">
+    <tr><th style="width:110px">항목</th><th>내용</th></tr>
+    <tr><td><b>목적</b></td><td>L1 이 팀을 만들고 L2·L3 을 편성한다. <b>팀이 곧 공유 범위</b>(계획서 D1)</td></tr>
+    <tr><td><b>권한</b></td><td><code>TEAM_MANAGE</code> — 관리자 전용. 서버가 판정(<code>permissions.decide</code>)하고 화면은 보조</td></tr>
+    <tr><td><b>진입</b></td><td>오른쪽 위 「팀 관리」 → 모달. <b>행 클릭 상세 진입 없음</b>(그 자리에서 편성한다)</td></tr>
+    <tr><td><b>목록 순서</b></td><td><b>① 아직 팀이 없는 사람 → ② 팀별</b> (확정). 미배정 0명이면 그 묶음은 사라진다</td></tr>
+    <tr><td><b>검색조건</b></td><td>검색어 하나 — <b>이름 · 부서 · 팀 이름</b>을 한 칸이 다 찾는다.
+        팀 이름이 걸리면 그 팀 사람 전원, 사람이 걸리면 그 사람 + 속한 묶음 줄. 맞은 글자에 노란 칠</td></tr>
+    <tr><td><b>동작</b></td><td>팀 만들기 · 이름 변경 · 팀 삭제(팀원 0명일 때만) · 팀원 넣기/옮기기/(팀에서) 빼기</td></tr>
+    <tr><td><b>API</b></td><td><code>GET/POST /api/teams</code> · <code>PATCH/DELETE /api/teams/{id}</code> ·
+        <code>POST/DELETE /api/teams/{id}/members</code> — <b>P3 에서 이미 만들었고 바뀌지 않는다</b></td></tr>
+    <tr><td><b>상태</b></td><td>정상 · 로딩 · 빈 데이터 · 검색 0건 · 서버 오류 · 긴 텍스트 · 작은 화면 (위에서 전부 확인 가능)</td></tr>
+    <tr><td><b>확인창</b></td><td>팀 삭제는 자체 확인창. <b>브라우저 기본 alert·confirm·prompt 를 쓰지 않는다</b>(표준·저장소 게이트)</td></tr>
+    <tr><td><b>색 규칙</b></td><td>색만으로 상태를 말하지 않는다 — 미배정은 <b>글자</b>(「아직 팀이 없는 사람」)로,
+        삭제 불가는 <b>글자</b>(「팀원이 남아 있습니다」)로 함께 알린다</td></tr>
+  </table>
+
+  <div class="fin">
+    <b>이대로 구현하면 바뀌는 파일</b>
+    <ul>
+      <li><code>src/teams/TeamsAdmin.tsx</code> — 화면 전체</li>
+      <li><code>src/teams/teamModel.ts</code> — 검색 판정 · 묶음 계산(순수 함수로 두어 노드로 검증)</li>
+      <li><code>src/auth/auth.css</code> — 칸 폭·정렬 · <b><code>.es-badge</code> 버그 수정</b>(링크 버튼 밖에서도 배지가 되게)</li>
+      <li>테스트 — <code>teams.test.mjs</code> 에 검색·묶음·정렬 체크 추가</li>
+    </ul>
+    <b>서버는 바뀌지 않습니다.</b>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>4. 확인만 해 주세요</h2>
+  <table class="cmp">
+    <tr><td style="width:34px"><b>①</b></td><td style="width:190px"><b>묶음 줄 톤</b></td>
+        <td><b>㉮ 색만</b>(기본) · ㉯ 색 + 왼쪽 띠 · ㉰ 색 + 위쪽 굵은 선</td></tr>
+    <tr><td><b>②</b></td><td><b>「＋ 새 팀」 머리줄 버튼</b></td>
+        <td>제 권고대로 잡았습니다(「내 이북」과 같은 뼈대). <b>답을 못 받은 항목</b>이라
+            평소 입력칸이 안 보이는 게 불편하시면 늘 펼쳐 두는 쪽으로 되돌리겠습니다</td></tr>
+    <tr><td><b>③</b></td><td><b>그 외</b></td><td>이대로 구현합니다</td></tr>
+  </table>
+
+</div>
+
+<script>
+const BASE = [
+  { id:'u1', name:'김가현',   dept:'SI개발본부',         role:'Lv2 작성자' },
+  { id:'u4', name:'최장부서', dept:'디지털전환추진본부', role:'Lv2 작성자' },
+  { id:'u2', name:'박열람',   dept:'기획실',             role:'Lv3 열람자' },
+  { id:'u3', name:'이작성',   dept:'생산본부',           role:'Lv2 작성자' },
+];
+const LONG = { id:'u9', name:'남궁억울하도다', dept:'디지털전환추진본부 데이터플랫폼구축TF', role:'Lv2 작성자' };
+let teams = [
+  { id:'t1', name:'영업1팀', members:['u2'] },
+  { id:'t2', name:'기술2팀', members:['u3'] },
+  { id:'t3', name:'신사업TF', members:[] },
+];
+let seq = 3, state = 'ok', q = '';
+const chosen = {};
+const el = (id) => document.getElementById(id);
+const log = (h) => { el('log').innerHTML = h };
+const people = () => state === 'long' ? BASE.concat([LONG]) : BASE;
+const teamOf = (uid) => teams.find((t) => t.members.includes(uid)) || null;
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+function hi(text){
+  const t = esc(text); if(!q) return t;
+  const i = text.toLowerCase().indexOf(q); if(i < 0) return t;
+  return esc(text.slice(0,i)) + '<mark>' + esc(text.slice(i,i+q.length)) + '</mark>' + esc(text.slice(i+q.length));
+}
+const hitPerson = (p) => !q || p.name.toLowerCase().includes(q) || p.dept.toLowerCase().includes(q);
+const hitTeam = (t) => !q || t.name.toLowerCase().includes(q);
+
+function assignCell(uid){
+  const cur = teamOf(uid);
+  const opts = ['<option value="">팀 선택</option>']
+    .concat(teams.map((t) => `<option value="${t.id}"${cur && cur.id === t.id ? ' disabled' : ''}>${esc(t.name)}</option>`)).join('');
+  return `<span class="assign">
+    <span class="slotA"><select onchange="pick('${uid}',this.value)">${opts}</select></span>
+    <span class="slotB"><button class="es-mini" id="go-${uid}" disabled onclick="put('${uid}')">${cur ? '옮기기' : '넣기'}</button></span>
+  </span>`;
+}
+const personRow = (p) => `<tr><td><span class="who">${hi(p.name)}</span><span class="dept">${hi(p.dept)}</span></td>
+  <td class="lv">${esc(p.role)}</td><td>${assignCell(p.id)}</td></tr>`;
+
+/** 확정: 미배정 먼저 → 팀별 */
+function buildRows(){
+  let html = '';
+  const left = people().filter((p) => !teamOf(p.id)).filter(hitPerson);
+  if(left.length){
+    html += `<tr class="grp none"><td class="namecell"><span class="grpname">아직 팀이 없는 사람</span><span class="cnt warn">${left.length}</span></td>
+      <td></td><td></td></tr>` + left.map(personRow).join('');
+  }
+  for(const t of teams){
+    const all = t.members.map((id) => people().find((p) => p.id === id)).filter(Boolean);
+    const ms = hitTeam(t) ? all : all.filter(hitPerson);
+    if(q && !hitTeam(t) && !ms.length) continue;
+    html += `<tr class="grp"><td class="namecell"><span class="grpname">${hi(t.name)}</span><span class="cnt">${all.length}</span></td>
+      <td></td><td><span class="assign">
+        <span class="slotA"><button class="es-mini" onclick="ren()">이름 변경</button></span>
+        <span class="slotB"><button class="es-mini danger" ${all.length ? 'disabled title="팀원이 남아 있습니다"' : `onclick="del('${t.id}')"`}>팀 삭제</button></span>
+      </span></td></tr>`;
+    html += ms.length ? ms.map(personRow).join('')
+      : `<tr><td></td><td><span class="empty">팀원이 없습니다</span></td><td></td></tr>`;
+  }
+  return html;
+}
+function render(){
+  const b = el('body');
+  el('count').innerHTML = ''; el('prev').disabled = el('next').disabled = true;
+  if(state === 'loading'){
+    b.innerHTML = `<tr><td colspan="3" class="state"><span class="spin"></span>불러오는 중…</td></tr>`;
+    el('count').textContent = '불러오는 중'; return;
+  }
+  if(state === 'error'){
+    b.innerHTML = `<tr><td colspan="3" class="state">
+      <b style="color:var(--red)">팀 목록을 불러오지 못했습니다.</b><br>
+      <span style="font-size:12px">잠시 후 다시 시도해 주세요. 계속되면 관리자에게 문의해 주세요. (추적 ID: TM-20260904-0031)</span><br>
+      <button class="es-mini" style="margin-top:10px" onclick="setState('ok')">다시 시도</button></td></tr>`; return;
+  }
+  if(state === 'empty'){
+    b.innerHTML = `<tr><td colspan="3" class="state">아직 팀도 사람도 없습니다.<br>
+      <span style="font-size:12px">「사용자 관리」에서 가입을 먼저 승인해 주세요.</span></td></tr>`;
+    el('count').innerHTML = '전체 <b>0</b>명'; return;
+  }
+  const html = buildRows();
+  if(!html){
+    b.innerHTML = `<tr><td colspan="3" class="state">「<b>${esc(q)}</b>」 로 찾는 결과가 없습니다.<br>
+      <button class="es-mini" style="margin-top:10px" onclick="resetAll()">조건 초기화</button></td></tr>`;
+    el('count').innerHTML = '조회 결과 <b>0</b>명 · 1/1 페이지 · 20명씩'; return;
+  }
+  b.innerHTML = html;
+  const n = people().filter(hitPerson).length;
+  el('count').innerHTML = q ? `조회 결과 <b>${n}</b>명 · 1/1 페이지 · 20명씩`
+                            : `전체 <b>${people().length}</b>명 · 1/1 페이지 · 20명씩`;
+}
+function paint(btn, on){ if(btn){ btn.disabled = !on; btn.classList.toggle('primary', on) } }
+
+window.setState = (s) => { state = s; render();
+  document.querySelectorAll('.wbtn[data-st]').forEach((x) => x.classList.toggle('on', x.dataset.st === s)) };
+window.resetAll = () => { q = ''; el('q').value = ''; render(); log('조건을 초기화했습니다.') };
+window.pick = (uid, tid) => { chosen[uid] = tid; paint(el('go-'+uid), !!tid) };
+window.put = (uid) => {
+  const tid = chosen[uid]; if(!tid) return;
+  const to = teams.find((t) => t.id === tid), fr = teamOf(uid);
+  if(fr) fr.members = fr.members.filter((x) => x !== uid);
+  to.members.push(uid);
+  const p = people().find((x) => x.id === uid);
+  log(fr ? `<em>${p.name} 님을 ${fr.name}에서 ${to.name}(으)로 옮겼습니다.</em>` : `<em>${p.name} 님을 ${to.name}에 넣었습니다.</em>`);
+  delete chosen[uid]; render();
+};
+window.ren = () => log('실제 화면에서는 <em>제자리에서 이름을 고칩니다</em>(브라우저 기본 창은 쓰지 않습니다).');
+window.del = (tid) => { const t = teams.find((x) => x.id === tid);
+  teams = teams.filter((x) => x.id !== tid);
+  log(`<em>${t.name} 을(를) 지웠습니다.</em> 실제 화면에서는 되돌릴 수 없다고 <b>자체 확인창</b>으로 한 번 더 묻습니다.`); render() };
+
+function applySearch(){ q = el('q').value.trim().toLowerCase(); render();
+  log(q ? `<em>「${esc(q)}」 로 조회했습니다.</em> 걸린 글자에 노란 칠이 들어갑니다.` : '조건이 비어 있어 전체를 보여줍니다.') }
+el('goBtn').onclick = applySearch;
+el('resetBtn').onclick = () => window.resetAll();
+el('q').onkeydown = (e) => { if(e.key === 'Enter') applySearch() };
+
+const nn = el('newName'), mb = el('mkBtn');
+function mkCheck(){
+  const v = nn.value.trim();
+  const dup = teams.some((t) => t.name === v);
+  el('mkErr').textContent = dup ? '이미 있는 팀 이름입니다.' : '';
+  paint(mb, !!v && !dup);
+}
+nn.oninput = mkCheck;
+nn.onkeydown = (e) => { if(e.key === 'Enter' && !mb.disabled) mb.click() };
+mb.onclick = () => {
+  const name = nn.value.trim(); if(!name) return;
+  teams.push({ id:'t'+(++seq), name, members:[] });
+  nn.value = ''; mkCheck(); el('card').classList.remove('mkopen');
+  log(`<em>${name} 을(를) 만들었습니다.</em> 팀원이 없다고 화면이 말해 줍니다.`); render();
+};
+el('mkCancel').onclick = () => { nn.value = ''; mkCheck(); el('card').classList.remove('mkopen') };
+el('newTeamBtn').onclick = () => {
+  const open = el('card').classList.toggle('mkopen');
+  if(open) setTimeout(() => nn.focus(), 0);
+  log(open ? '<em>입력칸을 열었습니다.</em> 평소에는 화면에 없습니다 — 「내 이북」의 「＋ 새 이북」과 같은 방식입니다.'
+           : '입력칸을 닫았습니다.');
+};
+for(const b of document.querySelectorAll('.wbtn[data-st]')) b.onclick = () => window.setState(b.dataset.st);
+for(const b of document.querySelectorAll('.wbtn[data-w]')) b.onclick = () => {
+  document.querySelectorAll('.wbtn[data-w]').forEach((x) => x.classList.remove('on'));
+  b.classList.add('on'); el('stage').style.maxWidth = b.dataset.w + 'px';
+};
+for(const b of document.querySelectorAll('.wbtn[data-tone]')) b.onclick = () => {
+  document.querySelectorAll('.wbtn[data-tone]').forEach((x) => x.classList.remove('on'));
+  b.classList.add('on');
+  el('card').classList.remove('tone-a','tone-b','tone-c');
+  el('card').classList.add(b.dataset.tone);
+  log(b.dataset.tone === 'tone-a' ? '<em>색만.</em> 미배정 줄과 같은 방식입니다.'
+    : b.dataset.tone === 'tone-b' ? '<em>왼쪽 띠</em>를 더했습니다. 묶음의 시작이 더 또렷합니다.'
+    : '<em>위쪽 굵은 선</em>을 더했습니다. 묶음 사이가 확실히 끊깁니다.');
+};
+el('guideBtn').onclick = () => {
+  const on = el('card').classList.toggle('on');
+  el('guideBtn').classList.toggle('on', on);
+  log(on ? '<em>검토용 표시입니다 — 실제 화면에는 들어가지 않습니다.</em>' : '검토용 표시를 껐습니다.');
+};
+render();
+</script>
+</body>
+</html>

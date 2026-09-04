@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팀 관리 — 중앙 정렬 · 드롭다운 글자 정렬 비교 (시안 v1.3)</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --ink:#1c2433; --sub:#5b6270; --muted:#98a1b2;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A; --red:#b4232a;
+    --tint:#EAF1FE; --line:#e6e8ee; --card:#f6f8fc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#f3f6fb 0%,#e9eef7 100%);
+    font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',Inter,system-ui,sans-serif;
+    color:var(--ink);letter-spacing:-.01em;padding:28px 20px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 4px}
+  .lede{font-size:13.5px;color:var(--sub);line-height:1.7;margin:0 0 24px}
+  h2{font-size:16px;font-weight:800;color:var(--navy);margin:34px 0 12px;
+     padding-bottom:8px;border-bottom:2px solid var(--navy)}
+  h3{font-size:13.5px;font-weight:800;color:var(--navy);margin:20px 0 8px}
+  p{font-size:13px;color:var(--sub);line-height:1.75;margin:0 0 10px}
+  b{color:var(--ink)}
+  code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:8px;padding:13px 15px;font-size:12.8px;color:var(--sub);line-height:1.75;margin:12px 0}
+  .note.warn{border-left-color:var(--amber);background:#fffbf3}
+  .note.ok{border-left-color:var(--green);background:#f4faf7}
+  .note b{color:var(--navy)}
+
+  .caption{font-size:12.5px;font-weight:800;color:var(--navy);margin:0 0 8px;
+    display:flex;align-items:center;gap:7px}
+  .tag{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:20px;
+    background:var(--card);color:var(--sub);border:1px solid var(--line)}
+  .tag.rec{background:#E9F5EF;color:#215c46;border-color:#cfe9dd}
+  .tag.now{background:#EAF1FE;color:#1a4fc4;border-color:#c6d5ff}
+
+  .row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  .col{flex:1 1 520px;min-width:470px}
+  .col3{flex:1 1 330px;min-width:310px}
+
+  .es-card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 8px 32px rgba(15,27,61,.10);padding:20px 18px 16px}
+  .es-brand{display:flex;align-items:baseline;gap:8px}
+  .es-brand b{font-size:17px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+  .es-brand span{font-size:11.5px;color:var(--muted)}
+
+  .es-mini{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 11px;
+    font-size:12px;color:var(--ink);cursor:pointer;font-family:inherit;
+    white-space:nowrap;flex:0 0 auto}
+  .es-mini.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  .es-mini.danger{color:var(--red);border-color:#f0d6d6}
+  .es-mini:disabled{opacity:.55;cursor:not-allowed}
+  .es-mini.go{min-width:62px;text-align:center}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:9px 8px;vertical-align:middle}
+  table.t th{background:var(--card);color:var(--navy);font-weight:700;font-size:11.5px;white-space:nowrap}
+  table.t td{color:var(--sub)}
+  .who{display:block;color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dept{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .assign{display:inline-flex;gap:6px;align-items:center}
+  .assign select{flex:0 0 auto;width:148px;max-width:100%;height:31px;border:1px solid var(--line);
+    border-radius:6px;font-size:12.5px;font-family:inherit;padding:0 6px;background:#fff}
+
+  /* ── 정렬 변종 ── */
+  .al-left  th,.al-left  td{text-align:left}
+  .al-left  .assign{justify-content:flex-start}
+  .al-mid   th,.al-mid   td{text-align:center}
+  .al-mid   .assign{justify-content:center}
+  .al-right th,.al-right td{text-align:right}
+  .al-right .assign{justify-content:flex-end}
+  /* 그룹 줄은 어느 안에서도 「이름 왼쪽 · 조작 오른쪽」을 지킨다 — 자료가 아니라 소제목이다 */
+  tr.grp td{background:#fbfcfe;padding:8px;text-align:left !important}
+  tr.grp.none td{background:#fff8ef}
+  .grpline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .grpname{font-size:13px;font-weight:800;color:var(--navy);white-space:nowrap}
+  tr.grp.none .grpname{color:#8a5a10}
+  .cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+    padding:0 5px;border-radius:99px;background:#dfe3ea;color:#5b6270;font-size:10.5px;font-weight:800}
+  .cnt.warn{background:var(--amber);color:#fff}
+  .grpact{margin-left:auto;display:flex;gap:6px}
+  .empty{color:var(--muted);font-size:12.5px}
+
+  /* 드롭다운 글자 정렬 3종 */
+  .sel-l{text-align:left}
+  .sel-c{text-align:center}
+  .sel-r{text-align:right}
+
+  .probe{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}
+  .probe .lbl{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+  .probe .cell{border:1px dashed #c9d2e4;border-radius:7px;padding:10px;background:#fbfcfe}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0 4px}
+  table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:var(--card);color:var(--navy);font-weight:800;font-size:11.5px;white-space:nowrap}
+  table.cmp td{color:var(--sub);line-height:1.65}
+  table.cmp td b{color:var(--ink)}
+  table.cmp tr:last-child td{border-bottom:0}
+  .o{color:#215c46;font-weight:800}
+  .x{color:var(--red);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>중앙 정렬 · 「팀 선택」 글자 정렬 비교</h1>
+  <p class="lede">
+    시안 v1.3 · 2026-09-04 · <b>검토용. 아직 코드에 넣지 않았습니다.</b><br>
+    세 열을 중앙 정렬로 바꾸고, 드롭다운 <b>안의 글자</b> 정렬 세 가지를 나란히 두었습니다.
+    아래 드롭다운은 <b>실제로 눌러서 펼쳐집니다</b> — 펼쳤을 때가 중요합니다(아래 ③ 참고).
+  </p>
+
+  <!-- ═══════════════════════════ -->
+  <h2>1. 「팀 선택」 글자 정렬 — 세 가지</h2>
+  <p>같은 칸을 세 벌 놓았습니다. <b>닫힌 상태와 펼친 상태를 둘 다</b> 봐 주세요.</p>
+  <div class="row">
+    <div class="col3">
+      <div class="caption">㉮ 왼쪽 <span class="tag now">지금</span></div>
+      <div class="probe">
+        <div class="lbl">닫힌 상태 · 팀 안 고름</div>
+        <div class="cell" style="text-align:center">
+          <span class="assign">
+            <select class="sel-l"><option>팀 선택</option><option>영업1팀</option><option>기술2팀</option><option>디지털전환추진본부TF</option></select>
+            <button class="es-mini go">넣기</button>
+          </span>
+        </div>
+        <div class="lbl" style="margin-top:12px">팀을 고른 뒤</div>
+        <div class="cell" style="text-align:center">
+          <span class="assign">
+            <select class="sel-l"><option>영업1팀</option><option>기술2팀</option></select>
+            <button class="es-mini go primary">옮기기</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col3">
+      <div class="caption">㉯ 중앙</div>
+      <div class="probe">
+        <div class="lbl">닫힌 상태 · 팀 안 고름</div>
+        <div class="cell" style="text-align:center">
+          <span class="assign">
+            <select class="sel-c"><option>팀 선택</option><option>영업1팀</option><option>기술2팀</option><option>디지털전환추진본부TF</option></select>
+            <button class="es-mini go">넣기</button>
+          </span>
+        </div>
+        <div class="lbl" style="margin-top:12px">팀을 고른 뒤</div>
+        <div class="cell" style="text-align:center">
+          <span class="assign">
+            <select class="sel-c"><option>영업1팀</option><option>기술2팀</option></select>
+            <button class="es-mini go primary">옮기기</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col3">
+      <div class="caption">㉰ 오른쪽</div>
+      <div class="probe">
+        <div class="lbl">닫힌 상태 · 팀 안 고름</div>
+        <div class="cell" style="text-align:center">
+          <span class="assign">
+            <select class="sel-r"><option>팀 선택</option><option>영업1팀</option><option>기술2팀</option><option>디지털전환추진본부TF</option></select>
+            <button class="es-mini go">넣기</button>
+          </span>
+        </div>
+        <div class="lbl" style="margin-top:12px">팀을 고른 뒤</div>
+        <div class="cell" style="text-align:center">
+          <span class="assign">
+            <select class="sel-r"><option>영업1팀</option><option>기술2팀</option></select>
+            <button class="es-mini go primary">옮기기</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table class="cmp">
+    <tr><th style="width:34px"></th><th style="width:120px"></th><th>어떻게 보이나</th></tr>
+    <tr><td><b>㉮</b></td><td><b>왼쪽</b></td>
+        <td>글자가 왼쪽, 화살표가 오른쪽 — <b>사이가 비어 보인다.</b> 대신 팀 이름이 길어지면
+            앞글자부터 읽히고, <b>펼친 목록과 같은 자리에서 시작</b>한다.</td></tr>
+    <tr><td><b>㉯</b></td><td><b>중앙</b></td>
+        <td>빈자리가 양쪽으로 갈라져 <b>덜 비어 보인다.</b> 다만 팀 이름 길이가 제각각이면
+            <b>줄마다 글자 시작점이 달라진다</b> — 여러 줄을 훑을 때 눈이 좌우로 흔들린다.</td></tr>
+    <tr><td><b>㉰</b></td><td><b>오른쪽</b></td>
+        <td>글자가 화살표에 <b>바짝 붙는다.</b> 숫자라면 자연스럽지만 이름에는 드물다.</td></tr>
+  </table>
+
+  <div class="note warn">
+    <b>③ 꼭 확인해 주세요 — 펼치면 정렬이 안 따라옵니다.</b><br>
+    위 드롭다운을 <b>눌러서 펼쳐 보세요.</b> 닫힌 상태는 가운데(또는 오른쪽)로 가는데,
+    <b>펼쳐진 목록은 셋 다 왼쪽</b>입니다. 목록은 브라우저·운영체제가 직접 그리는 부분이라
+    우리 CSS 가 닿지 않습니다.<br><br>
+    그래서 ㉯·㉰ 를 고르시면 <b>「닫으면 가운데, 열면 왼쪽」</b>으로 글자가 움직입니다.
+    한 번은 눈에 걸립니다. ㉮ 만 <b>닫힌 상태와 펼친 목록의 시작점이 같습니다.</b>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>2. 열 중앙 정렬 — 지금 ↔ 중앙</h2>
+  <div class="row">
+    <div class="col">
+      <div class="caption">지금 <span class="tag now">왼쪽 · 조작만 오른쪽</span></div>
+      <div class="es-card">
+        <div class="es-brand" style="margin-bottom:12px"><b>팀 관리</b><span>관리자 전용</span></div>
+        <table class="t al-left" data-fill>
+          <colgroup><col style="width:36%"><col style="width:20%"><col style="width:44%"></colgroup>
+          <thead><tr><th>이름 · 부서</th><th>권한</th><th style="text-align:right">팀 배정</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col">
+      <div class="caption">중앙 정렬 <span class="tag rec">요청하신 안</span></div>
+      <div class="es-card">
+        <div class="es-brand" style="margin-bottom:12px"><b>팀 관리</b><span>관리자 전용</span></div>
+        <table class="t al-mid" data-fill>
+          <colgroup><col style="width:36%"><col style="width:20%"><col style="width:44%"></colgroup>
+          <thead><tr><th>이름 · 부서</th><th>권한</th><th>팀 배정</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>중앙 정렬에서 눈여겨보실 곳 두 군데</b><br>
+    ① <b>이름과 부서</b> — 「김가현 / SI개발본부」처럼 길이가 다른 두 줄이 가운데로 모이면
+    글자 시작점이 줄마다 달라집니다. 사람이 많아질수록 <b>이름만 훑기가 어려워집니다.</b><br>
+    ② <b>그룹 줄은 그대로 두었습니다</b> — 「영업1팀 · 이름 변경 · 팀 삭제」는 자료가 아니라
+    <b>소제목</b>이라, 이름은 왼쪽 · 조작은 오른쪽을 지킵니다. 여기까지 가운데로 모으면
+    소제목과 자료 줄의 구분이 사라집니다. 이것도 가운데로 원하시면 바꾸겠습니다.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>3. 참고 — 세 열을 따로 정할 수도 있습니다</h2>
+  <table class="cmp">
+    <tr><th style="width:120px">열</th><th>통상</th><th>중앙 정렬했을 때</th></tr>
+    <tr><td><b>이름 · 부서</b></td><td class="o">왼쪽 — 글자를 위에서 아래로 훑는 열</td>
+        <td>이름 길이가 달라 시작점이 흔들린다</td></tr>
+    <tr><td><b>권한</b></td><td>「Lv2 작성자」는 길이가 거의 같다 —
+        <b class="o">가운데가 잘 어울리는 열</b></td><td class="o">깔끔하다</td></tr>
+    <tr><td><b>팀 배정</b></td><td>조작 칸 — 왼쪽·가운데·오른쪽 다 쓰인다</td>
+        <td class="o">드롭다운 폭이 고정이라 흔들리지 않는다</td></tr>
+  </table>
+  <div class="note ok">
+    <b>제 권고를 하나 드리면</b> — 셋 다 가운데보다 <b>「이름·부서는 왼쪽, 권한과 팀 배정은 가운데」</b>가
+    읽기에 낫습니다. 이름은 훑는 글자라 시작점이 맞아야 하고, 나머지 둘은 길이가 일정하거나
+    폭이 고정이라 가운데가 잘 맞습니다.<br>
+    <b>다만 이건 취향의 영역이라 대표님이 정하시면 그대로 가겠습니다.</b>
+    셋 다 가운데도 이 규모(10~20명)에서는 충분히 읽힙니다.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>4. 정하실 것</h2>
+  <table class="cmp">
+    <tr><td style="width:34px"><b>①</b></td><td style="width:200px"><b>열 정렬</b></td>
+        <td>셋 다 가운데 · <b>이름은 왼쪽 + 나머지 가운데</b>(권고) · 지금(왼쪽 + 조작만 오른쪽)</td></tr>
+    <tr><td><b>②</b></td><td><b>「팀 선택」 글자</b></td>
+        <td><b>㉮ 왼쪽</b>(펼친 목록과 시작점이 같음) · ㉯ 중앙 · ㉰ 오른쪽</td></tr>
+    <tr><td><b>③</b></td><td><b>그룹 줄</b></td>
+        <td><b>지금대로</b>(팀 이름 왼쪽 · 조작 오른쪽) · 이것도 가운데로</td></tr>
+  </table>
+  <p style="margin-top:12px">서버는 바뀌지 않습니다. <code>TeamsAdmin.tsx</code> 와 CSS 몇 줄입니다.</p>
+
+</div>
+
+<script>
+const PEOPLE = [
+  { id:'u1', name:'김가현',   dept:'SI개발본부',          role:'Lv2 작성자', team:null },
+  { id:'u4', name:'최장부서', dept:'디지털전환추진본부',  role:'Lv2 작성자', team:null },
+  { id:'u2', name:'박열람',   dept:'기획실',              role:'Lv3 열람자', team:'영업1팀' },
+  { id:'u3', name:'이작성',   dept:'생산본부',            role:'Lv2 작성자', team:'기술2팀' },
+];
+const TEAMS = ['영업1팀', '기술2팀'];
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+function assignCell(p){
+  const opts = p.team
+    ? TEAMS.map((t) => `<option${t === p.team ? ' selected' : ''}>${esc(t)}</option>`).join('')
+    : ['<option>팀 선택</option>'].concat(TEAMS.map((t) => `<option>${esc(t)}</option>`)).join('');
+  return `<span class="assign">
+    <select class="sel-l">${opts}</select>
+    <button class="es-mini go">${p.team ? '옮기기' : '넣기'}</button></span>`;
+}
+function personRow(p){
+  return `<tr><td><span class="who">${esc(p.name)}</span><span class="dept">${esc(p.dept)}</span></td>
+    <td class="lv">${esc(p.role)}</td><td>${assignCell(p)}</td></tr>`;
+}
+function groupRow(name, n, none){
+  return `<tr class="grp${none ? ' none' : ''}"><td colspan="3"><span class="grpline">
+    <span class="grpname">${esc(name)}</span><span class="cnt${none ? ' warn' : ''}">${n}</span>
+    ${none ? '' : `<span class="grpact">
+      <button class="es-mini">이름 변경</button>
+      <button class="es-mini danger" disabled title="팀원이 남아 있습니다">팀 삭제</button></span>`}
+  </span></td></tr>`;
+}
+function build(){
+  const left = PEOPLE.filter((p) => !p.team);
+  let html = groupRow('아직 팀이 없는 사람', left.length, true) + left.map(personRow).join('');
+  for(const t of TEAMS){
+    const ms = PEOPLE.filter((p) => p.team === t);
+    html += groupRow(t, ms.length, false) + (ms.length ? ms.map(personRow).join('')
+      : `<tr><td colspan="3" class="empty">팀원이 없습니다.</td></tr>`);
+  }
+  return html;
+}
+for(const tb of document.querySelectorAll('table[data-fill] tbody')) tb.innerHTML = build();
+</script>
+</body>
+</html>

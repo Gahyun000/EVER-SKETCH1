@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팀 관리 — 아이콘 · 배치 (시안 v2.1)</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --ink:#1c2433; --sub:#5b6270; --muted:#98a1b2;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A; --red:#b4232a;
+    --tint:#EAF1FE; --line:#e6e8ee; --card:#f6f8fc;
+    --slot-a:96px; --slot-b:84px; --gap:6px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#f3f6fb 0%,#e9eef7 100%);
+    font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',Inter,system-ui,sans-serif;
+    color:var(--ink);letter-spacing:-.01em;padding:28px 20px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 4px}
+  .lede{font-size:13.5px;color:var(--sub);line-height:1.7;margin:0 0 24px}
+  h2{font-size:16px;font-weight:800;color:var(--navy);margin:34px 0 12px;
+     padding-bottom:8px;border-bottom:2px solid var(--navy)}
+  p{font-size:13px;color:var(--sub);line-height:1.75;margin:0 0 10px}
+  b{color:var(--ink)}
+  code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:8px;padding:13px 15px;font-size:12.8px;color:var(--sub);line-height:1.75;margin:12px 0}
+  .note.ok{border-left-color:var(--green);background:#f4faf7}
+  .note.warn{border-left-color:var(--amber);background:#fffbf3}
+  .note b{color:var(--navy)}
+
+  .bar{display:flex;gap:6px;align-items:center;margin:0 0 10px;flex-wrap:wrap}
+  .bar span.l{font-size:12px;color:var(--sub);margin-right:2px}
+  .bar span.sep{width:1px;height:20px;background:var(--line);margin:0 6px}
+  .wbtn{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;
+    font-size:12.5px;cursor:pointer;color:var(--sub);font-family:inherit;white-space:nowrap}
+  .wbtn.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+
+  .stage{transition:max-width .18s}
+  .es-card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 8px 32px rgba(15,27,61,.10);padding:24px 22px 20px}
+  .head{position:relative;text-align:center;margin-bottom:14px;padding:0 78px;min-height:44px}
+  .es-brand{display:flex;align-items:baseline;gap:8px;justify-content:center}
+  .es-brand b{font-size:19px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+  .es-brand span{font-size:12px;color:var(--muted)}
+  .es-lede{font-size:13px;color:var(--sub);margin:4px 0 0;line-height:1.6}
+  .close{position:absolute;top:0;right:0}
+  .newteam{position:absolute;top:0;left:0;display:none;align-items:center;gap:5px}
+  .lay-head .newteam{display:inline-flex}
+  .es-msg{border-radius:7px;padding:11px 13px;font-size:12.5px;line-height:1.55}
+  .es-msg.info{background:var(--tint);border:1px solid #c6d5ff;color:#1a4fc4}
+
+  .es-mini{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 8px;
+    font-size:12px;color:var(--ink);cursor:pointer;font-family:inherit;white-space:nowrap;
+    display:inline-flex;align-items:center;justify-content:center;gap:4px}
+  .es-mini.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  .es-mini.danger{color:var(--red);border-color:#f0d6d6}
+  .es-mini:disabled{opacity:.55;cursor:not-allowed}
+  .ic{width:16px;height:16px;flex:0 0 16px;stroke:currentColor;fill:none;
+    stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ic.sm{width:14px;height:14px;flex-basis:14px}
+
+  .mk{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:12px}
+  .mk input{flex:0 1 260px;min-width:0;height:34px;padding:0 11px;border:1px solid var(--line);
+    border-radius:7px;font-size:13px;font-family:inherit;background:#fff;outline:none;text-align:center}
+  .mk input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--tint)}
+  /* ㉱ 머리줄 방식일 때는 만들기 상자를 접었다 편다 */
+  .lay-head .mk{display:none}
+  .lay-head.mkopen .mk{display:flex}
+
+  .srch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+  .srch .date{background:#fff;border:1.4px solid var(--line);border-radius:10px;padding:7px 10px;
+    font-size:13px;color:var(--ink);font-family:inherit;height:36px}
+  .srch .tilde{color:var(--muted);font-size:13px}
+  .srch .qbox{display:flex;align-items:center;gap:7px;flex:0 1 260px;min-width:180px;background:#fff;
+    border:1.4px solid var(--line);border-radius:10px;padding:0 11px;height:36px;color:#64748b}
+  .srch .qbox input{border:none;outline:none;flex:1;min-width:0;font-size:13.5px;color:var(--ink);
+    background:transparent;font-family:inherit;text-align:center}
+  .srch .qbox:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--tint)}
+  .sbtn{border:1.4px solid var(--line);background:#fff;color:var(--sub);font-weight:800;font-size:13px;
+    border-radius:10px;padding:0 14px;height:36px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .sbtn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    margin:0 0 8px;color:var(--sub);font-size:12.5px;font-weight:700}
+  .pager b{color:var(--navy)}
+  .pager .pg{display:flex;gap:6px}
+  .pager .pg button{border:1px solid var(--line);background:#fff;border-radius:7px;
+    width:28px;height:28px;cursor:pointer;color:var(--sub);font-family:inherit}
+  .pager .pg button:disabled{opacity:.4;cursor:not-allowed}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:9px 8px;
+    vertical-align:middle;text-align:center}
+  table.t th{background:var(--card);color:var(--navy);font-weight:700;font-size:11.5px;white-space:nowrap}
+  table.t td{color:var(--sub)}
+  .who{display:block;color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dept{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .assign{display:inline-flex;gap:var(--gap);align-items:center;max-width:100%}
+  .slotA{flex:0 1 var(--slot-a);width:var(--slot-a);min-width:0}
+  .slotB{flex:0 0 var(--slot-b);width:var(--slot-b)}
+  .slotA > *,.slotB > *{width:100%}
+  .slotA select{height:31px;border:1px solid var(--line);border-radius:6px;display:block;
+    font-size:12.5px;font-family:inherit;padding:0 4px;background:#fff;text-align:center}
+  tr.grp td{background:#fbfcfe;padding:8px;text-align:center}
+  tr.grp.none td{background:#fff8ef}
+  tr.grp td.namecell{position:relative}
+  .grpname{font-size:13px;font-weight:800;color:var(--navy);white-space:nowrap}
+  tr.grp.none .grpname{color:#8a5a10}
+  .cnt{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+    padding:0 5px;border-radius:99px;background:#dfe3ea;color:#5b6270;font-size:10.5px;font-weight:800}
+  .cnt.warn{background:var(--amber);color:#fff}
+  .empty{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .state{color:var(--muted);font-size:13px;padding:34px 0;line-height:1.7}
+  mark{background:#fff1c2;color:inherit;border-radius:3px;padding:0 1px}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0 4px}
+  table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:var(--card);color:var(--navy);font-weight:800;font-size:11.5px;white-space:nowrap}
+  table.cmp td{color:var(--sub);line-height:1.65}
+  table.cmp td b{color:var(--ink)}
+  table.cmp tr:last-child td{border-bottom:0}
+  .x{color:var(--red);font-weight:800}.o{color:#215c46;font-weight:800}
+  .log{background:#0F1B3D;color:#c8d4ee;border-radius:8px;padding:10px 13px;
+    font-size:11.5px;line-height:1.7;margin-top:10px;min-height:40px}
+  .log em{color:#7fe0b0;font-style:normal}
+  .iconrow{display:flex;gap:24px;align-items:center;flex-wrap:wrap;background:#fff;
+    border:1px solid var(--line);border-radius:9px;padding:14px 16px}
+  .iconrow .cell{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--sub)}
+  .glyph{font-size:14px;color:#64748b}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>돋보기 아이콘 · 조회줄과 팀 만들기의 순서</h1>
+  <p class="lede">
+    시안 v2.1 · 2026-09-04 · <b>검토용. 아직 코드에 넣지 않았습니다.</b>
+  </p>
+
+  <!-- ═══════════════════════════ -->
+  <h2>1. 돋보기 — 저건 제 목업이 때운 것입니다</h2>
+  <div class="iconrow">
+    <span class="cell"><span class="glyph">⌕</span> <b>v2.0 (틀림)</b> — 글자 <code>⌕</code>. 폰트마다 크기·모양이 다르고 작게 나온다</span>
+    <span class="cell">
+      <svg class="ic" viewBox="0 0 24 24" style="color:#64748b"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <b>실제 (맞음)</b> — <code>lucide-react</code> 의 <code>&lt;Search className="h-4 w-4" /&gt;</code>, 16×16 SVG
+    </span>
+  </div>
+  <div class="note ok">
+    <b>「내 이북」 화면이 이미 그 아이콘을 쓰고 있습니다</b>
+    (<code>LibraryScreen.tsx</code> → <code>&lt;Search className="h-4 w-4" /&gt;</code>).
+    제 목업이 <b>글자로 때운 것</b>이라 작고 어색하게 나왔습니다.
+    아래 카드부터는 <b>실제와 같은 16px SVG</b> 로 바꿨습니다 — 두 화면의 검색칸이 똑같아 보입니다.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>2. 순서 — 네 가지</h2>
+  <div class="bar">
+    <span class="l">배치</span>
+    <button class="wbtn on" data-lay="mk-first">㉮ 지금 (만들기 → 조회)</button>
+    <button class="wbtn" data-lay="srch-first">㉯ 조회 → 만들기</button>
+    <button class="wbtn" data-lay="mk-last">㉰ 만들기를 맨 아래</button>
+    <button class="wbtn" data-lay="head">㉱ 「내 이북」식 (머리줄 버튼)</button>
+    <span class="sep"></span>
+    <span class="l">창 폭</span>
+    <button class="wbtn on" data-w="1100">1100</button>
+    <button class="wbtn" data-w="860">860</button>
+    <button class="wbtn" data-w="640">640</button>
+  </div>
+
+  <div class="stage" id="stage" style="max-width:1100px">
+    <div class="es-card lay-mk-first" id="card">
+      <div class="head">
+        <button class="es-mini newteam" id="newTeamBtn">
+          <svg class="ic sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> 새 팀
+        </button>
+        <div class="es-brand"><b>팀 관리</b><span>관리자 전용</span></div>
+        <p class="es-lede">팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.</p>
+        <button class="es-mini close">닫기</button>
+      </div>
+
+      <div id="slots"></div>
+
+      <div class="es-msg info" style="margin-top:16px">
+        팀을 바꿔도 <b>로그인은 끊기지 않습니다</b> — 다음 요청부터 바로 새 팀이 적용됩니다. (권한 변경과 다릅니다.)
+        <br>한 사람은 <b>한 팀</b>에만 속합니다. 다른 팀에 넣으면 이전 팀에서 빠집니다.
+      </div>
+    </div>
+    <div class="log" id="log">배치 버튼을 눌러 네 가지를 비교해 보세요. 검색은 <b>「조회」</b> 또는 <b>엔터</b>로 걸립니다.</div>
+  </div>
+
+  <!-- 조립 재료 (숨김) -->
+  <template id="tpl-mk">
+    <div class="mk">
+      <input id="newName" placeholder="새 팀 이름 (예: 영업1팀)">
+      <button class="es-mini" id="mkBtn" disabled>팀 만들기</button>
+    </div>
+  </template>
+  <template id="tpl-srch">
+    <div class="srch">
+      <input class="date" type="date" id="from" aria-label="가입일 시작">
+      <span class="tilde">~</span>
+      <input class="date" type="date" id="to" aria-label="가입일 종료">
+      <span class="qbox">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="q" placeholder="이름 · 부서 · 팀 이름" aria-label="검색어">
+      </span>
+      <button class="sbtn dark" id="goBtn">조회</button>
+      <button class="sbtn" id="resetBtn">초기화</button>
+    </div>
+    <div class="pager">
+      <span id="count"></span>
+      <span class="pg"><button id="prev" disabled aria-label="이전 쪽">‹</button><button id="next" disabled aria-label="다음 쪽">›</button></span>
+    </div>
+  </template>
+  <template id="tpl-table">
+    <table class="t">
+      <colgroup><col style="width:36%"><col style="width:20%"><col style="width:44%"></colgroup>
+      <thead><tr><th>이름 · 부서</th><th>권한</th><th>팀 배정</th></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </template>
+
+  <!-- ═══════════════════════════ -->
+  <h2>3. 네 가지 비교</h2>
+  <table class="cmp">
+    <tr><th style="width:34px"></th><th style="width:150px">배치</th><th>장점</th><th>약점</th></tr>
+    <tr><td><b>㉮</b></td><td><b>만들기 → 조회</b><br><span style="color:var(--muted)">지금</span></td>
+        <td class="o">조회줄이 <b>표에 바로 붙는다.</b> 검색은 표를 거르는 장치라 사이에 뭐가 끼면 안 된다</td>
+        <td>자주 쓰는 조회보다 <b>가끔 쓰는 만들기가 위</b>에 있다</td></tr>
+    <tr><td><b>㉯</b></td><td><b>조회 → 만들기</b><br><span style="color:var(--muted)">물어보신 것</span></td>
+        <td>조회가 위로 올라온다</td>
+        <td class="x"><b>조회줄과 표 사이에 만들기가 낀다.</b> 「검색했는데 왜 여기 입력칸이…」가 된다.
+            결과 개수 줄과 표도 떨어진다</td></tr>
+    <tr><td><b>㉰</b></td><td><b>만들기를 맨 아래</b></td>
+        <td class="o">조회 → 표가 붙고, 만들기도 안 낀다</td>
+        <td>새 팀을 만들려면 <b>표를 지나 끝까지</b> 내려가야 한다</td></tr>
+    <tr><td><b>㉱</b></td><td><b>머리줄 버튼</b><br><span style="color:var(--muted)">「내 이북」식</span></td>
+        <td class="o"><b>「내 이북」과 똑같은 뼈대.</b> 제목줄에 만들기 버튼 → 조회줄 → 개수 → 표.
+            평소엔 입력칸이 아예 없어 화면이 조용하고, 누르면 열린다</td>
+        <td>만들기가 <b>한 번 더 누르는 일</b>이 된다</td></tr>
+  </table>
+
+  <div class="note ok">
+    <b>㉱ 를 권합니다.</b> 「내 이북」 화면이 이미 <b>제목줄 오른쪽에 「＋ 새 이북」 → 조회줄 → 개수/페이지 → 목록</b>
+    입니다. 같은 제품의 두 목록 화면이 같은 뼈대를 쓰면, 대표님이 한 번 익힌 자리가 두 곳에서 통합니다.
+    ㉯ 는 권하지 않습니다 — <b>조회줄과 표 사이를 벌리는 유일한 안</b>입니다.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>4. 정하실 것</h2>
+  <table class="cmp">
+    <tr><td style="width:34px"><b>①</b></td><td style="width:150px"><b>배치</b></td>
+        <td><b>㉱ 머리줄 버튼</b>(권장) · ㉮ 지금 · ㉰ 맨 아래 · ㉯ 조회 → 만들기</td></tr>
+    <tr><td><b>②</b></td><td><b>날짜 칸</b></td><td>표준대로 둔다 · 뺀다 <span style="color:var(--muted)">— 지난번 질문</span></td></tr>
+    <tr><td><b>③</b></td><td><b>순서</b></td><td>㉮ 팀 먼저 · ㉯ 미배정 먼저 <span style="color:var(--muted)">— 아직 답을 못 받았습니다</span></td></tr>
+  </table>
+
+</div>
+
+<script>
+const PEOPLE = [
+  { id:'u1', name:'김가현',   dept:'SI개발본부',         role:'Lv2 작성자', joined:'2026-09-01' },
+  { id:'u4', name:'최장부서', dept:'디지털전환추진본부', role:'Lv2 작성자', joined:'2026-09-03' },
+  { id:'u2', name:'박열람',   dept:'기획실',             role:'Lv3 열람자', joined:'2026-08-11' },
+  { id:'u3', name:'이작성',   dept:'생산본부',           role:'Lv2 작성자', joined:'2026-07-22' },
+];
+let teams = [
+  { id:'t1', name:'영업1팀', members:['u2'] },
+  { id:'t2', name:'기술2팀', members:['u3'] },
+  { id:'t3', name:'신사업TF', members:[] },
+];
+let seq = 3, layout = 'mk-first';
+let q = '', from = '', to = '';
+const chosen = {};
+const el = (id) => document.getElementById(id);
+const log = (h) => { el('log').innerHTML = h };
+const teamOf = (uid) => teams.find((t) => t.members.includes(uid)) || null;
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+function hi(text){
+  const t = esc(text); if(!q) return t;
+  const i = text.toLowerCase().indexOf(q); if(i < 0) return t;
+  return esc(text.slice(0,i)) + '<mark>' + esc(text.slice(i,i+q.length)) + '</mark>' + esc(text.slice(i+q.length));
+}
+const inRange = (p) => (!from || p.joined >= from) && (!to || p.joined <= to);
+const hitPerson = (p) => inRange(p) && (!q || p.name.toLowerCase().includes(q) || p.dept.toLowerCase().includes(q));
+const hitTeam = (t) => !q || t.name.toLowerCase().includes(q);
+
+function assignCell(uid){
+  const cur = teamOf(uid);
+  const opts = ['<option value="">팀 선택</option>']
+    .concat(teams.map((t) => `<option value="${t.id}"${cur && cur.id === t.id ? ' disabled' : ''}>${esc(t.name)}</option>`)).join('');
+  return `<span class="assign">
+    <span class="slotA"><select onchange="pick('${uid}',this.value)">${opts}</select></span>
+    <span class="slotB"><button class="es-mini" id="go-${uid}" disabled onclick="put('${uid}')">${cur ? '옮기기' : '넣기'}</button></span>
+  </span>`;
+}
+function personRow(p){
+  return `<tr><td><span class="who">${hi(p.name)}</span><span class="dept">${hi(p.dept)}</span></td>
+    <td class="lv">${esc(p.role)}</td><td>${assignCell(p.id)}</td></tr>`;
+}
+function buildRows(){
+  let html = '';
+  for(const t of teams){
+    const all = t.members.map((id) => PEOPLE.find((p) => p.id === id)).filter(Boolean);
+    const ms = hitTeam(t) ? all.filter(inRange) : all.filter(hitPerson);
+    if((q || from || to) && !hitTeam(t) && !ms.length) continue;
+    html += `<tr class="grp"><td class="namecell"><span class="grpname">${hi(t.name)}</span><span class="cnt">${all.length}</span></td>
+      <td></td><td><span class="assign">
+        <span class="slotA"><button class="es-mini" onclick="ren()">이름 변경</button></span>
+        <span class="slotB"><button class="es-mini danger" ${all.length ? 'disabled' : `onclick="del('${t.id}')"`}>팀 삭제</button></span>
+      </span></td></tr>`;
+    html += ms.length ? ms.map(personRow).join('')
+      : `<tr><td></td><td><span class="empty">팀원이 없습니다</span></td><td></td></tr>`;
+  }
+  const left = PEOPLE.filter((p) => !teamOf(p.id)).filter(hitPerson);
+  if(left.length){
+    html += `<tr class="grp none"><td class="namecell"><span class="grpname">아직 팀이 없는 사람</span><span class="cnt warn">${left.length}</span></td>
+      <td></td><td></td></tr>` + left.map(personRow).join('');
+  }
+  return html;
+}
+function fill(){
+  const b = el('body'); if(!b) return;
+  const html = buildRows();
+  if(!html){
+    b.innerHTML = `<tr><td colspan="3" class="state">조건에 맞는 결과가 없습니다.<br>
+      <button class="es-mini" style="margin-top:10px" onclick="resetAll()">조건 초기화</button></td></tr>`;
+    el('count').innerHTML = '전체 <b>0</b>명 · 1/1 페이지 · 20명씩'; return;
+  }
+  b.innerHTML = html;
+  const n = PEOPLE.filter(hitPerson).length;
+  el('count').innerHTML = (q || from || to)
+    ? `조회 결과 <b>${n}</b>명 · 1/1 페이지 · 20명씩`
+    : `전체 <b>${PEOPLE.length}</b>명 · 1/1 페이지 · 20명씩`;
+}
+/** 배치에 따라 조각을 다시 쌓는다 */
+function layoutCard(){
+  const slots = el('slots'); slots.innerHTML = '';
+  const mk = () => document.getElementById('tpl-mk').content.cloneNode(true);
+  const sr = () => document.getElementById('tpl-srch').content.cloneNode(true);
+  const tb = () => document.getElementById('tpl-table').content.cloneNode(true);
+  if(layout === 'mk-first'){ slots.append(mk(), sr(), tb()) }
+  else if(layout === 'srch-first'){ slots.append(sr(), mk(), tb()) }
+  else if(layout === 'mk-last'){ slots.append(sr(), tb(), mk()) }
+  else { slots.append(mk(), sr(), tb()) }          // ㉱ — mk 는 CSS 로 접힌다
+  el('card').className = 'es-card lay-' + layout;
+  wire(); fill();
+}
+function wire(){
+  const g = el('goBtn'), r = el('resetBtn'), qq = el('q'), nn = el('newName'), mb = el('mkBtn');
+  if(g) g.onclick = applySearch;
+  if(r) r.onclick = () => window.resetAll();
+  if(qq){ qq.value = q; qq.onkeydown = (e) => { if(e.key === 'Enter') applySearch() } }
+  if(el('from')) el('from').value = from;
+  if(el('to')) el('to').value = to;
+  if(nn) nn.oninput = () => paint(mb, !!nn.value.trim());
+  if(nn) nn.onkeydown = (e) => { if(e.key === 'Enter') mb.click() };
+  if(mb) mb.onclick = () => {
+    const name = nn.value.trim(); if(!name) return;
+    if(teams.some((t) => t.name === name)){ log('<b style="color:#ff9b9b">이미 있는 팀 이름입니다.</b>'); return }
+    teams.push({ id:'t'+(++seq), name, members:[] }); nn.value = '';
+    el('card').classList.remove('mkopen');
+    log(`<em>${name} 을(를) 만들었습니다.</em>`); fill();
+  };
+  if(mb) paint(mb, false);
+}
+function paint(btn, on){ if(btn){ btn.disabled = !on; btn.classList.toggle('primary', on) } }
+function applySearch(){
+  q = (el('q')?.value || '').trim().toLowerCase();
+  from = el('from')?.value || ''; to = el('to')?.value || '';
+  fill();
+  log((q || from || to) ? `<em>조회했습니다.</em> 검색어 「${esc(q) || '—'}」 · 가입일 ${from || '처음'} ~ ${to || '오늘'}`
+                        : '조건이 비어 있어 전체를 보여줍니다.');
+}
+window.resetAll = () => { q = from = to = '';
+  if(el('q')) el('q').value = ''; if(el('from')) el('from').value = ''; if(el('to')) el('to').value = '';
+  fill(); log('조건을 초기화했습니다.') };
+window.pick = (uid, tid) => { chosen[uid] = tid; paint(el('go-'+uid), !!tid) };
+window.put = (uid) => {
+  const tid = chosen[uid]; if(!tid) return;
+  const t2 = teams.find((t) => t.id === tid), fr = teamOf(uid);
+  if(fr) fr.members = fr.members.filter((x) => x !== uid);
+  t2.members.push(uid);
+  const p = PEOPLE.find((x) => x.id === uid);
+  log(fr ? `<em>${p.name} 님을 ${fr.name}에서 ${t2.name}(으)로 옮겼습니다.</em>` : `<em>${p.name} 님을 ${t2.name}에 넣었습니다.</em>`);
+  delete chosen[uid]; fill();
+};
+window.ren = () => log('실제 화면에서는 <em>제자리에서 이름을 고칩니다</em>.');
+window.del = (tid) => { const t = teams.find((x) => x.id === tid);
+  teams = teams.filter((x) => x.id !== tid); log(`<em>${t.name} 을(를) 지웠습니다.</em>`); fill() };
+
+el('newTeamBtn').addEventListener('click', () => {
+  const open = el('card').classList.toggle('mkopen');
+  if(open) setTimeout(() => el('newName')?.focus(), 0);
+  log(open ? '<em>「새 팀」을 눌러 입력칸을 열었습니다.</em> 평소에는 화면에 없습니다.' : '입력칸을 닫았습니다.');
+});
+for(const b of document.querySelectorAll('.wbtn[data-lay]')){
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.wbtn[data-lay]').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on'); layout = b.dataset.lay; layoutCard();
+    log(layout === 'srch-first' ? '<s style="color:#ff9b9b;text-decoration:none">조회줄과 표 사이에 만들기가 끼었습니다.</s>'
+      : layout === 'head' ? '<em>「내 이북」과 같은 뼈대입니다.</em> 왼쪽 위 「＋ 새 팀」을 눌러 보세요.'
+      : '배치를 바꿨습니다.');
+  });
+}
+for(const b of document.querySelectorAll('.wbtn[data-w]')){
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.wbtn[data-w]').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on'); el('stage').style.maxWidth = b.dataset.w + 'px';
+  });
+}
+layoutCard();
+</script>
+</body>
+</html>

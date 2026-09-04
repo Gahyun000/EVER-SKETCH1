@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팀 관리 — 표준 조회 화면 (시안 v2.0)</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --ink:#1c2433; --sub:#5b6270; --muted:#98a1b2;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A; --red:#b4232a;
+    --tint:#EAF1FE; --line:#e6e8ee; --card:#f6f8fc;
+    --slot-a:96px; --slot-b:84px; --gap:6px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#f3f6fb 0%,#e9eef7 100%);
+    font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',Inter,system-ui,sans-serif;
+    color:var(--ink);letter-spacing:-.01em;padding:28px 20px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 4px}
+  .lede{font-size:13.5px;color:var(--sub);line-height:1.7;margin:0 0 24px}
+  h2{font-size:16px;font-weight:800;color:var(--navy);margin:34px 0 12px;
+     padding-bottom:8px;border-bottom:2px solid var(--navy)}
+  p{font-size:13px;color:var(--sub);line-height:1.75;margin:0 0 10px}
+  b{color:var(--ink)}
+  code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:8px;padding:13px 15px;font-size:12.8px;color:var(--sub);line-height:1.75;margin:12px 0}
+  .note.ok{border-left-color:var(--green);background:#f4faf7}
+  .note.warn{border-left-color:var(--amber);background:#fffbf3}
+  .note.bad{border-left-color:var(--red);background:#fdf5f5}
+  .note b{color:var(--navy)}
+
+  .bar{display:flex;gap:6px;align-items:center;margin:0 0 10px;flex-wrap:wrap}
+  .bar span.l{font-size:12px;color:var(--sub);margin-right:2px}
+  .bar span.sep{width:1px;height:20px;background:var(--line);margin:0 6px}
+  .wbtn{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;
+    font-size:12.5px;cursor:pointer;color:var(--sub);font-family:inherit;white-space:nowrap}
+  .wbtn.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+  .wbtn.dev{border-style:dashed;color:var(--muted)}
+  .wbtn.dev.on{background:var(--amber);border-color:var(--amber);color:#fff}
+
+  .stage{transition:max-width .18s}
+  .es-card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 8px 32px rgba(15,27,61,.10);padding:24px 22px 20px}
+  .head{position:relative;text-align:center;margin-bottom:14px;padding:0 60px}
+  .es-brand{display:flex;align-items:baseline;gap:8px;justify-content:center}
+  .es-brand b{font-size:19px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+  .es-brand span{font-size:12px;color:var(--muted)}
+  .es-lede{font-size:13px;color:var(--sub);margin:4px 0 0;line-height:1.6}
+  .close{position:absolute;top:0;right:0}
+  .es-msg{border-radius:7px;padding:11px 13px;font-size:12.5px;line-height:1.55}
+  .es-msg.info{background:var(--tint);border:1px solid #c6d5ff;color:#1a4fc4}
+  .es-msg.err{background:#fdf0f0;border:1px solid #f0d6d6;color:#7d2027}
+
+  .es-mini{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 8px;
+    font-size:12px;color:var(--ink);cursor:pointer;font-family:inherit;white-space:nowrap}
+  .es-mini.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  .es-mini.danger{color:var(--red);border-color:#f0d6d6}
+  .es-mini:disabled{opacity:.55;cursor:not-allowed}
+
+  .mk{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:12px}
+  .mk input{flex:0 1 260px;min-width:0;height:34px;padding:0 11px;border:1px solid var(--line);
+    border-radius:7px;font-size:13px;font-family:inherit;background:#fff;outline:none;text-align:center}
+
+  /* ── 표준 조회줄 : 시작일 ~ 종료일 · 검색어 · 조회 · 초기화 ── */
+  .srch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+  .srch .date{background:#fff;border:1.4px solid var(--line);border-radius:10px;padding:7px 10px;
+    font-size:13px;color:var(--ink);font-family:inherit;height:36px}
+  .srch .tilde{color:var(--muted);font-size:13px}
+  .srch .qbox{display:flex;align-items:center;gap:6px;flex:0 1 260px;min-width:180px;background:#fff;
+    border:1.4px solid var(--line);border-radius:10px;padding:0 11px;height:36px;color:var(--muted)}
+  .srch .qbox input{border:none;outline:none;flex:1;min-width:0;font-size:13.5px;color:var(--ink);
+    background:transparent;font-family:inherit;text-align:center}
+  .srch .qbox:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--tint)}
+  .sbtn{border:1.4px solid var(--line);background:#fff;color:var(--sub);font-weight:800;font-size:13px;
+    border-radius:10px;padding:0 14px;height:36px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .sbtn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  /* 개수 · 페이지 */
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    margin:0 0 8px;color:var(--sub);font-size:12.5px;font-weight:700}
+  .pager b{color:var(--navy)}
+  .pager .pg{display:flex;gap:6px}
+  .pager .pg button{border:1px solid var(--line);background:#fff;border-radius:7px;
+    width:28px;height:28px;cursor:pointer;color:var(--sub);font-family:inherit}
+  .pager .pg button:disabled{opacity:.4;cursor:not-allowed}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:9px 8px;
+    vertical-align:middle;text-align:center}
+  table.t th{background:var(--card);color:var(--navy);font-weight:700;font-size:11.5px;white-space:nowrap}
+  table.t td{color:var(--sub)}
+  .who{display:block;color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dept{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .assign{display:inline-flex;gap:var(--gap);align-items:center;max-width:100%}
+  .slotA{flex:0 1 var(--slot-a);width:var(--slot-a);min-width:0}
+  .slotB{flex:0 0 var(--slot-b);width:var(--slot-b)}
+  .slotA > *,.slotB > *{width:100%;display:block}
+  .slotA select{height:31px;border:1px solid var(--line);border-radius:6px;
+    font-size:12.5px;font-family:inherit;padding:0 4px;background:#fff;text-align:center}
+  .slotA .es-mini,.slotB .es-mini{text-align:center;overflow:hidden;text-overflow:ellipsis}
+
+  tr.grp td{background:#fbfcfe;padding:8px;text-align:center}
+  tr.grp.none td{background:#fff8ef}
+  tr.grp td.namecell{position:relative}
+  .grpname{font-size:13px;font-weight:800;color:var(--navy);white-space:nowrap}
+  tr.grp.none .grpname{color:#8a5a10}
+  .cnt{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+    padding:0 5px;border-radius:99px;background:#dfe3ea;color:#5b6270;font-size:10.5px;font-weight:800}
+  .cnt.warn{background:var(--amber);color:#fff}
+  .empty{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .state{color:var(--muted);font-size:13px;padding:34px 0;line-height:1.7}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid #dfe3ea;border-top-color:var(--blue);
+    border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  mark{background:#fff1c2;color:inherit;border-radius:3px;padding:0 1px}
+
+  /* 검토용 표시 — 실제 화면에는 들어가지 않는다 */
+  .guide.on .slotA{background:rgba(36,98,235,.10);outline:1px dashed rgba(36,98,235,.55);outline-offset:-1px}
+  .guide.on .slotB{background:rgba(180,35,42,.09);outline:1px dashed rgba(180,35,42,.5);outline-offset:-1px}
+  .guide.on td.emptycell{background:rgba(62,158,110,.10);outline:1px dashed rgba(62,158,110,.6);outline-offset:-1px}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0 4px}
+  table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:var(--card);color:var(--navy);font-weight:800;font-size:11.5px;white-space:nowrap}
+  table.cmp td{color:var(--sub);line-height:1.65}
+  table.cmp td b{color:var(--ink)}
+  table.cmp tr:last-child td{border-bottom:0}
+  .x{color:var(--red);font-weight:800}.o{color:#215c46;font-weight:800}
+  .log{background:#0F1B3D;color:#c8d4ee;border-radius:8px;padding:10px 13px;
+    font-size:11.5px;line-height:1.7;margin-top:10px;min-height:40px}
+  .log em{color:#7fe0b0;font-style:normal}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>팀 관리 — 표준 조회 화면</h1>
+  <p class="lede">
+    시안 v2.0 · 2026-09-04 · <b>검토용. 아직 코드에 넣지 않았습니다.</b><br>
+    <b>색 표시는 검토용입니다</b> — 실제 화면에는 안 들어갑니다. 기본으로 꺼 두었고,
+    아래 「검토용: 칸 경계」로 켜 보실 수 있습니다.
+  </p>
+
+  <!-- ═══════════════════════════ -->
+  <h2>1. default_skill 표준에 미달했던 점</h2>
+  <p>
+    <code>docs/표준지침/유니에버_공통표준개발지침서_체크리스트.md</code> 의 공통 UI 기준을 다시 읽었습니다.
+    제가 만든 검색은 <b>네 군데가 표준에 못 미쳤습니다.</b>
+  </p>
+  <table class="cmp">
+    <tr><th style="width:34px"></th><th style="width:250px">표준 문구</th><th>v1.9 는</th><th style="width:220px">v2.0 에서</th></tr>
+    <tr><td><b>①</b></td>
+        <td>「조회 화면은 <b>시작일, 종료일, 검색어, 조회 버튼과 페이지 이동</b>을 기본으로 한다」</td>
+        <td class="x">검색칸 하나뿐. 날짜도 조회 버튼도 페이지도 없었다</td>
+        <td>표준 조회줄을 그대로. <b>「내 이북」 화면과 같은 모양</b></td></tr>
+    <tr><td><b>②</b></td>
+        <td>「목록 화면은 … <b>로딩·빈값·오류 상태</b>를 갖춘다」</td>
+        <td class="x">셋 다 없었다</td>
+        <td>아래 ③에서 눌러서 확인</td></tr>
+    <tr><td><b>③</b></td>
+        <td>「시안은 정상 화면만이 아니라 <b>로딩, 빈 데이터, 검증 오류, 서버 오류, 권한 없음,
+            긴 텍스트 및 작은 화면</b>을 포함한다」</td>
+        <td class="x">정상 화면만 보여드렸다</td>
+        <td>상태 전환 버튼으로 전부</td></tr>
+    <tr><td><b>④</b></td>
+        <td>「<b>색상만으로 상태를 구분하지 않는다</b>」</td>
+        <td>주황 배경 + 주황 배지.
+            <b>글자(「아직 팀이 없는 사람」)가 함께 있어 통과</b>는 하지만,
+            「팀 삭제」 비활성은 <span class="x">흐림 + 툴팁뿐</span>이었다</td>
+        <td>비활성 이유를 <b>글자로</b> 함께 적는다</td></tr>
+  </table>
+  <div class="note ok">
+    <b>표준이 이미 말하고 있던 것 하나</b> — 「표 셀은 의미 없는 한 글자 세로 배치나
+    <b>의도치 않은 두 줄 깨짐</b>이 없도록 한다」. 대표님이 계속 짚으신 「두줄이슈」가
+    <b>표준 문구로 적혀 있었습니다.</b> 제가 먼저 챙겼어야 했습니다.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>2. 다듬은 안</h2>
+  <div class="bar">
+    <span class="l">상태</span>
+    <button class="wbtn on" data-st="ok">정상</button>
+    <button class="wbtn" data-st="loading">로딩</button>
+    <button class="wbtn" data-st="empty">빈 데이터</button>
+    <button class="wbtn" data-st="error">서버 오류</button>
+    <button class="wbtn" data-st="long">긴 텍스트</button>
+    <span class="sep"></span>
+    <span class="l">순서</span>
+    <button class="wbtn on" data-ord="team">㉮ 팀 먼저</button>
+    <button class="wbtn" data-ord="none">㉯ 미배정 먼저</button>
+    <span class="sep"></span>
+    <span class="l">창 폭</span>
+    <button class="wbtn on" data-w="1100">1100</button>
+    <button class="wbtn" data-w="860">860</button>
+    <button class="wbtn" data-w="640">640(작은 화면)</button>
+    <span class="sep"></span>
+    <button class="wbtn dev" id="guideBtn">검토용: 칸 경계</button>
+  </div>
+
+  <div class="stage" id="stage" style="max-width:1100px">
+    <div class="es-card guide" id="card">
+      <div class="head">
+        <div class="es-brand"><b>팀 관리</b><span>관리자 전용</span></div>
+        <p class="es-lede">팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.</p>
+        <button class="es-mini close">닫기</button>
+      </div>
+
+      <div class="mk">
+        <input id="newName" placeholder="새 팀 이름 (예: 영업1팀)">
+        <button class="es-mini" id="mkBtn" disabled>팀 만들기</button>
+      </div>
+
+      <!-- 표준 조회줄 -->
+      <div class="srch">
+        <input class="date" type="date" id="from" aria-label="가입일 시작">
+        <span class="tilde">~</span>
+        <input class="date" type="date" id="to" aria-label="가입일 종료">
+        <span class="qbox">⌕<input id="q" placeholder="이름 · 부서 · 팀 이름" aria-label="검색어"></span>
+        <button class="sbtn dark" id="goBtn">조회</button>
+        <button class="sbtn" id="resetBtn">초기화</button>
+      </div>
+
+      <div class="pager">
+        <span id="count"></span>
+        <span class="pg">
+          <button id="prev" disabled aria-label="이전 쪽">‹</button>
+          <button id="next" disabled aria-label="다음 쪽">›</button>
+        </span>
+      </div>
+
+      <table class="t">
+        <colgroup><col style="width:36%"><col style="width:20%"><col style="width:44%"></colgroup>
+        <thead><tr><th>이름 · 부서</th><th>권한</th><th>팀 배정</th></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+
+      <div class="es-msg info" style="margin-top:16px">
+        팀을 바꿔도 <b>로그인은 끊기지 않습니다</b> — 다음 요청부터 바로 새 팀이 적용됩니다. (권한 변경과 다릅니다.)
+        <br>한 사람은 <b>한 팀</b>에만 속합니다. 다른 팀에 넣으면 이전 팀에서 빠집니다.
+      </div>
+    </div>
+    <div class="log" id="log">위에서 <b>상태</b>를 눌러 로딩·빈 데이터·서버 오류·긴 텍스트를 확인해 주세요. 검색은 <b>「조회」를 눌러야</b> 걸립니다.</div>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>3. 검색이 달라진 점</h2>
+  <table class="cmp">
+    <tr><th style="width:34px"></th><th style="width:180px">무엇을</th><th>어떻게 · 왜</th></tr>
+    <tr><td><b>①</b></td><td><b>「조회」 버튼을 눌러야 걸린다</b></td>
+        <td>v1.9 는 치는 대로 걸렀습니다. 표준은 <b>조회 버튼</b>을 요구합니다.
+            서버에 물어보는 화면이 되면 글자마다 요청이 나가고, 무엇보다
+            <b>「내 이북」 화면과 손놀림이 달라집니다.</b> 같은 제품에서 검색이 두 가지로 동작하면 안 됩니다.
+            <b>엔터</b>로도 걸립니다.</td></tr>
+    <tr><td><b>②</b></td><td><b>시작일 ~ 종료일</b></td>
+        <td><b>사람의 가입일</b>로 거릅니다. 팀은 그릇이라 날짜로 거르지 않습니다.
+            쓸모: <b>「이번 주 승인한 사람들만 골라 팀에 넣기」</b> — L1 이 실제로 하는 일입니다.</td></tr>
+    <tr><td><b>③</b></td><td><b>개수 · 페이지</b></td>
+        <td>「전체 <b>4</b>명 · 1/1 페이지 · 20명씩」. 「내 이북」과 같은 자리·같은 문구입니다.
+            묶음(그룹)이 있어도 <b>세는 단위는 사람</b>입니다.</td></tr>
+    <tr><td><b>④</b></td><td><b>초기화</b></td>
+        <td>날짜·검색어를 한 번에 비웁니다. 표준 조회줄의 짝입니다.</td></tr>
+    <tr><td><b>⑤</b></td><td><b>맞은 글자에 표시</b></td>
+        <td>v1.9 에서 넣은 노란 칠은 그대로 둡니다 — 왜 걸렸는지 <b>글자로</b> 알려주는 장치라
+            「색상만으로 구분하지 않는다」에도 맞습니다.</td></tr>
+  </table>
+
+  <div class="note warn">
+    <b>날짜 칸이 이 화면에 정말 필요한지</b>는 대표님이 판단해 주세요.
+    표준은 조회 화면의 기본으로 요구하고, 「이번 주 가입자 배정」이라는 쓸모도 있습니다.
+    다만 사람이 10~20명뿐이면 <b>거의 안 쓰는 칸이 둘 늘어나는</b> 것이기도 합니다.
+    빼신다면 <b>「필요한 검색조건」으로 판단한 승인된 이탈</b>로 작업대장에 적어 두겠습니다 —
+    표준을 몰라서 뺀 것과 알고 뺀 것은 다릅니다.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>4. 정하실 것</h2>
+  <table class="cmp">
+    <tr><td style="width:34px"><b>①</b></td><td style="width:180px"><b>날짜 칸</b></td>
+        <td><b>표준대로 둔다</b> · 뺀다(승인된 이탈로 기록)</td></tr>
+    <tr><td><b>②</b></td><td><b>순서</b></td>
+        <td>㉮ 팀 먼저 · ㉯ 미배정 먼저 — <b>아직 답을 못 받았습니다</b></td></tr>
+    <tr><td><b>③</b></td><td><b>이대로 갈까요</b></td>
+        <td>이대로 코드에 넣는다 · 더 손볼 곳 지정</td></tr>
+  </table>
+
+</div>
+
+<script>
+const PEOPLE = [
+  { id:'u1', name:'김가현',   dept:'SI개발본부',         role:'Lv2 작성자', joined:'2026-09-01' },
+  { id:'u4', name:'최장부서', dept:'디지털전환추진본부', role:'Lv2 작성자', joined:'2026-09-03' },
+  { id:'u2', name:'박열람',   dept:'기획실',             role:'Lv3 열람자', joined:'2026-08-11' },
+  { id:'u3', name:'이작성',   dept:'생산본부',           role:'Lv2 작성자', joined:'2026-07-22' },
+];
+const LONG = { id:'u9', name:'남궁억울하도다', dept:'디지털전환추진본부 데이터플랫폼구축TF',
+               role:'Lv2 작성자', joined:'2026-09-04' };
+let teams = [
+  { id:'t1', name:'영업1팀', members:['u2'] },
+  { id:'t2', name:'기술2팀', members:['u3'] },
+  { id:'t3', name:'신사업TF', members:[] },
+];
+let seq = 3, order = 'team', state = 'ok';
+let q = '', from = '', to = '';          // 적용된 조건 (조회 눌렀을 때만 바뀐다)
+const chosen = {};
+const el = (id) => document.getElementById(id);
+const log = (h) => { el('log').innerHTML = h };
+const people = () => state === 'long' ? PEOPLE.concat([LONG]) : PEOPLE;
+const teamOf = (uid) => teams.find((t) => t.members.includes(uid)) || null;
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+function hi(text){
+  const t = esc(text);
+  if(!q) return t;
+  const i = text.toLowerCase().indexOf(q);
+  if(i < 0) return t;
+  return esc(text.slice(0,i)) + '<mark>' + esc(text.slice(i,i+q.length)) + '</mark>' + esc(text.slice(i+q.length));
+}
+const inRange = (p) => (!from || p.joined >= from) && (!to || p.joined <= to);
+const hitPerson = (p) => inRange(p) && (!q || p.name.toLowerCase().includes(q) || p.dept.toLowerCase().includes(q));
+const hitTeam = (t) => !q || t.name.toLowerCase().includes(q);
+
+function assignCell(uid){
+  const cur = teamOf(uid);
+  const opts = ['<option value="">팀 선택</option>']
+    .concat(teams.map((t) => `<option value="${t.id}"${cur && cur.id === t.id ? ' disabled' : ''}>${esc(t.name)}</option>`)).join('');
+  return `<span class="assign">
+    <span class="slotA"><select onchange="pick('${uid}',this.value)">${opts}</select></span>
+    <span class="slotB"><button class="es-mini" id="go-${uid}" disabled onclick="put('${uid}')">${cur ? '옮기기' : '넣기'}</button></span>
+  </span>`;
+}
+function personRow(p){
+  return `<tr><td><span class="who">${hi(p.name)}</span><span class="dept">${hi(p.dept)}</span></td>
+    <td class="lv">${esc(p.role)}</td><td>${assignCell(p.id)}</td></tr>`;
+}
+function noneBlock(){
+  const shown = people().filter((p) => !teamOf(p.id)).filter(hitPerson);
+  if(!shown.length) return '';
+  return `<tr class="grp none">
+    <td class="namecell"><span class="grpname">아직 팀이 없는 사람</span><span class="cnt warn">${shown.length}</span></td>
+    <td></td><td></td></tr>` + shown.map(personRow).join('');
+}
+function teamBlocks(){
+  let html = '';
+  for(const t of teams){
+    const all = t.members.map((id) => people().find((p) => p.id === id)).filter(Boolean);
+    const ms = hitTeam(t) ? all.filter(inRange) : all.filter(hitPerson);
+    if((q || from || to) && !hitTeam(t) && !ms.length) continue;
+    html += `<tr class="grp">
+      <td class="namecell"><span class="grpname">${hi(t.name)}</span><span class="cnt">${all.length}</span></td>
+      <td></td>
+      <td><span class="assign">
+        <span class="slotA"><button class="es-mini" onclick="ren()">이름 변경</button></span>
+        <span class="slotB"><button class="es-mini danger" ${all.length ? 'disabled' : `onclick="del('${t.id}')"`}>팀 삭제</button></span>
+      </span></td></tr>`;
+    html += ms.length ? ms.map(personRow).join('')
+      // ④ 비활성 이유를 글자로 — 색·흐림만으로 상태를 말하지 않는다
+      : `<tr><td></td><td class="emptycell"><span class="empty">팀원이 없습니다</span></td><td></td></tr>`;
+  }
+  return html;
+}
+function render(){
+  const b = el('body');
+  el('count').innerHTML = '';
+  el('prev').disabled = el('next').disabled = true;
+
+  if(state === 'loading'){
+    b.innerHTML = `<tr><td colspan="3" class="state"><span class="spin"></span>불러오는 중…</td></tr>`;
+    el('count').innerHTML = '불러오는 중'; return;
+  }
+  if(state === 'error'){
+    b.innerHTML = `<tr><td colspan="3" class="state">
+      <b style="color:var(--red)">팀 목록을 불러오지 못했습니다.</b><br>
+      <span style="font-size:12px">잠시 후 다시 시도해 주세요. 계속되면 관리자에게 문의해 주세요. (추적 ID: TM-20260904-0031)</span><br>
+      <button class="es-mini" style="margin-top:10px" onclick="setState('ok')">다시 시도</button>
+    </td></tr>`; return;
+  }
+  if(state === 'empty'){
+    b.innerHTML = `<tr><td colspan="3" class="state">
+      아직 팀도 사람도 없습니다.<br>
+      <span style="font-size:12px">「사용자 관리」에서 가입을 먼저 승인해 주세요.</span></td></tr>`;
+    el('count').innerHTML = '전체 <b>0</b>명'; return;
+  }
+
+  const none = noneBlock(), tm = teamBlocks();
+  let html = order === 'team' ? tm + none : none + tm;
+  const shownPeople = people().filter(hitPerson).length;
+
+  if(!html){
+    b.innerHTML = `<tr><td colspan="3" class="state">
+      조건에 맞는 결과가 없습니다.<br>
+      <button class="es-mini" style="margin-top:10px" onclick="resetAll()">조건 초기화</button></td></tr>`;
+    el('count').innerHTML = '전체 <b>0</b>명 · 1/1 페이지 · 20명씩'; return;
+  }
+  b.innerHTML = html;
+  const filtered = (q || from || to);
+  el('count').innerHTML = filtered
+    ? `조회 결과 <b>${shownPeople}</b>명 · 1/1 페이지 · 20명씩`
+    : `전체 <b>${people().length}</b>명 · 1/1 페이지 · 20명씩`;
+  paint(el('mkBtn'), !!el('newName').value.trim());
+}
+function paint(btn, on){ if(btn){ btn.disabled = !on; btn.classList.toggle('primary', on) } }
+
+window.setState = (s) => {
+  state = s; render();
+  document.querySelectorAll('.wbtn[data-st]').forEach((x) => x.classList.toggle('on', x.dataset.st === s));
+};
+window.resetAll = () => {
+  q = from = to = ''; el('q').value = ''; el('from').value = ''; el('to').value = '';
+  render(); log('조건을 초기화했습니다.');
+};
+window.pick = (uid, tid) => { chosen[uid] = tid; paint(el('go-'+uid), !!tid) };
+window.put = (uid) => {
+  const tid = chosen[uid]; if(!tid) return;
+  const to2 = teams.find((t) => t.id === tid), fr = teamOf(uid);
+  if(fr) fr.members = fr.members.filter((x) => x !== uid);
+  to2.members.push(uid);
+  const p = people().find((x) => x.id === uid);
+  log(fr ? `<em>${p.name} 님을 ${fr.name}에서 ${to2.name}(으)로 옮겼습니다.</em>`
+         : `<em>${p.name} 님을 ${to2.name}에 넣었습니다.</em>`);
+  delete chosen[uid]; render();
+};
+window.ren = () => log('실제 화면에서는 <em>제자리에서 이름을 고칩니다</em>(브라우저 기본 창은 쓰지 않습니다).');
+window.del = (tid) => {
+  const t = teams.find((x) => x.id === tid);
+  teams = teams.filter((x) => x.id !== tid);
+  log(`<em>${t.name} 을(를) 지웠습니다.</em>`); render();
+};
+
+function applySearch(){
+  q = el('q').value.trim().toLowerCase(); from = el('from').value; to = el('to').value;
+  render();
+  log(q || from || to
+    ? `<em>조회했습니다.</em> 검색어 「${esc(q) || '—'}」 · 가입일 ${from || '처음'} ~ ${to || '오늘'}`
+    : '조건이 비어 있어 전체를 보여줍니다.');
+}
+el('goBtn').addEventListener('click', applySearch);
+el('resetBtn').addEventListener('click', () => window.resetAll());
+el('q').addEventListener('keydown', (e) => { if(e.key === 'Enter') applySearch() });
+el('newName').addEventListener('input', () => paint(el('mkBtn'), !!el('newName').value.trim()));
+el('mkBtn').addEventListener('click', () => {
+  const name = el('newName').value.trim(); if(!name) return;
+  if(teams.some((t) => t.name === name)){ log('<b style="color:#ff9b9b">이미 있는 팀 이름입니다.</b>'); return }
+  teams.push({ id:'t'+(++seq), name, members:[] });
+  el('newName').value = ''; log(`<em>${name} 을(를) 만들었습니다.</em>`); render();
+});
+el('newName').addEventListener('keydown', (e) => { if(e.key === 'Enter') el('mkBtn').click() });
+
+const pickGroup = (attr, apply) => {
+  for(const b of document.querySelectorAll(`.wbtn[data-${attr}]`)){
+    b.addEventListener('click', () => {
+      document.querySelectorAll(`.wbtn[data-${attr}]`).forEach((x) => x.classList.remove('on'));
+      b.classList.add('on'); apply(b.dataset[attr]);
+    });
+  }
+};
+pickGroup('w', (v) => { el('stage').style.maxWidth = v + 'px' });
+pickGroup('ord', (v) => { order = v; render() });
+pickGroup('st', (v) => { state = v; render();
+  log(v === 'long' ? '긴 이름·긴 부서를 넣었습니다 — <em>낱말이 끊기지 않고 말줄임(…)</em>으로 처리됩니다.'
+    : v === 'ok' ? '정상 화면입니다.' : `<em>${v}</em> 상태입니다.`) });
+el('guideBtn').addEventListener('click', () => {
+  const on = el('card').classList.toggle('on');
+  el('guideBtn').classList.toggle('on', on);
+  log(on ? '<em>검토용 표시를 켰습니다 — 실제 화면에는 들어가지 않습니다.</em>' : '검토용 표시를 껐습니다.');
+});
+render();
+</script>
+</body>
+</html>

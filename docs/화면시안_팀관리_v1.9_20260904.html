@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팀 관리 — 검색 · A칸 96 · 중앙 정렬 (시안 v1.9)</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --ink:#1c2433; --sub:#5b6270; --muted:#98a1b2;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A; --red:#b4232a;
+    --tint:#EAF1FE; --line:#e6e8ee; --card:#f6f8fc;
+    --slot-a:96px; --slot-b:84px; --gap:6px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#f3f6fb 0%,#e9eef7 100%);
+    font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',Inter,system-ui,sans-serif;
+    color:var(--ink);letter-spacing:-.01em;padding:28px 20px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 4px}
+  .lede{font-size:13.5px;color:var(--sub);line-height:1.7;margin:0 0 24px}
+  h2{font-size:16px;font-weight:800;color:var(--navy);margin:34px 0 12px;
+     padding-bottom:8px;border-bottom:2px solid var(--navy)}
+  p{font-size:13px;color:var(--sub);line-height:1.75;margin:0 0 10px}
+  b{color:var(--ink)}
+  code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:8px;padding:13px 15px;font-size:12.8px;color:var(--sub);line-height:1.75;margin:12px 0}
+  .note.ok{border-left-color:var(--green);background:#f4faf7}
+  .note.warn{border-left-color:var(--amber);background:#fffbf3}
+  .note b{color:var(--navy)}
+
+  .bar{display:flex;gap:6px;align-items:center;margin:0 0 10px;flex-wrap:wrap}
+  .bar span.l{font-size:12px;color:var(--sub);margin-right:2px}
+  .bar span.sep{width:1px;height:20px;background:var(--line);margin:0 6px}
+  .wbtn{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;
+    font-size:12.5px;cursor:pointer;color:var(--sub);font-family:inherit;white-space:nowrap}
+  .wbtn.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+
+  .stage{transition:max-width .18s}
+  .es-card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 8px 32px rgba(15,27,61,.10);padding:24px 22px 20px}
+  .head{position:relative;text-align:center;margin-bottom:16px;padding:0 60px}
+  .es-brand{display:flex;align-items:baseline;gap:8px;justify-content:center}
+  .es-brand b{font-size:19px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+  .es-brand span{font-size:12px;color:var(--muted)}
+  .es-lede{font-size:13px;color:var(--sub);margin:4px 0 0;line-height:1.6}
+  .close{position:absolute;top:0;right:0}
+  .es-msg{border-radius:7px;padding:11px 13px;font-size:12.5px;line-height:1.55}
+  .es-msg.info{background:var(--tint);border:1px solid #c6d5ff;color:#1a4fc4}
+
+  .es-mini{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 8px;
+    font-size:12px;color:var(--ink);cursor:pointer;font-family:inherit;white-space:nowrap}
+  .es-mini.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  .es-mini.danger{color:var(--red);border-color:#f0d6d6}
+  .es-mini:disabled{opacity:.55;cursor:not-allowed}
+
+  .mk{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:10px}
+  .mk input{flex:0 1 260px;min-width:0;height:34px;padding:0 11px;border:1px solid var(--line);
+    border-radius:7px;font-size:13px;font-family:inherit;background:#fff;outline:none;text-align:center}
+  .mk input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--tint)}
+
+  /* ── 검색 : 사람과 팀을 한 칸에서 찾는다 ── */
+  .find{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+  .findbox{position:relative;flex:0 1 320px;min-width:0}
+  .findbox input{width:100%;height:34px;padding:0 30px 0 32px;border:1px solid var(--line);
+    border-radius:99px;font-size:13px;font-family:inherit;background:#fff;outline:none;text-align:center}
+  .findbox input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--tint)}
+  .findbox .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    color:var(--muted);font-size:13px;pointer-events:none}
+  .findbox .clr{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;display:none}
+  .findbox.has .clr{display:block}
+  .count{text-align:center;font-size:11.5px;color:var(--muted);margin-bottom:8px}
+  .count b{color:var(--navy)}
+  mark{background:#fff1c2;color:inherit;border-radius:3px;padding:0 1px}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:9px 8px;
+    vertical-align:middle;text-align:center}
+  table.t th{background:var(--card);color:var(--navy);font-weight:700;font-size:11.5px;white-space:nowrap}
+  table.t td{color:var(--sub)}
+  .who{display:block;color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dept{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .assign{display:inline-flex;gap:var(--gap);align-items:center;max-width:100%}
+  .slotA{flex:0 1 var(--slot-a);width:var(--slot-a);min-width:0}
+  .slotB{flex:0 0 var(--slot-b);width:var(--slot-b)}
+  .slotA > *,.slotB > *{width:100%;display:block}
+  /* 「팀 선택」 글자 — 가운데 */
+  .slotA select{height:31px;border:1px solid var(--line);border-radius:6px;
+    font-size:12.5px;font-family:inherit;padding:0 4px;background:#fff;text-align:center}
+  .slotA .es-mini,.slotB .es-mini{text-align:center;overflow:hidden;text-overflow:ellipsis}
+
+  tr.grp td{background:#fbfcfe;padding:8px;text-align:center}
+  tr.grp.none td{background:#fff8ef}
+  tr.grp td.namecell{position:relative}
+  .grpname{font-size:13px;font-weight:800;color:var(--navy);white-space:nowrap}
+  tr.grp.none .grpname{color:#8a5a10}
+  .cnt{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+    padding:0 5px;border-radius:99px;background:#dfe3ea;color:#5b6270;font-size:10.5px;font-weight:800}
+  .cnt.warn{background:var(--amber);color:#fff}
+  /* 「팀원이 없습니다」 — 권한 칸에 넣어 열을 맞춘다 */
+  .empty{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .noresult{color:var(--muted);font-size:13px;padding:26px 0}
+
+  .guide.on .slotA{background:rgba(36,98,235,.10);outline:1px dashed rgba(36,98,235,.55);outline-offset:-1px}
+  .guide.on .slotB{background:rgba(180,35,42,.09);outline:1px dashed rgba(180,35,42,.5);outline-offset:-1px}
+  .guide.on td.emptycell{background:rgba(62,158,110,.10);outline:1px dashed rgba(62,158,110,.6);outline-offset:-1px}
+  .guide.on th:nth-child(2){background:rgba(62,158,110,.14)}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0 4px}
+  table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:var(--card);color:var(--navy);font-weight:800;font-size:11.5px;white-space:nowrap}
+  table.cmp td{color:var(--sub);line-height:1.65}
+  table.cmp td b{color:var(--ink)}
+  table.cmp tr:last-child td{border-bottom:0}
+  .log{background:#0F1B3D;color:#c8d4ee;border-radius:8px;padding:10px 13px;
+    font-size:11.5px;line-height:1.7;margin-top:10px;min-height:40px}
+  .log em{color:#7fe0b0;font-style:normal}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>검색 · A칸 96 · 「팀 선택」 중앙</h1>
+  <p class="lede">
+    시안 v1.9 · 2026-09-04 · <b>검토용. 아직 코드에 넣지 않았습니다.</b><br>
+    네 가지 반영했습니다 — <b>검색</b> 추가 · <b>A칸 96px</b> · <b>「팀 선택」 글자 중앙</b> ·
+    <b>「팀원이 없습니다」를 권한 열에</b>. 검색은 실제로 동작합니다.
+  </p>
+
+  <!-- ═══════════════════════════ -->
+  <h2>1. 눌러 보세요</h2>
+  <div class="bar">
+    <button class="wbtn on" id="guideBtn">칸 경계 보기</button>
+    <span class="sep"></span>
+    <span class="l">순서</span>
+    <button class="wbtn on" data-ord="team">㉮ 팀 먼저</button>
+    <button class="wbtn" data-ord="none">㉯ 미배정 먼저</button>
+    <span class="sep"></span>
+    <span class="l">창 폭</span>
+    <button class="wbtn on" data-w="1100">1100</button>
+    <button class="wbtn" data-w="860">860</button>
+    <button class="wbtn" data-w="700">700</button>
+    <span class="sep"></span>
+    <span class="l">검색 예</span>
+    <button class="wbtn" data-q="영업">영업</button>
+    <button class="wbtn" data-q="김">김</button>
+    <button class="wbtn" data-q="본부">본부</button>
+    <button class="wbtn" data-q="없는이름">없는이름</button>
+  </div>
+
+  <div class="stage" id="stage" style="max-width:1100px">
+    <div class="es-card guide on" id="card">
+      <div class="head">
+        <div class="es-brand"><b>팀 관리</b><span>관리자 전용</span></div>
+        <p class="es-lede">팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.</p>
+        <button class="es-mini close">닫기</button>
+      </div>
+
+      <div class="mk">
+        <input id="newName" placeholder="새 팀 이름 (예: 영업1팀)">
+        <button class="es-mini" id="mkBtn" disabled>팀 만들기</button>
+      </div>
+
+      <div class="find">
+        <span class="findbox" id="findbox">
+          <span class="ico">⌕</span>
+          <input id="q" placeholder="이름 · 부서 · 팀 이름 검색">
+          <button class="clr" id="clr" title="지우기">×</button>
+        </span>
+      </div>
+      <div class="count" id="count"></div>
+
+      <table class="t">
+        <colgroup><col style="width:36%"><col style="width:20%"><col style="width:44%"></colgroup>
+        <thead><tr><th>이름 · 부서</th><th>권한</th><th>팀 배정</th></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+
+      <div class="es-msg info" style="margin-top:16px">
+        팀을 바꿔도 <b>로그인은 끊기지 않습니다</b> — 다음 요청부터 바로 새 팀이 적용됩니다. (권한 변경과 다릅니다.)
+        <br>한 사람은 <b>한 팀</b>에만 속합니다. 다른 팀에 넣으면 이전 팀에서 빠집니다.
+      </div>
+    </div>
+    <div class="log" id="log">검색칸에 <b>영업</b> · <b>김</b> · <b>본부</b> 를 쳐 보세요. 초록 칸이 「팀원이 없습니다」가 앉는 자리입니다.</div>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>2. 이번에 넣은 것</h2>
+  <table class="cmp">
+    <tr><th style="width:34px"></th><th style="width:180px">무엇을</th><th>어떻게 · 왜</th></tr>
+    <tr><td><b>①</b></td><td><b>검색 — 한 칸에서 둘 다</b></td>
+        <td><b>사람 이름 · 부서 · 팀 이름을 한 칸이 다 찾습니다.</b> 「사람 검색 / 팀 검색」을
+            고르게 하지 않았습니다 — 「영업1팀」을 칠지 「박열람」을 칠지는 이미 정해서 치는 것이라,
+            <b>고르는 장치를 두면 틀리게 고를 일만 생깁니다.</b>
+            (폴더 검색에서 「전체에서 / 이 폴더에서」 토글을 뺀 것과 같은 판단입니다.)</td></tr>
+    <tr><td><b>②</b></td><td><b>찾은 것을 세어서 보여줌</b></td>
+        <td>표 위에 <b>「사람 1 · 팀 1」</b>. 검색 중일 때만 뜹니다.
+            0건이면 <b>「찾는 결과가 없습니다」</b> 와 <b>전체 보기</b> 탈출구를 냅니다.</td></tr>
+    <tr><td><b>③</b></td><td><b>맞은 글자에 표시</b></td>
+        <td>왜 이 줄이 걸렸는지 <b>노란 칠</b>로 알려줍니다.
+            「본부」로 찾으면 <b>부서</b>가 걸린 것이 보입니다.</td></tr>
+    <tr><td><b>④</b></td><td><b>A칸 96px</b></td>
+        <td>「이름 변경」은 여유 있고, 「팀 선택」·「영업1팀」도 들어갑니다.
+            전체 폭 <b>186px</b>(148 시절 230 → 44px 줄었습니다).</td></tr>
+    <tr><td><b>⑤</b></td><td><b>「팀 선택」 글자 중앙</b></td>
+        <td>닫힌 상태가 가운데로 옵니다. <b>펼친 목록은 왼쪽</b>인 것만 알고 계시면 됩니다.</td></tr>
+    <tr><td><b>⑥</b></td><td><b>「팀원이 없습니다」</b></td>
+        <td>줄 전체에 걸쳐 가운데 놓던 것을 <b>「권한」 칸</b>으로 옮겼습니다.
+            빈 팀이 여러 개여도 같은 자리에 섭니다. (칸 경계를 켜면 초록으로 보입니다.)</td></tr>
+  </table>
+
+  <div class="note warn">
+    <b>검색 중에 확인해 주실 것</b> — 「김」으로 찾으면 <b>김가현</b> 한 사람만 남고,
+    그 사람이 속한 그룹 줄도 <b>맥락으로</b> 함께 남습니다.
+    팀 이름이 걸리면(「영업」) <b>그 팀 사람 전원</b>이 나옵니다.
+    이 규칙이 어색하면 말씀해 주세요 — 사람만 남기는 방식으로 바꿀 수 있습니다.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>3. 남은 것 하나</h2>
+  <table class="cmp">
+    <tr><td style="width:34px"><b>①</b></td><td style="width:180px"><b>순서</b></td>
+        <td><b>㉮ 팀 먼저</b> · ㉯ 미배정 먼저 — <b>이것만 정해 주시면 코드로 옮기겠습니다.</b>
+            <br><span style="color:var(--muted)">㉮ 를 고르시면 미배정이 맨 아래로 가니, 창 제목 옆에
+            「미배정 2명」 배지를 두는 것을 함께 권합니다.</span></td></tr>
+  </table>
+
+</div>
+
+<script>
+const PEOPLE = [
+  { id:'u1', name:'김가현',   dept:'SI개발본부',         role:'Lv2 작성자' },
+  { id:'u4', name:'최장부서', dept:'디지털전환추진본부', role:'Lv2 작성자' },
+  { id:'u2', name:'박열람',   dept:'기획실',             role:'Lv3 열람자' },
+  { id:'u3', name:'이작성',   dept:'생산본부',           role:'Lv2 작성자' },
+];
+let teams = [
+  { id:'t1', name:'영업1팀', members:['u2'] },
+  { id:'t2', name:'기술2팀', members:['u3'] },
+  { id:'t3', name:'신사업TF', members:[] },
+];
+let seq = 3, order = 'team', q = '';
+const chosen = {};
+const el = (id) => document.getElementById(id);
+const log = (h) => { el('log').innerHTML = h };
+const teamOf = (uid) => teams.find((t) => t.members.includes(uid)) || null;
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+/** 맞은 글자에 노란 칠 — 왜 이 줄이 걸렸는지 눈으로 알려준다. */
+function hi(text){
+  const t = esc(text);
+  if(!q) return t;
+  const i = text.toLowerCase().indexOf(q);
+  if(i < 0) return t;
+  return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+}
+const hitPerson = (p) => !q || p.name.toLowerCase().includes(q) || p.dept.toLowerCase().includes(q);
+const hitTeam   = (t) => !q || t.name.toLowerCase().includes(q);
+
+function assignCell(uid){
+  const cur = teamOf(uid);
+  const opts = ['<option value="">팀 선택</option>']
+    .concat(teams.map((t) => `<option value="${t.id}"${cur && cur.id === t.id ? ' disabled' : ''}>${esc(t.name)}</option>`))
+    .join('');
+  return `<span class="assign">
+    <span class="slotA"><select onchange="pick('${uid}',this.value)">${opts}</select></span>
+    <span class="slotB"><button class="es-mini" id="go-${uid}" disabled onclick="put('${uid}')">${cur ? '옮기기' : '넣기'}</button></span>
+  </span>`;
+}
+function personRow(p){
+  return `<tr><td><span class="who">${hi(p.name)}</span><span class="dept">${hi(p.dept)}</span></td>
+    <td class="lv">${esc(p.role)}</td><td>${assignCell(p.id)}</td></tr>`;
+}
+function noneBlock(){
+  const left = PEOPLE.filter((p) => !teamOf(p.id));
+  const shown = left.filter(hitPerson);
+  if(!shown.length) return '';
+  return `<tr class="grp none">
+    <td class="namecell"><span class="grpname">아직 팀이 없는 사람</span><span class="cnt warn">${shown.length}</span></td>
+    <td></td><td></td></tr>` + shown.map(personRow).join('');
+}
+function teamBlocks(){
+  let html = '';
+  for(const t of teams){
+    const all = t.members.map((id) => PEOPLE.find((p) => p.id === id)).filter(Boolean);
+    // 팀 이름이 걸리면 그 팀 사람 전원, 아니면 걸린 사람만
+    const ms = hitTeam(t) ? all : all.filter(hitPerson);
+    if(q && !hitTeam(t) && !ms.length) continue;         // 아무것도 안 걸린 팀은 숨긴다
+    html += `<tr class="grp">
+      <td class="namecell"><span class="grpname">${hi(t.name)}</span><span class="cnt">${all.length}</span></td>
+      <td></td>
+      <td><span class="assign">
+        <span class="slotA"><button class="es-mini" onclick="ren()">이름 변경</button></span>
+        <span class="slotB"><button class="es-mini danger" ${all.length ? 'disabled title="팀원이 남아 있습니다. 먼저 팀원을 옮겨 주세요."' : `onclick="del('${t.id}')"`}>팀 삭제</button></span>
+      </span></td></tr>`;
+    // 「팀원이 없습니다」 — 권한 칸에 넣어 열을 맞춘다
+    html += ms.length ? ms.map(personRow).join('')
+      : `<tr><td></td><td class="emptycell"><span class="empty">팀원이 없습니다</span></td><td></td></tr>`;
+  }
+  return html;
+}
+function render(){
+  const none = noneBlock(), tm = teamBlocks();
+  let html = order === 'team' ? tm + none : none + tm;
+
+  // 세어서 보여준다 — 검색 중일 때만
+  if(q){
+    const np = PEOPLE.filter(hitPerson).length, nt = teams.filter(hitTeam).length;
+    el('count').innerHTML = (np + nt)
+      ? `「<b>${esc(q)}</b>」 검색 결과 — 사람 <b>${np}</b> · 팀 <b>${nt}</b>`
+      : '';
+    if(!html){
+      html = `<tr><td colspan="3" class="noresult">
+        「<b>${esc(q)}</b>」 로 찾는 결과가 없습니다.
+        <button class="es-mini" style="margin-left:8px" onclick="clearQ()">전체 보기</button>
+      </td></tr>`;
+      el('count').innerHTML = '';
+    }
+  } else {
+    el('count').innerHTML = `사람 <b>${PEOPLE.length}</b> · 팀 <b>${teams.length}</b>`;
+  }
+  if(!html) html = `<tr><td colspan="3" class="noresult">표시할 사람이 없습니다.</td></tr>`;
+  el('body').innerHTML = html;
+  el('findbox').classList.toggle('has', !!q);
+  paint(el('mkBtn'), !!el('newName').value.trim());
+}
+function paint(btn, on){ if(btn){ btn.disabled = !on; btn.classList.toggle('primary', on) } }
+
+window.clearQ = () => { q = ''; el('q').value = ''; render(); log('검색을 지웠습니다.') };
+window.pick = (uid, tid) => { chosen[uid] = tid; paint(el('go-'+uid), !!tid) };
+window.put = (uid) => {
+  const tid = chosen[uid]; if(!tid) return;
+  const to = teams.find((t) => t.id === tid), from = teamOf(uid);
+  if(from) from.members = from.members.filter((x) => x !== uid);
+  to.members.push(uid);
+  const p = PEOPLE.find((x) => x.id === uid);
+  log(from ? `<em>${p.name} 님을 ${from.name}에서 ${to.name}(으)로 옮겼습니다.</em>`
+           : `<em>${p.name} 님을 ${to.name}에 넣었습니다.</em>`);
+  delete chosen[uid]; render();
+};
+window.ren = () => log('실제 화면에서는 <em>제자리에서 이름을 고칩니다</em>(브라우저 기본 창은 쓰지 않습니다).');
+window.del = (tid) => {
+  const t = teams.find((x) => x.id === tid);
+  teams = teams.filter((x) => x.id !== tid);
+  log(`<em>${t.name} 을(를) 지웠습니다.</em>`); render();
+};
+
+el('q').addEventListener('input', (e) => {
+  q = e.target.value.trim().toLowerCase(); render();
+  document.querySelectorAll('.wbtn[data-q]').forEach((x) => x.classList.remove('on'));
+});
+el('clr').addEventListener('click', () => window.clearQ());
+el('newName').addEventListener('input', () => paint(el('mkBtn'), !!el('newName').value.trim()));
+el('mkBtn').addEventListener('click', () => {
+  const name = el('newName').value.trim(); if(!name) return;
+  if(teams.some((t) => t.name === name)){ log('<b style="color:#ff9b9b">이미 있는 팀 이름입니다.</b>'); return }
+  teams.push({ id:'t'+(++seq), name, members:[] });
+  el('newName').value = ''; log(`<em>${name} 을(를) 만들었습니다.</em> 「팀원이 없습니다」가 권한 칸에 섭니다.`); render();
+});
+el('newName').addEventListener('keydown', (e) => { if(e.key === 'Enter') el('mkBtn').click() });
+
+const pickGroup = (attr, apply) => {
+  for(const b of document.querySelectorAll(`.wbtn[data-${attr}]`)){
+    b.addEventListener('click', () => {
+      document.querySelectorAll(`.wbtn[data-${attr}]`).forEach((x) => x.classList.remove('on'));
+      b.classList.add('on'); apply(b.dataset[attr]);
+    });
+  }
+};
+pickGroup('w', (v) => { el('stage').style.maxWidth = v + 'px' });
+pickGroup('ord', (v) => { order = v; render() });
+pickGroup('q', (v) => {
+  q = v.toLowerCase(); el('q').value = v; render();
+  log(`「<em>${v}</em>」 로 찾았습니다. 걸린 글자에 노란 칠이 들어갑니다.`);
+});
+el('guideBtn').addEventListener('click', () => {
+  const on = el('card').classList.toggle('on');
+  el('guideBtn').textContent = on ? '칸 경계 숨기기' : '칸 경계 보기';
+  el('guideBtn').classList.toggle('on', on);
+});
+render();
+</script>
+</body>
+</html>

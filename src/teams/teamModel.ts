@@ -89,3 +89,119 @@ export function deleteBlockReason(team: Team): string | null {
   }
   return null
 }
+
+// ══════════════════════════════════════════════════════════
+// 조회 · 묶음 (SCR-TEAM-01, 시안 v2.3 확정)
+// ══════════════════════════════════════════════════════════
+
+/** 한 쪽에 보일 사람 수. `LibraryScreen.PAGE_SIZE`(12)와 달리 명부는 한눈에 보는 편이 낫다. */
+export const PAGE_SIZE = 20
+
+export function normalizeQuery(raw: string | null | undefined): string {
+  return (raw || '').trim().toLowerCase()
+}
+
+/** 사람은 **이름과 부서**로 걸린다. 팀은 **이름**으로 걸린다. */
+export function matchPerson(u: TeamUser, q: string): boolean {
+  if (!q) return true
+  return u.name.toLowerCase().includes(q) || (u.dept || '').toLowerCase().includes(q)
+}
+
+export function matchTeam(t: { name: string }, q: string): boolean {
+  if (!q) return true
+  return t.name.toLowerCase().includes(q)
+}
+
+/**
+ * 걸린 자리를 셋으로 쪼갠다 — 화면이 가운데 토막에만 노란 칠을 한다.
+ * 못 찾으면 `null`. **왜 이 줄이 걸렸는지**를 글자로 알려주는 장치라,
+ * 「색상만으로 상태를 구분하지 않는다」(표준)에도 맞는다.
+ */
+export function highlight(
+  text: string, q: string,
+): { before: string; match: string; after: string } | null {
+  if (!q) return null
+  const i = text.toLowerCase().indexOf(q)
+  if (i < 0) return null
+  return { before: text.slice(0, i), match: text.slice(i, i + q.length), after: text.slice(i + q.length) }
+}
+
+export type GroupKind = 'unassigned' | 'team'
+
+export interface Group {
+  kind: GroupKind
+  id: string            // 팀 id. 미배정은 ''
+  name: string
+  /** 이 묶음의 **실제** 인원. 검색으로 줄어들지 않는다 — 팀 삭제 가드가 이 값을 본다. */
+  total: number
+  /** 지금 화면에 보일 사람. */
+  members: TeamUser[]
+}
+
+export interface GroupsResult {
+  groups: Group[]
+  /** 조건에 걸린 사람 수(쪽 나누기 전). */
+  totalPeople: number
+  totalPages: number
+  page: number
+}
+
+/**
+ * 화면에 그릴 묶음을 만든다.
+ *
+ * 확정된 규칙(시안 v2.3):
+ *   ① **미배정이 맨 위.** 0명이면 그 묶음은 아예 없다 — 할 일이 없는데 자리를 차지하면
+ *      다음에 진짜 생겼을 때 눈에 안 띈다.
+ *   ② 팀 이름이 걸리면 **그 팀 사람 전원**, 아니면 **걸린 사람만.**
+ *   ③ 검색 중에 아무것도 안 걸린 팀은 숨긴다. 단 **빈 팀은 이름이 걸리면 남는다**
+ *      (「팀원이 없습니다」를 보여줘야 만들어 놓고 잊은 팀을 안다).
+ *   ④ 쪽 나누기는 **사람 기준**이다. 묶음 줄은 세지 않는다 — 세면 팀이 많을수록
+ *      한 쪽에 보이는 사람이 줄어 「20명씩」이라는 말이 거짓이 된다.
+ */
+export function buildGroups(
+  users: TeamUser[], teams: Team[], query = '', page = 1, pageSize = PAGE_SIZE,
+): GroupsResult {
+  const q = normalizeQuery(query)
+  const pool = assignable(users)
+  const inTeam = new Set(teams.flatMap((t) => t.members.map((m) => m.id)))
+
+  // 묶음 순서대로 사람을 늘어놓는다 — 쪽을 자르려면 먼저 한 줄로 세워야 한다.
+  const raw: Group[] = []
+  const unassigned = pool.filter((u) => !inTeam.has(u.id)).filter((u) => matchPerson(u, q))
+  if (unassigned.length) {
+    raw.push({ kind: 'unassigned', id: '', name: '아직 팀이 없는 사람',
+      total: unassigned.length, members: unassigned })
+  }
+  for (const t of teams) {
+    const all = t.members
+    const hit = matchTeam(t, q)
+    const members = hit ? all : all.filter((u) => matchPerson(u, q))
+    if (q && !hit && !members.length) continue
+    raw.push({ kind: 'team', id: t.id, name: t.name, total: all.length, members })
+  }
+
+  const flat = raw.flatMap((g) => g.members)
+  const totalPeople = flat.length
+  const totalPages = Math.max(1, Math.ceil(totalPeople / pageSize))
+  const cur = Math.min(Math.max(1, page), totalPages)
+  const slice = new Set(flat.slice((cur - 1) * pageSize, cur * pageSize).map((m) => m.id))
+
+  // **빈 팀은 붙잡을 사람이 없다.** 그래도 어딘가에는 나와야 한다 —
+  // 만들어 놓고 아무도 안 넣은 팀을 화면이 말해주지 않으면 아무도 모른다.
+  // 그래서 묶음 차례에서 제가 선 자리(앞에 몇 명이 지나갔는가)로 제 쪽을 정한다.
+  let seen = 0
+  const pageOfEmpty = new Map<string, number>()
+  for (const g of raw) {
+    if (g.kind === 'team' && g.total === 0) {
+      pageOfEmpty.set(g.id, Math.min(Math.floor(seen / pageSize) + 1, totalPages))
+    }
+    seen += g.members.length
+  }
+
+  const groups = raw
+    .map((g) => ({ ...g, members: g.members.filter((m) => slice.has(m.id)) }))
+    .filter((g) => g.members.length
+      || (g.kind === 'team' && g.total === 0 && pageOfEmpty.get(g.id) === cur))
+
+  return { groups, totalPeople, totalPages, page: cur }
+}

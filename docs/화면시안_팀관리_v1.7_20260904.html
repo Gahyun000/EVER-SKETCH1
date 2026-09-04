@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팀 관리 — 이름 열 맞춤 · 팀 순서 (시안 v1.7)</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --ink:#1c2433; --sub:#5b6270; --muted:#98a1b2;
+    --blue:#2462EB; --green:#3E9E6E; --amber:#D98A2A; --red:#b4232a;
+    --tint:#EAF1FE; --line:#e6e8ee; --card:#f6f8fc;
+    --sel-w:148px; --btn-w:76px; --gap:6px;
+    --assign-w:calc(var(--sel-w) + var(--gap) + var(--btn-w));
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#f3f6fb 0%,#e9eef7 100%);
+    font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',Inter,system-ui,sans-serif;
+    color:var(--ink);letter-spacing:-.01em;padding:28px 20px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;font-weight:800;color:var(--navy);margin:0 0 4px}
+  .lede{font-size:13.5px;color:var(--sub);line-height:1.7;margin:0 0 24px}
+  h2{font-size:16px;font-weight:800;color:var(--navy);margin:34px 0 12px;
+     padding-bottom:8px;border-bottom:2px solid var(--navy)}
+  p{font-size:13px;color:var(--sub);line-height:1.75;margin:0 0 10px}
+  b{color:var(--ink)}
+  code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:8px;padding:13px 15px;font-size:12.8px;color:var(--sub);line-height:1.75;margin:12px 0}
+  .note.ok{border-left-color:var(--green);background:#f4faf7}
+  .note.warn{border-left-color:var(--amber);background:#fffbf3}
+  .note b{color:var(--navy)}
+
+  .bar{display:flex;gap:6px;align-items:center;margin:0 0 12px;flex-wrap:wrap}
+  .bar span.l{font-size:12px;color:var(--sub);margin-right:2px}
+  .bar span.sep{width:1px;height:20px;background:var(--line);margin:0 6px}
+  .wbtn{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;
+    font-size:12.5px;cursor:pointer;color:var(--sub);font-family:inherit;white-space:nowrap}
+  .wbtn.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+
+  .stage{transition:max-width .18s}
+  .es-card{background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 8px 32px rgba(15,27,61,.10);padding:24px 22px 20px}
+  .head{position:relative;text-align:center;margin-bottom:16px;padding:0 60px}
+  .es-brand{display:flex;align-items:baseline;gap:8px;justify-content:center}
+  .es-brand b{font-size:19px;font-weight:800;color:var(--navy);letter-spacing:-.02em}
+  .es-brand span{font-size:12px;color:var(--muted)}
+  .es-lede{font-size:13px;color:var(--sub);margin:4px 0 0;line-height:1.6}
+  .close{position:absolute;top:0;right:0}
+  .es-msg{border-radius:7px;padding:11px 13px;font-size:12.5px;line-height:1.55}
+  .es-msg.info{background:var(--tint);border:1px solid #c6d5ff;color:#1a4fc4}
+
+  .es-mini{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 11px;
+    font-size:12px;color:var(--ink);cursor:pointer;font-family:inherit;white-space:nowrap;flex:0 0 auto}
+  .es-mini.primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  .es-mini.danger{color:var(--red);border-color:#f0d6d6}
+  .es-mini:disabled{opacity:.55;cursor:not-allowed}
+  .es-mini.go{width:var(--btn-w);padding-left:0;padding-right:0;text-align:center}
+
+  .mk{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px;margin-bottom:16px}
+  .mk input{flex:0 1 260px;min-width:0;height:34px;padding:0 11px;border:1px solid var(--line);
+    border-radius:7px;font-size:13px;font-family:inherit;background:#fff;outline:none;text-align:center}
+
+  table.t{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:9px 8px;
+    vertical-align:middle;text-align:center}
+  table.t th{background:var(--card);color:var(--navy);font-weight:700;font-size:11.5px;white-space:nowrap}
+  table.t td{color:var(--sub)}
+  .who{display:block;color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dept{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .assign{display:inline-flex;gap:var(--gap);align-items:center;
+    width:var(--assign-w);max-width:100%;justify-content:flex-end}
+  .assign select{flex:1 1 auto;min-width:0;width:var(--sel-w);height:31px;border:1px solid var(--line);
+    border-radius:6px;font-size:12.5px;font-family:inherit;padding:0 6px;background:#fff}
+
+  /* ── 그룹 줄 ── */
+  tr.grp td{background:#fbfcfe;padding:8px;text-align:center}
+  tr.grp.none td{background:#fff8ef}
+  /* ★ 개수 배지를 칸의 **오른쪽 끝에 고정**한다.
+     이름 옆에 붙여 두면 배지 폭만큼 이름이 왼쪽으로 밀려,
+     아래 사람 이름과 세로 중심이 어긋난다. */
+  tr.grp td.namecell{position:relative}
+  .grpname{font-size:13px;font-weight:800;color:var(--navy);white-space:nowrap}
+  tr.grp.none .grpname{color:#8a5a10}
+  .cnt{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
+    padding:0 5px;border-radius:99px;background:#dfe3ea;color:#5b6270;font-size:10.5px;font-weight:800}
+  .cnt.warn{background:var(--amber);color:#fff}
+  /* 배지를 이름 옆에 그대로 두는 「지금」 모습 — 비교용 */
+  .oldbadge .cnt{position:static;transform:none;margin-left:6px;vertical-align:1px}
+  .empty{color:var(--muted);font-size:12.5px}
+
+  .sel-left  .assign select{text-align:left}
+  .sel-mid   .assign select{text-align:center}
+  .sel-right .assign select{text-align:right}
+
+  /* 가운데 세로선 — 이름과 팀 이름이 한 줄에 서는지 확인 */
+  .guide{position:relative;overflow:hidden}
+  .guide::after{content:'';position:absolute;top:0;bottom:0;width:1px;
+    left:calc(22px + 18%);
+    background:repeating-linear-gradient(var(--red) 0 5px, transparent 5px 10px);
+    opacity:0;transition:opacity .15s;pointer-events:none}
+  .guide.on::after{opacity:.75}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0 4px}
+  table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:var(--card);color:var(--navy);font-weight:800;font-size:11.5px;white-space:nowrap}
+  table.cmp td{color:var(--sub);line-height:1.65}
+  table.cmp td b{color:var(--ink)}
+  table.cmp tr:last-child td{border-bottom:0}
+  .log{background:#0F1B3D;color:#c8d4ee;border-radius:8px;padding:10px 13px;
+    font-size:11.5px;line-height:1.7;margin-top:10px;min-height:40px}
+  .log em{color:#7fe0b0;font-style:normal}
+  .ord{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.9;
+    background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .ord .g{color:var(--navy);font-weight:800}
+  .ord .n{color:var(--amber);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>이름 열 맞춤 · 팀 순서</h1>
+  <p class="lede">
+    시안 v1.7 · 2026-09-04 · <b>검토용. 아직 코드에 넣지 않았습니다.</b><br>
+    <b>말씀을 두 가지로 이해했습니다.</b> 어느 쪽인지 몰라 둘 다 만들어 토글로 두었습니다 —
+    아래 ①을 눌러 바꿔 보시고 맞는 쪽을 알려주세요.
+  </p>
+
+  <!-- ═══════════════════════════ -->
+  <h2>1. 「팀 이름이 위에」 — 두 가지로 읽었습니다</h2>
+  <div class="row" style="display:flex;gap:18px;flex-wrap:wrap">
+    <div style="flex:1 1 340px;min-width:320px">
+      <p style="font-weight:800;color:var(--navy);margin-bottom:6px">㉮ 팀을 먼저, 미배정을 아래로</p>
+      <div class="ord">
+        <span class="g">영업1팀</span><br>
+        &nbsp;&nbsp;박열람<br>
+        <span class="g">기술2팀</span><br>
+        &nbsp;&nbsp;이작성<br>
+        <span class="n">아직 팀이 없는 사람</span><br>
+        &nbsp;&nbsp;김가현<br>
+        &nbsp;&nbsp;최장부서
+      </div>
+      <p style="font-size:12.5px;margin-top:8px">
+        지금은 <b>미배정이 맨 위</b>라 「김가현·최장부서」를 지나야 「영업1팀」이 나옵니다.
+        <b>팀 이름부터 보이길</b> 원하신 거라면 이쪽입니다.
+      </p>
+    </div>
+    <div style="flex:1 1 340px;min-width:320px">
+      <p style="font-weight:800;color:var(--navy);margin-bottom:6px">㉯ 순서는 그대로, <b>열만</b> 맞춘다</p>
+      <div class="ord">
+        <span class="n">아직 팀이 없는 사람</span><br>
+        &nbsp;&nbsp;김가현<br>
+        &nbsp;&nbsp;최장부서<br>
+        <span class="g">영업1팀</span><br>
+        &nbsp;&nbsp;박열람<br>
+        <span class="g">기술2팀</span><br>
+        &nbsp;&nbsp;이작성
+      </div>
+      <p style="font-size:12.5px;margin-top:8px">
+        각 팀 이름은 <b>이미 그 팀원들 위에</b> 있습니다. 어긋나 보이는 건 순서가 아니라
+        <b>글자 위치</b>였습니다 — 아래 2번이 그 원인입니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>2. 열이 안 맞았던 이유 — 개수 배지였습니다</h2>
+  <div class="note">
+    「영업1팀 <b>①</b>」에서 <b>배지가 이름 옆에 붙어</b> 있었습니다. 이름과 배지를 <b>한 덩어리로</b>
+    가운데 놓으니, 배지 폭(약 24px)만큼 <b>팀 이름이 왼쪽으로 밀립니다.</b>
+    아래 「김가현」은 배지가 없어 정중앙에 서고요. 그래서 두 글자의 세로 중심이 어긋났습니다.
+    <br><br>
+    <b>고침 — 배지를 칸의 오른쪽 끝에 고정합니다.</b> 이름은 칸 정중앙에 그대로 서고,
+    배지는 이름을 밀지 않습니다. 아래에서 <b>「배지 원래대로」</b>와 <b>「가운데선 보기」</b>를
+    함께 눌러 보시면 어긋남이 눈으로 보입니다.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>3. 눌러서 확인해 보세요</h2>
+  <div class="bar">
+    <span class="l">① 순서</span>
+    <button class="wbtn on" data-ord="team">㉮ 팀 먼저</button>
+    <button class="wbtn" data-ord="none">㉯ 미배정 먼저</button>
+    <span class="sep"></span>
+    <span class="l">② 확인</span>
+    <button class="wbtn" id="guideBtn">가운데선 보기</button>
+    <button class="wbtn" id="badgeBtn">배지 원래대로(어긋남)</button>
+    <span class="sep"></span>
+    <span class="l">창 폭</span>
+    <button class="wbtn on" data-w="1100">1100</button>
+    <button class="wbtn" data-w="860">860</button>
+    <button class="wbtn" data-w="700">700</button>
+    <span class="sep"></span>
+    <span class="l">「팀 선택」</span>
+    <button class="wbtn on" data-sel="sel-left">왼쪽</button>
+    <button class="wbtn" data-sel="sel-mid">중앙</button>
+    <button class="wbtn" data-sel="sel-right">오른쪽</button>
+  </div>
+
+  <div class="stage" id="stage" style="max-width:1100px">
+    <div class="es-card sel-left guide" id="card">
+      <div class="head">
+        <div class="es-brand"><b>팀 관리</b><span>관리자 전용</span></div>
+        <p class="es-lede">팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.</p>
+        <button class="es-mini close">닫기</button>
+      </div>
+      <div class="mk">
+        <input id="newName" placeholder="새 팀 이름 (예: 영업1팀)">
+        <button class="es-mini" id="mkBtn" disabled>팀 만들기</button>
+      </div>
+      <table class="t">
+        <colgroup><col style="width:36%"><col style="width:20%"><col style="width:44%"></colgroup>
+        <thead><tr><th>이름 · 부서</th><th>권한</th><th>팀 배정</th></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+      <div class="es-msg info" style="margin-top:16px">
+        팀을 바꿔도 <b>로그인은 끊기지 않습니다</b> — 다음 요청부터 바로 새 팀이 적용됩니다. (권한 변경과 다릅니다.)
+        <br>한 사람은 <b>한 팀</b>에만 속합니다. 다른 팀에 넣으면 이전 팀에서 빠집니다.
+      </div>
+    </div>
+    <div class="log" id="log"><b>「가운데선 보기」</b> → <b>「배지 원래대로」</b> 순서로 눌러 보세요. 팀 이름이 선에서 밀려납니다.</div>
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>4. 순서를 고르는 기준</h2>
+  <table class="cmp">
+    <tr><th style="width:150px"></th><th>㉮ 팀 먼저</th><th>㉯ 미배정 먼저</th></tr>
+    <tr><td><b>맨 처음 보이는 것</b></td><td>팀 편성 결과</td><td>아직 손이 안 간 사람</td></tr>
+    <tr><td><b>팀이 없을 때</b></td><td>미배정만 나온다 (같음)</td><td>미배정만 나온다 (같음)</td></tr>
+    <tr><td><b>모두 배정됐을 때</b></td><td>팀만 깔끔하게 남는다</td><td>미배정 줄이 사라지고 팀만 남는다 (같음)</td></tr>
+    <tr><td><b>놓치기 쉬운 것</b></td><td>미배정이 <b>맨 아래</b>라 사람이 많으면 스크롤 끝까지 가야 보인다</td>
+        <td>팀 편성 결과를 보려면 미배정을 <b>지나쳐야</b> 한다</td></tr>
+  </table>
+  <div class="note warn">
+    <b>㉮ 를 고르시면 한 가지는 챙겨야 합니다.</b> 미배정이 맨 아래로 가면
+    <b>팀에 안 들어간 사람을 놓치기 쉬워집니다</b> — 그 사람이 열람자면 로그인해도 빈 화면을 봅니다.
+    그래서 ㉮ 를 고르시면 창 제목 옆에 <b>「미배정 2명」 배지</b>를 하나 두는 것을 권합니다.
+    맨 아래까지 안 내려가도 있다는 걸 알 수 있게요.
+  </div>
+
+  <!-- ═══════════════════════════ -->
+  <h2>5. 정하실 것</h2>
+  <table class="cmp">
+    <tr><td style="width:34px"><b>①</b></td><td style="width:200px"><b>어느 쪽 말씀이었나요</b></td>
+        <td><b>㉮ 팀을 위로</b> · ㉯ 순서는 그대로 (열만 맞추면 됨)</td></tr>
+    <tr><td><b>②</b></td><td><b>배지 위치</b></td>
+        <td><b>칸 오른쪽 끝에 고정</b>(이름 정렬이 맞는다) · 이름 옆에 그대로</td></tr>
+    <tr><td><b>③</b></td><td><b>「팀 선택」 글자</b></td>
+        <td>왼쪽 · 중앙 · 오른쪽 <span style="color:var(--muted)">— 아직 안 정하셨습니다</span></td></tr>
+  </table>
+
+</div>
+
+<script>
+const PEOPLE = [
+  { id:'u1', name:'김가현',   dept:'SI개발본부',         role:'Lv2 작성자' },
+  { id:'u4', name:'최장부서', dept:'디지털전환추진본부', role:'Lv2 작성자' },
+  { id:'u2', name:'박열람',   dept:'기획실',             role:'Lv3 열람자' },
+  { id:'u3', name:'이작성',   dept:'생산본부',           role:'Lv2 작성자' },
+];
+let teams = [
+  { id:'t1', name:'영업1팀', members:['u2'] },
+  { id:'t2', name:'기술2팀', members:['u3'] },
+];
+let seq = 2, order = 'team';
+const chosen = {};
+const el = (id) => document.getElementById(id);
+const log = (h) => { el('log').innerHTML = h };
+const teamOf = (uid) => teams.find((t) => t.members.includes(uid)) || null;
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+function assignCell(uid){
+  const cur = teamOf(uid);
+  const opts = ['<option value="">팀 선택</option>']
+    .concat(teams.map((t) => `<option value="${t.id}"${cur && cur.id === t.id ? ' disabled' : ''}>${esc(t.name)}</option>`))
+    .join('');
+  return `<span class="assign">
+    <select onchange="pick('${uid}',this.value)">${opts}</select>
+    <button class="es-mini go" id="go-${uid}" disabled onclick="put('${uid}')">${cur ? '옮기기' : '넣기'}</button>
+  </span>`;
+}
+function personRow(p){
+  return `<tr><td><span class="who">${esc(p.name)}</span><span class="dept">${esc(p.dept)}</span></td>
+    <td class="lv">${esc(p.role)}</td><td>${assignCell(p.id)}</td></tr>`;
+}
+function noneBlock(left){
+  if(!left.length) return '';
+  return `<tr class="grp none">
+    <td class="namecell"><span class="grpname">아직 팀이 없는 사람</span><span class="cnt warn">${left.length}</span></td>
+    <td></td><td></td></tr>` + left.map(personRow).join('');
+}
+function teamBlocks(){
+  let html = '';
+  for(const t of teams){
+    const ms = t.members.map((id) => PEOPLE.find((p) => p.id === id)).filter(Boolean);
+    html += `<tr class="grp">
+      <td class="namecell"><span class="grpname">${esc(t.name)}</span><span class="cnt">${ms.length}</span></td>
+      <td></td>
+      <td><span class="assign">
+        <button class="es-mini" onclick="ren()">이름 변경</button>
+        <button class="es-mini danger go" ${ms.length ? 'disabled title="팀원이 남아 있습니다. 먼저 팀원을 옮겨 주세요."' : `onclick="del('${t.id}')"`}>팀 삭제</button>
+      </span></td></tr>`;
+    html += ms.length ? ms.map(personRow).join('')
+      : `<tr><td colspan="3" class="empty">팀원이 없습니다.</td></tr>`;
+  }
+  return html;
+}
+function render(){
+  const left = PEOPLE.filter((p) => !teamOf(p.id));
+  let html = order === 'team' ? teamBlocks() + noneBlock(left) : noneBlock(left) + teamBlocks();
+  if(!teams.length && !left.length) html = `<tr><td colspan="3" class="empty">표시할 사람이 없습니다.</td></tr>`;
+  el('body').innerHTML = html;
+  paint(el('mkBtn'), !!el('newName').value.trim());
+}
+function paint(btn, on){ if(btn){ btn.disabled = !on; btn.classList.toggle('primary', on) } }
+
+window.pick = (uid, tid) => { chosen[uid] = tid; paint(el('go-'+uid), !!tid) };
+window.put = (uid) => {
+  const tid = chosen[uid]; if(!tid) return;
+  const to = teams.find((t) => t.id === tid), from = teamOf(uid);
+  if(from) from.members = from.members.filter((x) => x !== uid);
+  to.members.push(uid);
+  const p = PEOPLE.find((x) => x.id === uid);
+  log(from ? `<em>${p.name} 님을 ${from.name}에서 ${to.name}(으)로 옮겼습니다.</em>`
+           : `<em>${p.name} 님을 ${to.name}에 넣었습니다.</em>`);
+  delete chosen[uid]; render();
+};
+window.ren = () => log('실제 화면에서는 <em>제자리에서 이름을 고칩니다</em>(브라우저 기본 창은 쓰지 않습니다).');
+window.del = (tid) => {
+  const t = teams.find((x) => x.id === tid);
+  teams = teams.filter((x) => x.id !== tid);
+  log(`<em>${t.name} 을(를) 지웠습니다.</em>`); render();
+};
+el('newName').addEventListener('input', () => paint(el('mkBtn'), !!el('newName').value.trim()));
+el('mkBtn').addEventListener('click', () => {
+  const name = el('newName').value.trim(); if(!name) return;
+  if(teams.some((t) => t.name === name)){ log('<b style="color:#ff9b9b">이미 있는 팀 이름입니다.</b>'); return }
+  teams.push({ id:'t'+(++seq), name, members:[] });
+  el('newName').value = ''; log(`<em>${name} 을(를) 만들었습니다.</em>`); render();
+});
+el('newName').addEventListener('keydown', (e) => { if(e.key === 'Enter') el('mkBtn').click() });
+
+for(const b of document.querySelectorAll('.wbtn[data-ord]')){
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.wbtn[data-ord]').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on'); order = b.dataset.ord; render();
+    log(order === 'team' ? '<em>팀을 먼저</em> 놓았습니다. 미배정은 맨 아래로 내려갑니다.'
+                         : '<em>미배정을 먼저</em> 놓았습니다. 각 팀 이름은 그 팀원들 바로 위에 있습니다.');
+  });
+}
+for(const b of document.querySelectorAll('.wbtn[data-w]')){
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.wbtn[data-w]').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on'); el('stage').style.maxWidth = b.dataset.w + 'px';
+  });
+}
+for(const b of document.querySelectorAll('.wbtn[data-sel]')){
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.wbtn[data-sel]').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    el('card').classList.remove('sel-left','sel-mid','sel-right');
+    el('card').classList.add(b.dataset.sel);
+  });
+}
+el('guideBtn').addEventListener('click', () => {
+  const on = el('card').classList.toggle('on');
+  el('guideBtn').textContent = on ? '가운데선 숨기기' : '가운데선 보기';
+  el('guideBtn').classList.toggle('on', on);
+});
+el('badgeBtn').addEventListener('click', () => {
+  const old = el('card').classList.toggle('oldbadge');
+  el('badgeBtn').textContent = old ? '배지 고정으로(정렬 맞음)' : '배지 원래대로(어긋남)';
+  el('badgeBtn').classList.toggle('on', old);
+  log(old ? '<s style="color:#ff9b9b;text-decoration:none">배지를 이름 옆에 붙였습니다 — 팀 이름이 왼쪽으로 밀립니다.</s>'
+          : '<em>배지를 칸 오른쪽 끝에 고정했습니다 — 팀 이름이 정중앙에 섭니다.</em>');
+});
+render();
+</script>
+</body>
+</html>
