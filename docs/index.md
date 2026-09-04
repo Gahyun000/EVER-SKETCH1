@@ -14,7 +14,7 @@
 | SKILL | `skills/` | 이식된 표준팩 7종 (이탈: 아래 참조) |
 | frontend | `src/` | 이탈: Vite 관례 (아래 참조) |
 | backend | `server/` | 이탈: FastAPI 관례 |
-| tests | `e2e/` + `server/test_*.py` + `tests/harness/` | 이탈: 분산 |
+| tests | `e2e/` + 루트 `*.test.mjs` + `server/test_*.py` + `tests/harness/` | 이탈: 분산 |
 | scripts | `run.command` / `run.cmd` (루트) | 원클릭 실행기 |
 
 표준 대비 이탈과 승인 기록은 `AGENTS.md`의 "폴더 구조 (UDS-110) 및 승인된 이탈" 참조.
@@ -27,6 +27,11 @@
 - 기획/핸드오버: `docs/2차_기획서.html`, `docs/3차_기획서.html`, `docs/5차 기획안.html`, `docs/핸드오버.html`
 - 마일스톤: `docs/M2_착수계획.html`, `docs/M5_검증증적.html`, `docs/M6_파일럿가이드.html`
 - 기술문서(하네스): `docs/기술문서/개발기법선정서.md`, `docs/기술문서/하네스설계서.md`
+
+## 결재 전환 (2026-09-03 ~ 09-04)
+- 전환 계획 · 결정 근거(D1~D33) · 단계표(P0~P8): `docs/전환계획_결재중심_v0.2_20260903.md`
+- 단계별 작업 기록: `docs/작업대장/작업이력대장_2026-09-03_결재전환_표준팩재이식_P0_P1.md`
+- 화면 시안(검토 이력): `docs/화면시안_*.html`
 
 ## 작업 이력대장
 사용자 요청별 작업 기록: `docs/작업대장/작업이력대장_<YYYY-MM-DD>_<작업명>.md` (UDS 필수 활동증적)
