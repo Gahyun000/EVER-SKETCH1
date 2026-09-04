@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVER-SKETCH 화면 시안 — 검색 범위 · 쪽당 개수 (v0.9)</title>
+<style>
+  :root{--ink:#111318;--navy:#0F1B3D;--muted:#616a7a;--line:#e6e8ee;--bg:#f4f5f7;--panel:#fff;
+    --blue:#2462EB;--green:#3E9E6E;--amber:#D98A2A;--red:#b4232a;--pill:9999px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:36px 24px 80px}
+  .doc-kicker{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--blue);text-transform:uppercase}
+  h1{margin:6px 0 8px;font-size:26px;letter-spacing:-.02em}
+  .doc-meta{font-size:13px;color:var(--muted)}
+  .ok{margin:16px 0 0;padding:15px 18px;background:#f4f8f6;border:1px solid #cfe3d8;border-radius:12px;font-size:13.5px}
+  .ok b{color:#2b7a55}
+  .ph{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:var(--pill);
+    background:#eef2fb;color:#3355a8;vertical-align:middle;margin-left:6px}
+  h2.sec{margin:44px 0 10px;font-size:20px;letter-spacing:-.015em;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  p.intro{font-size:14px;margin:0 0 14px}
+
+  .app{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 10px 34px rgba(15,27,61,.07);padding:20px 22px 22px}
+  .main-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .main-head h4{margin:0;font-size:17px}
+  .depth{font-size:11.5px;font-weight:800;border-radius:var(--pill);padding:3px 10px;margin-left:8px;
+    background:#f1f3f7;color:#7b8496}
+  .hbtns{display:flex;gap:7px}
+  .btn{border:none;background:var(--blue);color:#fff;font-weight:800;font-size:12.5px;border-radius:10px;
+    padding:8px 14px;font-family:inherit;cursor:pointer}
+  .btn.ghost{background:#fff;color:#334155;border:1.4px solid var(--line)}
+  .bc{display:flex;align-items:center;gap:6px;font-size:12.5px;margin:12px 0 14px;flex-wrap:wrap}
+  .bc a{color:var(--blue);text-decoration:none;font-weight:700;cursor:pointer}
+  .bc b{color:var(--ink)}.bc .sep{color:#c3c9d4}
+
+  .search{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 0 12px;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:14px}
+  .search .dt{background:#fff;border:1.4px solid var(--line);border-radius:10px;padding:7px 10px;
+    font-size:13px;color:#0f172a;font-family:inherit}
+  .search .til{color:#94a3b8}
+  .search .q{display:flex;align-items:center;gap:6px;flex:1 1 230px;min-width:200px;background:#fff;
+    border:1.4px solid var(--line);border-radius:10px;padding:6px 11px;color:#64748b}
+  .search .q input{border:0;outline:none;flex:1;font-size:13.5px;color:#0f172a;background:transparent;font-family:inherit}
+  .sbtn{border:1.4px solid var(--line);background:#fff;color:#334155;font-weight:800;font-size:12.5px;
+    border-radius:10px;padding:7px 15px;cursor:pointer;font-family:inherit}
+  .sbtn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+  .scope{font-size:11.5px;font-weight:800;color:#1b47ad;background:#eaf0fd;border-radius:var(--pill);
+    padding:3px 11px}
+
+  .seg{display:inline-flex;background:#f0f2f6;border-radius:var(--pill);padding:3px}
+  .seg button{border:none;background:transparent;padding:5px 12px;border-radius:var(--pill);
+    font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
+  .seg button.on{background:var(--ink);color:#fff}
+
+  .summary{font-size:12.5px;color:var(--muted);font-weight:700;margin:0 0 14px}
+  .summary b{color:var(--ink)}
+  .gt{font-size:12.5px;font-weight:800;color:var(--muted);margin:6px 0 9px}
+  .frow{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+  .fold{display:flex;align-items:center;gap:9px;background:#fff;border:1.4px solid var(--line);
+    border-radius:11px;padding:11px 13px;cursor:pointer;min-width:0}
+  .fold:hover{border-color:#c7cddb;background:#fcfdff}
+  .fold .fi{font-size:16px;flex:0 0 auto}
+  .fold .fn{font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fold .fc{font-size:11px;color:#98a1b2}
+  .fold.ghost{border-style:dashed;background:#fcfcfd;cursor:default;opacity:.5}
+
+  .row{display:flex;align-items:center;gap:12px;background:#fff;border:1.4px solid var(--line);
+    border-radius:12px;padding:11px 15px;margin-bottom:7px}
+  .row .thumb{width:32px;height:32px;border-radius:9px;background:#eef2fb;display:grid;place-items:center;
+    color:var(--blue);font-size:14px;flex:0 0 auto}
+  .row .body{min-width:0;flex:1}
+  .row .t{font-weight:800;font-size:13.5px}
+  .row .m{font-size:11.5px;color:#98a1b2}
+  .row .where{font-size:11px;color:#7b8496;background:#f4f6fa;border-radius:var(--pill);padding:2px 9px;flex:0 0 auto}
+  mark{background:#fff3bf;color:inherit;border-radius:3px;padding:0 2px}
+
+  .pagerwrap{display:flex;justify-content:center;align-items:center;gap:10px;margin:14px 0 4px;flex-wrap:wrap}
+  .pager{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .pager button{min-width:34px;height:34px;padding:0 9px;border:1.3px solid var(--line);background:#fff;
+    color:#5b6270;font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;font-family:inherit}
+  .pager button.on{background:#5b6270;border-color:#5b6270;color:#fff}
+  .pager button:disabled{opacity:.35;cursor:not-allowed}
+  .pager .gap{width:6px}
+  .pinfo{font-size:12.5px;color:var(--muted);font-weight:700}
+
+  .empty{border:1.4px dashed var(--line);border-radius:12px;padding:32px 20px;text-align:center;
+    color:var(--muted);font-size:13.5px;background:#fcfcfd}
+  .empty b{display:block;color:var(--ink);font-size:14.5px;margin-bottom:6px}
+
+  .notes{margin-top:16px;display:grid;gap:10px}
+  .note{display:flex;gap:11px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 15px;font-size:13px}
+  .note .n{font-weight:800;color:var(--blue);flex:0 0 auto}
+  .note.warn{border-left-color:var(--amber)}.note.warn .n{color:var(--amber)}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:13px}
+  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f8f9fc;font-size:12px;font-weight:800;color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  code{background:#f2f4f8;padding:1px 5px;border-radius:5px;font-size:12px}
+  .rec{background:#eef7f2}
+  @media (max-width:820px){.frow{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-kicker">화면 시안 · 검토 요청 (9차)</div>
+  <h1>검색 범위는 지금 서 있는 자리</h1>
+  <div class="doc-meta">2026-09-04 · v0.9 · 검토 대기 · 앞선 시안: <code>화면시안_조회화면_v0.8_20260904.html</code></div>
+
+  <div class="ok">
+    <b>말씀이 맞습니다 — 토글을 없앴습니다.</b> v0.8 에는 「전체에서 / 이 폴더에서」 토글이 있었는데,
+    <b>지금 서 있는 자리가 곧 범위</b>면 고를 일이 없습니다. 맨 밖에 있으면 전체가 되고,
+    폴더 안에 있으면 그 아래가 됩니다. 파일 탐색기가 그렇게 동작합니다.<br><br>
+    고르는 장치를 하나 없애면 <b>틀리게 고를 일도 함께 없어집니다.</b>
+  </div>
+
+  <!-- ════════ 1. 범위 ════════ -->
+  <h2 class="sec">1. 어디서 찾느냐가 곧 범위 <span class="ph">P4</span></h2>
+  <p class="intro">
+    <code>진행</code> 을 넣고 <b>맨 밖에서</b> 조회해 보세요. 그다음 「2026 계획」에 들어가서
+    <b>같은 말로 다시</b> 조회해 보세요. 결과가 달라집니다.
+  </p>
+
+  <div class="app">
+    <div class="main-head">
+      <h4 id="title">내 자료 <span class="depth" id="depth">깊이 0 / 3</span></h4>
+      <div class="hbtns"><button class="btn ghost">＋ 새 폴더</button><button class="btn">＋ 새로 만들기</button></div>
+    </div>
+    <div class="bc" id="bc"></div>
+
+    <div class="search">
+      <input class="dt" type="date" aria-label="시작일" id="d1">
+      <span class="til">~</span>
+      <input class="dt" type="date" aria-label="종료일" id="d2">
+      <div class="q">🔍<input id="q" placeholder="자료 제목 또는 폴더 이름" aria-label="검색어"></div>
+      <span class="scope" id="scope"></span>
+      <button class="sbtn dark" id="doSearch">조회</button>
+      <button class="sbtn" id="doReset">초기화</button>
+    </div>
+
+    <p class="summary" id="summary"></p>
+    <div id="content"></div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="n">1</span><div>
+      <b>검색칸 옆에 범위를 글자로 붙입니다.</b> <span class="scope">2026 계획 아래에서</span>
+      처럼요. 폴더에 들어와 있다는 걸 잊고 검색하면 "왜 안 나오지"가 되는데,
+      그때 답이 바로 옆에 있어야 합니다.
+    </div></div>
+    <div class="note"><span class="n">2</span><div>
+      <b>결과가 없으면 「전체에서 다시 찾기」가 나옵니다.</b> 매번 고르게 하는 대신,
+      <b>빈손이 됐을 때만</b> 탈출구를 냅니다. 고르는 부담 없이 넓히는 길은 열어 둡니다.
+    </div></div>
+    <div class="note"><span class="n">3</span><div>
+      <b>하위 폴더까지 함께 찾습니다.</b> 「2026 계획」에서 찾으면 그 안의 「3분기 / 9월」까지 봅니다.
+      한 단계만 보면 폴더를 하나씩 열며 다시 찾게 됩니다.
+    </div></div>
+  </div>
+
+  <!-- ════════ 2. 쪽당 개수 ════════ -->
+  <h2 class="sec">2. 자료는 한 쪽에 몇 건 <span class="ph">P4</span></h2>
+  <p class="intro">바꿔 보시면서 화면이 얼마나 길어지는지 봐 주세요. 위 화면에도 바로 반영됩니다.</p>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <span style="font-size:12px;font-weight:800;color:#98a1b2">한 쪽에</span>
+    <div class="seg" id="segPer">
+      <button data-p="10">10건</button><button class="on" data-p="12">12건</button><button data-p="20">20건</button>
+    </div>
+    <span style="font-size:12.5px;color:var(--muted)" id="perNote"></span>
+  </div>
+
+  <table>
+    <tr><th style="width:90px">개수</th><th>느낌</th><th style="width:150px">쪽 수 (자료 37건)</th></tr>
+    <tr><td><b>10건</b></td><td>한 화면에 거의 들어온다. 대신 자주 넘긴다</td><td>4쪽</td></tr>
+    <tr class="rec"><td><b>12건</b></td><td><b>지금 라이브러리와 같은 값.</b> 익숙한 것을 이유 없이 바꾸지 않는다</td><td>4쪽</td></tr>
+    <tr><td><b>20건</b></td><td>덜 넘기지만 폴더 줄까지 더하면 스크롤이 길어진다</td><td>2쪽</td></tr>
+  </table>
+
+  <div class="notes">
+    <div class="note warn"><span class="n">!</span><div>
+      <b>12건을 권합니다.</b> 지금 「내 이북」이 쓰는 값이라, 바꾸면 쓰던 사람에게는
+      <b>이유 없이 달라진 것</b>이 됩니다. 폴더 한 줄(5개)이 위에 붙는 만큼
+      20건은 스크롤이 부담스럽습니다.
+    </div></div>
+  </div>
+
+  <!-- ════════ 3. 남은 값 ════════ -->
+  <h2 class="sec">3. 남은 값</h2>
+  <table>
+    <tr><th style="width:170px"></th><th>후보</th><th>기본안</th></tr>
+    <tr><td><b>페이지 번호 창</b></td><td>3 / 5 / 7칸</td><td><b>5칸</b></td></tr>
+    <tr><td><b>폴더 한 줄</b></td><td>4 / 5 / 6개</td><td><b>5개</b></td></tr>
+    <tr><td><b>자료 한 쪽</b></td><td>10 / 12 / 20건</td><td><b>12건</b> — 지금과 같은 값</td></tr>
+    <tr><td><b>폴더 최대 깊이</b></td><td>3 / 5 / 무제한</td><td><b>3</b> — 3이면 경로 「…」 접힘은 안 나타남</td></tr>
+  </table>
+
+  <p style="margin-top:34px;font-size:12px;color:var(--muted)">
+    합성 데이터만 사용. 실제 자료·개인정보 없음.<br>
+    승인 상태: <b>검토 대기</b> — 네 값만 정해 주시면 P1.5 부터 착수합니다.
+  </p>
+</div>
+
+<script>
+const FOLDERS=[
+  {n:'2026 계획',p:[]},{n:'진행보고',p:[]},{n:'자료실',p:[]},{n:'품질',p:[]},{n:'예산 검토',p:[]},
+  {n:'인사',p:[]},{n:'영업',p:[]},
+  {n:'3분기',p:['2026 계획']},{n:'4분기',p:['2026 계획']},{n:'진행 이력',p:['2026 계획']},
+  {n:'9월',p:['2026 계획','3분기']},{n:'8월',p:['2026 계획','3분기']},
+]
+const ITEMS=[
+  {t:'2026년 9월 임원회의',p:['2026 계획','3분기','9월'],d:'2026-09-04'},
+  {t:'예산 재조정 검토',p:['2026 계획','3분기','9월'],d:'2026-09-04'},
+  {t:'9월 진행보고',p:['2026 계획','3분기','9월'],d:'2026-09-03'},
+  {t:'8월 진행보고',p:['2026 계획','3분기','8월'],d:'2026-08-30'},
+  {t:'3분기 총괄',p:['2026 계획','3분기'],d:'2026-09-02'},
+  {t:'3분기 진행 현황',p:['2026 계획','3분기'],d:'2026-09-01'},
+  {t:'연간 계획 개요',p:['2026 계획'],d:'2026-09-01'},
+  {t:'4분기 초안',p:['2026 계획','4분기'],d:'2026-09-03'},
+  {t:'상반기 진행 정리',p:['2026 계획','진행 이력'],d:'2026-07-02'},
+  {t:'7월 진행보고',p:['진행보고'],d:'2026-07-24'},
+  {t:'6월 진행보고',p:['진행보고'],d:'2026-06-25'},
+  {t:'5월 진행보고',p:['진행보고'],d:'2026-05-27'},
+  {t:'참고 양식',p:['자료실'],d:'2026-08-10'},
+  {t:'용어 정리',p:['자료실'],d:'2026-08-02'},
+  {t:'품질 지표 정리',p:['품질'],d:'2026-08-22'},
+  {t:'품질 개선 진행안',p:['품질'],d:'2026-08-19'},
+  {t:'2026 예산 초안',p:['예산 검토'],d:'2026-07-11'},
+  {t:'예산 집행 현황',p:['예산 검토'],d:'2026-08-14'},
+  {t:'채용 계획 보고',p:['인사'],d:'2026-08-26'},
+  {t:'해외 영업 현황',p:['영업'],d:'2026-08-29'},
+]
+const WIN=5, FPER=5, MAXD=3
+let IPER=12, cur=[], q='', d1='', d2='', searching=false, fPage=1, iPage=1
+const el=(id)=>document.getElementById(id)
+const under=(p)=>cur.every((c,i)=>p[i]===c)          // 하위 폴더까지 포함
+const at=(p)=>p.length===cur.length&&under(p)        // 바로 이 폴더
+const hi=(s)=>q?s.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'),'<mark>$1</mark>'):s
+const label=()=>cur.length?`${cur[cur.length-1]} 아래에서`:'전체에서'
+
+function pagerHtml(c,t){
+  if(t<=1) return ''
+  let s=Math.max(1,c-Math.floor(WIN/2)), e=Math.min(t,s+WIN-1); s=Math.max(1,e-WIN+1)
+  let h=`<button data-g="1" ${c===1?'disabled':''}>«</button><button data-g="${c-1}" ${c===1?'disabled':''}>‹</button><span class="gap"></span>`
+  for(let p=s;p<=e;p++) h+=`<button data-g="${p}" class="${p===c?'on':''}">${p}</button>`
+  h+=`<span class="gap"></span><button data-g="${c+1}" ${c===t?'disabled':''}>›</button><button data-g="${t}" ${c===t?'disabled':''}>»</button>`
+  return `<div class="pagerwrap"><div class="pager">${h}</div><span class="pinfo">${c} / ${t} 쪽</span></div>`
+}
+function bind(sel,set){document.querySelectorAll(sel+' button[data-g]').forEach((b)=>b.onclick=()=>{
+  if(!b.disabled){set(Number(b.dataset.g));render()}})}
+
+function render(){
+  el('depth').textContent=`깊이 ${cur.length} / ${MAXD}`
+  el('scope').textContent=label()
+  // 경로
+  let h=`<a data-i="0">내 자료</a>`
+  cur.forEach((c,i)=>{h+='<span class="sep">›</span>'+(i===cur.length-1?`<b>${c}</b>`:`<a data-i="${i+1}">${c}</a>`)})
+  if(searching) h+=`<span class="sep">›</span><b>검색 결과</b>
+    <button class="sbtn" style="margin-left:8px;padding:4px 11px" id="clr">검색 지우기</button>`
+  el('bc').innerHTML=h
+  el('bc').querySelectorAll('a').forEach((a)=>a.onclick=()=>{cur=cur.slice(0,Number(a.dataset.i));searching=false;
+    q='';el('q').value='';fPage=iPage=1;render()})
+  if(searching) el('clr').onclick=()=>{q='';d1='';d2='';searching=false;
+    el('q').value='';el('d1').value='';el('d2').value='';fPage=iPage=1;render()}
+
+  const dated=!!(d1||d2)
+  const fs=searching
+    ? (dated?[]:FOLDERS.filter((f)=>under(f.p)&&f.n.includes(q)))
+    : FOLDERS.filter((f)=>at(f.p))
+  const its=ITEMS.filter((x)=>{
+    if(searching?!under(x.p):!at(x.p)) return false
+    if(searching&&q&&!x.t.includes(q)) return false
+    if(d1&&x.d<d1) return false
+    if(d2&&x.d>d2) return false
+    return true
+  })
+
+  el('summary').innerHTML=searching
+    ? `<b>${label()}</b> ‘<b>${q||'기간'}</b>’ 검색 — 폴더 <b>${fs.length}개</b> · 자료 <b>${its.length}건</b>`
+    : `폴더 <b>${fs.length}개</b> · 자료 <b>${its.length}건</b>`
+
+  if(!fs.length&&!its.length){
+    el('content').innerHTML=`<div class="empty"><b>${label()} 찾지 못했어요</b>
+      ${cur.length?'<button class="sbtn dark" id="wide" style="margin-top:8px">전체에서 다시 찾기</button>'
+                  :'검색어나 기간을 바꿔 보세요.'}</div>`
+    const w=el('wide'); if(w) w.onclick=()=>{cur=[];fPage=iPage=1;render()}
+    return
+  }
+  const fT=Math.ceil(fs.length/FPER); fPage=Math.min(fPage,fT||1)
+  const iT=Math.ceil(its.length/IPER); iPage=Math.min(iPage,iT||1)
+  const fS=fs.slice((fPage-1)*FPER,fPage*FPER), iS=its.slice((iPage-1)*IPER,iPage*IPER)
+
+  let out=''
+  if(fs.length){
+    out+=`<div class="gt">📁 폴더 ${fs.length}개</div><div class="frow">`
+      +fS.map((f)=>`<div class="fold" data-n="${f.n}"><span class="fi">📁</span><div style="min-width:0">
+          <div class="fn">${hi(f.n)}</div><div class="fc">${searching?f.p.concat(f.n).join(' › '):'열기'}</div></div></div>`).join('')
+      +Array.from({length:FPER-fS.length},()=>'<div class="fold ghost"></div>').join('')+'</div>'
+      +`<div id="fp">${pagerHtml(fPage,fT)}</div>`
+  }
+  if(its.length){
+    out+=`<div class="gt" style="margin-top:20px">📘 자료 ${its.length}건</div>`
+      +iS.map((x)=>`<div class="row"><div class="thumb">📘</div>
+        <div class="body"><div class="t">${hi(x.t)}</div><div class="m">${x.d.replace(/-/g,'.')}</div></div>
+        ${searching?`<span class="where">내 자료 › ${x.p.join(' › ')}</span>`:''}</div>`).join('')
+      +`<div id="ip">${pagerHtml(iPage,iT)}</div>`
+  }
+  el('content').innerHTML=out
+  bind('#fp',(v)=>fPage=v); bind('#ip',(v)=>iPage=v)
+  el('content').querySelectorAll('.fold[data-n]').forEach((f)=>f.onclick=()=>{
+    if(searching) return
+    if(cur.length>=MAXD) return
+    cur=cur.concat(f.dataset.n); fPage=iPage=1; render()})
+  el('perNote').textContent=`자료 37건 → ${Math.ceil(37/IPER)}쪽`
+}
+el('doSearch').onclick=()=>{q=el('q').value.trim();d1=el('d1').value;d2=el('d2').value;
+  searching=!!(q||d1||d2);fPage=iPage=1;render()}
+el('doReset').onclick=()=>{q='';d1='';d2='';searching=false;
+  el('q').value='';el('d1').value='';el('d2').value='';fPage=iPage=1;render()}
+el('q').addEventListener('keydown',(e)=>{if(e.key==='Enter')el('doSearch').click()})
+document.querySelectorAll('#segPer button').forEach((b)=>b.onclick=()=>{
+  document.querySelectorAll('#segPer button').forEach((x)=>x.classList.toggle('on',x===b))
+  IPER=Number(b.dataset.p); iPage=1; render()})
+render()
+</script>
+</body>
+</html>
