@@ -49,8 +49,9 @@ interface ProjectsState {
   access: ProjectAccess | null
   list: ProjectMeta[]
   loading: boolean
-  booted: boolean
-  boot: () => Promise<void>
+  /** 어느 계정으로 목록을 받아 뒀는가. 계정이 바뀌면 다시 받는다. */
+  bootedFor: string | null
+  boot: (uid: string | null) => Promise<void>
   loadList: () => Promise<void>
   openProject: (id: string) => Promise<void>
   newProject: () => Promise<void>
@@ -63,17 +64,51 @@ interface ProjectsState {
   showCycles: () => void
 }
 
+/**
+ * 계정이 바뀌거나 로그아웃할 때 작업 공간을 비운다.
+ *
+ * **왜 필요한가.** `App.tsx` 는 `key={uid}` 로 계정 전환을 처리한다고 적어 두었지만,
+ * `useProjects`·`useBuilder` 는 모듈 단위 zustand 스토어라 컴포넌트를 다시 마운트해도
+ * 그대로 살아 있다. 그래서 관리자로 보던 목록이 작성자 화면에 남고,
+ * 편집 화면에서 로그아웃하면 다음 사람이 **앞사람 슬라이드에 착지한다.**
+ * 제목만 새는 게 아니라 본문이 샌다.
+ *
+ * 서버는 멀쩡하다(작성자에게는 본인 것만 내려준다). 새는 곳은 화면이다 —
+ * 권한을 아무리 잘 짜도 화면이 앞사람 것을 들고 있으면 소용이 없다.
+ *
+ * **일부러 건드리지 않는 것**: `legacyMigration` 의 1회 플래그.
+ * 그 함수는 브라우저에 남은 옛 초안을 "라이브러리가 빈 계정"으로 옮긴다.
+ * 계정이 바뀔 때마다 다시 돌면 앞사람의 초안이 다음 계정으로 복사된다 —
+ * 지금 고치려는 유출과 정확히 같은 종류의 사고다.
+ */
+export function resetWorkspace(): void {
+  cancelPendingSave()
+  setAutosaveHydrated(false)
+  setAutosaveReadOnly(false)
+  resetHistory()
+  setActiveProjectId(null)
+  useBuilder.setState(emptySnapshot() as Partial<BuilderState>)
+  useAutosave.setState({ status: 'idle', savedAt: undefined, error: undefined })
+  useProjects.setState({
+    view: 'library', activeId: null, access: null, list: [], loading: false, bootedFor: null,
+  })
+}
+
 export const useProjects = create<ProjectsState>((set, get) => ({
   view: 'library',
   activeId: null,
   access: null,
   list: [],
   loading: false,
-  booted: false,
+  bootedFor: null,
 
-  boot: async () => {
-    if (get().booted) return
-    set({ booted: true, loading: true })
+  boot: async (uid) => {
+    // 계정이 같으면 이미 받아 둔 목록을 그대로 쓴다.
+    if (get().bootedFor === uid) return
+    // 계정이 바뀌었다(또는 처음이다). **앞사람 것을 먼저 비운다.**
+    // 스토어가 모듈 단위라 화면을 다시 그려도 저절로 사라지지 않는다.
+    resetWorkspace()
+    set({ bootedFor: uid, loading: true })
     try { await migrateLegacyDraftOnce() } catch { /* noop */ }
     // loadList 가 어떤 이유로든 던져도 라이브러리 화면은 반드시 띄운다.
     // (여기서 멈추면 booted=true 라 재시도도 안 되고 로딩 화면에 영원히 갇힌다)

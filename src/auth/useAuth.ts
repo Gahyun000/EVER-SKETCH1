@@ -2,6 +2,7 @@
 import { create } from 'zustand'
 import { apiLogin, apiLogout, apiMe, type Me } from './authApi'
 import { setSessionLostHandler } from './session'
+import { resetWorkspace } from '../persistence/projects'
 
 export type AuthPhase = 'booting' | 'anon' | 'pending' | 'must_change_pw' | 'ready'
 
@@ -54,6 +55,9 @@ export const useAuth = create<AuthState>((set, get) => ({
     try {
       await apiLogout()
     } finally {
+      // 서버 호출이 실패해도 화면은 반드시 비운다 — 앞사람 목록과 편집 중이던
+      // 문서가 로그인 화면 뒤에 그대로 남아 있으면, 다음 사람이 그걸 물려받는다.
+      resetWorkspace()
       set({ me: null, phase: 'anon', sessionLost: false })
     }
   },
