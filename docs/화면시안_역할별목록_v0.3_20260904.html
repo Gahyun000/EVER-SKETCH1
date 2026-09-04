@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVER-SKETCH 화면 시안 — 필터·공유 (v0.3)</title>
+<style>
+  :root{--ink:#111318;--navy:#0F1B3D;--muted:#616a7a;--line:#e6e8ee;--bg:#f4f5f7;--panel:#fff;
+    --blue:#2462EB;--green:#3E9E6E;--amber:#D98A2A;--red:#b4232a;--pill:9999px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:36px 24px 80px}
+  .doc-kicker{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--blue);text-transform:uppercase}
+  h1{margin:6px 0 8px;font-size:26px;letter-spacing:-.02em}
+  .doc-meta{font-size:13px;color:var(--muted)}
+  .chg{margin:16px 0 0;padding:14px 18px;background:#fffdf5;border:1px solid #f0e3c4;border-radius:12px;font-size:13.5px}
+  .chg ul{margin:8px 0 0;padding-left:18px}.chg li{margin:3px 0}
+  .ph{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:var(--pill);
+    background:#eef2fb;color:#3355a8;vertical-align:middle;margin-left:6px;white-space:nowrap}
+  .ph.new{background:#fdecec;color:#a3272d}
+
+  h2.sec{margin:44px 0 10px;font-size:20px;letter-spacing:-.015em;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{margin:26px 0 10px;font-size:16px}
+  h3 .sub{font-weight:600;font-size:13px;color:var(--muted);margin-left:8px}
+  p.intro{font-size:14px;margin:0 0 14px}
+
+  .app{display:grid;grid-template-columns:206px 1fr;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;box-shadow:0 10px 34px rgba(15,27,61,.07)}
+  .side{background:#fbfcfe;border-right:1px solid var(--line);padding:16px 12px}
+  .side .brand{display:flex;align-items:center;gap:8px;padding:2px 8px 16px;font-weight:800;font-size:14px}
+  .logo{width:26px;height:26px;border-radius:8px;background:var(--blue);display:grid;place-items:center;color:#fff;font-size:13px}
+  .nav{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;font-size:13px;
+    font-weight:700;color:var(--muted);margin-bottom:2px}
+  .nav.on{background:#eaf0fd;color:#1b47ad}
+  .nav .ico{width:16px;text-align:center;opacity:.75}
+  .nav .badge{margin-left:auto;background:var(--blue);color:#fff;font-size:10.5px;font-weight:800;border-radius:var(--pill);padding:1px 7px}
+  .side hr{border:0;border-top:1px solid var(--line);margin:12px 4px}
+  .main{padding:20px 22px 26px}
+  .main-head{display:flex;align-items:center;justify-content:space-between}
+  .main-head h4{margin:0;font-size:18px;letter-spacing:-.01em}
+  .main-sub{font-size:12.5px;color:var(--muted);margin:2px 0 16px}
+  .btn{border:none;background:var(--blue);color:#fff;font-weight:800;font-size:13px;border-radius:10px;
+    padding:9px 15px;font-family:inherit;cursor:pointer}
+
+  /* 토글 — 저장소의 .seg 컴포넌트를 그대로 씁니다 */
+  .frow{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .flab{font-size:11.5px;font-weight:800;color:#98a1b2;width:34px;flex:0 0 auto;letter-spacing:.02em}
+  .seg{display:inline-flex;background:#f0f2f6;border-radius:var(--pill);padding:3px;flex-wrap:wrap}
+  .seg button{border:none;background:transparent;padding:6px 13px;border-radius:var(--pill);
+    font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
+  .seg button.on{background:var(--ink);color:#fff}
+  .seg button .n{opacity:.6;margin-left:4px;font-weight:700}
+  .seg button.on .n{opacity:.75}
+
+  .row{display:flex;align-items:center;gap:13px;background:#fff;border:1.4px solid var(--line);
+    border-radius:12px;padding:13px 15px;margin-bottom:9px}
+  .row .thumb{width:38px;height:38px;border-radius:9px;background:#eef2fb;display:grid;place-items:center;
+    color:var(--blue);font-size:16px;flex:0 0 auto}
+  .row .body{min-width:0;flex:1}
+  .row .t{font-weight:800;font-size:14px;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .m{font-size:11.5px;color:#98a1b2;margin-top:2px}
+  .row .acts{display:flex;gap:5px;color:#98a1b2;font-size:13px;flex:0 0 auto}
+  .row .acts span{width:26px;height:26px;display:grid;place-items:center;border-radius:7px;background:#f7f8fb}
+  .row .acts span.off{opacity:.3}
+
+  .owner{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:#4a5468;
+    background:#f2f4f8;border-radius:var(--pill);padding:2px 9px 2px 3px;flex:0 0 auto}
+  .owner i{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-style:normal;
+    font-size:9.5px;font-weight:800;color:#fff;background:#7b8496}
+  .owner.adm i{background:var(--navy)}
+  .team{font-size:11px;font-weight:700;color:#7b8496;flex:0 0 auto}
+
+  .sh{font-size:11px;font-weight:800;border-radius:var(--pill);padding:3px 10px;flex:0 0 auto}
+  .sh.on{background:#e9f5ef;color:#2b7a55}
+  .sh.off{background:#f1f3f7;color:#7b8496}
+  .st{font-size:11px;font-weight:800;border-radius:var(--pill);padding:3px 10px;flex:0 0 auto}
+  .st.draft{background:#f1f3f7;color:#5b6270}
+  .st.pending{background:#fdf3e3;color:#8a5510}
+  .st.rejected{background:#fdecec;color:var(--red)}
+  .st.approved{background:#e9f5ef;color:#2b7a55}
+  .st.revising{background:#eaf0fd;color:#1b47ad}
+
+  .sw{width:38px;height:22px;border-radius:var(--pill);background:#d8dde6;position:relative;flex:0 0 auto}
+  .sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .sw.on{background:var(--green)} .sw.on::after{left:18px}
+
+  .empty{border:1.4px dashed var(--line);border-radius:12px;padding:34px 20px;text-align:center;
+    color:var(--muted);font-size:13.5px;background:#fcfcfd}
+  .empty b{display:block;color:var(--ink);font-size:14.5px;margin-bottom:5px}
+  .count{font-size:12px;color:var(--muted);margin:12px 0 10px;font-weight:700}
+  .month{font-size:12px;font-weight:800;color:var(--muted);margin:16px 0 8px}
+  .month:first-child{margin-top:0}
+
+  .notes{margin-top:16px;display:grid;gap:10px}
+  .note{display:flex;gap:11px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 15px;font-size:13px}
+  .note .n{font-weight:800;color:var(--blue);flex:0 0 auto}
+  .note.warn{border-left-color:var(--amber)}.note.warn .n{color:var(--amber)}
+  .note.ask{border-left-color:var(--red);background:#fffafa}.note.ask .n{color:var(--red)}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:13px}
+  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f8f9fc;font-size:12px;font-weight:800;color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  code{background:#f2f4f8;padding:1px 5px;border-radius:5px;font-size:12px}
+  .yes{color:var(--green);font-weight:800}.no{color:var(--red);font-weight:800}
+  .strike{text-decoration:line-through;color:#98a1b2}
+
+  .dlg{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;
+    max-width:400px;box-shadow:0 20px 60px rgba(15,27,61,.16)}
+  .dlg h5{margin:0 0 6px;font-size:15px}
+  .dlg p{margin:0;font-size:13px;color:var(--muted)}
+  .dlg .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+  .dlg .foot button{border:1.4px solid var(--line);background:#fff;color:#334155;font-weight:800;
+    font-size:12.5px;border-radius:9px;padding:7px 14px;font-family:inherit}
+  .dlg .foot button.warn{background:var(--amber);border-color:var(--amber);color:#fff}
+  @media (max-width:800px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-kicker">화면 시안 · 검토 요청 (3차)</div>
+  <h1>필터 · 공유 — 관리자 / 작성자</h1>
+  <div class="doc-meta">2026-09-04 · v0.3 · 검토 대기 · 앞선 시안: <code>화면시안_역할별목록_v0.2_20260904.html</code></div>
+
+  <div class="chg">
+    <b>v0.2 검토에서 정해진 것</b>
+    <ul>
+      <li>제출한 적 없는 자료는 <b>삭제 가능</b>. 결재 이력이 생기는 순간부터 불가</li>
+      <li>필터는 <b>「공유 / 내 개인」 축 + 「결재 상태」 축 둘 다</b>, 토글로 <span class="ph new">변경</span></li>
+      <li>L1 은 결재를 타지 않는다 — <b>공유 스위치</b>만 <span class="ph new">신규</span></li>
+      <li>L1 은 올린 공유 자료를 <b>다시 내릴 수 있다</b></li>
+      <li>팀 공유에서 L1 자료와 L2 승인본을 <b>구분해 보여주지 않는다</b></li>
+      <li>L2 도 나중에 다른 팀으로 옮겨갈 수 있다</li>
+    </ul>
+  </div>
+
+  <!-- ════════ 1. 필터 ════════ -->
+  <h2 class="sec">1. 필터 — 두 축을 토글로 <span class="ph">P6</span></h2>
+  <p class="intro">
+    <b>L2 작성자 · 내 자료</b> 화면입니다. 위 토글을 눌러 보세요. 두 축은 <b>같이 걸립니다</b> —
+    「내 개인」 + 「작성 중」을 함께 누르면 둘 다 만족하는 것만 남습니다.
+  </p>
+
+  <div class="app">
+    <div class="side">
+      <div class="brand"><span class="logo">E</span> EVER-SKETCH</div>
+      <div class="nav"><span class="ico">📤</span> 내 결재 현황</div>
+      <div class="nav on"><span class="ico">📚</span> 내 자료</div>
+      <div class="nav"><span class="ico">🗂</span> 팀 공유</div>
+      <hr>
+      <div class="nav"><span class="ico">🔧</span> 환경설정</div>
+    </div>
+    <div class="main">
+      <div class="main-head"><h4>내 자료</h4><button class="btn">＋ 새로 만들기</button></div>
+      <div class="main-sub">내가 만든 것만 있습니다.</div>
+
+      <div class="frow"><span class="flab">보기</span>
+        <div class="seg" id="segShare">
+          <button class="on" data-v="all">전체<span class="n">9</span></button>
+          <button data-v="1">공유됨<span class="n">4</span></button>
+          <button data-v="0">내 개인<span class="n">5</span></button>
+        </div>
+      </div>
+      <div class="frow"><span class="flab">결재</span>
+        <div class="seg" id="segStat">
+          <button class="on" data-v="all">전체</button>
+          <button data-v="draft">작성 중<span class="n">3</span></button>
+          <button data-v="pending">대기<span class="n">2</span></button>
+          <button data-v="rejected">반려<span class="n">1</span></button>
+          <button data-v="approved">승인됨<span class="n">4</span></button>
+        </div>
+      </div>
+
+      <p class="count" id="cnt">9건</p>
+      <div id="list"></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="n">1</span><div>
+      <b>「수정 중」은 「승인됨」에 들어갑니다.</b> 승인 이력이 있고 팀이 지금도 그 승인본을 보고 있으니,
+      찾는 사람 입장에서는 승인된 자료입니다. 토글을 다섯 개로 늘려 봐야 헷갈리기만 합니다.
+    </div></div>
+    <div class="note"><span class="n">2</span><div>
+      <b>두 축이 완전히 겹치지는 않습니다.</b> 「공유됨」은 대체로 「승인됨」과 같지만,
+      L1 자료는 승인 없이 공유되므로 <b>공유됨이면서 결재 상태가 없는</b> 것이 생깁니다.
+      그래서 축을 하나로 합치지 않았습니다.
+    </div></div>
+    <div class="note warn"><span class="n">!</span><div>
+      <b>자료가 적을 때는 토글 줄이 목록보다 큽니다.</b> 3건일 때 이 화면은 과합니다.
+      <b>자료 10건이 넘을 때부터 토글 줄을 띄우는</b> 것을 제안합니다 — 그 전에는 목록만 보입니다.
+    </div></div>
+  </div>
+
+  <!-- ════════ 2. L1 공유 ════════ -->
+  <h2 class="sec">2. L1 관리자 — 결재 대신 공유 스위치 <span class="ph new">신규</span></h2>
+  <p class="intro">
+    관리자가 자기 자료를 자기한테 결재받는 것은 무의미합니다. 제출·승인 대신
+    <b>스위치 하나로 팀에 올리고 내립니다.</b>
+  </p>
+
+  <div class="app">
+    <div class="side">
+      <div class="brand"><span class="logo">E</span> EVER-SKETCH</div>
+      <div class="nav"><span class="ico">📥</span> 결재함 <span class="badge">2</span></div>
+      <div class="nav"><span class="ico">📚</span> 전체 자료</div>
+      <div class="nav on"><span class="ico">✏️</span> 내 자료</div>
+      <div class="nav"><span class="ico">🗂</span> 팀 공유</div>
+      <hr>
+      <div class="nav"><span class="ico">👥</span> 팀 관리</div>
+      <div class="nav"><span class="ico">⚙️</span> 사용자 관리 <span class="badge">1</span></div>
+      <div class="nav"><span class="ico">🔧</span> 환경설정</div>
+    </div>
+    <div class="main">
+      <div class="main-head"><h4>내 자료</h4><button class="btn">＋ 새로 만들기</button></div>
+      <div class="main-sub">내가 만든 것. 결재 없이 바로 공유할 수 있습니다.</div>
+
+      <div class="frow"><span class="flab">보기</span>
+        <div class="seg">
+          <button class="on">전체<span class="n">3</span></button>
+          <button>공유됨<span class="n">1</span></button>
+          <button>내 개인<span class="n">2</span></button>
+        </div>
+      </div>
+      <div style="height:8px"></div>
+
+      <div class="row">
+        <div class="thumb">📘</div>
+        <div class="body"><div class="t">2026년 9월 임원회의 — 시스템 관리자</div>
+          <div class="m">09.04 09:45 · 사업1팀에 공유 중</div></div>
+        <span class="sh on">공유됨</span>
+        <span class="sw on" title="끄면 팀 공유에서 내려갑니다"></span>
+        <div class="acts"><span>✎</span><span>⧉</span><span class="off">🗑</span></div>
+      </div>
+      <div class="row">
+        <div class="thumb">📘</div>
+        <div class="body"><div class="t">10월 회의 준비</div><div class="m">09.03 11:20 · 나만 봅니다</div></div>
+        <span class="sh off">비공개</span>
+        <span class="sw" title="켜면 팀에 올라갑니다"></span>
+        <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+      </div>
+      <div class="row">
+        <div class="thumb">📘</div>
+        <div class="body"><div class="t">메모</div><div class="m">09.01 08:40 · 나만 봅니다</div></div>
+        <span class="sh off">비공개</span>
+        <span class="sw"></span>
+        <div class="acts"><span>✎</span><span>⧉</span><span>🗑</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>스위치를 켤 때 <span class="sub">어느 팀에 올릴지 고릅니다</span></h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap">
+    <div class="dlg">
+      <h5>팀에 공유</h5>
+      <p>「10월 회의 준비」를 어느 팀이 보게 할까요?<br>공유하면 그 팀의 L2·L3 이 읽기 전용으로 봅니다.</p>
+      <div style="margin-top:14px">
+        <div class="frow"><span class="flab">팀</span>
+          <div class="seg"><button class="on">사업1팀</button><button>사업2팀</button></div>
+        </div>
+      </div>
+      <div class="foot"><button>취소</button><button class="warn" style="background:var(--blue);border-color:var(--blue)">공유</button></div>
+    </div>
+
+    <div class="dlg">
+      <h5>공유를 내릴까요?</h5>
+      <p><b>사업1팀 3명</b>이 지금 이 자료를 보고 있습니다.
+         내리면 팀 공유 목록에서 사라집니다. 자료 자체는 지워지지 않습니다.</p>
+      <div class="foot"><button>취소</button><button class="warn">내리기</button></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="n">1</span><div>
+      <b>내릴 때만 확인창을 띄웁니다.</b> 올리는 것은 되돌릴 수 있지만, 내리는 것은
+      남이 보던 자료를 없애는 일입니다. <b>몇 명이 보고 있는지</b>를 같이 알려줍니다. <span class="ph">P6</span>
+    </div></div>
+    <div class="note"><span class="n">2</span><div>
+      <b>L1 은 팀 밖에 있어서 팀을 고릅니다.</b> L2 는 소속 팀이 정해져 있어 고를 것이 없지만,
+      L1 은 모든 팀을 관리하므로 올릴 때마다 지정합니다. <span class="ph">P6</span>
+    </div></div>
+    <div class="note ask"><span class="n">?</span><div>
+      <b>확인 필요.</b> L2 도 팀을 옮길 수 있다고 하셨습니다. 그러면 <b>옮기기 전에 공유해 둔 자료</b>는
+      어떻게 됩니까?<br>
+      ① 이전 팀에 그대로 남는다 (자료는 만들어진 팀의 것) — 본인은 더 못 봄<br>
+      ② 새 팀으로 따라간다 — 이전 팀에서 사라짐<br>
+      ③ 관리자가 정한다
+    </div></div>
+  </div>
+
+  <!-- ════════ 3. 팀 공유 ════════ -->
+  <h2 class="sec">3. 팀 공유 — 섞어서 보여줍니다</h2>
+  <div class="app">
+    <div class="side">
+      <div class="brand"><span class="logo">E</span> EVER-SKETCH</div>
+      <div class="nav"><span class="ico">📤</span> 내 결재 현황</div>
+      <div class="nav"><span class="ico">📚</span> 내 자료</div>
+      <div class="nav on"><span class="ico">🗂</span> 팀 공유</div>
+      <hr>
+      <div class="nav"><span class="ico">🔧</span> 환경설정</div>
+    </div>
+    <div class="main">
+      <div class="main-head"><h4>팀 공유 · 사업1팀</h4></div>
+      <div class="main-sub">읽기 전용입니다.</div>
+      <div class="month">2026-09</div>
+      <div class="row">
+        <div class="thumb">📗</div>
+        <div class="body"><div class="t">2026년 9월 임원회의 — 시스템 관리자</div><div class="m">09.04 공유</div></div>
+        <span class="owner adm"><i>관</i>시스템 관리자</span>
+      </div>
+      <div class="row">
+        <div class="thumb">📗</div>
+        <div class="body"><div class="t">3분기 품질 이슈 정리</div><div class="m">09.03 승인</div></div>
+        <span class="owner"><i>홍</i>홍길동</span><span class="st revising">수정 중</span>
+      </div>
+      <div class="row">
+        <div class="thumb">📗</div>
+        <div class="body"><div class="t">9월 인력 운영 계획</div><div class="m">09.02 승인</div></div>
+        <span class="owner"><i>이</i>이순신</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="n">1</span><div>
+      <b>승인을 거쳤는지 표시하지 않습니다.</b> 보는 사람에게는 "팀이 함께 보는 자료" 하나면 충분하고,
+      누가 올렸는지는 <b>소유자 칩</b>이 말합니다 — 제목을 읽을 필요가 없습니다.
+      제목은 바꿀 수 있고 이름이 없는 것도 있으니, 칩은 그대로 두었습니다. <span class="ph">P6</span>
+    </div></div>
+    <div class="note"><span class="n">2</span><div>
+      <b>「수정 중」만 배지로 남습니다.</b> "곧 내용이 바뀔 자료"라는 예고는 보는 사람에게 필요합니다.
+      승인 여부와 달리 이건 <b>앞으로 일어날 일</b>이라서요. <span class="ph">P7</span>
+    </div></div>
+  </div>
+
+  <!-- ════════ 4. 모델 ════════ -->
+  <h2 class="sec">4. 모델이 단순해졌습니다</h2>
+  <p class="intro">v0.2 에서 「자료」와 「개인 스케치」를 두 종류로 나눴는데, 그 구분이 필요 없어졌습니다.</p>
+  <table>
+    <tr><th style="width:190px"></th><th>v0.2 (폐기)</th><th>v0.3</th></tr>
+    <tr><td><b>종류</b></td>
+        <td class="strike">자료 / 개인 스케치 2종<br>DB 에 종류 컬럼 추가</td>
+        <td><b>없음.</b> 전부 같은 것이고, 아래 두 값으로 갈린다</td></tr>
+    <tr><td><b>공유 상태</b></td><td>—</td>
+        <td>비공개 / 공유됨<br><span style="font-size:11.5px;color:#98a1b2">L2 는 승인으로, L1 은 스위치로</span></td></tr>
+    <tr><td><b>결재 이력</b></td><td>—</td>
+        <td>없음(삭제 가능) / 있음(삭제 불가)</td></tr>
+    <tr><td><b>「개인 스케치」란</b></td><td>별도 종류</td>
+        <td>아직 공유 안 된 내 것을 부르는 <b>이름일 뿐</b></td></tr>
+    <tr><td><b>표준 양식 / 빈 슬라이드</b></td><td>종류를 정함</td>
+        <td>만들 때의 <b>출발 틀</b>일 뿐. 그 뒤 생애와 무관<br>
+            <span style="font-size:11.5px;color:#98a1b2">단 L3 은 표준 양식을 못 쓴다 → <code>TEMPLATE_USE</code></span></td></tr>
+  </table>
+
+  <!-- ════════ 5. 삭제 ════════ -->
+  <h2 class="sec">5. 무엇을 지울 수 있는가 <span class="ph">P2</span></h2>
+  <table>
+    <tr><th style="width:220px">상태</th><th style="width:100px">삭제</th><th>왜</th></tr>
+    <tr><td>작성 중 · 제출한 적 없음</td><td class="yes">가능</td>
+        <td>잘못 만들었거나 안 쓰게 된 것. 남길 기록이 없다</td></tr>
+    <tr><td>결재 대기 · 반려 · 승인됨 · 수정 중</td><td class="no">불가</td>
+        <td>제출·승인·반려 기록이 남아야 한다. 지우면 그때 그 자료가 무엇이었는지 되짚을 수 없다</td></tr>
+    <tr><td>반려된 뒤 안 쓰기로 한 자료</td><td class="no">불가</td>
+        <td>이력이 이미 생겼다. 목록에서 감추는 <b>보관</b> 기능이 따로 필요할 수 있다 — 지금은 범위 밖</td></tr>
+    <tr><td>L1 의 자료</td><td class="yes">가능</td>
+        <td>결재를 타지 않으므로 이력이 없다. 공유 중이면 먼저 내려야 한다</td></tr>
+  </table>
+
+  <!-- ════════ 6. 정리 ════════ -->
+  <h2 class="sec">6. 정리</h2>
+  <table>
+    <tr><th style="width:150px"></th><th>L1 관리자</th><th>L2 작성자</th><th>L3 열람자</th></tr>
+    <tr><td><b>공유 방법</b></td><td><b>스위치</b> (결재 없음)</td><td>제출 → 승인</td><td>—</td></tr>
+    <tr><td><b>공유 내리기</b></td><td class="yes">가능</td><td class="no">불가</td><td>—</td></tr>
+    <tr><td><b>공유 대상 팀</b></td><td>올릴 때 고름</td><td>본인 소속 팀</td><td>—</td></tr>
+    <tr><td><b>필터</b></td><td>보기 + 결재</td><td>보기 + 결재</td><td>없음</td></tr>
+    <tr><td><b>표준 양식</b></td><td class="yes">가능</td><td class="yes">가능</td><td class="no">불가</td></tr>
+    <tr><td><b>삭제</b></td><td class="yes">가능</td><td>제출 전만</td><td>본인 스케치</td></tr>
+  </table>
+
+  <p style="margin-top:34px;font-size:12px;color:var(--muted)">
+    합성 데이터만 사용(홍길동·이순신 등). 실제 자료·개인정보 없음.<br>
+    승인 상태: <b>검토 대기</b> — §2 의 확인 한 건(팀을 옮기면 공유해 둔 자료는?)에 답을 받으면 P1.5 부터 착수합니다.
+  </p>
+</div>
+
+<script>
+  const DATA=[
+    {t:'2026년 9월 임원회의 — 김가현', m:'09.04 09:45 · 제출 2차', sh:0, s:'pending',  sl:'결재 대기', del:0},
+    {t:'예산 재조정 검토',            m:'09.04 08:10 · 제출 1차', sh:0, s:'pending',  sl:'결재 대기', del:0},
+    {t:'8월 진행보고 초안',           m:'08.30 14:10 · 코멘트 3건', sh:0, s:'rejected', sl:'반려',     del:0},
+    {t:'아이디어 스케치',             m:'08.27 09:02 · 3페이지',  sh:0, s:'draft',    sl:'작성 중',  del:1},
+    {t:'회의 메모 정리',              m:'08.25 16:40 · 1페이지',  sh:0, s:'draft',    sl:'작성 중',  del:1},
+    {t:'3분기 품질 이슈 정리',        m:'09.03 승인 · 재승인 대기', sh:1, s:'revising', sl:'수정 중',  del:0, g:'approved'},
+    {t:'8월 인력 운영 계획',          m:'08.28 승인',            sh:1, s:'approved', sl:'승인됨',   del:0},
+    {t:'상반기 결산 보고',            m:'08.21 승인',            sh:1, s:'approved', sl:'승인됨',   del:0},
+    {t:'7월 진행보고',                m:'07.24 승인',            sh:1, s:'approved', sl:'승인됨',   del:0},
+  ]
+  let fSh='all', fSt='all'
+  const list=document.getElementById('list'), cnt=document.getElementById('cnt')
+  const grp=(d)=>d.g||d.s
+
+  function render(){
+    const rows=DATA.filter((d)=>(fSh==='all'||String(d.sh)===fSh)&&(fSt==='all'||grp(d)===fSt))
+    cnt.textContent=rows.length+'건'
+    list.innerHTML=rows.length?rows.map((d)=>`
+      <div class="row">
+        <div class="thumb">📘</div>
+        <div class="body"><div class="t">${d.t}</div><div class="m">${d.m}</div></div>
+        <span class="sh ${d.sh?'on':'off'}">${d.sh?'공유됨':'비공개'}</span>
+        <span class="st ${d.s}">${d.sl}</span>
+        <div class="acts"><span>✎</span><span>⧉</span><span class="${d.del?'':'off'}">🗑</span></div>
+      </div>`).join('')
+      :'<div class="empty"><b>조건에 맞는 자료가 없어요</b>토글을 바꿔 보세요.</div>'
+  }
+  const bind=(id,set)=>document.querySelectorAll('#'+id+' button').forEach((b)=>
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#'+id+' button').forEach((x)=>x.classList.toggle('on',x===b))
+      set(b.dataset.v); render()
+    }))
+  bind('segShare',(v)=>fSh=v); bind('segStat',(v)=>fSt=v)
+  render()
+</script>
+</body>
+</html>
