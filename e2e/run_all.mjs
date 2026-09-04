@@ -1,7 +1,7 @@
 // 브라우저 회귀 테스트 전체 실행.
 //
-// 각 스위트는 서로 다른 초기 상태를 필요로 한다(로그아웃 / 작성자 / 관리자 /
-// 배부 전 / 배부 후). 모의 서버를 그 상태로 띄웠다가 끄는 걸 여기서 한다 —
+// 각 스위트는 서로 다른 초기 상태를 필요로 한다(로그아웃 / 작성자 / 의견).
+// 모의 서버를 그 상태로 띄웠다가 끄는 걸 여기서 한다 —
 // 사람이 환경변수를 외워서 손으로 맞추게 두면, 결국 한두 개는 안 돌린다.
 //
 // 실행: node e2e/run_all.mjs
@@ -17,17 +17,10 @@ const PORT = process.env.PORT || String(8900 + (process.pid % 900))
 const SUITES = [
   { name: '로그인 · 비밀번호 보기', file: 'login_password_smoke.mjs', env: { ANON: '1' } },
   { name: '표 셀 드래그 · 병합', file: 'table_merge_smoke.mjs', env: {} },
-  { name: '배부 창구 · 미리보기', file: 'distribute_smoke.mjs', env: { ADMIN: '1', DECK: '1', EMPTY: '1' } },
-  { name: '배부 회수', file: 'revoke_smoke.mjs', env: { ADMIN: '1' } },
   { name: '앵커 메모(검토 의견)', file: 'comments_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '의견 쓰기 창(모달)', file: 'comment_modal_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '대화상자 공용 껍데기', file: 'modal_shell_smoke.mjs', env: {} },
-  { name: '동료 자료 — 작성 중', file: 'peer_readonly_smoke.mjs', env: { PEER: 'writing', COMMENTS: '1' } },
-  { name: '동료 자료 — 검토 중', file: 'peer_readonly_smoke.mjs', env: { PEER: 'review', COMMENTS: '1' } },
   { name: '앵커 따라가기 · 사라질 때', file: 'anchor_shift_smoke.mjs', env: { COMMENTS: '1' } },
-  { name: '처음부터 다시 — 작성 중', file: 'reset_smoke.mjs', env: { WRITER_ROW: 'draft', COMMENTS: '1' } },
-  { name: '처음부터 다시 — 제출 뒤', file: 'reset_smoke.mjs',
-    env: { WRITER_ROW: 'submitted', CYCLE_STATUS: 'review', COMMENTS: '1' } },
 ]
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))

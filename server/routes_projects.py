@@ -98,8 +98,8 @@ def projects_create_from_template(req: TemplateProjectIn, user: dict = Depends(r
     """표준 양식 1장으로 새 이북을 시작한다.
 
     **이 라우트가 없으면 표준 양식은 죽는다.** 지금까지 표준 양식이 세상에 나오는
-    길은 `POST /api/cycles/{cid}/distribute` 하나뿐이었고, 그 API 는 회차 id 를
-    요구한다. 회차를 걷어내는 순간 파일은 멀쩡한데 아무도 못 쓰는 상태가 된다.
+    길은 배부 API 하나뿐이었고, 그 API 는 회차 id 를 요구했다.
+    회차를 걷어내는 순간 파일은 멀쩡한데 아무도 못 쓰는 상태가 된다.
 
     양식 자체는 `template_seed` 가 만든다. 여기서 정하는 것은 **누구 것인가** 뿐이다.
     권한은 빈 슬라이드를 만들 때와 같다(`WRITE`) — 표준 양식이라고 더 높은 권한을
@@ -121,12 +121,11 @@ def projects_get(pid: str, user: dict = Depends(require_active)):
     if not p:
         raise HTTPException(status_code=404, detail="not found")
     # **무엇을 할 수 있는지는 서버가 말한다.**
-    # 화면이 역할과 회차 단계를 보고 다시 계산하면, 규칙이 두 곳에 생기고
-    # 반드시 어긋난다(그때 사용자에게는 '눌리는데 403' 으로 보인다).
+    # 화면이 역할을 보고 다시 계산하면 규칙이 두 곳에 생기고 반드시 어긋난다
+    # (그때 사용자에게는 '눌리는데 403' 으로 보인다).
     actor = auth_store.actor_of(user)
     p["access"] = {
         "mine": res.owner_id == user["id"],
-        "cycle_status": res.cycle_status,
         "can_write": perm.decide(actor, perm.WRITE, res),
         "can_comment": perm.decide(actor, perm.COMMENT_WRITE, res),
     }
@@ -320,8 +319,7 @@ def comment_resolve(cid: str, req: ResolveIn, user: dict = Depends(require_activ
     root = comments_store.get(item["thread_id"]) or item
     res = require_project(user, item["project_id"], perm.READ)
     require_action(user, perm.COMMENT_RESOLVE,
-                   perm.Resource(owner_id=res.owner_id, cycle_status=res.cycle_status,
-                                 published=res.published, same_cycle=res.same_cycle,
+                   perm.Resource(owner_id=res.owner_id, published=res.published,
                                  comment_author_id=root["author_id"]))
     try:
         out = comments_store.set_resolved(cid, req.resolved, user["id"])

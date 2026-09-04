@@ -37,14 +37,6 @@ def _db_path() -> str:
 # W1 확장 컬럼 — 기존 DB에도 안전하게 덧붙인다(있으면 무시).
 _EXTRA_COLS = (
     ("owner_id", "TEXT"),
-    ("cycle_id", "TEXT"),
-    ("template_id", "TEXT"),
-    ("submit_status", "TEXT DEFAULT 'draft'"),
-    # **배부받은 그대로의 모습.** 작성자가 「처음부터 다시」를 누를 때 돌아갈 곳이다.
-    # 이걸 저장해 두지 않으면 되돌리려고 원본을 다시 만들어야 하는데,
-    # 실물 PPT 배부본은 다시 만들 수 없다(어느 슬라이드가 누구에게 갔는지는
-    # 배부 그 순간에만 알 수 있다).
-    ("origin_state", "TEXT"),
 )
 
 
@@ -68,7 +60,6 @@ def _conn() -> sqlite3.Connection:
         if col not in have:
             c.execute("ALTER TABLE Projects ADD COLUMN %s %s" % (col, decl))
     c.execute("CREATE INDEX IF NOT EXISTS idx_projects_owner ON Projects(owner_id)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_projects_cycle ON Projects(cycle_id)")
     c.commit()
     return c
 
@@ -97,13 +88,13 @@ def _title_of(state, fallback: str = "제목 없음") -> str:
 
 
 # ─────────────────────── 프로젝트 ───────────────────────
-_LIST_COLS = "id,name,created_at,updated_at,published_id,page_count,owner_id,cycle_id,submit_status"
+_LIST_COLS = "id,name,created_at,updated_at,published_id,page_count,owner_id"
 
 
 def _row_to_meta(r) -> dict:
     return {"id": r[0], "name": r[1] or "제목 없음", "created_at": r[2],
             "updated_at": r[3], "published_id": r[4], "page_count": r[5] or 0,
-            "owner_id": r[6], "cycle_id": r[7], "submit_status": r[8] or "draft"}
+            "owner_id": r[6]}
 
 
 def list_projects(visibility: str = "all", user_id: Optional[str] = None) -> list[dict]:
@@ -120,19 +111,13 @@ def list_projects(visibility: str = "all", user_id: Optional[str] = None) -> lis
             rows = c.execute(
                 "SELECT %s FROM Projects ORDER BY updated_at DESC" % _LIST_COLS
             ).fetchall()
-        elif visibility in ("own_or_published", "own_or_cycle_or_published"):
-            # 같은 회차의 동료 장까지 — permissions.decide 의 READ 규칙과 짝을 맞춘다.
-            # 어긋나면 '목록엔 보이는데 열면 403' 이라는, 원인을 짚기 어려운 버그가 난다.
-            # 아직 아무에게도 안 나간 회차(draft)는 뺀다.
-            peer_ok = visibility == "own_or_cycle_or_published" and _has_cycles(c)
-            sql = "SELECT %s FROM Projects WHERE owner_id=? OR published_id IS NOT NULL" % _LIST_COLS
-            args: tuple = (user_id,)
-            if peer_ok:
-                sql += (" OR cycle_id IN ("
-                        "  SELECT p2.cycle_id FROM Projects p2 JOIN Cycles cy ON cy.id = p2.cycle_id"
-                        "  WHERE p2.owner_id=? AND cy.status <> 'draft')")
-                args = (user_id, user_id)
-            rows = c.execute(sql + " ORDER BY updated_at DESC", args).fetchall()
+        elif visibility in ("own", "own_or_published"):
+            # 'own' — 본인 것만. decide() 의 READ 규칙과 짝이 맞아야 한다.
+            # 회차가 사라지면서 '같은 회차 동료' 분기도 함께 없앴다.
+            sql = "SELECT %s FROM Projects WHERE owner_id=?" % _LIST_COLS
+            if visibility == "own_or_published":
+                sql += " OR published_id IS NOT NULL"
+            rows = c.execute(sql + " ORDER BY updated_at DESC", (user_id,)).fetchall()
         elif visibility == "published":
             rows = c.execute(
                 "SELECT %s FROM Projects WHERE published_id IS NOT NULL "
@@ -155,62 +140,20 @@ def get_project_meta(pid: str) -> Optional[dict]:
     return _row_to_meta(r) if r else None
 
 
-def _has_cycles(c) -> bool:
-    """Cycles 표가 있는가.
-
-    회차 기능을 쓰지 않는 설치(그리고 회차 모듈을 불러오지 않는 테스트)에서는
-    이 표가 없다. 없는 표를 조인하면 조회 자체가 죽어서, **회차와 무관한
-    기능까지 함께 멈춘다.** 있으면 쓰고 없으면 없는 대로 판정한다.
-    """
-    r = c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='Cycles'").fetchone()
-    return bool(r)
-
-
 def project_scope(pid: str) -> Optional[dict]:
-    """권한 판정에 필요한 것만: 주인 · 발행 여부 · 회차와 그 단계.
-
-    `get_project_meta` 로는 회차 단계를 알 수 없었다(Projects 에 없다).
-    그래서 permissions.Resource.cycle_status 는 늘 None 이었고, 회차 단계에
-    따른 규칙이 **조용히 아무 일도 하지 않았다.** 판정에 쓰는 값은 판정용
-    조회에서 한 번에 읽는다.
-    """
+    """권한 판정에 필요한 것만 꺼낸다 — 소유자와 발행 여부."""
     c = _conn()
     try:
-        if _has_cycles(c):
-            r = c.execute(
-                "SELECT p.owner_id, p.published_id, p.cycle_id, cy.status "
-                "FROM Projects p LEFT JOIN Cycles cy ON cy.id = p.cycle_id WHERE p.id=?",
-                (pid,),
-            ).fetchone()
-        else:
-            r = c.execute(
-                "SELECT owner_id, published_id, cycle_id, NULL FROM Projects WHERE id=?", (pid,)
-            ).fetchone()
+        r = c.execute("SELECT owner_id, published_id FROM Projects WHERE id=?", (pid,)).fetchone()
     finally:
         c.close()
     if not r:
         return None
-    return {"owner_id": r[0], "published": bool(r[1]), "cycle_id": r[2], "cycle_status": r[3]}
-
-
-def owns_in_cycle(user_id: Optional[str], cycle_id: Optional[str]) -> bool:
-    """이 사람이 그 회차에 배부본을 갖고 있는가 — '같은 회차 동료' 판정의 근거."""
-    if not user_id or not cycle_id:
-        return False
-    c = _conn()
-    try:
-        r = c.execute(
-            "SELECT 1 FROM Projects WHERE owner_id=? AND cycle_id=? LIMIT 1",
-            (user_id, cycle_id),
-        ).fetchone()
-    finally:
-        c.close()
-    return bool(r)
+    return {"owner_id": r[0], "published": bool(r[1])}
 
 
 def create_project(name: Optional[str] = None, state: Optional[dict] = None,
-                   owner_id: Optional[str] = None, cycle_id: Optional[str] = None,
-                   keep_origin: bool = False) -> dict:
+                   owner_id: Optional[str] = None) -> dict:
     pid = _new_id("p")
     ts = _now()
     st = state or {}
@@ -220,54 +163,22 @@ def create_project(name: Optional[str] = None, state: Optional[dict] = None,
         body = json.dumps(st, ensure_ascii=False)
         c.execute(
             "INSERT INTO Projects(id,name,created_at,updated_at,published_id,page_count,state,"
-            "owner_id,cycle_id,submit_status,origin_state) VALUES(?,?,?,?,?,?,?,?,?,'draft',?)",
-            (pid, nm, ts, ts, None, _page_count(st), body,
-             owner_id, cycle_id, body if keep_origin else None),
+            "owner_id) VALUES(?,?,?,?,?,?,?,?)",
+            (pid, nm, ts, ts, None, _page_count(st), body, owner_id),
         )
         c.commit()
     finally:
         c.close()
     return {"id": pid, "name": nm, "created_at": ts, "updated_at": ts,
             "published_id": None, "page_count": _page_count(st), "state": st,
-            "owner_id": owner_id, "cycle_id": cycle_id, "submit_status": "draft"}
-
-
-def reset_to_origin(pid: str) -> Optional[dict]:
-    """배부받은 그대로의 모습으로 되돌린다.
-
-    **배부본을 지우지 않는다.** 지우면 그 사람이 회차 목록에서 사라지고,
-    관리자 화면에는 "3명 중 2명" 으로 보인다. 누가 빠졌는지도 알 수 없다.
-    혼자 해결하려던 일이 오히려 관리자를 거쳐야 하는 일이 된다.
-    """
-    c = _conn()
-    try:
-        r = c.execute("SELECT origin_state FROM Projects WHERE id=?", (pid,)).fetchone()
-        if not r or not r[0]:
-            return None
-        st = json.loads(r[0])
-        c.execute("UPDATE Projects SET state=?, page_count=?, updated_at=? WHERE id=?",
-                  (r[0], _page_count(st), _now(), pid))
-        c.commit()
-    finally:
-        c.close()
-    return get_project(pid)
-
-
-def has_origin(pid: str) -> bool:
-    """되돌릴 곳이 있는가 — 배부본이 아니면 없다."""
-    c = _conn()
-    try:
-        r = c.execute("SELECT origin_state FROM Projects WHERE id=?", (pid,)).fetchone()
-    finally:
-        c.close()
-    return bool(r and r[0])
+            "owner_id": owner_id}
 
 
 def get_project(pid: str) -> Optional[dict]:
     c = _conn()
     try:
         r = c.execute(
-            "SELECT id,name,created_at,updated_at,published_id,state,owner_id,cycle_id,submit_status "
+            "SELECT id,name,created_at,updated_at,published_id,state,owner_id "
             "FROM Projects WHERE id=?",
             (pid,),
         ).fetchone()
@@ -278,7 +189,7 @@ def get_project(pid: str) -> Optional[dict]:
     return {"id": r[0], "name": r[1] or "제목 없음", "created_at": r[2],
             "updated_at": r[3], "published_id": r[4],
             "state": json.loads(r[5]) if r[5] else {},
-            "owner_id": r[6], "cycle_id": r[7], "submit_status": r[8] or "draft"}
+            "owner_id": r[6]}
 
 
 def set_owner(pid: str, owner_id: str) -> dict:

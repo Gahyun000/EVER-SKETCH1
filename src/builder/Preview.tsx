@@ -77,10 +77,8 @@ export default function Preview() {
         <span className="pv-ro">
           <b>읽기 전용</b>
           {!access?.mine
-            ? ' — 동료의 자료입니다. 고칠 수는 없고, 보고 의견을 남길 수 있습니다.'
-            : access.cycle_status === 'published'
-              ? ' — 발행된 회차입니다. 확정본과 어긋나지 않도록 잠겨 있습니다.'
-              : ' — 마감된 회차입니다.'}
+            ? ' — 남의 자료입니다. 보기만 할 수 있습니다.'
+            : ' — 지금은 고칠 수 없는 상태입니다.'}
         </span>
       )}
     </div>

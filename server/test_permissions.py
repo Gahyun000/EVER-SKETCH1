@@ -8,7 +8,7 @@ import pytest
 from server.permissions import (
     Actor, Resource, decide, visible_project_filter, can_grant_role,
     READ, WRITE, DELETE, COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE,
-    CYCLE_MANAGE, USER_MANAGE, TEMPLATE_MANAGE, ALL_ACTIONS,
+    USER_MANAGE, SETTINGS_MANAGE, PUBLISH, ALL_ACTIONS,
 )
 
 # ── 4계정 + 비활성 ─────────────────────────────
@@ -67,9 +67,15 @@ def test_작성자는_본인_이북만_읽고_쓴다():
     assert decide(WRITER_U, WRITE, OTHER) is False
 
 
-def test_작성자도_발행본은_읽는다():
-    assert decide(WRITER_U, READ, PUB) is True
-    assert decide(WRITER_U, WRITE, PUB) is False     # 읽기만
+def test_작성자에게는_남의_발행본이_보이지_않는다():
+    """회차를 걷어내면서 바뀐 계약이다(P2).
+
+    `published_id` 는 이북 PNG 빌드 산출물 표시로 의미가 줄었고(D6),
+    작성자의 목록 필터는 'own' 이 됐다. 여기서 True 를 돌려주면
+    **목록엔 없는데 링크로는 열리는** 상태가 된다.
+    팀 단위 승인본 공유는 P6 에서 별도 경로로 붙는다."""
+    assert decide(WRITER_U, READ, PUB) is False
+    assert decide(WRITER_U, WRITE, PUB) is False
 
 
 def test_작성자는_본인_것도_삭제_불가():
@@ -86,7 +92,7 @@ def test_작성자는_본인_이북_메모만():
 
 
 def test_작성자는_관리_액션_불가():
-    for action in (CYCLE_MANAGE, USER_MANAGE, TEMPLATE_MANAGE):
+    for action in (USER_MANAGE, SETTINGS_MANAGE, PUBLISH):
         assert decide(WRITER_U, action) is False
         assert decide(WRITER_U, action, OWN) is False
 
@@ -126,7 +132,7 @@ def test_이상한_역할은_거부():
 # ── 목록 필터 ─────────────────────────────
 def test_목록_필터가_개별_판정과_일치():
     assert visible_project_filter(ADMIN_U) == "all"
-    assert visible_project_filter(WRITER_U) == "own_or_cycle_or_published"
+    assert visible_project_filter(WRITER_U) == "own"
     assert visible_project_filter(VIEWER_U) == "published"
     assert visible_project_filter(PENDING) == "none"
     assert visible_project_filter(DISABLED) == "none"

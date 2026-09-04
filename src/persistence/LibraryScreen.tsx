@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, CalendarDays } from 'lucide-react'
+import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
 import { useProjects } from './projects'
 import NewProjectDialog from './NewProjectDialog'
 import type { ProjectMeta } from './projectApi'
@@ -23,7 +23,6 @@ export default function LibraryScreen() {
   const renameProject = useProjects((s) => s.renameProject)
   const deleteProject = useProjects((s) => s.deleteProject)
   const duplicateProject = useProjects((s) => s.duplicateProject)
-  const showCycles = useProjects((s) => s.showCycles)
 
   const [qIn, setQIn] = useState(''); const [fromIn, setFromIn] = useState(''); const [toIn, setToIn] = useState('')
   const [q, setQ] = useState(''); const [from, setFrom] = useState(''); const [to, setTo] = useState('')
@@ -63,8 +62,6 @@ export default function LibraryScreen() {
       <div className="lib-head">
         <div className="lib-brand"><div className="logo" aria-label="EVER-SKETCH" /> 내 이북</div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {/* 회차는 임원회의 자료의 진입점이다 — '새 이북'보다 먼저 보이게 둔다. */}
-          <button className="lib-new ghost" onClick={showCycles}><CalendarDays className="h-4 w-4" /> 회차</button>
           <button className="lib-new" onClick={() => setPicking(true)}><Plus className="h-4 w-4" /> 새 이북</button>
         </div>
       </div>

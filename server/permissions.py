@@ -64,9 +64,7 @@ COMMENT_READ = "comment_read"
 COMMENT_WRITE = "comment_write"
 COMMENT_RESOLVE = "comment_resolve"
 COMMENT_FIX = "comment_fix"       # 「고쳤습니다」 — 지적받은 쪽이 답하는 표시
-CYCLE_MANAGE = "cycle_manage"     # 회차 개설·마감
 USER_MANAGE = "user_manage"       # 가입 승인·역할 변경·비활성화
-TEMPLATE_MANAGE = "template_manage"
 SETTINGS_MANAGE = "settings_manage"   # LLM 설정 — API 키를 다룬다(UDS-107 §5)
 PUBLISH = "publish"               # 이북 발행 — 열람자 전원에게 공개된다. 되돌리기 어렵다
 AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작성 도구이므로 작성자 이상
@@ -74,12 +72,11 @@ AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작
 ALL_ACTIONS = (
     READ, WRITE, DELETE,
     COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE, COMMENT_FIX,
-    CYCLE_MANAGE, USER_MANAGE, TEMPLATE_MANAGE,
-    SETTINGS_MANAGE, PUBLISH, AI_USE,
+    USER_MANAGE, SETTINGS_MANAGE, PUBLISH, AI_USE,
 )
 
 # 관리자 전용 액션. 새 관리 기능을 추가하면 여기에 넣는다.
-_ADMIN_ONLY = (CYCLE_MANAGE, USER_MANAGE, TEMPLATE_MANAGE, SETTINGS_MANAGE, PUBLISH)
+_ADMIN_ONLY = (USER_MANAGE, SETTINGS_MANAGE, PUBLISH)
 
 
 @dataclass(frozen=True)
@@ -98,28 +95,11 @@ class Actor:
 class Resource:
     """판정 대상. 프로젝트가 아닌 액션(USER_MANAGE 등)은 None 을 넘긴다."""
     owner_id: Optional[str] = None
-    cycle_status: Optional[str] = None   # Cycles.status — 'published' 여야 열람자가 볼 수 있다
     published: bool = False
-    # 판정하는 사람이 **이 자료와 같은 회차에 배부본을 갖고 있는가.**
-    # 같은 회의를 준비하는 사람끼리는 서로의 장을 볼 수 있어야 한다 —
-    # "3~5월 구간이 앞 장과 다릅니다" 는 앞 장을 볼 수 없으면 할 수 없는 말이다.
-    # 막아두면 결국 캡처를 카톡으로 주고받게 되고, 그게 훨씬 위험하다.
-    same_cycle: bool = False
     # 그 지적을 **누가 썼는가.** 해결(닫기)은 지적한 사람 몫이다 —
     # 담당자가 자기에게 온 지적을 스스로 닫으면 검토가 형식이 된다.
     # 지적 하나를 두고 판정할 때만 채운다(목록 조회 등에는 None).
     comment_author_id: Optional[str] = None
-
-
-# 동료가 남의 장을 **볼 수 있는** 회차 단계.
-# '준비'(draft)는 빠져 있다 — 아직 아무에게도 나가지 않은 회차다.
-PEER_READ_STAGES = ("writing", "review", "published", "closed")
-# 동료가 남의 장에 **의견을 달 수 있는** 회차 단계.
-# 작성 중에는 달지 않는다 — 아직 쓰는 중인 것에 지적이 달리면 쓰는 사람이 흔들린다.
-PEER_COMMENT_STAGES = ("review", "published")
-# 내 장이라도 **더는 고칠 수 없는** 단계. 확정본이 나간 뒤에 원본이 바뀌면
-# 발행된 것과 손에 든 것이 달라진다.
-FROZEN_STAGES = ("published", "closed")
 
 
 def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) -> bool:
@@ -161,29 +141,31 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
     if action == AI_USE:
         return True
 
-    # 소유 기반: '내 것' + 같은 회차의 동료 것. 소유자 판정이 불가능하면 거부.
+    # 소유 기반. 소유자 판정이 불가능하면 거부.
+    #
+    # **회차 시절의 '동료 열람'은 없어졌다.** 같은 회차에 배부본을 가진 사람끼리
+    # 서로의 장을 보던 규칙인데, 회차가 사라지면서 '동료'를 정의할 근거가 없어졌다.
+    # 팀 단위 공유는 P6 에서 승인본에만 열린다 — 작성 중인 남의 자료는 보이지 않는다.
     if res is None or res.owner_id is None:
         return False
     owns = res.owner_id == actor.id
-    # '동료' = 같은 회차에 배부본을 가진 다른 사람의 자료.
-    peer = bool(res.same_cycle) and not owns
-    stage = res.cycle_status or ""
 
     if action == READ:
-        # 본인 이북 + 발행본 + 같은 회차 동료의 장(배부가 나간 뒤부터)
-        return owns or bool(res.published) or (peer and stage in PEER_READ_STAGES)
+        # **본인 것만.** 목록 필터(visible_project_filter)의 'own' 과 짝이 맞아야 한다 —
+        # 어긋나면 '목록엔 없는데 열리는' 또는 '보이는데 403' 이 난다.
+        return owns
     if action == WRITE:
-        # 고치는 것은 언제나 **본인 것만**. 동료 것은 읽기 전용이다.
-        # 회차가 발행·마감된 뒤에는 본인 것도 잠긴다 — 확정본과 어긋나면
-        # 회의에서 본 자료와 시스템 안의 자료가 다른 말을 하게 된다.
-        return owns and stage not in FROZEN_STAGES
+        # 고치는 것은 본인 것만. 회차 단계에 따른 잠금은 사라졌고,
+        # 결재 상태에 따른 잠금이 P5 에서 그 자리에 온다.
+        return owns
     if action == DELETE:
-        # 삭제는 관리자만. 회차 자료 유실 방지(삭제 요청 워크플로는 v1.1 이월)
+        # 삭제는 아직 관리자만. 「결재 이력이 없으면 본인도 삭제」(D16)는
+        # 결재 테이블이 생기는 P5 이후에 붙인다 — 지금은 판정할 이력이 없다.
         return False
     if action == COMMENT_READ:
         # 볼 수 있는 자료의 의견은 볼 수 있다. 따로 가르면 '자료는 보이는데
         # 거기 달린 지적은 안 보이는' 상태가 되어 같은 지적이 두 번 달린다.
-        return owns or (peer and stage in PEER_READ_STAGES)
+        return owns
     if action == COMMENT_FIX:
         # 「고쳤습니다」는 **지적받은 쪽**이 누른다 — 내 자료의 지적만.
         return owns
@@ -195,9 +177,8 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
         # 자리를 비운 리뷰어 때문에 회차가 막히는 경우는 관리자가 푼다.
         return res.comment_author_id == actor.id
     if action in (COMMENT_WRITE, COMMENT_RESOLVE):
-        # 내 장에는 언제나(관리자 지적에 답해야 한다).
-        # 남의 장에는 검토 단계부터.
-        return owns or (peer and stage in PEER_COMMENT_STAGES)
+        # 내 자료에는 언제나(관리자 지적에 답해야 한다).
+        return owns
 
     return False
 
@@ -218,28 +199,10 @@ def visible_project_filter(actor: Optional[Actor]) -> str:
     if actor.role == ADMIN:
         return "all"
     if actor.role == WRITER:
-        # 본인 것 + 발행본 + **같은 회차 동료의 장**.
-        # decide() 의 READ 규칙과 짝이 맞아야 한다 — 어긋나면
-        # '목록엔 보이는데 열면 403' 이 난다.
-        return "own_or_cycle_or_published"
-    if actor.role == VIEWER:
-        return "published"
-    return "none"
-
-
-def visible_cycle_filter(actor: Optional[Actor]) -> str:
-    """회차 목록에서 무엇을 보여줄지. 'all' | 'mine_or_published' | 'published' | 'none'
-
-    프로젝트와 마찬가지로 목록 필터를 라우터가 따로 판단하지 않는다.
-    열람자는 **진행 중인 회차의 존재 자체를 알 필요가 없다** —
-    아직 정리되지 않은 회차가 있다는 사실도 정보다.
-    """
-    if actor is None or not actor.is_active:
-        return "none"
-    if actor.role == ADMIN:
-        return "all"
-    if actor.role == WRITER:
-        return "mine_or_published"
+        # **본인 것만.** decide() 의 READ 규칙과 짝이 맞아야 한다 —
+        # 어긋나면 '목록엔 보이는데 열면 403' 이 난다.
+        # 팀 승인본은 P6 에서 별도 화면(팀 공유)으로 붙는다.
+        return "own"
     if actor.role == VIEWER:
         return "published"
     return "none"

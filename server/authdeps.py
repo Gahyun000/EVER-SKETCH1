@@ -64,22 +64,12 @@ def require_active(es_session: Optional[str] = Cookie(default=None)) -> dict:
 
 # ── 권한 판정 ─────────────────────────────────────────
 def _resource_of(pid: str, user: Optional[dict] = None) -> Optional[perm.Resource]:
-    """판정 대상을 만든다.
-
-    회차 단계와 '같은 회차 동료인가' 를 **여기서 한 번에** 채운다.
-    예전에는 cycle_status 를 넣지 않아서(Projects 에 없는 값을 꺼내려 했다)
-    회차 단계 규칙이 늘 빈손으로 판정됐다 — 규칙은 있는데 아무 일도 안 했다.
-    """
+    """판정 대상을 만든다."""
+    del user           # 회차 동료 판정이 사라지면서 더는 쓰지 않는다
     sc = projects_store.project_scope(pid)
     if not sc:
         return None
-    uid = (user or {}).get("id")
-    return perm.Resource(
-        owner_id=sc["owner_id"],
-        cycle_status=sc["cycle_status"],
-        published=sc["published"],
-        same_cycle=projects_store.owns_in_cycle(uid, sc["cycle_id"]),
-    )
+    return perm.Resource(owner_id=sc["owner_id"], published=sc["published"])
 
 
 def require_action(user: Optional[dict], action: str, res: Optional[perm.Resource] = None) -> None:

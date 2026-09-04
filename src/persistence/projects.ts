@@ -10,7 +10,7 @@ import { setAutosaveHydrated, setAutosaveReadOnly, markAutosaveHydrated, useAuto
 import { migrateLegacyDraftOnce } from './legacyMigration'
 import { resetHistory } from '../canvas/history'
 
-export type LibView = 'library' | 'editor' | 'cycles'
+export type LibView = 'library' | 'editor'
 
 function emptySnapshot(): DraftStateSnapshot {
   return { title: '제목 없음', orientation: 'portrait', theme: 'light', font: 'auto', size: 'm', selectedPageId: null, pages: [] }
@@ -61,7 +61,6 @@ interface ProjectsState {
   renameProject: (id: string, name: string) => Promise<void>
   deleteProject: (id: string) => Promise<void>
   duplicateProject: (id: string) => Promise<void>
-  showCycles: () => void
 }
 
 /**
@@ -214,5 +213,4 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     await get().loadList()
   },
 
-  showCycles: () => set({ view: 'cycles' }),
 }))

@@ -202,7 +202,7 @@ export default function CommentsPanel() {
           /* 남의 장에는 검토 단계부터 단다. 입력칸만 잠그고 이유를 말하지 않으면
              '왜 안 써지지' 로 끝난다. */
           <p className="cmt-locked">
-            아직 <b>작성 중</b>인 회차입니다. 검토 단계로 넘어가면 의견을 달 수 있어요.
+            이 자료에는 의견을 달 수 없습니다.
           </p>
         )}
         {replyTo && (

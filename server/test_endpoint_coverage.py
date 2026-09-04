@@ -42,7 +42,6 @@ ALL_ROUTES = (
     _routes("app.py", "app")
     + _routes("routes_projects.py", "router")
     + _routes("routes_auth.py", "router", prefix="/api/auth")   # APIRouter(prefix=...)
-    + _routes("routes_cycles.py", "router", prefix="/api/cycles")
 )
 
 
@@ -78,7 +77,7 @@ def test_모든_엔드포인트가_권한을_판정한다(method, path, body):
     # 목록 계열은 permissions 의 가시성 판정 함수를 쓴다(라우터가 레벨을 직접 비교하면 안 된다).
     assert ("require_action" in body or "require_project" in body
             or "can_grant_role" in body or "visible_project_filter" in body
-            or "_visible_cycles" in body), \
+            ), \
         "%s %s 가 권한을 판정하지 않습니다" % (method, path)
 
 
@@ -116,7 +115,7 @@ def test_대화_조회는_소유를_확인한다():
 def _perm_sources():
     """권한 판정에 관여하는 서버 파일들."""
     names = ["permissions.py", "authdeps.py", "auth.py", "app.py",
-             "routes_auth.py", "routes_projects.py", "routes_cycles.py", "admin_cli.py"]
+             "routes_auth.py", "routes_projects.py", "admin_cli.py"]
     return [(n, (SRC_DIR / n).read_text(encoding="utf-8")) for n in names
             if (SRC_DIR / n).exists()]
 

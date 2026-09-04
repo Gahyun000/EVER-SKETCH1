@@ -203,7 +203,7 @@ export default function RightPanel() {
               {inTemplate && (
                 <div className="insp-note">
                   표준 양식 표입니다. 칸 내용·행 추가·셀 색만 바꿀 수 있어요.
-                  <br />열 구성과 머리글은 회차 취합을 위해 고정됩니다.
+                  <br />열 구성과 머리글은 취합을 위해 고정됩니다.
                 </div>
               )}
 

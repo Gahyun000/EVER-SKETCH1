@@ -138,12 +138,9 @@ function CommentTool() {
     <span className="ax-grp gs">
       <span className="lab">검토</span>
       <button className="tbtn" disabled={busy || !canComment}
-        title={canComment ? `${where}에 의견을 답니다`
-          : access && !access.mine && access.cycle_status === 'writing'
-            ? '아직 작성 중인 회차입니다 — 검토 단계부터 의견을 달 수 있어요'
-            : '이 자료에는 의견을 달 수 없습니다'}
+        title={canComment ? `${where}에 의견을 답니다` : '이 자료에는 의견을 달 수 없습니다'}
         onClick={() => setComposing(true)}>💬 의견 달기</button>
-      <span className="tbtn-hint">{canComment ? where : '검토 단계부터'}</span>
+      <span className="tbtn-hint">{canComment ? where : '의견 불가'}</span>
       {composing && (
         <CommentComposer where={where} onClose={() => setComposing(false)}
           onSubmit={async (body) => {

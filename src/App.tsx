@@ -2,8 +2,6 @@ import { useEffect } from 'react'
 import AuthGate from './auth/AuthGate'
 import Layout from './builder/Layout'
 import LibraryScreen from './persistence/LibraryScreen'
-import CyclesScreen from './cycles/CyclesScreen'
-import './cycles/cycles.css'
 import { useProjects } from './persistence/projects'
 import { installAutosave } from './persistence/autosave'
 import { useAuth } from './auth/useAuth'
@@ -15,10 +13,8 @@ function Workspace({ uid }: { uid: string | null }) {
   // 로그인 전에 boot 를 부르면 401 만 받는다.
   // **uid 를 넘긴다** — 계정이 바뀌면 boot 가 앞사람 것을 비우고 다시 받는다.
   useEffect(() => { installAutosave(); void boot(uid) }, [boot, uid])
-  const back = useProjects((s) => s.backToLibrary)
-  // 기본은 '내 이북' 라이브러리, 프로젝트를 열면 편집 화면, 회차 화면은 별도.
+  // 기본은 '내 이북' 라이브러리, 프로젝트를 열면 편집 화면.
   if (view === 'editor') return <Layout />
-  if (view === 'cycles') return <CyclesScreen onClose={() => void back()} />
   return <LibraryScreen />
 }
 

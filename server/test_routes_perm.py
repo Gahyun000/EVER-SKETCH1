@@ -184,11 +184,16 @@ def test_열람자는_발행본_버전도_읽지만_수정_불가(ctx):
 
 
 # ═══════════ L2 작성자 ═══════════
-def test_작성자_목록은_본인_것과_발행본만(ctx):
+def test_작성자_목록은_본인_것만(ctx):
+    """P2 에서 좁아졌다 — 예전에는 남의 발행본도 함께 보였다.
+
+    화면에 뜨는데 눌러도 안 열리는 항목이 없어야 한다는 것이 이 규칙의 목적이다.
+    팀 승인본은 P6 에서 별도 화면(팀 공유)으로 붙는다."""
     c = ctx["as_user"]("writer")
     ids = {p["id"] for p in c.get("/api/projects").json()["projects"]}
-    assert ids == {ctx["own"], ctx["pub"]}
+    assert ids == {ctx["own"]}
     assert ctx["other"] not in ids
+    assert ctx["pub"] not in ids
 
 
 def test_작성자는_타인_이북에_접근_불가(ctx):

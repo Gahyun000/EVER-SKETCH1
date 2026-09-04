@@ -28,7 +28,20 @@ import sqlite3
 
 from server import auth as auth_store
 from server import permissions as perm
-from server.migrate_w1 import backup_db
+
+
+def backup_db(path: str) -> str:
+    """바꾸기 전에 파일을 통째로 복사해 둔다.
+
+    (W1 이관 스크립트에 있던 것을 여기로 옮겼다 — 그 스크립트는 회차 제거와 함께
+    사라졌지만, 되돌릴 수 없는 변경 앞에 백업을 두는 규칙은 남는다.)
+    """
+    import shutil
+    import time as _t
+    dst = "%s.backup_%s" % (path, _t.strftime("%Y%m%d_%H%M%S"))
+    shutil.copy2(path, dst)
+    return dst
+
 
 # 구 숫자 레벨 → 역할명
 LEVEL_TO_ROLE = {3: perm.ADMIN, 2: perm.WRITER, 1: perm.VIEWER, 0: ""}
