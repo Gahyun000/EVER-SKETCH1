@@ -28,7 +28,7 @@ await p.goto(URL, { waitUntil: 'networkidle' })
 
 // 라이브러리 → 편집 화면
 await p.waitForSelector('text=임원회의', { timeout: 15000 })
-await p.locator('text=2026년 10월 임원회의').first().click()
+await p.locator('text=임원회의').first().click()
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 
 // 로드맵 표(SLOT-A) 의 칸을 좌표로 짚는다.
@@ -205,8 +205,12 @@ ok('손잡이를 끌면 표가 따라 움직인다', Math.abs(after.x - before.x
 {
   const bars = await p.locator('.es-userbar').count()
   ok('사용자 표시는 화면에 하나뿐이다', bars === 1, `${bars}개`)
+  // **`.inline` 수식자는 이제 없다**(2026-09-04 P3 회귀 수정).
+  // 예전에는 전역 오버레이(`position:fixed`)와 툴바 안(`inline`) 두 모드가 있었고,
+  // 겹침 사고가 나서 **오버레이 자체를 없앴다** — 모드가 하나뿐이니 수식자도 없다.
+  // 지켜야 할 것은 클래스 이름이 아니라 **툴바 안에 들어가 있다**는 사실이다.
   ok('편집 화면에서는 툴바 안에 들어간다',
-     await p.locator('.ax-title .es-userbar.inline').count() === 1)
+     await p.locator('.ax-title .es-userbar').count() === 1)
   ok('옛 하드코딩 아바타가 사라졌다', await p.locator('.ax-title .av').count() === 0)
 
   const initial = (await p.locator('.es-av').first().innerText()).trim()

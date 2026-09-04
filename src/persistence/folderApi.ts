@@ -48,9 +48,26 @@ export interface FolderListing {
   max_depth: number
 }
 
+/**
+ * 폴더 목록. **모양을 여기서 바로잡는다.**
+ *
+ * 서버가 200 을 주면서 엉뚱한 모양을 돌려주는 일은 실제로 일어난다 —
+ * 프록시가 끼어들었거나, 배포가 반쯤 됐거나, 옛 서버에 붙었거나.
+ * 그때 `folders` 가 `undefined` 로 화면까지 흘러 들어가면 목록이 통째로 하얗게 뜬다
+ * (e2e 에서 실제로 잡혔다: `Cannot read properties of undefined (reading 'filter')`).
+ *
+ * 던지지 않고 **빈 목록으로 떨어뜨린다.** 폴더는 정리 도구일 뿐이라,
+ * 폴더를 못 읽었다고 자료 목록까지 못 보게 만들 이유가 없다.
+ * 「모양이 이상하다」는 오류로 말할 것이 아니라 **없는 것처럼** 다루는 편이 맞다.
+ */
 export async function apiListFolders(parent?: string | null): Promise<FolderListing> {
   const q = parent ? `?parent=${encodeURIComponent(parent)}` : ''
-  return req<FolderListing>(q)
+  const d = await req<Partial<FolderListing>>(q)
+  return {
+    folders: Array.isArray(d?.folders) ? d.folders : [],
+    path: Array.isArray(d?.path) ? d.path : [],
+    max_depth: typeof d?.max_depth === 'number' ? d.max_depth : 3,
+  }
 }
 
 export async function apiCreateFolder(name: string, parentId?: string | null): Promise<Folder> {

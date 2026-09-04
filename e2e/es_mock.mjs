@@ -54,6 +54,25 @@ const WRITERS = [
     must_change_pw: false, role: 'writer', requested_role: 'writer', grade: 2,
     requested_grade: 2, role_label: '작성자', requested_role_label: '작성자' },
 ]
+// 마지막으로 들어온 앵커 이동 요청. 테스트가 `/__lastShift` 로 되읽어
+// **화면이 무엇을 보냈는지**를 확인한다(눈으로는 못 보는 부분이다).
+let lastShift = null
+
+// 검토 의견 — COMMENTS=1 이면 **미해결 하나가 이미 달려 있는 상태**로 시작한다.
+//
+// **이 두 줄이 P2(회차 제거)에서 통째로 지워졌다.** 회차 코드와 붙어 있어서
+// 함께 딸려 나간 것인데, `comments` 는 회차와 아무 상관이 없었다 —
+// 그 뒤로 모의 서버는 의견 요청마다 `ReferenceError` 로 죽었고,
+// **의견 관련 스위트 3개가 조용히 죽어 있었다**(2026-09-04 P8 에서 처음 돌려 보고 발견).
+// 지울 때 「이건 뭐였더라」 하고 한 번 더 보지 않으면 이렇게 된다.
+let cmtSeq = 100
+const comments = process.env.COMMENTS ? [{
+  id: 'cm1', project_id: 'p_test', thread_id: 'cm1', page_id: 1,
+  el_id: 100006, cell: '3_5', body: '5월 진행 구간이 실제와 다릅니다.',
+  author_id: 'u_admin', created_at: Date.now(), resolved_at: null, resolved_by: null,
+  replies: [],
+}] : []
+
 // PEER=1 로 띄우면 **남의 자료를 연 상태**가 된다.
 // (회차 단계 개념은 P2 에서 사라졌다 — 이제 남의 자료는 어느 경우에도 읽기 전용이다.)
 const PEER_STAGE = process.env.PEER || ''
@@ -208,8 +227,20 @@ const server = http.createServer(async (req, res) => {
   }
   if (url === '/__lastShift') return json(res, lastShift || {})
 
+  // ── 폴더 · 결재 · 팀 공유 (P4~P7) ──────────────────────
+  // **모양까지 맞춰서 답한다.** 아래 catch-all 의 `{ok:true}` 로 때우면
+  // `folders` 가 undefined 로 화면까지 흘러 들어가 **자료 목록이 하얗게 뜬다** —
+  // 실제로 그렇게 됐고(2026-09-04 P8), 그때 테스트는 「임원회의 글자가 없다」고만
+  // 말해서 원인을 찾는 데 한참 걸렸다. 부수 호출일수록 모양을 지켜 줘야 한다.
+  if (url === '/api/folders') return json(res, { folders: [], path: [], max_depth: 3 })
+  if (url === '/api/approvals/status-map') return json(res, { status_map: {} })
+  if (url === '/api/approvals') return json(res, { approvals: [], counts: {} })
+  if (url === '/api/team-library') return json(res, { teams: [] })
+
   // 그 밖의 API 는 조용히 성공시킨다 — 화면이 부르는 부수 호출까지 막으면
   // 정작 보려던 것이 아니라 엉뚱한 곳에서 실패한다.
+  // **다만 `{ok:true}` 로 때울 수 있는 것은 「값을 안 쓰는」 호출뿐이다.**
+  // 화면이 응답을 실제로 읽는 엔드포인트가 새로 생기면 위에 한 줄 적는다.
   if (url.startsWith('/api/')) return json(res, { ok: true })
 
   // 정적 파일 — SPA 라 못 찾으면 index.html 로 되돌린다.

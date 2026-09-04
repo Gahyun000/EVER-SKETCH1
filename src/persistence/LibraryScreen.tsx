@@ -97,7 +97,11 @@ export default function LibraryScreen() {
       const all = await apiListFolders(null)
       const every = await fetch('/api/folders?all=true', { credentials: 'same-origin' })
         .then((r) => (r.ok ? r.json() : null)).catch(() => null)
-      setFolders((every?.folders as FolderRow[]) || all.folders)
+      // **배열이 아니면 안 넣는다.** `undefined` 가 들어가면 다음 렌더에서
+      // `folders.filter` 가 터지고 **자료 목록이 통째로 하얗게 뜬다** —
+      // 폴더 하나 못 읽었다고 화면 전체를 잃는 것은 값이 안 맞는 교환이다.
+      const rows = Array.isArray(every?.folders) ? (every.folders as FolderRow[]) : all.folders
+      setFolders(Array.isArray(rows) ? rows : [])
       setMaxDepth(all.max_depth ?? 3)
     } catch (e) {
       setFErr(e instanceof FolderApiError ? e.message : '폴더를 불러오지 못했어요.')
