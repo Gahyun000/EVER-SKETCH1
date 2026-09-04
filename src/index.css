@@ -437,7 +437,9 @@ button{font-family:inherit;cursor:pointer}
 
 /* ───────────── 내 이북(라이브러리) 화면 ───────────── */
 .lib-screen{position:fixed;inset:0;background:#f5f6f8;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:28px 20px 60px}
-.lib-head{width:min(880px,94vw);display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.lib-head{width:min(880px,94vw);display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+/* 신원 표시 + 「새 이북」. 좁아지면 줄바꿈해서 밀릴 뿐, 서로 포개지지 않는다. */
+.lib-head-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .lib-brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:900;color:#0F1B3D}
 .lib-brand .logo{width:30px;height:30px;border-radius:7px;background:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwNCIgZmlsbD0iIzBGMUIzRCIvPjxwYXRoIGQ9Ik0gMTUwLDM3MiBRIDIwMiwzMjYgMjUyLDM3MiBUIDM1NiwzNjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RDRTdGRiIgc3Ryb2tlLXdpZHRoPSIyMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoMzAgMjU2IDI1NikiPjxyZWN0IHg9IjIyNCIgeT0iOTYiIHdpZHRoPSI2NCIgaGVpZ2h0PSIzMCIgcng9IjExIiBmaWxsPSIjRDk4QTJBIi8+PHJlY3QgeD0iMjI0IiB5PSIxMjYiIHdpZHRoPSI2NCIgaGVpZ2h0PSIyNCIgZmlsbD0iI0FFQjZDMiIvPjxyZWN0IHg9IjIyNCIgeT0iMTMyIiB3aWR0aD0iNjQiIGhlaWdodD0iNCIgZmlsbD0iIzg4OSIvPjxyZWN0IHg9IjIyNCIgeT0iMTQyIiB3aWR0aD0iNjQiIGhlaWdodD0iNCIgZmlsbD0iIzg4OSIvPjxyZWN0IHg9IjIyNCIgeT0iMTUwIiB3aWR0aD0iNjQiIGhlaWdodD0iMTgwIiBmaWxsPSIjMjQ2MkVCIi8+PHJlY3QgeD0iMjMxIiB5PSIxNTAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxODAiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuMjgiLz48cGF0aCBkPSJNIDIyNCwzMzAgTCAyODgsMzMwIEwgMjU2LDM5MiBaIiBmaWxsPSIjRUJDOTlBIi8+PHBhdGggZD0iTSAyNDEsMzYyIEwgMjcxLDM2MiBMIDI1NiwzOTIgWiIgZmlsbD0iIzIyMzE0RiIvPjwvZz48L3N2Zz4=") center/cover no-repeat}
 .lib-new{display:inline-flex;align-items:center;gap:6px;border:none;background:#2462EB;color:#fff;font-weight:800;font-size:14px;border-radius:10px;padding:9px 16px;cursor:pointer}

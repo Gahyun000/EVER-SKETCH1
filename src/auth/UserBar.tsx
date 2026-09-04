@@ -8,20 +8,25 @@ import TeamsAdmin from '../teams/TeamsAdmin'
 /**
  * 로그인한 사람 표시 + 사용자 관리 + 로그아웃.
  *
- * 두 곳에서 쓴다.
- *   inline  = 편집 화면 툴바(TitleBar) 안
- *   기본     = 라이브러리 화면 오른쪽 위 (툴바가 없는 화면)
+ * 두 곳에서 쓴다. **둘 다 화면의 머리줄 안**이다.
+ *   편집 화면    = 툴바(TitleBar) 안
+ *   라이브러리   = 머리줄(lib-head) 안, 「＋ 새 이북」 옆
  *
- * 왜 나눴는가: 예전에는 이걸 `position: fixed; top:0; right:0` 전역 오버레이로
- * 띄웠다. 툴바가 없는 화면에서는 멀쩡했지만, 편집 화면에서는 툴바의 버튼들과
- * **같은 자리를 두고 서로 모른 채 겹쳤다**('새 이북'·'슬라이드쇼' 위에 이름표가 포개졌다).
- * 겹침은 z-index 로 덮어 가릴 수 있을 뿐 사라지지 않는다 — 자리를 나눠야 한다.
+ * 왜 오버레이가 아닌가: 예전에는 `position: fixed; top:0; right:0` 전역 오버레이였다.
+ * 툴바가 없는 화면에서는 멀쩡했지만, 편집 화면에서는 툴바 버튼과 **같은 자리를 두고
+ * 서로 모른 채 겹쳤다.** 그때 편집 화면만 `inline` 으로 빼서 넘어갔는데, 라이브러리
+ * 화면은 오버레이인 채로 남아 있었다 — 버튼이 세 개일 때는 우연히 안 닿았을 뿐이다.
+ * 2026-09-04 P3 에서 「팀 관리」가 하나 늘자 막대가 넓어져 「＋ 새 이북」 위에 그대로
+ * 포개졌다. **같은 사고가 다른 화면에서 다시 났다.**
+ * 그래서 오버레이를 아예 없앴다. 화면 흐름 안에 있으면 버튼이 또 늘어도
+ * 머리줄 안에서 밀릴 뿐 남의 버튼 위에 올라가지 않는다.
+ * (`userbar_placement.test.mjs` 가 이 배치를 지킨다.)
  *
  * 아바타도 여기로 합쳤다. 툴바에 글자가 '가' 로 박힌 초록 원이 따로 있었는데,
  * 로그인한 사람과 아무 상관 없는 값이었다(ebook_html 에서 딸려온 자리표시자).
  * 한 사람인데 신원 표시가 두 개였다.
  */
-export default function UserBar({ inline = false }: { inline?: boolean }) {
+export default function UserBar() {
   const me = useAuth((s) => s.me)
   const logout = useAuth((s) => s.logout)
   const [showAdmin, setShowAdmin] = useState(false)
@@ -49,7 +54,7 @@ export default function UserBar({ inline = false }: { inline?: boolean }) {
 
   return (
     <>
-      <div className={'es-userbar' + (inline ? ' inline' : '')}>
+      <div className="es-userbar">
         <span className="es-chip">
           <span className={`es-av r-${me?.role || ''}`} aria-hidden="true">{initial}</span>
           <b>{me?.name}</b>

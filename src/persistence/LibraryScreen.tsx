@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import UserBar from '../auth/UserBar'
 import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
 import { useProjects } from './projects'
 import NewProjectDialog from './NewProjectDialog'
@@ -61,7 +62,10 @@ export default function LibraryScreen() {
     <div className="lib-screen">
       <div className="lib-head">
         <div className="lib-brand"><div className="logo" aria-label="EVER-SKETCH" /> 내 이북</div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        {/* 신원 표시와 「새 이북」이 **같은 줄 안에서** 자리를 나눈다.
+            예전에는 UserBar 가 화면 밖 오버레이로 떠서 이 버튼 위에 포개졌다. */}
+        <div className="lib-head-right">
+          <UserBar />
           <button className="lib-new" onClick={() => setPicking(true)}><Plus className="h-4 w-4" /> 새 이북</button>
         </div>
       </div>

@@ -1,12 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import ChangePasswordScreen from './ChangePasswordScreen'
 import LoginScreen from './LoginScreen'
 import PendingScreen from './PendingScreen'
-import UsersAdmin from './UsersAdmin'
-import { isAdmin } from './authApi'
-import UserBar from './UserBar'
 import { useAuth } from './useAuth'
-import { useProjects } from '../persistence/projects'
 import './auth.css'
 
 /**
@@ -23,13 +19,7 @@ import './auth.css'
  */
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const phase = useAuth((s) => s.phase)
-  const me = useAuth((s) => s.me)
   const boot = useAuth((s) => s.boot)
-  const logout = useAuth((s) => s.logout)
-
-  // 편집 화면에는 툴바가 있다 — 사용자 표시는 그 안(TitleBar)으로 들어간다.
-  // 여기서 또 띄우면 툴바 버튼 위에 포개진다.
-  const view = useProjects((s) => s.view)
 
   useEffect(() => { void boot() }, [boot])
 
@@ -38,10 +28,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   if (phase === 'must_change_pw') return <ChangePasswordScreen />
   if (phase === 'pending') return <PendingScreen />
 
-  return (
-    <>
-      {children}
-      {view !== 'editor' && <UserBar />}
-    </>
-  )
+  // 신원 표시는 **화면이 자기 머리줄 안에 직접 놓는다**(라이브러리는 lib-head,
+  // 편집 화면은 TitleBar). 여기서 띄우면 화면 밖에 떠 있는 오버레이가 되고,
+  // 화면은 그게 있는 줄 몰라서 자기 오른쪽 위 버튼을 그 자리에 그린다 — 겹친다.
+  return <>{children}</>
 }
