@@ -350,3 +350,59 @@ def test_세션_쿠키는_HttpOnly이고_HTTP에서는_Secure가_없다(ctx):
     assert "samesite=lax" in raw.lower()
     # 사내망 HTTP 배포 — Secure 를 붙이면 쿠키가 저장되지 않아 로그인 자체가 안 된다.
     assert "secure" not in raw.lower()
+
+
+# ═══════════ 웹에서 비밀번호 바꾸기 ═══════════
+# 화면에 버튼을 달았다(UserBar → ChangePasswordDialog). 그 버튼이 두드리는 길을
+# 여기서 검증한다. 강제 변경 화면 말고는 바꿀 문이 없던 시절에는 이 경로가
+# 사실상 한 번만 쓰이고 잊혔다.
+
+def test_웹에서_비밀번호를_바꾼다(ctx):
+    c = ctx["as_user"]("writer")
+    r = c.post("/api/auth/password",
+               json={"old_password": "password123", "new_password": "brandnewpw456"})
+    assert r.status_code == 200, r.text
+
+    # 새 비밀번호로 들어가진다.
+    fresh = ctx["as_user"](None)
+    assert fresh.post("/api/auth/login",
+                      json={"login_id": "writer", "password": "brandnewpw456"}).status_code == 200
+    # 옛 비밀번호는 더 이상 통하지 않는다.
+    assert fresh.post("/api/auth/login",
+                      json={"login_id": "writer", "password": "password123"}).status_code == 401
+
+
+def test_바꾸면_다른_기기의_세션이_끊긴다(ctx):
+    """같은 계정으로 열어 둔 다른 창은 그 즉시 남의 손이 된다 —
+    비밀번호를 바꾸는 이유의 절반이 이것이다."""
+    other = ctx["as_user"]("writer")          # 다른 기기라고 치자
+    assert other.get("/api/projects").status_code == 200
+
+    ctx["as_user"]("writer").post(
+        "/api/auth/password",
+        json={"old_password": "password123", "new_password": "brandnewpw456"})
+
+    assert other.get("/api/projects").status_code == 401
+
+
+def test_현재_비밀번호가_틀리면_거부한다(ctx):
+    c = ctx["as_user"]("writer")
+    r = c.post("/api/auth/password",
+               json={"old_password": "틀린비밀번호", "new_password": "brandnewpw456"})
+    assert r.status_code == 400
+    # 거부됐으면 원래 비밀번호가 그대로 살아 있어야 한다.
+    assert ctx["as_user"](None).post(
+        "/api/auth/login", json={"login_id": "writer", "password": "password123"}).status_code == 200
+
+
+def test_너무_짧은_비밀번호는_거부한다(ctx):
+    r = ctx["as_user"]("writer").post(
+        "/api/auth/password", json={"old_password": "password123", "new_password": "short7"})
+    assert r.status_code == 400
+
+
+def test_로그인하지_않으면_바꿀_수_없다(ctx):
+    r = ctx["anon"].post("/api/auth/password",
+                         json={"old_password": "password123", "new_password": "brandnewpw456"})
+    assert r.status_code == 401
+

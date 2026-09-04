@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { ApiError, apiChangePassword } from './authApi'
-import PasswordField from './PasswordField'
+import ChangePasswordForm from './ChangePasswordForm'
 import { useAuth } from './useAuth'
 
 /**
@@ -13,31 +12,8 @@ import { useAuth } from './useAuth'
 export default function ChangePasswordScreen() {
   const me = useAuth((s) => s.me)
   const logout = useAuth((s) => s.logout)
-  const [oldPw, setOldPw] = useState('')
-  const [newPw, setNewPw] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState('')
   const [done, setDone] = useState(false)
 
-  const mismatch = confirm.length > 0 && newPw !== confirm
-  const tooShort = newPw.length > 0 && newPw.length < 8
-  const sameAsOld = newPw.length > 0 && newPw === oldPw
-  const canSubmit = !!oldPw && newPw.length >= 8 && newPw === confirm && !sameAsOld && !busy
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErr(''); setBusy(true)
-    try {
-      await apiChangePassword(oldPw, newPw)
-      setDone(true)
-      // 서버가 세션을 전부 끊었다. 새 비밀번호로 다시 로그인해야 한다.
-      setTimeout(() => { void logout() }, 1600)
-    } catch (e2) {
-      setErr(e2 instanceof ApiError ? e2.message : '변경에 실패했어요.')
-      setBusy(false)
-    }
-  }
 
   if (done) {
     return (
@@ -61,24 +37,11 @@ export default function ChangePasswordScreen() {
             : '초기 비밀번호를 사용 중입니다. 계속하려면 새 비밀번호로 바꿔 주세요.'}
         </p>
 
-        {err && <div className="es-msg err">{err}</div>}
-
-        <form onSubmit={submit}>
-          <PasswordField id="es-old" label="현재 비밀번호" value={oldPw} onChange={setOldPw}
-            autoComplete="current-password" autoFocus />
-          <PasswordField id="es-new" label="새 비밀번호" value={newPw} onChange={setNewPw}
-            autoComplete="new-password" placeholder="8자 이상"
-            hint={<>
-              {tooShort && <div className="es-hint" style={{ color: '#b4232a' }}>8자 이상이어야 합니다.</div>}
-              {sameAsOld && <div className="es-hint" style={{ color: '#b4232a' }}>현재 비밀번호와 다르게 정해 주세요.</div>}
-            </>} />
-          <PasswordField id="es-confirm" label="새 비밀번호 확인" value={confirm} onChange={setConfirm}
-            autoComplete="new-password"
-            hint={mismatch ? <div className="es-hint" style={{ color: '#b4232a' }}>입력한 두 비밀번호가 다릅니다.</div> : undefined} />
-          <button className="es-btn" type="submit" disabled={!canSubmit}>
-            {busy ? '변경 중…' : '비밀번호 바꾸기'}
-          </button>
-        </form>
+        <ChangePasswordForm onSuccess={() => {
+          setDone(true)
+          // 서버가 세션을 전부 끊었다. 새 비밀번호로 다시 로그인해야 한다.
+          setTimeout(() => { void logout() }, 1600)
+        }} />
 
         <div className="es-switch">
           <button type="button" onClick={() => void logout()}>다른 계정으로 로그인</button>

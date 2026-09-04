@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiListUsers, isAdmin } from './authApi'
 import { useAuth } from './useAuth'
 import UsersAdmin from './UsersAdmin'
+import ChangePasswordDialog from './ChangePasswordDialog'
 
 /**
  * 로그인한 사람 표시 + 사용자 관리 + 로그아웃.
@@ -23,6 +24,7 @@ export default function UserBar({ inline = false }: { inline?: boolean }) {
   const me = useAuth((s) => s.me)
   const logout = useAuth((s) => s.logout)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [showPw, setShowPw] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const admin = isAdmin(me)
 
@@ -58,9 +60,11 @@ export default function UserBar({ inline = false }: { inline?: boolean }) {
             {pendingCount > 0 && <span className="es-badge">{pendingCount}</span>}
           </button>
         )}
+        <button className="es-linkbtn" onClick={() => setShowPw(true)}>비밀번호 변경</button>
         <button className="es-linkbtn" onClick={() => void logout()}>로그아웃</button>
       </div>
       {showAdmin && <UsersAdmin onClose={() => setShowAdmin(false)} />}
+      {showPw && <ChangePasswordDialog onClose={() => setShowPw(false)} />}
     </>
   )
 }
