@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EVER-SKETCH 화면 시안 — 팀 공유 구조 (v0.5)</title>
+<style>
+  :root{--ink:#111318;--navy:#0F1B3D;--muted:#616a7a;--line:#e6e8ee;--bg:#f4f5f7;--panel:#fff;
+    --blue:#2462EB;--green:#3E9E6E;--amber:#D98A2A;--red:#b4232a;--pill:9999px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:36px 24px 80px}
+  .doc-kicker{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--blue);text-transform:uppercase}
+  h1{margin:6px 0 8px;font-size:26px;letter-spacing:-.02em}
+  .doc-meta{font-size:13px;color:var(--muted)}
+  .chg{margin:16px 0 0;padding:14px 18px;background:#f4f8f6;border:1px solid #cfe3d8;border-radius:12px;font-size:13.5px}
+  .chg ul{margin:8px 0 0;padding-left:18px}.chg li{margin:3px 0}
+  .ph{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:var(--pill);
+    background:#eef2fb;color:#3355a8;vertical-align:middle;margin-left:6px}
+  h2.sec{margin:44px 0 10px;font-size:20px;letter-spacing:-.015em;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{margin:24px 0 10px;font-size:15.5px}
+  p.intro{font-size:14px;margin:0 0 14px}
+
+  .app{display:grid;grid-template-columns:196px 1fr;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;box-shadow:0 10px 34px rgba(15,27,61,.07)}
+  .side{background:#fbfcfe;border-right:1px solid var(--line);padding:16px 12px}
+  .side .brand{display:flex;align-items:center;gap:8px;padding:2px 8px 16px;font-weight:800;font-size:14px}
+  .logo{width:26px;height:26px;border-radius:8px;background:var(--blue);display:grid;place-items:center;color:#fff;font-size:13px}
+  .nav{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;font-size:13px;
+    font-weight:700;color:var(--muted);margin-bottom:2px}
+  .nav.on{background:#eaf0fd;color:#1b47ad}
+  .nav .ico{width:16px;text-align:center;opacity:.75}
+  .side hr{border:0;border-top:1px solid var(--line);margin:12px 4px}
+  .main{padding:20px 22px 24px;min-height:300px}
+  .main-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .main-head h4{margin:0;font-size:17px}
+  .crumb{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin:10px 0 14px;flex-wrap:wrap}
+  .crumb b{color:var(--ink)}
+  .crumb a{color:var(--blue);text-decoration:none;font-weight:700;cursor:pointer}
+  .crumb .sep{color:#c3c9d4}
+
+  .seg{display:inline-flex;background:#f0f2f6;border-radius:var(--pill);padding:3px;flex-wrap:wrap}
+  .seg button{border:none;background:transparent;padding:6px 13px;border-radius:var(--pill);
+    font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
+  .seg button.on{background:var(--ink);color:#fff}
+  .seg button .tag{font-size:10px;opacity:.65;margin-left:4px}
+
+  .folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px;margin-bottom:14px}
+  .fold{display:flex;align-items:center;gap:9px;background:#fff;border:1.4px solid var(--line);
+    border-radius:11px;padding:11px 13px;cursor:pointer}
+  .fold:hover{border-color:#c7cddb;background:#fcfdff}
+  .fold .fi{font-size:16px}
+  .fold .fn{font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fold .fc{font-size:11px;color:#98a1b2}
+
+  .row{display:flex;align-items:center;gap:12px;background:#fff;border:1.4px solid var(--line);
+    border-radius:12px;padding:12px 15px;margin-bottom:8px}
+  .row .thumb{width:34px;height:34px;border-radius:9px;background:#eef2fb;display:grid;place-items:center;
+    color:var(--blue);font-size:15px;flex:0 0 auto}
+  .row .body{min-width:0;flex:1}
+  .row .t{font-weight:800;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .m{font-size:11.5px;color:#98a1b2;margin-top:1px}
+  .owner{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:#4a5468;
+    background:#f2f4f8;border-radius:var(--pill);padding:2px 9px 2px 3px;flex:0 0 auto}
+  .owner i{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-style:normal;
+    font-size:9.5px;font-weight:800;color:#fff;background:#7b8496}
+  .owner.adm i{background:var(--navy)} .owner.me{background:#eaf0fd;color:#1b47ad} .owner.me i{background:var(--blue)}
+  .st{font-size:11px;font-weight:800;border-radius:var(--pill);padding:3px 10px;flex:0 0 auto;
+    background:#eaf0fd;color:#1b47ad}
+  .ro{font-size:11px;font-weight:800;color:#8a5510;background:#fdf3e3;border-radius:var(--pill);padding:3px 10px}
+  .empty{border:1.4px dashed var(--line);border-radius:12px;padding:28px 20px;text-align:center;
+    color:var(--muted);font-size:13px;background:#fcfcfd}
+
+  .notes{margin-top:16px;display:grid;gap:10px}
+  .note{display:flex;gap:11px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 15px;font-size:13px}
+  .note .n{font-weight:800;color:var(--blue);flex:0 0 auto}
+  .note.warn{border-left-color:var(--amber)}.note.warn .n{color:var(--amber)}
+  .note.ask{border-left-color:var(--red);background:#fffafa}.note.ask .n{color:var(--red)}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+  .opt{background:#fff;border:1.6px solid var(--line);border-radius:14px;padding:16px 18px}
+  .opt.rec{border-color:#bcd3f5;background:#fcfdff}
+  .opt h5{margin:0 0 4px;font-size:14.5px}
+  .opt .tree{font-size:12.5px;color:var(--muted);background:#fafbfd;border-radius:9px;padding:11px 13px;
+    margin:10px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.75;white-space:pre}
+  .opt p{margin:0;font-size:12.5px;color:var(--muted)}
+  .opt .pro{color:#2b7a55;font-weight:700;font-size:12.5px;margin-top:8px}
+  .opt .con{color:var(--red);font-weight:700;font-size:12.5px;margin-top:3px}
+  .tagrec{display:inline-block;font-size:10.5px;font-weight:800;background:#e9f5ef;color:#2b7a55;
+    border-radius:var(--pill);padding:2px 8px;margin-left:6px}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:13px}
+  th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f8f9fc;font-size:12px;font-weight:800;color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  code{background:#f2f4f8;padding:1px 5px;border-radius:5px;font-size:12px}
+  .qbox{background:#fff;border:1.6px solid #f0d0d0;border-radius:14px;padding:18px 20px;margin-top:14px}
+  .qbox h4{margin:0 0 8px;font-size:16px;color:#a3272d}
+  @media (max-width:800px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--line)}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-kicker">화면 시안 · 검토 요청 (5차)</div>
+  <h1>팀 공유는 어떤 모양이어야 하나</h1>
+  <div class="doc-meta">2026-09-04 · v0.5 · 검토 대기 · 앞선 시안: <code>화면시안_폴더관리_v0.4_20260904.html</code></div>
+
+  <div class="chg">
+    <b>정리된 것</b>
+    <ul>
+      <li><b>L1 은 팀을 지정합니다.</b> 폴더는 만들지 않습니다 — 앞서 제시한 ②안(L1 이 팀 폴더를 만든다) 폐기</li>
+      <li><b>L2 가 자기 폴더를 자유롭게 만듭니다.</b> 연·월이든 주제별이든 본인 마음대로</li>
+      <li>그 폴더 안의 자료를 공유합니다</li>
+    </ul>
+    <div style="margin-top:10px"><b>그래서 남은 질문 하나 —</b> 공유된 자료가 <b>팀 공유에서는 어떤 모양으로 쌓이는가.</b></div>
+  </div>
+
+  <!-- ════════ 1. 두 안 ════════ -->
+  <h2 class="sec">1. 두 안 <span class="ph">P6</span></h2>
+  <p class="intro">
+    김가현은 <code>2026 계획 / 3분기</code>, 홍길동은 <code>보고서</code>, 이순신은 <code>품질 / 9월</code> 에
+    자료를 두고 공유했습니다. 팀 공유에서는 이렇게 보입니다.
+  </p>
+
+  <div class="two">
+    <div class="opt">
+      <h5>㉮ 작성자 폴더를 그대로</h5>
+      <div class="tree">사업1팀
+├ 📁 2026 계획      (김가현)
+│   └ 📁 3분기
+├ 📁 보고서          (홍길동)
+└ 📁 품질            (이순신)
+    └ 📁 9월</div>
+      <p>작성자가 만든 경로가 그대로 팀 공유에 나타납니다.</p>
+      <div class="pro">＋ 작성자가 정리한 맥락이 유지된다</div>
+      <div class="con">− 남의 폴더 이름은 남에게 뜻이 없다. 「3분기」가 무슨 3분기인지 모른다<br>
+        − 두 사람이 같은 이름 폴더를 만들면 겹친다<br>
+        − 작성자가 폴더 이름을 바꾸면 팀이 보던 경로가 사라진다</div>
+    </div>
+    <div class="opt rec">
+      <h5>㉯ 작성자 이름 폴더 <span class="tagrec">권장</span></h5>
+      <div class="tree">사업1팀
+├ 📁 김가현
+├ 📁 홍길동
+└ 📁 이순신</div>
+      <p>작성자별 폴더가 자동으로 생기고, 공유한 자료가 그 안에 들어갑니다.</p>
+      <div class="pro">＋ 겹치지 않는다. 이름을 바꿀 일도 없다<br>
+        ＋ 팀에서 가장 자주 하는 질문 — "누가 뭘 냈나" — 에 바로 답한다<br>
+        ＋ 작성자의 개인 폴더 구조가 팀에 새어 나가지 않는다</div>
+      <div class="con">− "9월 것만 모아 보기"는 폴더로 안 된다 → <b>기간 토글</b>로 푼다(아래)</div>
+    </div>
+  </div>
+
+  <h3>㉯ 를 눌러보실 수 있습니다 <span style="font-weight:600;font-size:13px;color:var(--muted)">— 기간 토글이 폴더의 빈자리를 메웁니다</span></h3>
+  <div class="app">
+    <div class="side">
+      <div class="brand"><span class="logo">E</span> EVER-SKETCH</div>
+      <div class="nav"><span class="ico">📤</span> 내 결재 현황</div>
+      <div class="nav"><span class="ico">📚</span> 내 자료</div>
+      <div class="nav on"><span class="ico">🗂</span> 팀 공유</div>
+      <hr>
+      <div class="nav"><span class="ico">🔧</span> 환경설정</div>
+    </div>
+    <div class="main">
+      <div class="main-head"><h4>팀 공유</h4></div>
+      <div style="margin:10px 0 2px">
+        <div class="seg" id="segTeam">
+          <button class="on" data-t="t1">사업1팀<span class="tag">현재</span></button>
+          <button data-t="t2">사업2팀<span class="tag">이전</span></button>
+        </div>
+      </div>
+      <div style="margin:8px 0 2px">
+        <div class="seg" id="segPeriod">
+          <button class="on" data-p="all">전체 기간</button>
+          <button data-p="2026-09">2026-09</button>
+          <button data-p="2026-08">2026-08</button>
+          <button data-p="2026-07">2026-07</button>
+        </div>
+      </div>
+      <div class="crumb" id="crumb"></div>
+      <div id="body"></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><span class="n">1</span><div>
+      <b>폴더는 「누가」, 토글은 「언제」를 맡습니다.</b> 둘을 다 폴더로 만들면
+      <code>김가현/2026/09월</code> 처럼 세 단계를 파고들어야 합니다.
+      자주 쓰는 축 하나만 폴더로 두고 나머지는 토글이 낫습니다.
+    </div></div>
+    <div class="note warn"><span class="n">!</span><div>
+      <b>㉯ 에서도 작성자의 개인 폴더는 그대로 있습니다.</b> 「내 자료」에서 자유롭게 만든 폴더는
+      본인 정리용이고, 팀 공유에 나타나는 것은 <b>자료 자체</b>뿐입니다.
+      개인 폴더 이름을 바꾸거나 자료를 다른 폴더로 옮겨도 팀 공유는 흔들리지 않습니다.
+    </div></div>
+  </div>
+
+  <!-- ════════ 2. 이전 팀 ════════ -->
+  <h2 class="sec">2. 이전 팀 — 제 질문이 불명확했습니다</h2>
+  <p class="intro">
+    제가 물은 것은 <b>"떠난 사람이 이전 팀의 자료를 계속 볼 수 있는가"</b> 였습니다. 다시 그림으로 말씀드립니다.
+  </p>
+
+  <table>
+    <tr><th style="width:190px">상황</th><th>사업2팀에서 사업1팀으로 옮긴 <b>김가현</b>이 「사업2팀(이전)」을 열면</th></tr>
+    <tr><td><b>㉠ 본인이 올린 것만</b></td>
+        <td>김가현이 사업2팀 시절 올린 자료 <b>2건</b>만 보인다.<br>
+        홍길동·이순신이 사업2팀에 올린 것은 안 보인다 — 이미 그 팀이 아니므로</td></tr>
+    <tr><td><b>㉡ 이전 팀 자료 전부</b></td>
+        <td>사업2팀에 공유된 자료 <b>전부</b>가 계속 보인다.<br>
+        떠난 뒤 <b>새로 올라온 것까지</b> 계속 보인다</td></tr>
+  </table>
+
+  <div class="qbox">
+    <h4>이것이 진짜 질문입니다</h4>
+    <p style="margin:0;font-size:13.5px">
+      "작성자가 올린 건 다 볼 수 있어야 한다"는 말씀은 <b>㉡ 에 가깝게</b> 읽었습니다.
+      다만 이 선택에는 한 가지가 딸려 옵니다 —<br><br>
+      <b>인사이동으로 다른 본부로 간 사람이, 이전 본부의 회의자료를 계속 열람하게 됩니다.</b>
+      떠난 뒤 새로 올라오는 자료까지요. 임원회의 자료라 민감할 수 있어 확인을 드립니다.<br><br>
+      세 번째 안도 있습니다 —<br>
+      <b>㉢ 떠날 때까지 올라온 것만.</b> 있는 동안 보던 자료는 계속 보이고,
+      떠난 뒤 새로 올라온 것은 안 보인다. 두 걱정을 다 푸는 절충안입니다.
+    </p>
+  </div>
+
+  <div class="notes">
+    <div class="note ask"><span class="n">?</span><div>
+      <b>㉠ · ㉡ · ㉢ 중에서 골라 주세요.</b> 위 화면의 「사업2팀(이전)」 은 지금 <b>㉡</b> 로 그려 두었습니다
+      — 눌러서 확인해 보실 수 있습니다.
+    </div></div>
+  </div>
+
+  <!-- ════════ 3. 정리 ════════ -->
+  <h2 class="sec">3. 정리</h2>
+  <table>
+    <tr><th style="width:150px"></th><th>누가 만드나</th><th>무엇이 담기나</th><th>이름</th></tr>
+    <tr><td><b>내 폴더</b></td><td>L2·L3 본인 · L1 본인</td><td>내 자료 전부 (공유 여부 무관)</td><td>자유</td></tr>
+    <tr><td><b>팀</b></td><td><b>L1 이 지정</b></td><td>그 팀의 사람들</td><td>L1 이 정함</td></tr>
+    <tr><td><b>팀 공유 폴더</b></td><td>㉯안: <b>시스템이 자동</b></td><td>공유된 자료</td><td>작성자 이름</td></tr>
+  </table>
+
+  <p style="margin-top:34px;font-size:12px;color:var(--muted)">
+    합성 데이터만 사용(홍길동·이순신 등). 실제 자료·개인정보 없음.<br>
+    승인 상태: <b>검토 대기</b> — §1 의 ㉮/㉯, §2 의 ㉠/㉡/㉢ 두 건에 답을 받으면 P1.5 부터 착수합니다.
+  </p>
+</div>
+
+<script>
+const TEAMS={
+  t1:{name:'사업1팀',cur:1,people:[
+    {n:'김가현',i:'김',me:1,items:[
+      {t:'3분기 품질 이슈 정리',p:'2026-09',m:'09.03 승인',st:'수정 중'},
+      {t:'상반기 결산 보고',p:'2026-08',m:'08.21 승인'}]},
+    {n:'홍길동',i:'홍',items:[
+      {t:'9월 인력 운영 계획',p:'2026-09',m:'09.02 승인'},
+      {t:'설비 투자 계획',p:'2026-08',m:'08.31 승인'}]},
+    {n:'시스템 관리자',i:'관',adm:1,items:[
+      {t:'2026년 9월 임원회의',p:'2026-09',m:'09.04 공유'}]},
+  ]},
+  t2:{name:'사업2팀',cur:0,people:[
+    {n:'김가현',i:'김',me:1,items:[
+      {t:'7월 진행보고',p:'2026-07',m:'07.24 승인'},
+      {t:'6월 진행보고',p:'2026-07',m:'06.25 승인'}]},
+    {n:'이순신',i:'이',items:[
+      {t:'해외 영업 현황',p:'2026-08',m:'08.30 승인'},
+      {t:'조직 개편 검토',p:'2026-09',m:'09.05 승인'}]},
+  ]},
+}
+let curT='t1', curP='all', curFolder=null
+const crumb=document.getElementById('crumb'), body=document.getElementById('body')
+
+function render(){
+  const T=TEAMS[curT]
+  const ro=!T.cur
+  let h=`<a data-f="">${T.name}</a>`
+  if(curFolder) h+=`<span class="sep">›</span><b>${curFolder}</b>`
+  crumb.innerHTML=h+(ro?' <span class="ro" style="margin-left:8px">이전 팀 · 읽기 전용</span>':'')
+  crumb.querySelectorAll('a').forEach((a)=>a.onclick=()=>{curFolder=null;render()})
+
+  const inP=(it)=>curP==='all'||it.p===curP
+  if(!curFolder){
+    const fs=T.people.map((p)=>({p,n:p.items.filter(inP).length})).filter((x)=>x.n>0)
+    body.innerHTML=fs.length?'<div class="folders">'+fs.map(({p,n})=>
+      `<div class="fold" data-f="${p.n}"><span class="fi">📁</span>
+        <div><div class="fn">${p.n}</div><div class="fc">${n}건</div></div></div>`).join('')+'</div>'
+      :'<div class="empty">이 기간에 공유된 자료가 없어요.</div>'
+    body.querySelectorAll('.fold').forEach((f)=>f.onclick=()=>{curFolder=f.dataset.f;render()})
+  }else{
+    const p=T.people.find((x)=>x.n===curFolder)
+    const items=p.items.filter(inP)
+    body.innerHTML=items.length?items.map((it)=>`
+      <div class="row"><div class="thumb">📗</div>
+        <div class="body"><div class="t">${it.t}</div><div class="m">${it.m}</div></div>
+        <span class="owner${p.adm?' adm':''}${p.me?' me':''}"><i>${p.i}</i>${p.n}</span>
+        ${it.st?`<span class="st">${it.st}</span>`:''}</div>`).join('')
+      :'<div class="empty">이 기간에는 없어요.</div>'
+  }
+}
+document.querySelectorAll('#segTeam button').forEach((b)=>b.onclick=()=>{
+  document.querySelectorAll('#segTeam button').forEach((x)=>x.classList.toggle('on',x===b))
+  curT=b.dataset.t; curFolder=null; render()})
+document.querySelectorAll('#segPeriod button').forEach((b)=>b.onclick=()=>{
+  document.querySelectorAll('#segPeriod button').forEach((x)=>x.classList.toggle('on',x===b))
+  curP=b.dataset.p; render()})
+render()
+</script>
+</body>
+</html>
