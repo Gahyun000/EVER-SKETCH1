@@ -183,6 +183,28 @@ def create_folder(name: Optional[str], owner_id: str, parent_id: Optional[str] =
             "created_at": ts, "updated_at": ts, "folder_count": 0, "project_count": 0}
 
 
+def list_all_folders(owner_id: str) -> list[dict]:
+    """내 폴더 **전부**를 평평하게. 화면이 트리를 만들고 「이 폴더 아래 전체」를 셈한다.
+
+    한 단씩 물으면 검색 범위(D27 — 검색은 하위를 본다)를 계산할 때마다 요청이 줄줄이 나간다.
+    폴더는 3단까지고(D24) 개인 것이라 많아야 수십 개다 — 한 번에 주는 편이 싸다.
+    """
+    c = _conn()
+    try:
+        rows = c.execute(
+            "SELECT %s FROM Folders WHERE owner_id=? ORDER BY name" % _COLS, (owner_id,)).fetchall()
+        out = []
+        for r in rows:
+            f = _row(r)
+            f["folder_count"] = c.execute(
+                "SELECT COUNT(*) FROM Folders WHERE parent_id=?", (f["id"],)).fetchone()[0]
+            f["project_count"] = _count_projects(c, f["id"])
+            out.append(f)
+        return out
+    finally:
+        c.close()
+
+
 def list_folders(owner_id: str, parent_id: Optional[str] = None) -> list[dict]:
     """**한 단만** 보여준다. 안에 든 개수를 함께 실어 주므로,
     들어가 보지 않고도 빈 폴더인지 알 수 있다(지울지 말지 판단하는 데 쓴다)."""

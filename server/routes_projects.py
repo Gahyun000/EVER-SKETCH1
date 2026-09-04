@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from server import auth as auth_store
 from server import comments as comments_store
+from server import folders as folders_store
 from server import notes as notes_store
 from server import permissions as perm
 from server import projects as projects_store
@@ -27,10 +28,12 @@ router = APIRouter(tags=["projects"])
 class ProjectCreateIn(BaseModel):
     name: Optional[str] = None
     state: Optional[dict] = None
+    folder_id: Optional[str] = None
 
 
 class TemplateProjectIn(BaseModel):
     period_ym: str
+    folder_id: Optional[str] = None
 
 
 class ProjectSaveIn(BaseModel):
@@ -80,17 +83,41 @@ class FixedIn(BaseModel):
 
 
 # ─────────────────────── 프로젝트 ───────────────────────
+def _own_folder_or_404(fid: Optional[str], user: dict) -> None:
+    """폴더를 지정했으면 **내 것이어야 한다.** 남의 폴더 id 로는 아무것도 못 한다.
+    없음과 남의 것을 똑같이 404 로 뭉갠다(routes_folders 와 같은 이유)."""
+    if not fid:
+        return
+    f = folders_store.get_folder(fid)
+    if not f or not perm.decide(auth_store.actor_of(user), perm.FOLDER_MANAGE,
+                                perm.Resource(owner_id=f["owner_id"])):
+        raise HTTPException(status_code=404, detail="폴더를 찾을 수 없습니다.")
+
+
 @router.get("/api/projects")
-def projects_list(user: dict = Depends(require_active)):
+def projects_list(folder: Optional[str] = None, all: bool = True,
+                  user: dict = Depends(require_active)):
+    """`visibility`(누가 볼 수 있나)와 `folder`(어느 서랍인가)를 **AND 로** 묶는다.
+
+    폴더는 권한과 무관하다(D20) — 남의 폴더에 내 자료를 넣어도 보이는 사람은 그대로다.
+    그래서 두 조건은 서로를 넓히지 않고 좁히기만 한다.
+
+      all=True (기본)   서랍을 가리지 않는다 — 예전 호출부가 그대로 돈다
+      all=False         folder 가 없으면 최상위, 있으면 그 폴더 안
+    """
+    _own_folder_or_404(folder, user)
     vis = perm.visible_project_filter(auth_store.actor_of(user))
-    return {"projects": projects_store.list_projects(vis, user["id"])}
+    return {"projects": projects_store.list_projects(
+        vis, user["id"], folder_id=folder, all_folders=all)}
 
 
 @router.post("/api/projects")
 def projects_create(req: ProjectCreateIn, user: dict = Depends(require_active)):
     # 새 이북의 소유자는 만든 사람. owner 없는 프로젝트가 다시 생기지 않게 한다.
     require_action(user, perm.WRITE, perm.Resource(owner_id=user["id"]))
-    return projects_store.create_project(req.name, req.state, owner_id=user["id"])
+    _own_folder_or_404(req.folder_id, user)
+    return projects_store.create_project(req.name, req.state, owner_id=user["id"],
+                                         folder_id=req.folder_id)
 
 
 @router.post("/api/projects/from-template")
@@ -111,7 +138,9 @@ def projects_create_from_template(req: TemplateProjectIn, user: dict = Depends(r
             req.period_ym, user.get("name") or "", user.get("dept") or "")
     except template_seed.TemplateError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return projects_store.create_project(state["title"], state, owner_id=user["id"])
+    _own_folder_or_404(req.folder_id, user)
+    return projects_store.create_project(state["title"], state, owner_id=user["id"],
+                                         folder_id=req.folder_id)
 
 
 @router.get("/api/projects/{pid}")

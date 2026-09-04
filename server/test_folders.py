@@ -344,3 +344,101 @@ def test_라우트_깊이와_삭제_가드():
 def test_라우트_비로그인은_401():
     app = make_app()
     assert TestClient(app).get("/api/folders").status_code == 401
+
+
+# ══════════════════════════════════════════════
+# 자료 × 폴더 — 두 조건은 AND 로 묶인다 (D20)
+# ══════════════════════════════════════════════
+from server.routes_projects import router as projects_router  # noqa: E402
+
+
+def app_with_projects() -> FastAPI:
+    app = FastAPI()
+    app.include_router(auth_router)
+    app.include_router(folders_router)
+    app.include_router(projects_router)
+    return app
+
+
+def test_폴더로_자료를_거른다():
+    app = app_with_projects()
+    account("writer1")
+    c = client(app, "writer1")
+    fid = c.post("/api/folders", json={"name": "2026"}).json()["folder"]["id"]
+    c.post("/api/projects", json={"name": "폴더 안", "folder_id": fid})
+    c.post("/api/projects", json={"name": "최상위"})
+
+    everything = [p["name"] for p in c.get("/api/projects").json()["projects"]]
+    assert sorted(everything) == ["최상위", "폴더 안"], "기본은 서랍을 안 가린다"
+
+    top = [p["name"] for p in c.get("/api/projects", params={"all": "false"}).json()["projects"]]
+    assert top == ["최상위"], "all=false 면 최상위만"
+
+    inside = [p["name"] for p in
+              c.get("/api/projects", params={"all": "false", "folder": fid}).json()["projects"]]
+    assert inside == ["폴더 안"]
+
+
+def test_폴더는_가시성을_넓히지_못한다():
+    """**두 조건은 AND 다**(D20). 같은 폴더에 있다고 남의 자료가 보이면
+    폴더가 권한 장치가 되고, 그러면 「이 폴더에 넣으면 누가 보지」를 매번 생각해야 한다."""
+    app = app_with_projects()
+    account("writer1"); account("writer2")
+    a = client(app, "writer1")
+    fid = a.post("/api/folders", json={"name": "공용처럼 보이는 폴더"}).json()["folder"]["id"]
+    a.post("/api/projects", json={"name": "내 자료", "folder_id": fid})
+
+    b = client(app, "writer2")
+    # 남의 폴더 id 로는 아무것도 못 본다 — 없는 것과 같다
+    assert b.get("/api/projects", params={"all": "false", "folder": fid}).status_code == 404
+    assert [p["name"] for p in b.get("/api/projects").json()["projects"]] == []
+
+
+def test_남의_폴더에는_자료를_못_넣는다():
+    app = app_with_projects()
+    account("writer1"); account("writer2")
+    fid = client(app, "writer1").post("/api/folders", json={"name": "내 폴더"}).json()["folder"]["id"]
+    b = client(app, "writer2")
+    assert b.post("/api/projects", json={"name": "몰래", "folder_id": fid}).status_code == 404
+
+
+def test_관리자는_남의_자료는_보되_폴더로는_못_찾는다():
+    """관리자에게 자료는 보인다(결재해야 하므로). 그러나 **서랍은 안 보인다** —
+    남의 폴더 id 로 좁히려 하면 없는 것과 같은 404 다."""
+    app = app_with_projects()
+    account("writer1")
+    a = client(app, "writer1")
+    fid = a.post("/api/folders", json={"name": "내 폴더"}).json()["folder"]["id"]
+    a.post("/api/projects", json={"name": "남의 자료", "folder_id": fid})
+    ad = client(app, "admin", "adminpw12345")
+    assert "남의 자료" in [p["name"] for p in ad.get("/api/projects").json()["projects"]]
+    assert ad.get("/api/projects", params={"all": "false", "folder": fid}).status_code == 404
+
+
+def test_자료에_folder_id_가_함께_온다():
+    """화면이 「이 자료가 어느 서랍에 있나」를 알아야 옮기기를 그릴 수 있다."""
+    app = app_with_projects()
+    account("writer1")
+    c = client(app, "writer1")
+    fid = c.post("/api/folders", json={"name": "2026"}).json()["folder"]["id"]
+    c.post("/api/projects", json={"name": "자료", "folder_id": fid})
+    p = c.get("/api/projects").json()["projects"][0]
+    assert p["folder_id"] == fid
+
+
+def test_전부_평평하게_받는다():
+    """검색 범위(D27 — 검색은 하위를 본다)를 계산하려면 트리 전체가 필요하다.
+    한 단씩 물으면 검색할 때마다 요청이 줄줄이 나간다."""
+    app = make_app()
+    account("writer1"); account("writer2")
+    c = client(app, "writer1")
+    a = c.post("/api/folders", json={"name": "A"}).json()["folder"]["id"]
+    c.post("/api/folders", json={"name": "A-1", "parent_id": a})
+    c.post("/api/folders", json={"name": "B"})
+    client(app, "writer2").post("/api/folders", json={"name": "남의 것"})
+
+    one = c.get("/api/folders").json()["folders"]
+    assert [f["name"] for f in one] == ["A", "B"], "기본은 한 단만"
+    every = c.get("/api/folders", params={"all": "true"}).json()["folders"]
+    assert [f["name"] for f in every] == ["A", "A-1", "B"], "all=true 면 전부"
+    assert "남의 것" not in str(every), "남의 폴더는 all=true 에서도 안 샌다"

@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import UserBar from '../auth/UserBar'
-import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
+import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home } from 'lucide-react'
 import { useProjects } from './projects'
 import NewProjectDialog from './NewProjectDialog'
 import type { ProjectMeta } from './projectApi'
+import {
+  apiCreateFolder, apiDeleteFolder, apiListFolders, apiRenameFolder, FolderApiError,
+  type Folder as FolderRow,
+} from './folderApi'
+import {
+  canCreateHere, childrenOf, collapsePath, countInSubtree, pageWindow, scopeLabel,
+  scopedProjects, type Crumb,
+} from './folderNav'
 
 const PAGE_SIZE = 12
 const FOLIO_URL = 'http://127.0.0.1:8811'
@@ -32,19 +40,71 @@ export default function LibraryScreen() {
   const [pendingDel, setPendingDel] = useState<ProjectMeta | null>(null)
   const [picking, setPicking] = useState(false)
 
+  // ── 폴더 (P4) ──────────────────────────────
+  // **화면이 들고 있는다.** 모듈 스토어에 두면 계정이 바뀌어도 안 지워진다(P1.5 의 교훈).
+  // `App.tsx` 의 key={uid} 가 이 화면을 다시 마운트하므로 여기 있으면 함께 비워진다.
+  const [folders, setFolders] = useState<FolderRow[]>([])
+  const [here, setHere] = useState<string | null>(null)
+  const [path, setPath] = useState<Crumb[]>([])
+  const [maxDepth, setMaxDepth] = useState(3)
+  const [pathOpen, setPathOpen] = useState(false)
+  const [fErr, setFErr] = useState('')
+  const [mkOpen, setMkOpen] = useState(false)
+  const [mkName, setMkName] = useState('')
+  const [fEditing, setFEditing] = useState<{ id: string; value: string } | null>(null)
+  const [fPendingDel, setFPendingDel] =
+    useState<{ id: string; name: string; folder_count: number; project_count: number } | null>(null)
+
+  const loadFolders = async () => {
+    setFErr('')
+    try {
+      // 트리 전체를 한 번에 받는다 — 검색 범위(D27)를 셈하려면 하위가 필요하고,
+      // 한 단씩 물으면 검색할 때마다 요청이 줄줄이 나간다.
+      const all = await apiListFolders(null)
+      const every = await fetch('/api/folders?all=true', { credentials: 'same-origin' })
+        .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      setFolders((every?.folders as FolderRow[]) || all.folders)
+      setMaxDepth(all.max_depth ?? 3)
+    } catch (e) {
+      setFErr(e instanceof FolderApiError ? e.message : '폴더를 불러오지 못했어요.')
+    }
+  }
+  useEffect(() => { if (view === 'library') void loadFolders() }, [view])   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 경로는 트리에서 만든다 — 폴더를 오갈 때마다 서버에 되묻지 않는다.
+  useEffect(() => {
+    const crumbs: Crumb[] = []
+    const seen = new Set<string>()
+    let cur = here
+    while (cur && !seen.has(cur)) {
+      seen.add(cur)
+      const f = folders.find((x) => x.id === cur)
+      if (!f) break
+      crumbs.unshift({ id: f.id, name: f.name })
+      cur = f.parent_id
+    }
+    setPath(crumbs)
+    setPathOpen(false)
+  }, [here, folders])
+
+  const goFolder = (id: string | null) => { setHere(id); setPage(1); setEditing(null) }
+
+  const fAct = async (fn: () => Promise<unknown>) => {
+    setFErr('')
+    try { await fn(); await loadFolders() } catch (e) {
+      setFErr(e instanceof FolderApiError ? e.message : '처리하지 못했어요.')
+    }
+  }
+
   useEffect(() => { if (view === 'library') setPage(1) }, [view])
 
-  const filtered = useMemo(() => {
-    const term = q.trim()
-    const fromTs = from ? new Date(from + 'T00:00:00').getTime() : -Infinity
-    const toTs = to ? new Date(to + 'T23:59:59').getTime() : Infinity
-    return list.filter((p) => {
-      const u = p.updated_at || 0
-      if (u < fromTs || u > toTs) return false
-      if (!term) return true
-      return (p.name || '').includes(term) || p.id.includes(term)
-    })
-  }, [list, q, from, to])
+  // 목록은 **한 단계만**, 검색은 **하위 전부**를 본다(D27). 판정은 순수 함수가 한다.
+  const filtered = useMemo(
+    () => scopedProjects({ projects: list, folders, here, query: q, from, to }) as ProjectMeta[],
+    [list, folders, here, q, from, to])
+
+  const subFolders = useMemo(() => childrenOf(folders, here), [folders, here])
+  const searching = !!q.trim() || !!from || !!to
 
   const total = filtered.length
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -66,9 +126,110 @@ export default function LibraryScreen() {
             예전에는 UserBar 가 화면 밖 오버레이로 떠서 이 버튼 위에 포개졌다. */}
         <div className="lib-head-right">
           <UserBar />
+          <button className="lib-btn" disabled={!canCreateHere(path.length, maxDepth)}
+            title={canCreateHere(path.length, maxDepth) ? '' : `폴더는 ${maxDepth}단까지만 만들 수 있어요`}
+            onClick={() => { setMkOpen(true); setMkName('') }}>
+            <FolderPlus className="h-4 w-4" /> 새 폴더
+          </button>
           <button className="lib-new" onClick={() => setPicking(true)}><Plus className="h-4 w-4" /> 새 이북</button>
         </div>
       </div>
+
+      {/* 경로 — 4칸까지 다 보이고, 넘치면 앞을 접되 「…」은 **눌리는 버튼**이다(D26).
+          지나온 길은 없앨 수 없으므로, 접힌 자리에 무엇이 있었는지 물어볼 수 있어야 한다. */}
+      <nav className="lib-crumb" aria-label="폴더 경로">
+        <button className="lib-crumb-i" onClick={() => goFolder(null)}>
+          <Home className="h-4 w-4" /> 내 자료
+        </button>
+        {(() => {
+          const c = collapsePath(path)
+          const parts: React.ReactNode[] = []
+          if (c.collapsed && !pathOpen) {
+            parts.push(
+              <span key="dots" className="lib-crumb-g">
+                <Sep className="h-3 w-3 lib-crumb-sep" />
+                <button className="lib-crumb-i dots" title="접힌 경로 펼치기"
+                  onClick={() => setPathOpen(true)}>…</button>
+              </span>)
+          }
+          const list2 = c.collapsed && !pathOpen ? c.shown : path
+          for (const p2 of list2) {
+            parts.push(
+              <span key={p2.id} className="lib-crumb-g">
+                <Sep className="h-3 w-3 lib-crumb-sep" />
+                <button className="lib-crumb-i" onClick={() => goFolder(p2.id)}>{p2.name}</button>
+              </span>)
+          }
+          return parts
+        })()}
+      </nav>
+
+      {fErr && <div className="lib-ferr">{fErr}</div>}
+
+      {mkOpen && (
+        <div className="lib-mk">
+          <input autoFocus maxLength={40} value={mkName} placeholder="새 폴더 이름"
+            aria-label="새 폴더 이름"
+            onChange={(e) => setMkName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && mkName.trim()) {
+                void fAct(async () => { await apiCreateFolder(mkName.trim(), here); setMkOpen(false) })
+              }
+              if (e.key === 'Escape') setMkOpen(false)
+            }} />
+          <button className="lib-btn dark" disabled={!mkName.trim()}
+            onClick={() => void fAct(async () => {
+              await apiCreateFolder(mkName.trim(), here); setMkOpen(false)
+            })}>만들기</button>
+          <button className="lib-btn" onClick={() => setMkOpen(false)}>취소</button>
+        </div>
+      )}
+
+      {/* 폴더 — 한 줄 5개(확정값). **검색 중에는 감춘다** — 검색은 자료를 찾는 일이라
+          폴더 칸이 결과 위에 얹히면 무엇이 걸린 건지 헷갈린다. */}
+      {!searching && subFolders.length > 0 && (
+        <div className="lib-folders">
+          {subFolders.map((f) => (
+            <div key={f.id} className="lib-folder">
+              {fEditing?.id === f.id ? (
+                <input className="lib-frename" autoFocus value={fEditing.value} maxLength={40}
+                  onChange={(e) => setFEditing({ id: f.id, value: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && fEditing.value.trim()) {
+                      void fAct(async () => {
+                        await apiRenameFolder(f.id, fEditing.value.trim()); setFEditing(null)
+                      })
+                    }
+                    if (e.key === 'Escape') setFEditing(null)
+                  }}
+                  onBlur={() => setFEditing(null)} />
+              ) : (
+                <>
+                  <button className="lib-folder-hit" onClick={() => goFolder(f.id)}
+                    title={`${f.name} 열기`}>
+                    <Folder className="h-5 w-5" />
+                    <span className="lib-folder-name">{f.name}</span>
+                    <span className="lib-folder-sub">
+                      {f.folder_count ? `폴더 ${f.folder_count} · ` : ''}
+                      자료 {countInSubtree(list, folders, f.id)}
+                    </span>
+                  </button>
+                  <div className="lib-folder-act">
+                    <button className="lib-act" title="이름 바꾸기"
+                      onClick={() => setFEditing({ id: f.id, value: f.name })}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button className="lib-act danger" title="삭제"
+                      onClick={() => setFPendingDel(f)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 검색/조회 (표준: 검색어·시작일·종료일·검색·초기화) */}
       <div className="lib-search">
@@ -78,14 +239,16 @@ export default function LibraryScreen() {
         <div className="lib-q"><Search className="h-4 w-4" /><input value={qIn} onChange={(e) => setQIn(e.target.value)} placeholder="이북 제목 또는 ID" onKeyDown={(e) => { if (e.key === 'Enter') applySearch() }} aria-label="검색어" /></div>
         <button className="lib-btn dark" onClick={applySearch}>검색</button>
         <button className="lib-btn" onClick={resetSearch}>초기화</button>
+        {/* 범위를 **글자로** 말한다(D27). 「전체에서 / 이 폴더에서」 토글을 두지 않는다 —
+            서 있는 자리가 곧 범위라 고를 것이 없고, 고르는 장치를 없애면 틀리게 고를 일도 없다. */}
+        <span className="lib-scope">{scopeLabel(path)}</span>
       </div>
 
-      {/* 개수/페이지 (표준: 전체개수·현재/총 페이지·페이지크기) */}
+      {/* 개수 (표준: 전체개수·현재/총 페이지·페이지크기). 쪽 이동은 **목록 아래**에 둔다 —
+          목록을 다 보고 나서 넘기는 것이 순서다. */}
       <div className="lib-pager">
-        <span className="lib-count">전체 {total}개 · {cur}/{pages} 페이지 · {PAGE_SIZE}개씩</span>
-        <span className="lib-nav">
-          <button disabled={cur <= 1} onClick={() => setPage(cur - 1)} aria-label="이전 페이지"><ChevronLeft className="h-4 w-4" /></button>
-          <button disabled={cur >= pages} onClick={() => setPage(cur + 1)} aria-label="다음 페이지"><ChevronRight className="h-4 w-4" /></button>
+        <span className="lib-count">
+          {searching ? '조회 결과' : '전체'} {total}개 · {cur}/{pages} 페이지 · {PAGE_SIZE}개씩
         </span>
       </div>
 
@@ -93,7 +256,11 @@ export default function LibraryScreen() {
         {loading ? (
           <div className="lib-empty">불러오는 중…</div>
         ) : total === 0 ? (
-          <div className="lib-empty">{q || from || to ? '조건에 맞는 이북이 없어요.' : '아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'}</div>
+          <div className="lib-empty">{searching
+            ? `${scopeLabel(path)} 조건에 맞는 이북이 없어요.`
+            : path.length
+              ? '이 폴더에는 아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'
+              : '아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'}</div>
         ) : (
           shown.map((p) => (
             <div key={p.id} className="lib-card">
@@ -125,11 +292,65 @@ export default function LibraryScreen() {
         )}
       </div>
 
+      {/* 쪽 번호 — **이어진 다섯 칸**(D25). 「1 … 7 8 9 … 20」을 쓰지 않는다:
+          「…」은 눌러도 어디로 가는지 모르는 자리이고, 쪽이 늘수록 그 모르는 자리가
+          화면 한가운데를 차지한다. 창을 고정하면 끊길 자리 자체가 없다. */}
+      {pages > 1 && (
+        <div className="lib-pagebar">
+          <button className="lib-pg" disabled={cur <= 1} onClick={() => setPage(cur - 1)}
+            aria-label="이전 페이지"><ChevronLeft className="h-4 w-4" /></button>
+          {pageWindow(cur, pages).map((n) => (
+            <button key={n} className={'lib-pg' + (n === cur ? ' on' : '')}
+              aria-current={n === cur ? 'page' : undefined}
+              onClick={() => setPage(n)}>{n}</button>
+          ))}
+          <button className="lib-pg" disabled={cur >= pages} onClick={() => setPage(cur + 1)}
+            aria-label="다음 페이지"><ChevronRight className="h-4 w-4" /></button>
+        </div>
+      )}
+
+      {/* 폴더 삭제 — **빈 폴더만**(D20). 서버가 막지만 화면이 먼저 말해 준다. */}
+      {fPendingDel && (
+        <div className="lib-confirm" onClick={() => setFPendingDel(null)}>
+          <div className="lib-confirm-box" onClick={(e) => e.stopPropagation()}>
+            <div className="lib-confirm-title">폴더 삭제</div>
+            <div className="lib-confirm-msg">
+              {fPendingDel.folder_count || fPendingDel.project_count ? (
+                <>
+                  <b>{fPendingDel.name}</b> 폴더가 비어 있지 않습니다.
+                  <br /><br />
+                  {[fPendingDel.folder_count ? `하위 폴더 ${fPendingDel.folder_count}개` : '',
+                    fPendingDel.project_count ? `자료 ${fPendingDel.project_count}건` : '']
+                    .filter(Boolean).join(' · ')}이 남아 있어요.
+                  <b> 먼저 옮기거나 지워 주세요.</b>
+                  <br /><br />
+                  폴더째 지우면 안에 든 자료까지 함께 사라지므로, 그렇게 하지 않습니다.
+                </>
+              ) : (
+                <><b>{fPendingDel.name}</b> 폴더를 지웁니다. 비어 있어 잃는 자료는 없습니다.</>
+              )}
+            </div>
+            <div className="lib-confirm-actions">
+              <button className="lib-btn" onClick={() => setFPendingDel(null)}>취소</button>
+              {!fPendingDel.folder_count && !fPendingDel.project_count && (
+                <button className="lib-btn danger" onClick={() => {
+                  const f = fPendingDel
+                  setFPendingDel(null)
+                  void fAct(() => apiDeleteFolder(f.id))
+                }}>지우기</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 새 이북은 **지금 보고 있는 폴더**에 만든다 —
+          만들고 나서 옮기게 하면 사람은 매번 두 번 일한다(만들기 → 찾기 → 옮기기). */}
       {picking && (
         <NewProjectDialog
           onClose={() => setPicking(false)}
-          onBlank={() => newProject()}
-          onTemplate={(ym) => newFromTemplate(ym)}
+          onBlank={() => newProject(here)}
+          onTemplate={(ym) => newFromTemplate(ym, here)}
         />
       )}
 

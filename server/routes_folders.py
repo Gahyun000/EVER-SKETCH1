@@ -31,12 +31,19 @@ def _mine(fid: str, user: dict) -> dict:
 
 
 @router.get("")
-def list_folders(parent: Optional[str] = None, user: dict = Depends(require_active)):
-    """한 단만. 경로(브레드크럼)를 함께 준다 — 화면이 되묻지 않게."""
+def list_folders(parent: Optional[str] = None, all: bool = False,
+                 user: dict = Depends(require_active)):
+    """기본은 **한 단만**. 경로(브레드크럼)를 함께 준다 — 화면이 되묻지 않게.
+
+    `all=true` 면 내 폴더 전부를 평평하게 준다. 화면이 트리를 만들어
+    「이 폴더 아래 전체」(검색 범위, D27)를 계산하는 데 쓴다 —
+    한 단씩 물으면 검색할 때마다 요청이 줄줄이 나간다.
+    """
     if parent:
         _mine(parent, user)
     return {
-        "folders": folders_store.list_folders(user["id"], parent),
+        "folders": (folders_store.list_all_folders(user["id"]) if all
+                    else folders_store.list_folders(user["id"], parent)),
         "path": folders_store.folder_path(parent),
         "max_depth": folders_store.MAX_DEPTH,
     }

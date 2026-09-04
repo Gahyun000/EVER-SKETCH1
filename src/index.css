@@ -560,3 +560,63 @@ button{font-family:inherit;cursor:pointer}
 .np-period{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;font-weight:700;color:var(--muted)}
 .np-period input{border:1.4px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13.5px;color:var(--ink);font-family:inherit}
 .np-period input:focus{outline:none;border-color:var(--blue)}
+
+/* ══════════════════════════════════════════════════════════
+   개인 폴더 (P4) — 계획서 D24~D29
+   창 5칸 · 한 줄 5개 · 한 쪽 12건 · 최대 깊이 3 (2026-09-04 확정)
+   ══════════════════════════════════════════════════════════ */
+
+/* 경로 — 4칸까지 다 보이고, 넘치면 앞을 접되 「…」은 **눌리는 버튼**이다(D26). */
+.lib-crumb{width:min(880px,94vw);display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:10px}
+.lib-crumb-g{display:inline-flex;align-items:center;gap:2px}
+.lib-crumb-sep{color:#c3cad6;flex:0 0 auto}
+.lib-crumb-i{display:inline-flex;align-items:center;gap:5px;border:none;background:none;
+  font-family:inherit;font-size:13px;font-weight:700;color:#64748b;cursor:pointer;
+  padding:4px 8px;border-radius:7px;white-space:nowrap}
+.lib-crumb-i:hover{background:#eef2f9;color:#2462EB}
+.lib-crumb-g:last-child .lib-crumb-i{color:#0F1B3D}
+/* 「…」은 글자가 아니라 버튼이다 — 접힌 자리에 무엇이 있었는지 물어볼 수 있어야 한다. */
+.lib-crumb-i.dots{font-weight:800;letter-spacing:1px;border:1px dashed #cfd6e4;padding:2px 9px}
+
+.lib-ferr{width:min(880px,94vw);background:#fdf0f0;border:1px solid #f0d6d6;color:#7d2027;
+  border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:10px}
+
+.lib-mk{width:min(880px,94vw);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.lib-mk input{flex:0 1 260px;min-width:0;height:36px;padding:0 11px;border:1.4px solid #e5e7eb;
+  border-radius:10px;font-size:13.5px;font-family:inherit;color:#0f172a;outline:none}
+.lib-mk input:focus{border-color:#2462EB;box-shadow:0 0 0 3px #EAF1FE}
+
+/* 폴더 — **한 줄 5개**(확정값). 좁아지면 자동으로 줄어든다. */
+.lib-folders{width:min(880px,94vw);display:grid;gap:10px;margin-bottom:14px;
+  grid-template-columns:repeat(auto-fill,minmax(155px,1fr))}
+@media (min-width:900px){.lib-folders{grid-template-columns:repeat(5,1fr)}}
+.lib-folder{position:relative;border:1.4px solid #e5e7eb;background:#fff;border-radius:12px;
+  transition:border-color .12s,box-shadow .12s}
+.lib-folder:hover{border-color:#c6d5ff;box-shadow:0 2px 10px rgba(15,27,61,.06)}
+.lib-folder-hit{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;
+  border:none;background:none;cursor:pointer;font-family:inherit;padding:12px 12px 11px;text-align:left}
+.lib-folder-hit svg{color:#2462EB;margin-bottom:4px}
+/* 낱말이 끊기지 않게 한 줄 + 말줄임 (표준: 표 셀의 의도치 않은 두 줄 방지) */
+.lib-folder-name{font-size:13.5px;font-weight:800;color:#0f172a;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.lib-folder-sub{font-size:11.5px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.lib-folder-act{position:absolute;top:6px;right:6px;display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.lib-folder:hover .lib-folder-act,.lib-folder:focus-within .lib-folder-act{opacity:1}
+.lib-frename{width:100%;height:44px;border:1.4px solid #2462EB;border-radius:12px;
+  padding:0 11px;font-size:13.5px;font-family:inherit;color:#0f172a;outline:none;background:#fff}
+
+/* 검색 범위 — 글자로 말한다(D27). 토글을 두지 않는다. */
+.lib-scope{font-size:12px;color:#94a3b8;white-space:nowrap}
+
+/* 쪽 번호 — **이어진 다섯 칸**(D25). 목록 아래에 둔다. */
+.lib-pagebar{width:min(880px,94vw);display:flex;justify-content:center;align-items:center;
+  gap:4px;margin:14px 0 4px}
+.lib-pg{min-width:32px;height:32px;padding:0 8px;border:1.4px solid #e5e7eb;background:#fff;
+  border-radius:9px;font-size:13px;font-weight:700;color:#64748b;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;justify-content:center}
+.lib-pg:hover:not(:disabled){border-color:#c6d5ff;color:#2462EB}
+.lib-pg.on{background:#0F1B3D;border-color:#0F1B3D;color:#fff}
+.lib-pg:disabled{opacity:.4;cursor:not-allowed}
+
+.lib-btn:disabled{opacity:.45;cursor:not-allowed}
+.lib-btn.danger{color:#b4232a;border-color:#f0d6d6}

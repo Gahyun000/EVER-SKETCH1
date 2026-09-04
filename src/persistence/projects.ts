@@ -54,8 +54,10 @@ interface ProjectsState {
   boot: (uid: string | null) => Promise<void>
   loadList: () => Promise<void>
   openProject: (id: string) => Promise<void>
-  newProject: () => Promise<void>
-  newFromTemplate: (periodYm: string) => Promise<void>
+  /** `folderId` — **지금 보고 있는 폴더**에 만든다. 만들고 나서 옮기게 하면
+   *  사람은 매번 두 번 일한다(만들기 → 찾기 → 옮기기). */
+  newProject: (folderId?: string | null) => Promise<void>
+  newFromTemplate: (periodYm: string, folderId?: string | null) => Promise<void>
   adoptCurrentAsNewProject: () => Promise<void>
   backToLibrary: () => Promise<void>
   renameProject: (id: string, name: string) => Promise<void>
@@ -132,11 +134,11 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     }
   },
 
-  newProject: async () => {
+  newProject: async (folderId) => {
     try { await flushSave() } catch { /* noop */ }
     set({ loading: true })
     try {
-      const p = await apiCreateProject('제목 없음', emptySnapshot())
+      const p = await apiCreateProject('제목 없음', emptySnapshot(), folderId)
       applyProject(p)
       // 새 이북은 빈 슬라이드 한 장으로 시작(구글 슬라이드식). 추가가 자동저장을 유발한다.
       useBuilder.getState().addCard('slide')
@@ -148,11 +150,11 @@ export const useProjects = create<ProjectsState>((set, get) => ({
 
   // 표준 양식으로 시작. 빈 슬라이드와 달리 `addCard` 를 부르지 않는다 —
   // 서버가 이미 한 장을 채워 보냈고, 여기서 한 장을 더 붙이면 '1인 1장'이 깨진다.
-  newFromTemplate: async (periodYm) => {
+  newFromTemplate: async (periodYm, folderId) => {
     try { await flushSave() } catch { /* noop */ }
     set({ loading: true })
     try {
-      const p = await apiCreateFromTemplate(periodYm)
+      const p = await apiCreateFromTemplate(periodYm, folderId)
       applyProject(p)
       await get().loadList()
     } finally {
