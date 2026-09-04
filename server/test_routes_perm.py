@@ -160,12 +160,44 @@ def test_열람자는_미발행_이북을_못_연다(ctx):
     assert c.get("/api/projects/%s" % ctx["other"]).status_code == 403
 
 
-def test_열람자는_편집_삭제_불가(ctx):
+def test_열람자는_남의_것을_편집_삭제_못_한다(ctx):
+    """**D13 이 연 것은 「제 것」까지다.** 남의 발행본은 읽을 뿐이다."""
     c = ctx["as_user"]("viewer")
     assert c.put("/api/projects/%s" % ctx["pub"], json={"state": {}}).status_code == 403
     assert c.patch("/api/projects/%s" % ctx["pub"], json={"name": "x"}).status_code == 403
     assert c.delete("/api/projects/%s" % ctx["pub"]).status_code == 403
-    assert c.post("/api/projects", json={"name": "새것"}).status_code == 403
+
+
+def test_열람자는_제_스케치를_만들고_고치고_지운다(ctx):
+    """**D13.** 열람자에게도 아무에게도 안 보이는 제 작업 공간이 있다 —
+    없으면 로그인해도 발행본이 나올 때까지 빈 화면만 본다."""
+    c = ctx["as_user"]("viewer")
+    r = c.post("/api/projects", json={"name": "혼자 끄적이는 것"})
+    assert r.status_code == 200
+    pid = r.json()["id"]
+    assert c.put("/api/projects/%s" % pid, json={"state": {"pages": []}}).status_code == 200
+    assert c.get("/api/projects/%s" % pid).status_code == 200
+    assert c.delete("/api/projects/%s" % pid).status_code == 200
+
+
+def test_열람자의_스케치는_남에게_안_보인다(ctx):
+    """「개인」이 말뿐이 아님을 확인한다. 목록에도, 직접 열어도 없어야 한다.
+    (관리자는 본다 — 자료를 책임지는 사람이 못 보는 자료는 없다.)"""
+    pid = ctx["as_user"]("viewer").post(
+        "/api/projects", json={"name": "혼자 끄적이는 것"}).json()["id"]
+    w = ctx["as_user"]("writer")
+    assert w.get("/api/projects/%s" % pid).status_code == 403
+    assert pid not in [x["id"] for x in w.get("/api/projects").json()["projects"]]
+
+
+def test_열람자는_회사_서식으로는_시작하지_못한다(ctx):
+    """**P2 에서 미뤄 둔 `TEMPLATE_USE` 가 실제로 갈리는 자리.**
+    빈 슬라이드는 만들지만(위 테스트) 회사 서식은 못 쓴다 — 서식은 결재를 타고
+    팀에 나갈 문서의 틀인데 열람자는 제출을 못 한다."""
+    c = ctx["as_user"]("viewer")
+    assert c.post("/api/projects", json={"name": "빈 것"}).status_code == 200
+    assert c.post("/api/projects/from-template",
+                  json={"period_ym": "2026-10"}).status_code == 403
 
 
 def test_열람자는_메모를_읽지도_쓰지도_못한다(ctx):

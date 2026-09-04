@@ -8,9 +8,10 @@ import pathlib
 import pytest
 
 from server.permissions import (
-    Actor, Resource, decide, visible_project_filter, can_grant_role,
+    Actor, Resource, decide, visible_project_filter, can_grant_role, can_see_approval,
     READ, WRITE, DELETE, COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE,
     USER_MANAGE, SETTINGS_MANAGE, PUBLISH, FOLDER_MANAGE, ALL_ACTIONS,
+    SUBMIT, AI_USE, TEMPLATE_USE,
 )
 
 # ── 4계정 + 비활성 ─────────────────────────────
@@ -43,22 +44,54 @@ def test_비활성은_관리자여도_거부():
 
 
 # ── L1 열람자 ─────────────────────────────
-def test_열람자는_발행본만_읽는다():
+VIEWER_OWN = Resource(owner_id="u_l1", published=False)   # VIEWER_U 의 개인 스케치
+
+
+def test_열람자는_발행본과_제_스케치를_읽는다():
+    """**D13.** 원래(D3) 열람자는 발행본만 봤다. 그러면 발행본이 없는 동안은
+    로그인해도 빈 화면이다 — 그래서 제 작업 공간을 열어 줬다."""
     assert decide(VIEWER_U, READ, PUB) is True
-    assert decide(VIEWER_U, READ, OWN) is False      # 미발행
+    assert decide(VIEWER_U, READ, VIEWER_OWN) is True
+    assert decide(VIEWER_U, READ, OWN) is False       # 남의 미발행
     assert decide(VIEWER_U, READ, OTHER) is False
 
 
-def test_열람자는_편집_삭제_불가():
-    assert decide(VIEWER_U, WRITE, PUB) is False
+def test_열람자는_제_스케치만_고치고_지운다():
+    assert decide(VIEWER_U, WRITE, VIEWER_OWN) is True
+    assert decide(VIEWER_U, DELETE, VIEWER_OWN) is True
+    assert decide(VIEWER_U, WRITE, PUB) is False      # 남의 발행본을 고칠 수는 없다
     assert decide(VIEWER_U, DELETE, PUB) is False
+    assert decide(VIEWER_U, WRITE, OWN) is False
+
+
+def test_열람자는_제출하지_못한다():
+    """**D13 의 경계.** 개인 스케치는 「개인」에서 끝난다 —
+    제출이 열리면 결재가 열리고, 결재가 열리면 팀 공유가 열린다(D6)."""
+    assert decide(VIEWER_U, SUBMIT, VIEWER_OWN) is False
+
+
+def test_열람자는_회사_서식도_AI도_못_쓴다():
+    """**P2 에서 미뤄 둔 `TEMPLATE_USE` 가 여기서 처음 `WRITE` 와 갈린다** —
+    제 스케치는 쓰지만(WRITE=O) 나갈 데 없는 문서에 회사 서식은 필요 없다."""
+    assert decide(VIEWER_U, WRITE, VIEWER_OWN) is True
+    assert decide(VIEWER_U, TEMPLATE_USE, VIEWER_OWN) is False
+    assert decide(VIEWER_U, TEMPLATE_USE, None) is False
+    assert decide(VIEWER_U, AI_USE, VIEWER_OWN) is False
+
+
+def test_작성자는_회사_서식을_쓴다():
+    assert decide(WRITER_U, TEMPLATE_USE, None) is True
+    assert decide(ADMIN_U, TEMPLATE_USE, None) is True
 
 
 def test_열람자는_메모를_읽지도_쓰지도_못한다():
-    """확정 사항 — L1에게는 메모 존재 자체를 노출하지 않는다."""
+    """확정 사항 — L1에게는 메모 존재 자체를 노출하지 않는다.
+    **제 스케치라도** 마찬가지다: 메모는 결재 흐름의 도구인데 L3 은 제출을 못 한다."""
     assert decide(VIEWER_U, COMMENT_READ, PUB) is False
     assert decide(VIEWER_U, COMMENT_WRITE, PUB) is False
     assert decide(VIEWER_U, COMMENT_RESOLVE, PUB) is False
+    assert decide(VIEWER_U, COMMENT_READ, VIEWER_OWN) is False
+    assert decide(VIEWER_U, COMMENT_WRITE, VIEWER_OWN) is False
 
 
 # ── L2 작성자 ─────────────────────────────
@@ -192,7 +225,7 @@ def test_이상한_역할은_거부():
 def test_목록_필터가_개별_판정과_일치():
     assert visible_project_filter(ADMIN_U) == "all"
     assert visible_project_filter(WRITER_U) == "own"
-    assert visible_project_filter(VIEWER_U) == "published"
+    assert visible_project_filter(VIEWER_U) == "own_or_published"
     assert visible_project_filter(PENDING) == "none"
     assert visible_project_filter(DISABLED) == "none"
     assert visible_project_filter(None) == "none"
@@ -218,3 +251,67 @@ def test_없는_역할_거부():
     for bad in ("", "superuser", "ADMIN", "관리자", None, 3):
         ok, _ = can_grant_role(ADMIN_U, "u_other", bad)
         assert ok is False
+
+
+# ── 결재 가시성 (P6) ─────────────────────────────
+# 판정에 팀이 들어오는 **유일한** 지점이다. 여기가 틀리면 남의 팀 자료가 보인다.
+A_TEAM = Actor(id="u_a", role="writer", status="active", team_ids=("t_sales",))
+B_TEAM = Actor(id="u_b", role="writer", status="active", team_ids=("t_tech",))
+NO_TEAM = Actor(id="u_n", role="writer", status="active")
+
+
+def _ap(status="approved", team="t_sales", requester="u_x"):
+    return {"id": "a1", "status": status, "team_id": team, "requester": requester}
+
+
+def test_같은_팀_승인본은_보인다():
+    """**D6 — 승인이 곧 공유.** 이 한 줄이 P6 의 전부다."""
+    assert can_see_approval(A_TEAM, _ap()) is True
+
+
+def test_다른_팀_승인본은_안_보인다():
+    assert can_see_approval(B_TEAM, _ap()) is False
+    assert can_see_approval(NO_TEAM, _ap()) is False
+
+
+def test_승인_전에는_팀에_안_보인다():
+    """대기·반려·회수는 낸 사람과 결재자 사이의 일이다. 팀은 **결과만** 본다."""
+    for st in ("pending", "rejected", "withdrawn"):
+        assert can_see_approval(A_TEAM, _ap(status=st)) is False
+
+
+def test_낸_사람은_상태와_무관하게_제_것을_본다():
+    """반려당한 제 제출본을 못 보면 무엇을 고쳐야 하는지 알 수가 없다."""
+    for st in ("pending", "approved", "rejected", "withdrawn"):
+        assert can_see_approval(A_TEAM, _ap(status=st, requester="u_a")) is True
+    # 팀을 옮겨도 제가 낸 것은 계속 본다 — 「낸 사람」 자격은 팀과 무관하다.
+    assert can_see_approval(B_TEAM, _ap(team="t_sales", requester="u_b")) is True
+
+
+def test_팀은_제출_시점_팀이지_지금_소속이_아니다():
+    """**D9.** A팀에서 낸 승인본은 A팀에 남는다. 낸 사람이 B팀으로 옮겨도
+    B팀 사람들에게 그 자료가 따라가지 않는다."""
+    moved = _ap(team="t_sales", requester="u_moved")
+    assert can_see_approval(B_TEAM, moved) is False
+    # 반대로 A팀에 새로 들어온 사람은 그날부터 본다 — 자료는 팀의 것이다(D18).
+    newbie = Actor(id="u_new", role="viewer", status="active", team_ids=("t_sales",))
+    assert can_see_approval(newbie, moved) is True
+
+
+def test_관리자는_결재_전부_본다():
+    assert can_see_approval(ADMIN_U, _ap(status="pending", team="t_tech")) is True
+
+
+def test_비활성_비로그인은_결재를_못_본다():
+    dead = Actor(id="u_a", role="writer", status="disabled", team_ids=("t_sales",))
+    assert can_see_approval(dead, _ap()) is False
+    assert can_see_approval(None, _ap()) is False
+    assert can_see_approval(A_TEAM, None) is False
+
+
+def test_팀_없는_승인본은_아무에게도_안_열린다():
+    """`team_id` 가 빈 문자열인 건이 섞여 들어와도 「빈 값 == 빈 값」으로
+    통과하면 안 된다 — 그 순간 팀 없는 사람에게 남의 자료가 전부 열린다."""
+    orphan = _ap(team="")
+    assert can_see_approval(NO_TEAM, orphan) is False
+    assert can_see_approval(A_TEAM, orphan) is False

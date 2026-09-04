@@ -157,7 +157,12 @@ def test_말이_안_되는_기간은_거절한다(ctx, bad):
 
 
 def test_열람자는_만들_수_없다(ctx):
-    assert ctx.as_user("viewer").post(PATH, json={"period_ym": "2026-10"}).status_code == 403
+    """열람자는 제 개인 스케치(빈 슬라이드)는 만든다(D13). 그런데 **회사 서식은
+    다르다** — 결재를 타고 팀에 나갈 문서의 틀이고, 열람자는 제출을 못 한다.
+    P6 에서 `TEMPLATE_USE` 를 되살려 `WRITE` 와 갈라놓은 이유가 정확히 이것이다."""
+    c = ctx.as_user("viewer")
+    assert c.post("/api/projects", json={"name": "빈 것"}).status_code == 200
+    assert c.post(PATH, json={"period_ym": "2026-10"}).status_code == 403
 
 
 def test_승인_대기_계정은_만들_수_없다(ctx):

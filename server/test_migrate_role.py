@@ -96,8 +96,13 @@ def test_전환_후_권한_판정이_그대로다():
     viewer = [u for u in auth_store.list_users() if u["login_id"] == "viewer1"][0]
     assert perm.decide(auth_store.actor_of(boss), perm.USER_MANAGE) is True
     assert perm.decide(auth_store.actor_of(viewer), perm.USER_MANAGE) is False
-    assert perm.decide(auth_store.actor_of(viewer), perm.WRITE,
+    # 열람자에게 열려 있지 않아야 하는 것으로 확인한다. **본인 자료 쓰기가 아니다** —
+    # D13(P6)이 그것을 열었다(개인 스케치). 전환이 건드리면 안 되는 것은 「등급 표기가
+    # 바뀌었다고 관리 권한이 따라 오르내리지 않는다」이고, 그것을 보는 자리는 여기다.
+    assert perm.decide(auth_store.actor_of(viewer), perm.SUBMIT,
                        perm.Resource(owner_id=viewer["id"])) is False
+    assert perm.decide(auth_store.actor_of(viewer), perm.WRITE,
+                       perm.Resource(owner_id=boss["id"])) is False
 
 
 # ══════════ 안전장치 ══════════

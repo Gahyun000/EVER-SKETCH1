@@ -26,6 +26,7 @@ from server import auth as auth_store
 from server.routes_auth import router as auth_router
 from server.routes_projects import router as projects_router
 from server.routes_approvals import router as approvals_router
+from server.routes_team_library import router as team_library_router
 from server.routes_folders import router as folders_router
 from server.routes_teams import router as teams_router
 from server import permissions as perm
@@ -637,6 +638,7 @@ app.include_router(projects_router)
 app.include_router(teams_router)
 app.include_router(folders_router)
 app.include_router(approvals_router)
+app.include_router(team_library_router)
 
 # 최초 관리자 시드 — 이미 있으면 아무것도 하지 않는다(멱등).
 _seed_pw = auth_store.ensure_seed_admin()

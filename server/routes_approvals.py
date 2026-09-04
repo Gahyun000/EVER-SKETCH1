@@ -2,9 +2,13 @@
 
 가시성 규칙 — **한 문장으로 적어 둔다.**
   · L1(관리자) : 전부 본다. 결재자가 한 명이므로(D11) 결재함이 곧 전체 목록이다.
-  · L2(작성자) : **본인이 낸 건만.** 같은 팀 남의 제출본은 못 본다 —
-                 팀 공유는 「승인된 것」에만 열리고(D6), 그 화면은 P6 이다.
-  · L3(열람자) : 결재함 자체가 없다(D13 — 순수 개인 작업 공간).
+  · L2(작성자) : **본인이 낸 건만.** 같은 팀 남의 *제출본*은 여전히 못 본다 —
+                 팀에 열리는 것은 「승인된 것」뿐이고(D6), 그건 팀 공유 화면이다.
+  · L3(열람자) : 결재함 자체가 없다(D13 — 제출을 못 하니 낸 것도 없다).
+
+**P6 이후:** 건 하나의 가시성은 `permissions.can_see_approval()` 이 정한다
+(관리자 전부 / 낸 사람 / 같은 팀 승인본). 위 목록은 그중 「결재함」이라는
+화면이 보여 주는 몫이고, 나머지 한 몫은 `team_library` 가 보여 준다.
 
 판정은 `permissions.decide()` 가 하고 이 파일은 HTTP 로 옮길 뿐이다.
 남의 결재 건에는 **404** 를 준다 — 403 은 「그 id 는 있다」를 확인해 준다.
@@ -30,8 +34,23 @@ def _is_admin(user: dict) -> bool:
 
 
 def _visible(a: dict, user: dict) -> bool:
-    """관리자는 전부, 작성자는 **본인이 낸 것만**."""
-    return _is_admin(user) or a["requester"] == user["id"]
+    """**판정은 `permissions.can_see_approval()` 하나뿐이다.**
+    팀 공유(`team_library`)도 같은 함수를 쓴다 — 두 곳이 각자 규칙을 적으면
+    「팀 공유에는 뜨는데 열면 404」 같은 상태가 생긴다."""
+    return perm.can_see_approval(auth_store.actor_of(user), a)
+
+
+def _my_box(items: list[dict], user: dict) -> list[dict]:
+    """**결재함은 화면이지 권한이 아니다.** 결재함이 답하는 질문은
+    「내가 낸 것이 지금 어떻게 됐나」 하나다 — 같은 팀 남의 승인본이 여기 섞이면
+    그 질문의 답이 목록 어딘가에 묻힌다. 그것은 팀 공유 화면이 답한다.
+
+    관리자에게는 결재함이 곧 전체 목록이다(결재자가 한 명이므로, D11).
+    `_my_box` ∪ 팀 공유 = `can_see_approval` 이 허용하는 전부 — 빠지는 건 없다.
+    """
+    if _is_admin(user):
+        return items
+    return [a for a in items if a["requester"] == user["id"]]
 
 
 def _mine_or_404(aid: str, user: dict) -> dict:
@@ -60,9 +79,7 @@ def _with_names(items: list[dict]) -> list[dict]:
 def list_approvals(status: Optional[str] = None, project_id: Optional[str] = None,
                    user: dict = Depends(require_active)):
     require_action(user, perm.COMMENT_READ, perm.Resource(owner_id=user["id"]))
-    items = approvals_store.list_approvals(status=status, project_id=project_id)
-    if not _is_admin(user):
-        items = [a for a in items if a["requester"] == user["id"]]
+    items = _my_box(approvals_store.list_approvals(status=status, project_id=project_id), user)
     return {"approvals": _with_names(items), "counts": _counts(items)}
 
 
@@ -88,7 +105,15 @@ def status_map(user: dict = Depends(require_active)):
 
 @router.get("/{aid}")
 def get_approval(aid: str, user: dict = Depends(require_active)):
-    return {"approval": _with_names([_mine_or_404(aid, user)])[0]}
+    """건 하나. **같은 팀 사람은 승인된 건을 열 수 있다**(P6) — 팀 공유 화면이
+    여기로 들어온다. 다만 **결재 대화는 당사자만** 본다(`can_see_approval_thread`):
+    자료가 팀의 것이 된다고 해서 그 자료를 두고 오간 지적까지 팀의 것이 되지는 않는다."""
+    a = _mine_or_404(aid, user)
+    if not perm.can_see_approval_thread(auth_store.actor_of(user), a):
+        a["comment_count"] = len(a.get("comments") or [])
+        a["comments"] = []
+        a["comments_hidden"] = True
+    return {"approval": _with_names([a])[0]}
 
 
 class RequestIn(BaseModel):

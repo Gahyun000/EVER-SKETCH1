@@ -48,19 +48,39 @@ def _routes(filename: str, app_var: str, prefix: str = ""):
     return out
 
 
-ALL_ROUTES = (
-    _routes("app.py", "app")
-    + _routes("routes_projects.py", "router")
-    + _routes("routes_auth.py", "router", prefix="/api/auth")   # APIRouter(prefix=...)
-    + _routes("routes_teams.py", "router", prefix="/api/teams")
-    + _routes("routes_folders.py", "router", prefix="/api/folders")
-    + _routes("routes_approvals.py", "router", prefix="/api/approvals")
-)
+# 파일 → APIRouter(prefix=...) 값. **새 라우터 파일을 여기 안 적으면
+# 그 파일 전체가 이 게이트를 조용히 면제받는다** —
+# 아래 test_라우터_파일을_빠뜨리지_않았다 가 그걸 막는다(P6 에서 실제로 한 번 빠뜨렸다).
+ROUTER_FILES = {
+    "routes_projects.py": "",
+    "routes_auth.py": "/api/auth",
+    "routes_teams.py": "/api/teams",
+    "routes_folders.py": "/api/folders",
+    "routes_approvals.py": "/api/approvals",
+    "routes_team_library.py": "/api/team-library",
+}
+
+ALL_ROUTES = _routes("app.py", "app")
+for _f, _pfx in ROUTER_FILES.items():
+    ALL_ROUTES += _routes(_f, "router", prefix=_pfx)
 
 
 def test_라우트를_실제로_찾았다():
     """검사 대상이 0건이면 테스트가 조용히 통과한다 — 그걸 막는다."""
     assert len(ALL_ROUTES) >= 25, "라우트 파싱 실패: %d건" % len(ALL_ROUTES)
+
+
+def test_라우터_파일을_빠뜨리지_않았다():
+    """**목록을 손으로 관리하면 언젠가 빠뜨린다.** 실제로 P6 에서
+    `routes_team_library.py` 를 빠뜨렸고, 게이트는 아무 말 없이 통과했다 —
+    새 라우터 파일 하나가 통째로 무검사 상태였다는 뜻이다.
+
+    파일 목록을 디스크에서 다시 읽어 대조한다. 이제 라우터 파일을 만드는 것만으로
+    이 테스트가 깨지고, 사람은 `ROUTER_FILES` 에 한 줄을 적게 된다.
+    """
+    found = sorted(f.name for f in SRC_DIR.glob("routes_*.py"))
+    missing = [f for f in found if f not in ROUTER_FILES]
+    assert not missing, "라우터 파일이 검사 목록에 없습니다: %s" % ", ".join(missing)
 
 
 @pytest.mark.parametrize("method,path,body", ALL_ROUTES,
@@ -97,6 +117,10 @@ def test_모든_엔드포인트가_권한을_판정한다(method, path, body):
             or (path.startswith("/api/folders") and "_mine(" in body)
             or (path.startswith("/api/approvals")
                 and ("_mine_or_404(" in body or "_own_comment_or_404(" in body))
+            # 팀 공유는 라우터가 아니라 `team_library` 가 건마다 판정한다
+            # (목록 자체는 누구나 부를 수 있고, 볼 게 없으면 빈 목록이다).
+            # 아래 test_팀공유는_단일_판정을_거친다 가 그 면제를 지킨다.
+            or (path.startswith("/api/team-library") and "team_library." in body)
             ), \
         "%s %s 가 권한을 판정하지 않습니다" % (method, path)
 
@@ -153,6 +177,42 @@ def test_결재는_남의_건에_404_를_낸다():
         "결재 라우트가 403 을 냅니다 — 그 자체로 남의 결재 건 존재를 알려줍니다"
     assert "perm.decide(" in src or "require_action" in src, \
         "결재 판정이 permissions 를 거치지 않습니다"
+
+
+def test_팀공유는_단일_판정을_거친다():
+    """팀 공유 라우터는 `require_action` 을 안 쓴다 — 목록은 **누구나** 부를 수 있고
+    무엇이 보이는지는 건마다 갈리기 때문이다(팀이 없으면 403 이 아니라 빈 목록이다).
+    **그 면제를 공짜로 두지 않는다.**
+
+    ① 판정은 `permissions.can_see_approval()` 하나만 한다 — 결재 API 와 같은 함수다.
+       두 벌이 되는 순간 「팀 공유에는 뜨는데 열면 404」 가 생긴다.
+    ② 역할·팀을 직접 비교하지 않는다. `role ==` 나 `team_ids in` 이 여기 생기면
+       그게 곧 두 번째 규칙이다.
+    ③ 승인본만 읽는다. 대기·반려 건이 팀에 새면 D6(승인이 곧 공유)이 무너진다.
+    ④ 못 보는 건에는 404 — 403 은 「그 id 는 있다」를 확인해 준다.
+    """
+    lib = (SRC_DIR / "team_library.py").read_text(encoding="utf-8")
+    rt = (SRC_DIR / "routes_team_library.py").read_text(encoding="utf-8")
+
+    assert "perm.can_see_approval(" in lib, "팀 공유가 permissions 를 거치지 않습니다"
+    assert 'status="approved"' in lib, "팀 공유가 승인본만 읽는지 확인할 수 없습니다"
+
+    code = "\n".join(l for l in lib.split("\n") if not l.lstrip().startswith("#"))
+    for banned in ("role ==", 'role == "admin"', "== ADMIN"):
+        assert banned not in code, "팀 공유가 역할을 직접 비교합니다: %s" % banned
+
+    assert "status_code=404" in rt
+    assert "status_code=403" not in rt, \
+        "팀 공유가 403 을 냅니다 — 그 자체로 남의 승인본 존재를 알려줍니다"
+
+
+def test_결재함과_팀공유가_같은_규칙을_쓴다():
+    """**결재함은 화면이고 `can_see_approval` 은 권한이다.** 결재함이 좁은 것은
+    「내가 낸 것이 어떻게 됐나」에 답하기 위해서지 권한이 좁아서가 아니다 —
+    그 구분이 흐려지면 팀 공유가 자기만의 규칙을 새로 적게 된다."""
+    src = (SRC_DIR / "routes_approvals.py").read_text(encoding="utf-8")
+    assert "perm.can_see_approval(" in src, \
+        "결재 API 가 팀 공유와 다른 규칙을 씁니다"
 
 
 def test_결재_코멘트는_제_것만_고친다():

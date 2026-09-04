@@ -129,10 +129,13 @@ def projects_create_from_template(req: TemplateProjectIn, user: dict = Depends(r
     회차를 걷어내는 순간 파일은 멀쩡한데 아무도 못 쓰는 상태가 된다.
 
     양식 자체는 `template_seed` 가 만든다. 여기서 정하는 것은 **누구 것인가** 뿐이다.
-    권한은 빈 슬라이드를 만들 때와 같다(`WRITE`) — 표준 양식이라고 더 높은 권한을
-    요구할 이유가 없고, 실제로 만들 수 있는 사람도 정확히 같다.
+
+    권한은 `TEMPLATE_USE` 다 — **P6 에서 `WRITE` 와 갈라졌다.** P1~P5 동안 둘은
+    언제나 같은 답을 냈다(열람자는 아무것도 못 썼다). D13 이 열람자에게 개인 스케치를
+    열어 준 지금, 열람자는 빈 슬라이드는 만들지만(WRITE=O) 회사 서식은 못 쓴다 —
+    서식은 결재를 타고 팀에 나갈 문서의 틀인데 열람자는 제출을 못 하기 때문이다.
     """
-    require_action(user, perm.WRITE, perm.Resource(owner_id=user["id"]))
+    require_action(user, perm.TEMPLATE_USE, perm.Resource(owner_id=user["id"]))
     try:
         state = template_seed.build_template_state(
             req.period_ym, user.get("name") or "", user.get("dept") or "")

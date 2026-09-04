@@ -72,12 +72,19 @@ USER_MANAGE = "user_manage"       # 가입 승인·역할 변경·비활성화
 SETTINGS_MANAGE = "settings_manage"   # LLM 설정 — API 키를 다룬다(UDS-107 §5)
 PUBLISH = "publish"               # 이북 발행 — 열람자 전원에게 공개된다. 되돌리기 어렵다
 AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작성 도구이므로 작성자 이상
+# 표준 템플릿(회사 서식)으로 새 자료를 시작한다.
+# **P2 에서 미뤄 두고 P6 에서 만든 액션이다.** P1~P5 동안에는 `WRITE` 와 언제나 같은 답을
+# 냈다(L3 은 아무것도 못 썼다). D13 이 L3 에게 개인 스케치를 열어 주는 지금,
+# 처음으로 답이 갈린다 — L3 은 제 스케치를 쓰지만(WRITE=O) 회사 서식은 못 쓴다.
+# 서식은 결재를 타고 팀에 나갈 문서의 틀인데, L3 은 제출 자체를 못 하기 때문이다.
+TEMPLATE_USE = "template_use"
 
 ALL_ACTIONS = (
     READ, WRITE, DELETE,
     COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE, COMMENT_FIX,
     SUBMIT, DECIDE,
     FOLDER_MANAGE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH, AI_USE,
+    TEMPLATE_USE,
 )
 
 # 관리자 전용 액션. 새 관리 기능을 추가하면 여기에 넣는다.
@@ -151,17 +158,30 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
 
     # ── 열람자 ─────────────────────────────
     if actor.role == VIEWER:
-        # 발행된 회차 결과물만, 읽기만.
-        # 메모는 존재 자체를 노출하지 않는다(확정 사항) — 읽기도 쓰기도 불가.
-        # AI 도구도 불가 — 열람자에게 작성 보조가 필요할 이유가 없고,
-        # LLM 호출은 비용과 외부 전송을 수반한다(UDS-107 §3).
+        # **D13 — 개인 스케치.** 원래(D3) L3 은 순수 열람자였다. 그런데 그러면
+        # 로그인해도 발행본이 없는 동안은 빈 화면만 본다. D13 이 이를 뒤집어,
+        # L3 에게 **아무에게도 안 보이는 제 작업 공간**을 준다.
+        #
+        # 「개인」이 무슨 뜻인지 아래 세 줄이 전부다 —
+        #   · 제 것은 읽고 쓰고 지운다(발행본도 읽는다)
+        #   · **제출은 못 한다**(SUBMIT). 그래서 결재도, 팀 공유도 일어나지 않는다.
+        #   · 회사 서식(TEMPLATE_USE)·AI 도구(AI_USE)는 못 쓴다.
+        #     서식은 결재를 타고 나갈 문서의 틀이고, LLM 은 비용과 외부 전송을
+        #     수반한다(UDS-107 §3). 나갈 데가 없는 문서에 둘 다 필요 없다.
+        # 메모는 존재 자체를 노출하지 않는다(확정 사항) — 제 것이라도 불가.
+        # L3 의 자료에는 결재 이력이 생길 수 없으므로(제출 불가) 삭제는 언제나 열린다.
+        if res is None or res.owner_id is None:
+            return bool(action == READ and res and res.published)
+        owns_v = res.owner_id == actor.id
         if action == READ:
-            return bool(res and res.published)
+            return owns_v or res.published
+        if action in (WRITE, DELETE):
+            return owns_v
         return False
 
     # ── 작성자 ─────────────────────────────
-    # AI 도구는 특정 이북에 매이지 않는다 — 리소스 없이 판정한다.
-    if action == AI_USE:
+    # AI 도구·회사 서식은 특정 이북에 매이지 않는다 — 리소스 없이 판정한다.
+    if action in (AI_USE, TEMPLATE_USE):
         return True
 
     # 소유 기반. 소유자 판정이 불가능하면 거부.
@@ -234,7 +254,10 @@ def visible_project_filter(actor: Optional[Actor]) -> str:
         # 팀 승인본은 P6 에서 별도 화면(팀 공유)으로 붙는다.
         return "own"
     if actor.role == VIEWER:
-        return "published"
+        # **본인 것 + 발행본** (D13). 「published」 하나였을 때 L3 은 제 스케치를
+        # 만들어 놓고도 목록에서 찾지 못했다. decide() 의 열람자 READ 규칙
+        # (owns or published)과 글자 그대로 짝이다.
+        return "own_or_published"
     return "none"
 
 
@@ -253,3 +276,48 @@ def can_grant_role(actor: Optional[Actor], target_user_id: str, new_role: str) -
         # 본인 강등으로 관리자가 사라지는 사고를 막는다.
         return False, "자기 자신의 역할은 변경할 수 없습니다."
     return True, ""
+
+
+def can_see_approval(actor: Optional[Actor], approval: Optional[dict]) -> bool:
+    """결재 건 하나가 이 사람에게 보이는가. **세 줄이 전부다.**
+
+        · 관리자 — 전부. 결재자가 한 명이므로(D11) 결재함이 곧 전체 목록이다.
+        · 낸 사람 — 제 것. 상태와 무관하다(반려·거둬들인 것도 제 이력이다).
+        · 같은 팀 — **승인된 것만**(D6 「승인이 곧 공유」).
+
+    세 번째 줄이 P6 의 전부다. 그리고 그 줄은 `approval["team_id"]` 를 본다 —
+    **제출 시점에 못박힌 팀**이지 지금 소속이 아니다(D9). 그래서 사람이 B팀으로
+    옮기면 A팀 시절 제 승인본은 A팀에 남고, 본인은 「낸 사람」 자격으로만 계속 본다.
+    반대로 B팀에 새로 들어온 사람은 그날부터 B팀의 옛 승인본을 본다 —
+    자료는 사람이 아니라 **팀의 것**이기 때문이다(D18).
+
+    이 함수가 결재 API(`routes_approvals`)와 팀 공유(`team_library`) **양쪽의
+    유일한 판정**이다. 두 곳이 각자 규칙을 적으면 한쪽에서만 보이는 자료가 생긴다.
+    """
+    if actor is None or not actor.is_active or not approval:
+        return False
+    if is_admin(actor):
+        return True
+    if approval.get("requester") == actor.id:
+        return True
+    if approval.get("status") != "approved":
+        # 대기·반려·회수는 낸 사람과 결재자 사이의 일이다. 팀은 결과만 본다.
+        return False
+    tid = approval.get("team_id") or ""
+    return bool(tid and tid in actor.team_ids)
+
+
+def can_see_approval_thread(actor: Optional[Actor], approval: Optional[dict]) -> bool:
+    """결재 **대화**(코멘트)를 볼 수 있는가. `can_see_approval` 보다 한 칸 좁다.
+
+    자료가 팀에 공유된다고 해서 그 자료를 두고 오간 말까지 팀에 공유되는 것은 아니다.
+    「3쪽 수치가 작년 것입니다」 같은 지적은 낸 사람과 결재자 사이의 일이고,
+    그게 팀 전체에 흐르면 사람들이 결재함에서 솔직하게 지적하기를 그만둔다.
+
+    그래서 대화는 **당사자만** 본다 — 관리자와 낸 사람.
+    팀은 결과물(스냅샷)을 보고, 대화는 안 본다.
+    """
+    if not can_see_approval(actor, approval):
+        return False
+    assert actor is not None and approval is not None
+    return is_admin(actor) or approval.get("requester") == actor.id

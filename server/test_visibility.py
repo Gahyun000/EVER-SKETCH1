@@ -114,7 +114,7 @@ def test_관리자는_전부_된다():
 def test_목록_필터_이름이_바뀌면_여기서_걸린다():
     assert visible_project_filter(ADMIN) == "all"
     assert visible_project_filter(ME) == "own"
-    assert visible_project_filter(VIEWER) == "published"
+    assert visible_project_filter(VIEWER) == "own_or_published"
 
 
 def test_작성자_필터와_개별_판정이_같은_말을_한다():
@@ -127,8 +127,12 @@ def test_작성자_필터와_개별_판정이_같은_말을_한다():
 
 
 def test_열람자_필터와_개별_판정이_같은_말을_한다():
-    assert visible_project_filter(VIEWER) == "published"
+    """**D13 이후 열람자의 목록은 두 갈래다** — 발행본 + 제 스케치.
+    필터가 'published' 하나였을 때 열람자는 제 스케치를 만들어 놓고도
+    목록에서 찾지 못했다."""
+    assert visible_project_filter(VIEWER) == "own_or_published"
     assert decide(VIEWER, READ, PUBLISHED) is True
+    assert decide(VIEWER, READ, Resource(owner_id=VIEWER.id)) is True
     assert decide(VIEWER, READ, PEERS) is False
 
 
