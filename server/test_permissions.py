@@ -145,6 +145,40 @@ def test_라우터가_결재_이력을_채운다():
         "_resource_of 가 결재 이력을 채우지 않습니다 (D16 이 뚫립니다)"
 
 
+# ── 잠금 (P7 · D8) ─────────────────────────────
+def test_잠긴_자료는_주인도_못_고친다():
+    """잠그는 이유는 **결재자·팀이 본 것과 작성자가 가진 것이 갈라지지 않게** 하는 것이다.
+    「내 자료인데 왜」가 아니라 「이미 남이 봤기 때문에」다."""
+    locked = Resource(owner_id=WRITER_U.id, locked=True)
+    assert decide(WRITER_U, WRITE, locked) is False
+    assert decide(WRITER_U, SUBMIT, locked) is False
+    # 열람자의 개인 스케치도 **같은 규칙**을 쓴다 — 규칙이 두 벌이면 한쪽만 고쳐진다.
+    assert decide(VIEWER_U, WRITE, Resource(owner_id=VIEWER_U.id, locked=True)) is False
+
+
+def test_잠금_기본값은_고칠_수_있는_쪽이다():
+    """`locked` 의 기본값은 False 이고, 그러면 **고쳐진다.**
+    `has_approval_history` 와 똑같이 안전한 쪽으로 실패하지 않는다."""
+    assert Resource(owner_id="x").locked is False
+    assert decide(WRITER_U, WRITE, Resource(owner_id=WRITER_U.id)) is True
+
+
+def test_라우터가_잠금을_채운다():
+    """이 배선이 빠지면 **승인된 자료가 그냥 고쳐진다** — 팀이 보는 그림과
+    작성자가 가진 문서가 소리 없이 갈라진다(D8 이 뚫린다)."""
+    src = (pathlib.Path(__file__).resolve().parent / "authdeps.py").read_text(encoding="utf-8")
+    assert "locked=" in src and "is_locked(" in src, \
+        "_resource_of 가 잠금을 채우지 않습니다 (D8 이 뚫립니다)"
+
+
+def test_삭제는_잠금과_무관하다():
+    """**일부러 갈라 둔 규칙이다.** 삭제를 막는 근거는 「결재 이력이 있는가」(D16)지
+    「지금 잠겼는가」가 아니다 — 반려된 자료(열림)도 이력이 있으면 못 지운다."""
+    rejected = Resource(owner_id=WRITER_U.id, locked=False, has_approval_history=True)
+    assert decide(WRITER_U, WRITE, rejected) is True
+    assert decide(WRITER_U, DELETE, rejected) is False
+
+
 def test_작성자는_본인_이북_메모만():
     assert decide(WRITER_U, COMMENT_READ, OWN) is True
     assert decide(WRITER_U, COMMENT_WRITE, OWN) is True

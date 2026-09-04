@@ -78,17 +78,21 @@ AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작
 # 처음으로 답이 갈린다 — L3 은 제 스케치를 쓰지만(WRITE=O) 회사 서식은 못 쓴다.
 # 서식은 결재를 타고 팀에 나갈 문서의 틀인데, L3 은 제출 자체를 못 하기 때문이다.
 TEMPLATE_USE = "template_use"
+# 승인된 자료를 **고치게 해 달라**고 청한다 (P7 · D8). 본인 승인본만.
+REVISION_REQUEST = "revision_request"
+# 그 청을 허락 · 거절한다. 결재자는 한 명이다 (D11).
+REVISION_DECIDE = "revision_decide"
 
 ALL_ACTIONS = (
     READ, WRITE, DELETE,
     COMMENT_READ, COMMENT_WRITE, COMMENT_RESOLVE, COMMENT_FIX,
     SUBMIT, DECIDE,
     FOLDER_MANAGE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH, AI_USE,
-    TEMPLATE_USE,
+    TEMPLATE_USE, REVISION_REQUEST, REVISION_DECIDE,
 )
 
 # 관리자 전용 액션. 새 관리 기능을 추가하면 여기에 넣는다.
-_ADMIN_ONLY = (DECIDE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH)
+_ADMIN_ONLY = (DECIDE, REVISION_DECIDE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH)
 
 
 @dataclass(frozen=True)
@@ -118,6 +122,11 @@ class Resource:
     # 남의 눈에 든 자료가 조용히 사라지면 「분명히 봤는데 없다」가 된다.
     # 거둬들인 건(withdrawn)도 이력으로 센다. 자료 하나를 두고 판정할 때만 채운다.
     has_approval_history: bool = False
+    # **지금 편집이 막혀 있는가**(P7 · `doc_state.is_locked`). 결재자가 보고 있거나
+    # 팀이 보고 있는 문서는 잠긴다 — 안 잠그면 「승인 도장이 무엇에 찍혔는지」를
+    # 나중에 알 수 없어진다. 이 값도 기본이 False(=열림) 라 **안전한 쪽이 아니다.**
+    # 그래서 라우터가 반드시 채운다(`authdeps._resource_of`, test_routes_perm 이 지킨다).
+    locked: bool = False
     # 그 지적을 **누가 썼는가.** 해결(닫기)은 지적한 사람 몫이다 —
     # 담당자가 자기에게 온 지적을 스스로 닫으면 검토가 형식이 된다.
     # 지적 하나를 두고 판정할 때만 채운다(목록 조회 등에는 None).
@@ -175,7 +184,11 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
         owns_v = res.owner_id == actor.id
         if action == READ:
             return owns_v or res.published
-        if action in (WRITE, DELETE):
+        if action == WRITE:
+            # 열람자의 스케치는 제출이 안 되니 잠길 일이 없다. 그래도 **같은 규칙을
+            # 쓴다** — 규칙이 두 벌이면 언젠가 한쪽만 고쳐진다.
+            return owns_v and not res.locked
+        if action == DELETE:
             return owns_v
         return False
 
@@ -200,10 +213,19 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
     if action == SUBMIT:
         # **열람자는 여기 오지 않는다** — 위 VIEWER 분기에서 이미 걸렸다(D13:
         # L3 도 개인 스케치는 만들지만 제출은 못 하는 순수 개인 작업 공간).
-        return owns
+        # 잠긴 자료는 못 낸다 — 「고칠 수 있으면 낼 수 있다」가 한 규칙이어야
+        # 「고칠 수는 있는데 낼 수는 없는」 상태가 안 생긴다(`doc_state.can_submit`).
+        return owns and not res.locked
     if action == WRITE:
         # 고치는 것은 본인 것만. 회차 단계에 따른 잠금은 사라졌고,
-        # 결재 상태에 따른 잠금이 P5 에서 그 자리에 온다.
+        # **결재 상태에 따른 잠금이 P7 에서 그 자리에 왔다.**
+        # 잠기는 이유는 결재자·팀이 본 것과 작성자가 가진 것이 갈라지지 않게 하는 것이다.
+        # 「반려」와 「수정 중」은 고치라고 열어 준 상태라 잠기지 않는다(`doc_state`).
+        return owns and not res.locked
+    if action == REVISION_REQUEST:
+        # **본인 승인본만.** 「지금 승인 상태인가」는 여기서 안 본다 —
+        # 그건 권한이 아니라 흐름의 조건이고, `approvals.request_revision` 이
+        # 「승인된 자료만」이라고 사람이 읽을 수 있는 말로 거절한다.
         return owns
     if action == DELETE:
         # **D16 (P5 에서 열었다)** — 결재를 한 번도 안 탄 자료는 작성자가 지운다.

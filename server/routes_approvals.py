@@ -139,6 +139,63 @@ class DecideIn(BaseModel):
     message: str = ""
 
 
+# ── 수정 요청 (P7 · D8) ──────────────────────────
+@router.post("/revision-request")
+def request_revision(req: RequestIn, user: dict = Depends(require_active)):
+    """승인된 자료를 **고치게 해 달라**고 청한다 — 본인 승인본만(`REVISION_REQUEST`).
+
+    **승인본은 여기서 아무것도 안 바뀐다.** 팀은 요청이 들어와도 직전 승인본을 그대로
+    보고, 허락이 나도 계속 그대로 본다 — 재승인이 나야 그림이 바뀐다(D8).
+    「승인된 자료만 낼 수 있다」 같은 흐름 조건은 저장소가 사람 말로 거절한다.
+    """
+    require_project(user, req.project_id, perm.REVISION_REQUEST)
+    try:
+        a = approvals_store.request_revision(req.project_id, user["id"], req.message)
+    except approvals_store.ApprovalError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "revision_request", a["id"], "project=%s" % req.project_id)
+    return {"ok": True, "approval": _with_names([a])[0]}
+
+
+@router.post("/{aid}/revision-decide")
+def decide_revision(aid: str, req: DecideIn, user: dict = Depends(require_active)):
+    """수정 요청 허락 · 거절 — **관리자만**(`REVISION_DECIDE`, D11).
+
+    허락해도 승인본은 그대로다. 열리는 것은 작업본뿐이고,
+    팀 화면에는 「수정 중」 **글자만** 얹힌다 — 그림은 안 바뀐다.
+    """
+    require_action(user, perm.REVISION_DECIDE)
+    if not approvals_store.get_approval(aid):
+        raise HTTPException(status_code=404, detail="결재 건을 찾을 수 없습니다.")
+    try:
+        a = approvals_store.decide_revision(aid, req.action, user["id"], req.message)
+    except approvals_store.ApprovalError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "revision_decide", aid, req.action)
+    return {"ok": True, "approval": _with_names([a])[0]}
+
+
+@router.post("/{aid}/revision-end")
+def end_revision(aid: str, user: dict = Depends(require_active)):
+    """수정을 **그만둔다** — 낸 사람만.
+
+    이 길이 없으면 「수정 중」이 영원히 남는다. 팀은 몇 달째 「곧 바뀐다」는 글자를
+    단 승인본을 보게 되고, 그 글자는 아무 뜻도 없어진다.
+    **고친 내용은 안 지운다** — 남의 작업을 대신 버리지 않는다.
+    """
+    a = _mine_or_404(aid, user)
+    if a["requester"] != user["id"]:
+        # 관리자라도 남의 수정을 대신 그만두지 않는다. 그만두는 것은 「안 고치겠다」는
+        # 뜻이고, 그 판단은 고치는 사람 몫이다.
+        raise HTTPException(status_code=404, detail="결재 건을 찾을 수 없습니다.")
+    try:
+        a = approvals_store.end_revision(aid)
+    except approvals_store.ApprovalError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    auth_store.audit(user["id"], "revision_end", aid, "")
+    return {"ok": True, "approval": _with_names([a])[0]}
+
+
 @router.post("/{aid}/decide")
 def decide_approval(aid: str, req: DecideIn, user: dict = Depends(require_active)):
     """승인 · 반려 — **관리자만**(DECIDE, D11)."""

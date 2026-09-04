@@ -13,8 +13,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from server import approvals as approvals_store
 from server import auth as auth_store
 from server import comments as comments_store
+from server import doc_state
 from server import folders as folders_store
 from server import notes as notes_store
 from server import permissions as perm
@@ -156,10 +158,20 @@ def projects_get(pid: str, user: dict = Depends(require_active)):
     # 화면이 역할을 보고 다시 계산하면 규칙이 두 곳에 생기고 반드시 어긋난다
     # (그때 사용자에게는 '눌리는데 403' 으로 보인다).
     actor = auth_store.actor_of(user)
+    st = approvals_store.state_of(pid)
     p["access"] = {
         "mine": res.owner_id == user["id"],
         "can_write": perm.decide(actor, perm.WRITE, res),
         "can_comment": perm.decide(actor, perm.COMMENT_WRITE, res),
+        # **왜 잠겼는지까지 말한다**(P7). `can_write: false` 만 주면 화면은
+        # 「권한이 없습니다」밖에 못 쓰고, 사람은 제 자료가 왜 안 고쳐지는지 모른다.
+        # 「승인됨 — 고치려면 수정 요청을 내 주세요」라고 쓰려면 상태가 필요하다.
+        "state": st,
+        "state_label": doc_state.label(st),
+        "locked": doc_state.is_locked(st),
+        "can_submit": perm.decide(actor, perm.SUBMIT, res),
+        "can_request_revision": (perm.decide(actor, perm.REVISION_REQUEST, res)
+                                 and doc_state.can_request_revision(st)),
     }
     return p
 

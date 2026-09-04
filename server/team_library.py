@@ -22,6 +22,13 @@
 월은 **승인 시각**(`decided_at`)으로 묶는다. 제출 시각이 아니다 —
 9월 30일에 내고 10월 2일에 승인됐다면 그 자료가 팀에 존재하게 된 것은 10월이다.
 
+── `kind='approval'` 만 읽는다 (P7) ───────────────────────
+「수정하게 해 달라」는 요청(`kind='revision'`)도 승인되면 `status='approved'` 가 된다.
+그런데 그 행에는 **스냅샷이 없다** — 문서가 아니라 허락을 청한 행이기 때문이다.
+걸러 내지 않으면 팀 목록에 빈 자료가 뜬다. 팀이 보는 그림은 수정 요청과 무관하게
+직전 승인본 그대로여야 한다(D8) — 여기가 그 규칙이 코드로 적히는 자리다.
+「수정 중」은 그림을 바꾸는 것이 아니라 **글자를 얹는 것**이다.
+
 한 자료(project)는 **최신 승인본 1건만** 뜬다. 3차까지 승인된 자료가 목록에 셋으로
 늘어서면 「어느 게 최신인가」를 사람이 매번 판단해야 한다. 과거 승인본은 사라지지
 않는다 — 상세에서 이력으로 연다(`round` 로 몇 번째인지 보인다).
@@ -33,6 +40,7 @@ from typing import Optional
 
 from server import approvals as approvals_store
 from server import auth as auth_store
+from server import doc_state
 from server import permissions as perm
 from server import teams as teams_store
 
@@ -90,7 +98,7 @@ def library(actor: Optional[perm.Actor]) -> dict:
         return {"teams": []}
 
     approved = [a for a in approvals_store.list_approvals(status="approved")
-                if perm.can_see_approval(actor, a)]
+                if a.get("kind") == "approval" and perm.can_see_approval(actor, a)]
 
     # 이름은 화면이 붙인다 — 저장에는 id 만 있다(개명해도 이력이 안 흐려지도록).
     # 한 번에 모아 붙인다: 건마다 되물으면 20건에 요청이 21번 나간다.
@@ -108,6 +116,10 @@ def library(actor: Optional[perm.Actor]) -> dict:
 
         by_author: dict[str, list[dict]] = {}
         for a in _latest_per_project(rows):
+            # 「수정 중」·「결재 중」을 **글자로 얹는다**(D8). 그림은 안 바뀐다 —
+            # 보는 쪽이 「곧 바뀔 자료」임을 알면서도 지금 것을 계속 볼 수 있어야 한다.
+            a["doc_state"] = approvals_store.state_of(a["project_id"])
+            a["doc_state_label"] = doc_state.label(a["doc_state"])
             by_author.setdefault(a.get("requester") or "", []).append(a)
 
         authors = []
@@ -177,5 +189,6 @@ def history(actor: Optional[perm.Actor], project_id: str) -> list[dict]:
     if actor is None or not actor.is_active or not project_id:
         return []
     rows = [a for a in approvals_store.list_approvals(project_id=project_id)
-            if a.get("status") == "approved" and perm.can_see_approval(actor, a)]
+            if a.get("status") == "approved" and a.get("kind") == "approval"
+            and perm.can_see_approval(actor, a)]
     return sorted(rows, key=lambda a: -(a.get("decided_at") or 0))

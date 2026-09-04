@@ -39,6 +39,7 @@ import time
 import uuid
 from typing import Optional
 
+from server import doc_state
 from server import projects as projects_store
 from server import teams as teams_store
 
@@ -137,7 +138,7 @@ def list_approvals(status: Optional[str] = None, project_id: Optional[str] = Non
             args += list(team_ids)
         if cond:
             q += " WHERE " + " AND ".join(cond)
-        q += " ORDER BY created_at DESC"
+        q += " ORDER BY created_at DESC, rowid DESC"
         out = [_row(r) for r in c.execute(q, args).fetchall()]
         for a in out:
             a["comment_count"] = c.execute(
@@ -167,7 +168,10 @@ def latest_for_project(project_id: str) -> Optional[dict]:
     try:
         r = c.execute(
             "SELECT " + _COLS + " FROM Approvals WHERE project_id=? "
-            "ORDER BY created_at DESC LIMIT 1", (project_id,)).fetchone()
+            # **rowid 로 동점을 깬다.** `created_at` 은 밀리초라 승인 직후에 낸
+            # 수정 요청이 같은 값을 가질 수 있고, 그러면 「최신 행」이 뒤집혀
+            # 자료 상태가 통째로 달라진다. rowid 는 넣은 순서다.
+            "ORDER BY created_at DESC, rowid DESC LIMIT 1", (project_id,)).fetchone()
         if not r:
             return None
         a = _row(r)
@@ -186,15 +190,31 @@ def status_map() -> dict:
     try:
         rows = c.execute(
             "SELECT project_id,id,status,round,kind,decided_at,created_at FROM Approvals "
-            "ORDER BY created_at DESC").fetchall()
+            # 동점은 rowid 로 깬다 — `latest_for_project` 와 **같은 답**이 나와야 한다.
+            # 어긋나면 목록의 배지와 상세 화면의 상태가 서로 다른 말을 한다.
+            "ORDER BY created_at DESC, rowid DESC").fetchall()
     finally:
         c.close()
     for pid, aid, st, rnd, kind, decided, created in rows:
         if pid in out:
             continue        # 최신순이므로 처음 만난 것이 최신이다
-        out[pid] = {"approval_id": aid, "status": st, "round": rnd or 1,
-                    "kind": kind or "approval", "decided_at": decided, "created_at": created}
+        row = {"approval_id": aid, "status": st, "round": rnd or 1,
+               "kind": kind or "approval", "decided_at": decided, "created_at": created}
+        # **파생 상태를 여기서 같이 준다**(P7). 화면이 `kind` 와 `status` 를 보고 스스로
+        # 짜맞추게 두면 서버와 화면이 서로 다른 상태를 말하는 날이 온다.
+        row["state"] = doc_state.derive(row)
+        row["locked"] = doc_state.is_locked(row["state"])
+        out[pid] = row
     return out
+
+
+def state_of(project_id: str) -> str:
+    """자료 하나의 파생 상태. 최신 결재 행 하나에서 계산한다(§3.4).
+
+    **`Projects` 에 상태 칼럼을 두지 않는 이유**는 진실이 두 곳이 되면 반드시
+    어긋나고, 어긋났을 때 어느 쪽이 맞는지 알 방법이 없기 때문이다.
+    """
+    return doc_state.derive(latest_for_project(project_id))
 
 
 def has_history(project_id: str) -> bool:
@@ -225,12 +245,28 @@ def request(project_id: str, requester_id: str, message: str = "") -> dict:
             "팀에 속해 있어야 제출할 수 있습니다. 관리자에게 팀 편성을 요청해 주세요.")
     team_id = tids[0]
 
+    # **잠긴 자료는 못 낸다**(P7). 「이미 대기 중」만 막으면 승인된 자료를 그대로
+    # 다시 낼 수 있고, 그러면 수정 요청 흐름(D8)을 우회하는 뒷문이 된다.
+    st = state_of(project_id)
+    if st == doc_state.PENDING:
+        raise ApprovalError("이미 결재 대기 중입니다.")
+    if st == doc_state.APPROVED:
+        raise ApprovalError("승인된 자료입니다. 고치려면 먼저 수정 요청을 내 주세요.")
+    if st == doc_state.REVISION_PENDING:
+        raise ApprovalError("수정 요청을 낸 상태입니다. 관리자 허락을 기다려 주세요.")
+    if not doc_state.can_submit(st):
+        # 여기 오면 상태를 새로 만들고 문구를 안 적은 것이다 — 막되, 무엇인지는 말한다.
+        raise ApprovalError("지금은 제출할 수 없습니다. (%s)" % (doc_state.label(st) or st))
+
     c = _conn()
     try:
         if c.execute("SELECT id FROM Approvals WHERE project_id=? AND status='pending'",
                      (project_id,)).fetchone():
             raise ApprovalError("이미 결재 대기 중입니다.")
-        rnd = c.execute("SELECT COUNT(*) FROM Approvals WHERE project_id=?",
+        # **회차는 결재를 받은 「문서」의 번호다** — 수정 요청 행(`kind='revision'`)은
+        # 문서가 아니라 허락을 청한 행이라 세지 않는다. 세면 승인본이 2건인데
+        # 「3회차」라고 적히고, 그때부터 「3회차 승인본」이 무엇을 가리키는지 모르게 된다.
+        rnd = c.execute("SELECT COUNT(*) FROM Approvals WHERE project_id=? AND kind='approval'",
                         (project_id,)).fetchone()[0] + 1
         aid, ts = _new_id("a"), _now()
         c.execute(
@@ -285,6 +321,89 @@ def decide(aid: str, action: str, approver_id: str, message: str = "") -> dict:
             "updated_at=?, decided_at=? WHERE id=?",
             ("approved" if action == "approve" else "rejected",
              approver_id, (message or "").strip(), ts, ts, aid))
+        c.commit()
+    finally:
+        c.close()
+    return get_approval(aid)
+
+
+# ── 수정 요청 (P7 · D8) ──────────────────────────
+def request_revision(project_id: str, requester_id: str, message: str = "") -> dict:
+    """승인된 자료를 **고치게 해 달라**는 요청. 스냅샷을 얼리지 않는다.
+
+    **문서가 아니라 허락을 요청하는 행이다.** 그래서 `snapshot IS NULL` 이고,
+    팀이 보는 그림은 이 요청과 무관하게 직전 승인본 그대로다 —
+    D8(「수정 중에 보던 자료가 사라지면 안 된다」)이 여기서 추가 장치 없이 풀린다.
+
+    `round` 는 올리지 않는다. 회차는 **결재를 받은 문서**의 번호인데 이 행에는
+    문서가 없다 — 올리면 「3회차 승인본」과 「3회차」가 서로 다른 것을 가리키게 된다.
+    """
+    p = projects_store.get_project(project_id)
+    if not p:
+        raise ApprovalError("자료를 찾을 수 없습니다.")
+    st = state_of(project_id)
+    if st != doc_state.APPROVED:
+        if st in (doc_state.REVISION_PENDING, doc_state.REVISING):
+            raise ApprovalError("이미 수정 요청이 진행 중입니다.")
+        raise ApprovalError("승인된 자료만 수정 요청을 낼 수 있습니다. 지금은 바로 고칠 수 있어요.")
+
+    last = latest_for_project(project_id)
+    # 팀은 **승인 당시 팀**을 그대로 물려받는다(D9). 요청자가 그새 옮겼더라도
+    # 이 자료가 걸려 있는 곳은 여전히 그 팀이다 — 자료는 팀의 것이다(D18).
+    team_id = (last or {}).get("team_id") or ""
+    rnd = (last or {}).get("round") or 1
+
+    c = _conn()
+    try:
+        aid, ts = _new_id("a"), _now()
+        c.execute(
+            "INSERT INTO Approvals(" + _COLS + ",snapshot) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (aid, project_id, p.get("name") or "제목 없음",
+             _folder_path_str(p.get("folder_id")), "revision", team_id, rnd, "pending",
+             requester_id, "", (message or "").strip(), "", 0, ts, ts, None, None),
+        )
+        c.commit()
+    finally:
+        c.close()
+    return get_approval(aid)
+
+
+def decide_revision(aid: str, action: str, approver_id: str, message: str = "") -> dict:
+    """수정 요청에 대한 허락 · 거절.
+
+    **허락해도 승인본은 그대로다.** 열리는 것은 작업본뿐이고, 팀은 재승인이 날 때까지
+    직전 승인본을 계속 본다. 거절하면 자료는 승인된 채로 잠겨 있던 그대로 남는다.
+    """
+    if action not in ("approve", "reject"):
+        raise ApprovalError("허락 또는 거절만 할 수 있습니다.")
+    a = get_approval(aid)
+    if not a:
+        raise ApprovalError("결재 건을 찾을 수 없습니다.")
+    if a.get("kind") != "revision":
+        raise ApprovalError("수정 요청이 아닙니다.")
+    if a.get("status") != "pending":
+        raise ApprovalError("이미 처리된 요청입니다.")
+    return decide(aid, action, approver_id, message)
+
+
+def end_revision(aid: str) -> dict:
+    """수정을 **그만둔다.** 고치기로 해 놓고 안 고칠 수도 있다.
+
+    이 길이 없으면 「수정 중」이 영원히 남는다 — 팀은 몇 달째 「곧 바뀐다」는 글자를
+    달고 있는 승인본을 보게 되고, 그 글자는 아무 뜻도 없게 된다.
+    **작업본에 고친 내용은 지우지 않는다** — 남의 작업을 대신 버리지 않는다.
+    승인본은 애초에 손대지 않았으므로 팀 화면에는 아무 일도 일어나지 않는다.
+    """
+    a = get_approval(aid)
+    if not a:
+        raise ApprovalError("결재 건을 찾을 수 없습니다.")
+    if a.get("kind") != "revision" or a.get("status") != "approved":
+        raise ApprovalError("수정 중인 요청만 그만둘 수 있습니다.")
+    c = _conn()
+    try:
+        ts = _now()
+        c.execute("UPDATE Approvals SET status='withdrawn', updated_at=? WHERE id=?", (ts, aid))
         c.commit()
     finally:
         c.close()

@@ -71,6 +71,15 @@ class World:
         return p, a
 
 
+    def again(self, owner, project_id, message=""):
+        """이미 승인된 자료를 **다시 승인받는다.** P7 이후 이 길은 하나뿐이다 —
+        수정 요청 → 허락 → 재제출 → 재승인. 승인본을 그대로 다시 낼 수는 없다."""
+        rv = ap.request_revision(project_id, owner["id"], message)
+        ap.decide_revision(rv["id"], "approve", self.admin["id"])
+        a = ap.request(project_id, owner["id"])
+        return ap.decide(a["id"], "approve", self.admin["id"])
+
+
 def _set_decided_at(aid, ts):
     import sqlite3
     c = sqlite3.connect(_DB)
@@ -220,7 +229,7 @@ def test_한_자료는_최신_승인본_하나만_뜬다():
     「어느 게 최신인가」를 사람이 매번 판단해야 한다."""
     w = World()
     p, first = w.approved(w.a, "여러 번 낸 것")
-    second = ap.decide(ap.request(p["id"], w.a["id"])["id"], "approve", w.admin["id"])
+    second = w.again(w.a, p["id"])
     ids = _all_ids(lib.library(w.actor(w.b)))
     assert ids == {second["id"]}
     assert first["id"] not in ids
@@ -231,7 +240,7 @@ def test_지난_승인본은_이력으로_남는다():
     """목록에서 뺀 것이지 지운 것이 아니다."""
     w = World()
     p, first = w.approved(w.a, "여러 번 낸 것")
-    second = ap.decide(ap.request(p["id"], w.a["id"])["id"], "approve", w.admin["id"])
+    second = w.again(w.a, p["id"])
     h = lib.history(w.actor(w.b), p["id"])
     assert [x["id"] for x in h] == [second["id"], first["id"]]   # 최근이 앞
 
@@ -413,7 +422,7 @@ def test_라우트_이력은_승인본만_거슬러_올라간다():
     app = make_app()
     w = World()
     p, first = w.approved(w.a, "여러 번 낸 것")
-    second = ap.decide(ap.request(p["id"], w.a["id"])["id"], "approve", w.admin["id"])
+    second = w.again(w.a, p["id"])
     h = cli(app, "writer_b").get("/api/team-library/history/%s" % p["id"]).json()["history"]
     assert [x["id"] for x in h] == [second["id"], first["id"]]
     assert all("snapshot" not in x for x in h), "이력에 문서 전체가 딸려 나옵니다"
