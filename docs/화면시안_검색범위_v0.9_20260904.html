@@ -111,7 +111,7 @@
 
   <div class="doc-kicker">화면 시안 · 검토 요청 (9차)</div>
   <h1>검색 범위는 지금 서 있는 자리</h1>
-  <div class="doc-meta">2026-09-04 · v0.9 · 검토 대기 · 앞선 시안: <code>화면시안_조회화면_v0.8_20260904.html</code></div>
+  <div class="doc-meta">2026-09-04 · v0.9 (확정본) · 앞선 시안: <code>화면시안_조회화면_v0.8_20260904.html</code></div>
 
   <div class="ok">
     <b>말씀이 맞습니다 — 토글을 없앴습니다.</b> v0.8 에는 「전체에서 / 이 폴더에서」 토글이 있었는데,
@@ -129,7 +129,7 @@
 
   <div class="app">
     <div class="main-head">
-      <h4 id="title">내 자료 <span class="depth" id="depth">깊이 0 / 3</span></h4>
+      <h4 id="title">내 자료</h4>
       <div class="hbtns"><button class="btn ghost">＋ 새 폴더</button><button class="btn">＋ 새로 만들기</button></div>
     </div>
     <div class="bc" id="bc"></div>
@@ -138,8 +138,7 @@
       <input class="dt" type="date" aria-label="시작일" id="d1">
       <span class="til">~</span>
       <input class="dt" type="date" aria-label="종료일" id="d2">
-      <div class="q">🔍<input id="q" placeholder="자료 제목 또는 폴더 이름" aria-label="검색어"></div>
-      <span class="scope" id="scope"></span>
+      <div class="q">🔍<input id="q" aria-label="검색어"></div>
       <button class="sbtn dark" id="doSearch">조회</button>
       <button class="sbtn" id="doReset">초기화</button>
     </div>
@@ -150,9 +149,11 @@
 
   <div class="notes">
     <div class="note"><span class="n">1</span><div>
-      <b>검색칸 옆에 범위를 글자로 붙입니다.</b> <span class="scope">2026 계획 아래에서</span>
-      처럼요. 폴더에 들어와 있다는 걸 잊고 검색하면 "왜 안 나오지"가 되는데,
-      그때 답이 바로 옆에 있어야 합니다.
+      <b>범위는 검색창 안내문이 말합니다.</b> 폴더 안에서는
+      「<span style="color:#98a1b2">2026 계획 아래에서 검색</span>」 이 되고, 맨 밖에서는
+      「<span style="color:#98a1b2">자료 제목 또는 폴더 이름</span>」 그대로입니다.<br>
+      칩을 따로 두지 않는 이유 — <b>루트에서 「전체에서」는 알려주는 것이 없습니다.</b>
+      갈 곳이 거기뿐이니까요. 정보가 있을 때만 나타나야 글자가 읽힙니다.
     </div></div>
     <div class="note"><span class="n">2</span><div>
       <b>결과가 없으면 「전체에서 다시 찾기」가 나옵니다.</b> 매번 고르게 하는 대신,
@@ -198,11 +199,14 @@
     <tr><td><b>폴더 한 줄</b></td><td>4 / 5 / 6개</td><td><b>5개</b></td></tr>
     <tr><td><b>자료 한 쪽</b></td><td>10 / 12 / 20건</td><td><b>12건</b> — 지금과 같은 값</td></tr>
     <tr><td><b>폴더 최대 깊이</b></td><td>3 / 5 / 무제한</td><td><b>3</b> — 3이면 경로 「…」 접힘은 안 나타남</td></tr>
+    <tr><td><b>깊이 표시</b></td><td>—</td><td><b>화면에 두지 않는다.</b> 사용자는 몇 단계인지 알 필요가 없다.
+      경로가 이미 말해주고, 한도는 <b>걸렸을 때만</b> 알린다</td></tr>
   </table>
 
   <p style="margin-top:34px;font-size:12px;color:var(--muted)">
     합성 데이터만 사용. 실제 자료·개인정보 없음.<br>
-    승인 상태: <b>검토 대기</b> — 네 값만 정해 주시면 P1.5 부터 착수합니다.
+    승인 상태: <b>확정</b> (2026-09-04) — 창 5칸 · 폴더 한 줄 5개 · 자료 한 쪽 12건 · 최대 깊이 3.
+    「깊이」·「전체에서」 표시는 넣지 않는다. <b>화면 설계 종료 → P1.5 착수.</b>
   </p>
 </div>
 
@@ -255,8 +259,8 @@ function bind(sel,set){document.querySelectorAll(sel+' button[data-g]').forEach(
   if(!b.disabled){set(Number(b.dataset.g));render()}})}
 
 function render(){
-  el('depth').textContent=`깊이 ${cur.length} / ${MAXD}`
-  el('scope').textContent=label()
+  // 범위는 별도 칩이 아니라 검색창 안내문으로 말한다 — 루트에서는 굳이 말할 것이 없다.
+  el('q').placeholder=cur.length?`${cur[cur.length-1]} 아래에서 검색`:'자료 제목 또는 폴더 이름'
   // 경로
   let h=`<a data-i="0">내 자료</a>`
   cur.forEach((c,i)=>{h+='<span class="sep">›</span>'+(i===cur.length-1?`<b>${c}</b>`:`<a data-i="${i+1}">${c}</a>`)})
