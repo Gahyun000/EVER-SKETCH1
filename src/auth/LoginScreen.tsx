@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { clearRemembered, loadRemembered, saveRemembered } from './remember'
-import { ApiError, apiSignup, ROLE_DESC, ROLE_LABEL, ROLE_ORDER, type Role } from './authApi'
+import { ApiError, apiCheckLoginId, apiSignup, ROLE_DESC, ROLE_LABEL, ROLE_ORDER, type Role } from './authApi'
+import { idCheckState, normalizeLoginId, passwordState, signupBlockers } from './signupCheck'
 import PasswordField from './PasswordField'
 import { useAuth } from './useAuth'
 
@@ -17,8 +18,15 @@ export default function LoginScreen() {
   const [loginId, setLoginId] = useState(remembered.loginId)
   const [remember, setRemember] = useState(!!remembered.loginId)
   const [password, setPassword] = useState(remembered.password)
+  const [confirmPw, setConfirmPw] = useState('')
   const [name, setName] = useState('')
   const [dept, setDept] = useState('')
+  // 「확인했다」는 깃발이 아니라 **어떤 값으로 확인했는지**를 들고 있는다.
+  // 깃발이면 아이디를 고쳤을 때 지우는 걸 빠뜨릴 수 있지만, 비교는 빠뜨릴 자리가 없다.
+  const [checkedFor, setCheckedFor] = useState<string | null>(null)
+  const [available, setAvailable] = useState<boolean | null>(null)
+  const [checking, setChecking] = useState(false)
+  const [checkErr, setCheckErr] = useState('')
   // 기본은 작성자 — 임원·부서 담당자가 대다수다.
   const [role, setRole] = useState<Role>('writer')
   const [busy, setBusy] = useState(false)
@@ -27,7 +35,33 @@ export default function LoginScreen() {
 
   const switchMode = (m: Mode) => {
     setMode(m); setErr(''); setDone(''); setPassword('')
+    // 가입 화면을 떠나면 확인 결과도 버린다. 남겨 두면 다음에 들어왔을 때
+    // 아무것도 안 눌렀는데 「사용할 수 있습니다」가 떠 있다.
+    setConfirmPw(''); setCheckedFor(null); setAvailable(null); setCheckErr('')
     clearSessionLost()
+  }
+
+  // 아이디 형식·중복·비밀번호 판정은 전부 순수 함수가 한다(signupCheck.ts).
+  const idState = idCheckState(loginId, checkedFor, available)
+  const pwState = passwordState(password, confirmPw)
+  const blockers = signupBlockers({
+    typed: loginId, checkedFor, available, password, confirm: confirmPw, name,
+  })
+
+  const runCheck = async () => {
+    const v = normalizeLoginId(loginId)
+    setChecking(true); setCheckErr('')
+    try {
+      const ok = await apiCheckLoginId(v)
+      setCheckedFor(v); setAvailable(ok)
+    } catch (e) {
+      // 확인에 실패했으면 **확인하지 않은 상태로 되돌린다.** 실패를
+      // 「사용 가능」으로 두면 눌러 놓고 가입에서 막힌다.
+      setCheckedFor(null); setAvailable(null)
+      setCheckErr(e instanceof ApiError ? e.message : '확인하지 못했어요. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setChecking(false)
+    }
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -41,9 +75,9 @@ export default function LoginScreen() {
         else clearRemembered()
       } else {
         const r = await apiSignup({ login_id: loginId, password, name, dept, requested_role: role })
+        // 순서 주의: switchMode 가 done 을 비우므로 **먼저** 갈아탄 뒤에 메시지를 넣는다.
+        switchMode('login')
         setDone(r.message)
-        setMode('login')
-        setPassword('')
       }
     } catch (e2) {
       setErr(e2 instanceof ApiError ? e2.message : '연결에 실패했어요. 서버가 켜져 있는지 확인해 주세요.')
@@ -74,9 +108,32 @@ export default function LoginScreen() {
         <form onSubmit={submit}>
           <div className="es-field">
             <label htmlFor="es-login-id">아이디</label>
-            <input id="es-login-id" value={loginId} autoComplete="username"
-              autoFocus={!remembered.loginId}
-              onChange={(e) => setLoginId(e.target.value)} placeholder="사내 아이디" />
+            {mode === 'signup' ? (
+              <div className="es-inline">
+                <input id="es-login-id" value={loginId} autoComplete="username" autoFocus
+                  onChange={(e) => { setLoginId(e.target.value); setCheckErr('') }}
+                  placeholder="사내 아이디" />
+                <button type="button" className="es-mini"
+                  disabled={checking || idState.kind === 'idle' || idState.kind === 'format'}
+                  onClick={() => void runCheck()}>
+                  {checking ? '확인 중…' : '중복 확인'}
+                </button>
+              </div>
+            ) : (
+              <input id="es-login-id" value={loginId} autoComplete="username"
+                autoFocus={!remembered.loginId}
+                onChange={(e) => setLoginId(e.target.value)} placeholder="사내 아이디" />
+            )}
+            {mode === 'signup' && (
+              /* 형식은 서버에 묻지 않고 화면이 판정한다 — 대문자나 한글을 치는 순간 바로 말해 준다.
+                 서버 호출은 형식이 맞은 다음에만 나간다. */
+              <div className={'es-hint' + (
+                idState.kind === 'available' ? ' es-ok'
+                : idState.kind === 'taken' || idState.kind === 'format' ? ' es-bad'
+                : idState.invalidated ? ' es-warn' : '')}>
+                {checkErr || idState.message}
+              </div>
+            )}
           </div>
 
           <PasswordField
@@ -87,7 +144,28 @@ export default function LoginScreen() {
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             autoFocus={!!remembered.loginId && !remembered.password && mode === 'login'}
             placeholder={mode === 'signup' ? '8자 이상' : ''}
+            hint={mode === 'signup' && (pwState.pw === 'short' || pwState.pw === 'long')
+              ? <div className="es-hint es-bad">{pwState.pwMessage}</div> : undefined}
           />
+
+          {/* 확인칸이 없으면 오타가 난 채로 가입이 되고, 로그인할 때 비로소 막힌다.
+              이 제품에는 비밀번호 찾기가 없어서 그때부터는 관리자가 초기화해 줘야 들어온다.
+              「비밀번호 변경」 화면은 이미 확인칸을 받고 있었다 — 더 위험한 쪽이 안 받고 있었다. */}
+          {mode === 'signup' && (
+            <PasswordField
+              id="es-pw2"
+              label="비밀번호 확인"
+              value={confirmPw}
+              onChange={setConfirmPw}
+              autoComplete="new-password"
+              placeholder="한 번 더"
+              hint={pwState.confirm === 'idle' ? undefined : (
+                <div className={'es-hint ' + (pwState.confirm === 'match' ? 'es-ok' : 'es-bad')}>
+                  {pwState.confirmMessage}
+                </div>
+              )}
+            />
+          )}
 
           {mode === 'login' && (
             <>
@@ -136,7 +214,9 @@ export default function LoginScreen() {
             </>
           )}
 
-          <button className="es-btn" type="submit" disabled={busy || !loginId || !password}>
+          {/* 가입에서는 무엇이 모자란지까지 본다. 버튼만 회색이면 사용자는 위아래를 훑는다. */}
+          <button className="es-btn" type="submit"
+            disabled={busy || (mode === 'signup' ? blockers.length > 0 : (!loginId || !password))}>
             {busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입 신청'}
           </button>
         </form>

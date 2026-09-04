@@ -50,6 +50,16 @@ LOGIN_WINDOW_MS = 10 * 60 * 1000     # 10분 동안
 LOGIN_MAX_FAILS = 10                 # 10회 실패하면 잠금
 _LOGIN_ID_RE = re.compile(r"^[a-z0-9._-]+$")
 
+# 아이디 중복 확인 시도 제한 (2026-09-04).
+# 이 API 는 계정 존재 여부를 알려준다 — 제품의 다른 곳(로그인 실패 문구, 404/403 통일)과
+# 반대 방향이다. 그래도 넣는 근거는 **이미 새고 있다**는 것이다: 가입 폼을 제출하면
+# 지금도 "이미 사용 중인 아이디입니다"가 나온다. 이 API 는 없던 구멍을 뚫는 게 아니라
+# 있는 구멍을 **빠르게** 만든다.
+# 그래서 막을 것은 "알려주는 것"이 아니라 **"빠르게 많이 묻는 것"** 이다.
+# 사람이 가입하며 누르는 횟수는 몇 번이고, 긁는 쪽은 수천 번이다.
+CHECK_ID_WINDOW_MS = 60 * 1000       # 1분 동안
+CHECK_ID_MAX = 20                    # 20회까지
+
 
 def _db_path() -> str:
     # 신규 변수 우선, 기존 EBOOK_HTML_DB 는 폴백으로 유지(이관 전 호환)
@@ -207,6 +217,57 @@ def list_audit(limit: int = 200, action: Optional[str] = None) -> list[dict]:
 # ── 가입 ─────────────────────────────────────────
 class AuthError(Exception):
     pass
+
+
+class RateLimited(Exception):
+    """시도가 너무 잦다. 라우터가 429 로 옮긴다."""
+    pass
+
+
+def login_id_taken(login_id: str, ip: str = "") -> bool:
+    """그 아이디를 쓸 수 있는가 — 가입 화면의 「중복 확인」.
+
+    **돌려주는 것은 bool 하나다.** "이미 있다"와 "못 쓰는 형식이다"를 나눠 답하면
+    응답 모양 자체가 정보가 된다. 형식은 화면이 서버에 묻지 않고도 판정하므로
+    여기서 자세히 말할 이유도 없다.
+
+    감사로그에 **아이디를 적지 않는다.** 적어 두면 로그를 보는 것만으로
+    "누가 캐 갔는가"가 아니라 **캐 간 결과 자체**가 재현된다.
+    """
+    if recent_check_ids(ip) >= CHECK_ID_MAX:
+        audit(None, "check_id_blocked", ip[:64],
+              "%d초 내 %d회" % (CHECK_ID_WINDOW_MS // 1000, CHECK_ID_MAX))
+        raise RateLimited(
+            "확인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
+        )
+    audit(None, "check_id", ip[:64])
+
+    v = (login_id or "").strip().lower()
+    if len(v) < MIN_LOGIN_ID or len(v) > MAX_LOGIN_ID or not _LOGIN_ID_RE.match(v):
+        # 형식이 틀린 아이디는 애초에 가입할 수 없다 → 「쓸 수 없음」과 같은 답.
+        return True
+
+    c = _conn()
+    try:
+        r = c.execute("SELECT 1 FROM Users WHERE login_id=?", (v,)).fetchone()
+    finally:
+        c.close()
+    return bool(r)
+
+
+def recent_check_ids(ip: str) -> int:
+    """최근 CHECK_ID_WINDOW_MS 안의 확인 횟수. 감사로그를 그대로 카운터로 쓴다
+    (`recent_login_fails` 와 같은 방식 — 별도 테이블을 만들지 않는다)."""
+    since = _now() - CHECK_ID_WINDOW_MS
+    c = _conn()
+    try:
+        r = c.execute(
+            "SELECT COUNT(*) FROM AuditLogs WHERE action='check_id' AND target=? AND ts>=?",
+            (ip[:64], since),
+        ).fetchone()
+    finally:
+        c.close()
+    return int(r[0]) if r else 0
 
 
 def signup(login_id: str, pw: str, name: str, dept: str, requested_role: str) -> dict:

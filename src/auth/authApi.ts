@@ -76,6 +76,16 @@ export async function apiSignup(input: {
   })
 }
 
+/**
+ * 아이디 중복 확인. **로그인 전에 쓰는 유일한 조회 API** 라 서버에 시도 제한이 걸려 있다.
+ * 429 가 오면 그대로 사용자에게 보여준다 — 「확인 요청이 너무 많습니다」.
+ */
+export async function apiCheckLoginId(login_id: string): Promise<boolean> {
+  const d = await req<{ available: boolean }>(
+    `/check-id?login_id=${encodeURIComponent(login_id)}`)
+  return !!d.available
+}
+
 export async function apiLogout(): Promise<void> {
   await req<{ ok: boolean }>('/logout', { method: 'POST' })
 }
@@ -118,8 +128,10 @@ export const ROLE_LABEL: Record<Role, string> = {
   '': '미부여',
 }
 
+// 2026-09-04 정정 — 「회차 개설」·「발행된 회차 자료」는 P2 에서 없어진 개념이다.
+// 가입 화면에서 사람이 제일 먼저 읽는 문장이라, 여기가 옛말이면 제품 전체가 옛것으로 보인다.
 export const ROLE_DESC: Record<string, string> = {
-  admin: '전체 관리 — 회차 개설, 가입 승인, 메모 작성, 최종 발행. (회의 주관)',
-  writer: '내 이북을 작성·수정하고 받은 메모에 답합니다. (임원·부서 담당자)',
-  viewer: '발행된 회차 자료를 봅니다. 편집은 하지 않습니다.',
+  admin: '전체 관리 — 팀 편성, 가입 승인, 결재, 메모 작성. (회의 주관)',
+  writer: '내 자료를 작성·수정하고 받은 메모에 답합니다. (임원·부서 담당자)',
+  viewer: '팀에 공유된 자료를 봅니다. 편집은 하지 않습니다.',
 }

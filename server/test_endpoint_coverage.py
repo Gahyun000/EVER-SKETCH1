@@ -19,6 +19,16 @@ PUBLIC_ALLOWLIST = {
     ("GET", "/api/health"): "기동 확인용. 내부 경로를 돌려주지 않는다",
 }
 
+# 로그인 가드를 붙일 수 없는 인증 경로와 그 사유.
+# 전부 **로그인 전에 쓰는 기능**이라 세션이 존재하지 않는다.
+NO_LOGIN_AUTH_ROUTES = {
+    "/api/auth/login": "로그인 자체",
+    "/api/auth/signup": "가입 자체",
+    "/api/auth/logout": "세션이 이미 없을 수도 있다",
+    "/api/auth/check-id": "가입 전 아이디 중복 확인. 가드 대신 시도 제한이 방어선이다"
+                          " — 아래 test_중복확인은_시도제한을_반드시_건다 가 그걸 강제한다",
+}
+
 
 def _routes(filename: str, app_var: str, prefix: str = ""):
     """(메서드, 경로, 함수본문) 목록. prefix 는 APIRouter(prefix=...) 값."""
@@ -59,8 +69,7 @@ def test_모든_엔드포인트에_로그인_가드가_있다(method, path, body
     # 인증 계열은 로그인 자체를 처리하므로 자기만의 의존성을 쓴다.
     if path.startswith("/api/auth/"):
         assert ("require_login" in body or "require_active" in body
-                or "current_user" in body or path in ("/api/auth/login", "/api/auth/signup",
-                                                      "/api/auth/logout")), \
+                or "current_user" in body or path in NO_LOGIN_AUTH_ROUTES), \
             "%s %s 에 인증 의존성이 없습니다" % (method, path)
         return
     assert "require_active" in body, "%s %s 에 require_active 가 없습니다" % (method, path)
@@ -72,14 +81,36 @@ def test_모든_엔드포인트가_권한을_판정한다(method, path, body):
     """로그인만 확인하고 레벨을 안 보면 L1 이 전부 호출할 수 있다."""
     if (method, path) in PUBLIC_ALLOWLIST:
         pytest.skip("공개 허용")
-    if path in ("/api/auth/login", "/api/auth/signup", "/api/auth/logout",
-                "/api/auth/me", "/api/auth/password"):
+    if path in NO_LOGIN_AUTH_ROUTES or path in ("/api/auth/me", "/api/auth/password"):
         return   # 로그인 전이거나 본인 계정 조작 — 레벨과 무관
     # 목록 계열은 permissions 의 가시성 판정 함수를 쓴다(라우터가 레벨을 직접 비교하면 안 된다).
     assert ("require_action" in body or "require_project" in body
             or "can_grant_role" in body or "visible_project_filter" in body
             ), \
         "%s %s 가 권한을 판정하지 않습니다" % (method, path)
+
+
+def test_중복확인은_시도제한을_반드시_건다():
+    """`/api/auth/check-id` 는 로그인 가드를 면제받았다. **공짜로 면제되면 안 된다.**
+
+    이 엔드포인트는 계정 존재 여부를 알려주므로, 가드가 없는 대신
+    시도 제한이 유일한 방어선이다. 누군가 나중에 제한을 걷어내면 여기서 걸린다.
+    """
+    body = [b for m, p, b in ALL_ROUTES if p == "/api/auth/check-id"][0]
+    assert "login_id_taken" in body, "중복 확인이 저장소 함수를 거치지 않습니다"
+    assert "RateLimited" in body and "429" in body, "시도 제한이 429 로 이어지지 않습니다"
+
+    src = (SRC_DIR / "auth.py").read_text(encoding="utf-8")
+    assert "CHECK_ID_MAX" in src and "recent_check_ids" in src, "시도 제한 자체가 없습니다"
+    assert "audit(None, \"check_id\"" in src, "확인 시도가 감사로그에 남지 않습니다"
+
+
+def test_중복확인은_계정_정보를_돌려주지_않는다():
+    """이름·부서·상태가 딸려 나가면 중복 확인이 사내 인명부가 된다."""
+    body = [b for m, p, b in ALL_ROUTES if p == "/api/auth/check-id"][0]
+    for leak in ("_public(", "name", "dept", "role", "status"):
+        assert leak not in body.split("return")[-1], \
+            "/api/auth/check-id 응답에 %s 가 섞여 있습니다" % leak
 
 
 def test_공개_허용목록이_최소한으로_유지된다():

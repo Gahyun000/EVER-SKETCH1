@@ -53,6 +53,21 @@ def signup(req: SignupIn):
             "message": "가입 신청이 접수됐습니다. 관리자 승인 후 이용할 수 있습니다."}
 
 
+@router.get("/check-id")
+def check_id(login_id: str, request: Request):
+    """아이디 중복 확인. **로그인 없이 호출된다** — 가입 전에 쓰는 기능이라 가드를 붙일 수 없다.
+
+    그래서 시도 제한이 유일한 방어선이다(`auth.CHECK_ID_MAX`).
+    응답은 `{available: bool}` 하나뿐 — 이름·부서·상태를 함께 내려주면
+    중복 확인이 사내 인명부가 된다.
+    """
+    try:
+        taken = auth_store.login_id_taken(login_id, client_ip(request))
+    except auth_store.RateLimited as e:
+        raise HTTPException(status_code=429, detail=str(e))
+    return {"available": not taken}
+
+
 class LoginIn(BaseModel):
     login_id: str
     password: str

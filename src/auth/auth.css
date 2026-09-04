@@ -30,6 +30,16 @@
 }
 .es-field input:focus, .es-field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(36, 98, 235, .12); }
 .es-field .es-hint { font-size: 11.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+/* 판정 결과 색. 초록·빨강만 쓰지 않고 노랑(es-warn)을 따로 둔 이유 —
+   「확인이 무효가 되었다」는 틀린 게 아니라 다시 해야 하는 것이다. */
+.es-hint.es-ok { color: var(--green); font-weight: 600; }
+.es-hint.es-bad { color: var(--red); font-weight: 600; }
+.es-hint.es-warn { color: #96601a; font-weight: 600; }
+/* 아이디 칸 + 「중복 확인」 버튼. 버튼 폭을 고정해야 글자가 「확인 중…」으로
+   바뀔 때 입력칸이 따라 움직이지 않는다. */
+.es-inline { display: flex; gap: 7px; }
+.es-inline input { flex: 1; min-width: 0; }
+.es-inline .es-mini { flex: 0 0 88px; height: 40px; }
 
 .es-btn {
   width: 100%; height: 42px; border: 0; border-radius: 7px; cursor: pointer;
