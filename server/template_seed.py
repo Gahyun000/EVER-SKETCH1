@@ -307,16 +307,25 @@ def build_template_state(period_ym: str, owner_name: str = "", dept: str = "",
 #
 # SLOT-A 는 병합이 **필수**다. 실물에서 진행 구간은 색칠이 아니라
 # '가로로 병합한 칸 + 단계 이름' 으로 표시된다. 병합을 막으면 로드맵을 그릴 수 없다.
+# `edit` 는 **표를 다루는 동작만** 말한다(칸·병합·행·정렬·색·서식·오늘).
+# head/foot 은 표가 아니라 글상자라서 `edit: []` 가 아무것도 막지 못했다 —
+# 사양서를 읽으면 「머리글은 다 잠겼다」로 보이는데 실제로는 늘 고칠 수 있었다.
+# 그런 항목은 없느니만 못하다. 그래서 글상자의 문구는 `text` 로 따로 적는다.
+#
+# `text: "open"` — 이름표 문구는 사람이 고친다(①의 결정: 문구는 다 연다).
+# 이 값은 지금 어느 코드도 막는 데 쓰지 않는다. **사실을 적어 둔 것**이고,
+# 나중에 다시 잠글 일이 생기면 여기 한 곳만 고치면 되게 자리를 만든 것이다.
 SLOT_POLICY: dict[str, dict] = {
-    "head": {"edit": []},
-    "foot": {"edit": []},
+    "head": {"edit": [], "text": "open"},
+    "foot": {"edit": [], "text": "open"},
     "SLOT-A": {
         "edit": ["cell", "merge", "row", "align", "cbg", "format", "today"],
         "cbgPalette": list(STAGE_COLORS),
         "lockedRows": ROADMAP_HEADER_ROWS,
+        "text": "open",
     },
-    "SLOT-B": {"edit": ["cell", "row", "format"], "lockedRows": 1},
-    "SLOT-C": {"edit": ["cell", "row", "format"], "lockedRows": 1},
+    "SLOT-B": {"edit": ["cell", "row", "format"], "lockedRows": 1, "text": "open"},
+    "SLOT-C": {"edit": ["cell", "row", "format"], "lockedRows": 1, "text": "open"},
 }
 
 

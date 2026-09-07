@@ -127,8 +127,11 @@ def test_저장해도_표시가_사라지지_않는다(ctx):
     """작성자가 내용을 고치는 것과 「이게 표준 양식인가」는 별개다.
     저장 한 번으로 표시가 날아가면 그 뒤로는 아무 검사도 안 걸린다."""
     c = ctx.as_user()
-    pid = c.post(TPL, json={"period_ym": "2026-10"}).json()["id"]
-    r = c.put("%s/%s" % (NEW, pid), json={"state": {"pages": []}, "name": "고친 것"})
+    got = c.post(TPL, json={"period_ym": "2026-10"}).json()
+    pid = got["id"]
+    st = got["state"]
+    st["title"] = "고친 제목"                      # 세트는 그대로 둔 채 내용만 고친다
+    r = c.put("%s/%s" % (NEW, pid), json={"state": st, "name": "고친 것"})
     assert r.status_code == 200, r.text
     assert projects_store.get_project_meta(pid)["template"] == template_seed.TEMPLATE_VERSION
 

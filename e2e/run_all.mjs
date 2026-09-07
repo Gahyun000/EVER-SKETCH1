@@ -17,7 +17,7 @@ const PORT = process.env.PORT || String(8900 + (process.pid % 900))
 const SUITES = [
   { name: '로그인 · 비밀번호 보기', file: 'login_password_smoke.mjs', env: { ANON: '1' } },
   { name: '표 셀 드래그 · 병합', file: 'table_merge_smoke.mjs', env: {} },
-  { name: '표 칸 타자(두 번 찍힘)', file: 'table_type_smoke.mjs', env: {} },
+  { name: '글자 입력(표 칸 · 머리글)', file: 'table_type_smoke.mjs', env: {} },
   { name: '앵커 메모(검토 의견)', file: 'comments_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '의견 쓰기 창(모달)', file: 'comment_modal_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '대화상자 공용 껍데기', file: 'modal_shell_smoke.mjs', env: {} },

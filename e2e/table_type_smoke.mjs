@@ -1,4 +1,13 @@
-// 표 칸에 글을 쓰면 **한 번만** 찍힌다 — 진짜 브라우저에서 확인한다.
+// 글자 입력 — 표 칸과 머리글. 진짜 브라우저에서 확인한다.
+//
+// 두 가지를 본다.
+//   1) 표 칸에 글을 쓰면 **한 번만** 찍힌다 (아래 긴 설명)
+//   2) 표준 양식의 **머리글 문구를 고칠 수 있다** — 「표준 양식이라도 글씨 정도는
+//      바꿀 수 있는 거 아닌가」라는 물음에 대한 답이 코드에 남아 있게 한다.
+//      머리글 글상자는 locked:true 지만 그건 **자리**를 잠근 것이지 글자를 잠근 게
+//      아니다. 정책에 `head: {edit: []}` 라고 적혀 있어서 「다 잠겼다」로 읽혔는데,
+//      edit 는 표 동작 목록이라 글상자에는 애초에 걸리지 않았다. 사실이 그렇다면
+//      브라우저가 그렇다고 말해 두는 편이 낫다 — 다음에 누가 막아 버리면 여기서 걸린다.
 //
 // 왜 브라우저까지 띄우는가:
 // 이건 React 와 브라우저가 같은 DOM 자리를 두고 다투는 문제라, 소스를 읽는 검사로는
@@ -102,6 +111,27 @@ const doubled = await p.locator('.stage .feltd').evaluateAll((ns) =>
   }).map((n) => n.textContent))
 ok('표 어느 칸에도 같은 글자가 두 번 이어 붙어 있지 않다',
    doubled.length === 0, doubled.join(' | '))
+
+// ── 머리글 문구는 고칠 수 있다 ─────────────────────────
+{
+  const title = p.locator('.stage .fel').filter({ hasText: '임원회의' }).first()
+  ok('머리글 글상자가 잠겨 있다고 표시된다(자리 고정)',
+     ((await title.getAttribute('class')) || '').includes('locked'))
+  ok('그래도 「글자는 고칠 수 있다」고 알려 준다',
+     ((await title.getAttribute('title')) || '').includes('글자'))
+
+  const before = (await title.textContent()) || ''
+  await title.dblclick()
+  await p.waitForTimeout(250)
+  ok('더블클릭하면 편집칸이 열린다',
+     await p.locator('.stage .feltext[contenteditable="true"]').count() === 1)
+  await p.keyboard.type(' (수정)')
+  await clearSel()
+  await p.waitForTimeout(350)
+  const after = (await p.locator('.stage .fel').filter({ hasText: '임원회의' }).first().textContent()) || ''
+  ok('고친 문구가 남는다', after === before + ' (수정)', JSON.stringify(after))
+  ok('머리글도 두 번 찍히지 않는다', !after.includes('(수정) (수정)'), JSON.stringify(after))
+}
 
 ok('페이지 오류가 없다', errs.length === 0, errs.join(' | '))
 

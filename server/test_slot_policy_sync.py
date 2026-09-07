@@ -70,6 +70,19 @@ def test_잠금_행_수가_같다(ts_src, slot):
         "%s 잠금 행 수가 다릅니다 (서버 %d / 프런트 %d)" % (slot, py_locked, ts_locked)
 
 
+@pytest.mark.parametrize("slot", sorted(T.SLOT_POLICY.keys()))
+def test_문구_열림이_같다(ts_src, slot):
+    """`edit` 는 표 동작만 다룬다. 글상자 문구는 `text` 가 정한다 —
+    한쪽만 고치면 「화면에서는 고쳐지는데 정책에는 잠겼다고 적힌」 상태가 되고,
+    그건 예전에 head 슬롯에서 실제로 오래 있었던 일이다."""
+    py_text = T.SLOT_POLICY[slot].get("text", "open")
+    block = _ts_block(ts_src, slot)
+    m = re.search(r"text:\s*'(open|locked)'", block)
+    ts_text = m.group(1) if m else "open"
+    assert py_text == ts_text, \
+        "%s 문구 열림이 다릅니다 (서버 %s / 프런트 %s)" % (slot, py_text, ts_text)
+
+
 def test_열_편집은_양쪽_모두_금지(ts_src):
     """가장 중요한 제약 — 한쪽에서라도 열리면 회차 취합이 깨진다."""
     for slot, policy in T.SLOT_POLICY.items():

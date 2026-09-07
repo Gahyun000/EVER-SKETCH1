@@ -21,6 +21,7 @@ from server import folders as folders_store
 from server import notes as notes_store
 from server import permissions as perm
 from server import projects as projects_store
+from server import template_guard
 from server import template_seed
 from server.authdeps import require_action, require_active, require_project
 
@@ -182,6 +183,20 @@ def projects_get(pid: str, user: dict = Depends(require_active)):
 @router.put("/api/projects/{pid}")
 def projects_save(pid: str, req: ProjectSaveIn, user: dict = Depends(require_active)):
     require_project(user, pid, perm.WRITE)
+    # 표준 양식이면 **표준 양식인 채로** 저장돼야 한다.
+    #
+    # 이 세 줄이 이 저장소에서 오래 비어 있던 자리다. 사양서에는 제약이 적혀 있었지만
+    # 저장 경로는 보내온 state 를 그대로 받아 적었고, slot_allows() 는 테스트에서만
+    # 불렸다. 「문서에는 잠겨 있다는데 실제로는 안 잠긴」 잠금은 없느니만 못하다 —
+    # 사람이 지켜지고 있다고 믿기 때문이다.
+    #
+    # 표시가 없는 자료(자유 이북)는 그냥 지나간다. 여기서 막는 것은 취합의 근거뿐이고,
+    # 쪽수는 세지 않는다 — 내용이 많은 임원은 장을 늘려 쓴다(「1인 1세트」).
+    meta = projects_store.get_project_meta(pid)
+    if meta and meta.get("template"):
+        why = template_guard.check_state(req.state)
+        if why:
+            raise HTTPException(status_code=400, detail=why)
     return projects_store.save_project(pid, req.state, req.name)
 
 

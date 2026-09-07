@@ -151,6 +151,10 @@ button{font-family:inherit;cursor:pointer}
 .fel.banner{clip-path:polygon(0 0,100% 0,88% 50%,100% 100%,0 100%,12% 50%);border-radius:0}
 .fel.callout{clip-path:polygon(0 0,100% 0,100% 72%,34% 72%,20% 100%,24% 72%,0 72%);border-radius:8px}
 .fel.text{border-color:transparent;background:transparent}
+/* 잠긴 요소는 손 모양을 주지 않는다 — 못 움직이는데 움직일 수 있다고 말하면 안 된다.
+   다만 **글상자는 글자를 고칠 수 있으므로** 글자 커서를 준다(더블클릭). */
+.fel.locked{cursor:default}
+.fel.locked.text,.fel.locked.wordart{cursor:text}
 .fel.icon{border-color:transparent;background:transparent}
 /* 빈 이미지 상자일 때만 '여기에 사진을 넣으세요' 안내용 점선 틀을 보인다.
    사진이 들어찬 뒤에도 이게 남으면, objectFit:contain 으로 생긴 여백에 연파랑 배경이 드러나고

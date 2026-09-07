@@ -775,12 +775,17 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
         if (el.italic) txtStyle.fontStyle = 'italic'
         if (el.underline) txtStyle.textDecoration = 'underline'
         if (el.align) txtStyle.textAlign = el.align
+        // `locked` 를 화면에 내보낸다. 예전에는 잠긴 요소도 손 모양(cursor:move)이라
+        // 「잡을 수 있다」고 말해 놓고 안 움직였다 — 사용자는 자기가 잘못 잡은 줄 안다.
+        // 글상자는 못 움직여도 **글자는 고칠 수 있으므로** 글자 커서를 준다.
         const cls = 'fel ' + el.type + (selEls.includes(el.id) ? ' sel' : '') + (connSrc === el.id ? ' connsrc' : '')
-          + (el.type === 'image' && el.src ? ' filled' : '')
+          + (el.type === 'image' && el.src ? ' filled' : '') + (el.locked ? ' locked' : '')
         const editingThis = editing === el.id
         return (
           <div key={el.id} className={cls} style={style}
             data-el-id={el.id}
+            title={el.locked && !isTable && !isImg && !isNote
+              ? '더블클릭하면 글자를 고칠 수 있어요' : undefined}
             data-goto-seq={el.gotoSeq || undefined}
             onPointerDown={active ? (e) => onElDown(e, el) : undefined}
             onPointerEnter={active && tool === 'select' ? () => setHoverId(el.id) : undefined}

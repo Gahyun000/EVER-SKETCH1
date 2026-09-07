@@ -1,15 +1,31 @@
 // 표준 템플릿 슬롯 정책 — 프런트 사본.
 //
 // 진실은 서버(`server/template_seed.py::SLOT_POLICY`)에 있다. 여기 있는 것은
-// **버튼을 숨기고 편집을 막기 위한 화면용 사본**이다. 우회해도 서버가 거부한다.
+// **버튼을 숨기고 편집을 막기 위한 화면용 사본**이다.
 // 두 파일이 어긋나면 `server/test_slot_policy_sync.py` 가 실패한다.
+//
+// **서버가 무엇까지 거부하는지 정확히 적는다.** 오래 「우회해도 서버가 거부한다」고
+// 적혀 있었지만 사실이 아니었다 — 저장 경로는 보내온 state 를 그대로 받아 적었고
+// slot_allows() 는 테스트에서만 불렸다. 지금 서버가 실제로 거부하는 것은
+// **세트가 깨지는 것**뿐이다(server/template_guard.py):
+//
+//     거부한다   SLOT-A/B/C 표가 없어지거나 둘이 되거나 열 수가 달라지면
+//     거부 안 한다 그 밖의 편집 — 아래 목록은 여전히 **화면에서만** 막는다
+//
+// 화면에서만 막는 것을 「서버가 지킨다」고 적으면, 그 문장을 믿고 더 위험한 것을
+// 화면에 맡기게 된다. 이 저장소에서 이미 두 번 그렇게 됐다.
 //
 // 사양: start_docs/화면설계/표준템플릿_정본_사양_v2.0.md §5
 
 export type SlotOp = 'cell' | 'merge' | 'row' | 'col' | 'align' | 'cbg' | 'format' | 'today'
 
 export interface SlotPolicy {
+  /** **표를 다루는 동작만** 말한다. 글상자 문구는 아래 `text` 가 정한다. */
   edit: SlotOp[]
+  /** 이름표(글상자)의 문구를 사람이 고칠 수 있는가.
+   *  `edit: []` 는 표 동작이라 글상자에는 애초에 걸리지 않았다 —
+   *  「머리글은 다 잠겼다」로 읽히던 것이 사실이 아니었던 이유다. */
+  text?: 'open' | 'locked'
   /** 위에서부터 이 행 수만큼은 L2가 못 건드린다(헤더). */
   lockedRows?: number
   /** 셀 배경색으로 고를 수 있는 값. 임의 색을 막아야 취합에서 색의 의미가 유지된다. */
@@ -40,15 +56,23 @@ export const CBG_LABEL: Record<string, string> = {
 // SLOT-A 는 병합이 **필수**다 — 실물에서 진행 구간은 색칠이 아니라
 // '가로로 병합한 칸 + 단계 이름' 이다. 병합을 막으면 로드맵을 그릴 수 없다.
 export const SLOT_POLICY: Record<string, SlotPolicy> = {
-  head: { edit: [] },
-  foot: { edit: [] },
+  head: { edit: [], text: 'open' },
+  foot: { edit: [], text: 'open' },
   'SLOT-A': {
     edit: ['cell', 'merge', 'row', 'align', 'cbg', 'format', 'today'],
     cbgPalette: [...STAGE_COLORS],
     lockedRows: 2,        // 연도 행 + 월 행
+    text: 'open',
   },
-  'SLOT-B': { edit: ['cell', 'row', 'format'], lockedRows: 1 },   // 진행 현황 · 향후 계획
-  'SLOT-C': { edit: ['cell', 'row', 'format'], lockedRows: 1 },   // 이슈 리스트
+  'SLOT-B': { edit: ['cell', 'row', 'format'], lockedRows: 1, text: 'open' },
+  'SLOT-C': { edit: ['cell', 'row', 'format'], lockedRows: 1, text: 'open' },
+}
+
+/** 이 슬롯의 이름표 문구를 고칠 수 있는가.
+ *  슬롯이 아닌 일반 요소는 당연히 고칠 수 있다. */
+export function slotTextEditable(slot: string | undefined): boolean {
+  if (!slot) return true
+  return (SLOT_POLICY[slot]?.text ?? 'open') === 'open'
 }
 
 /** 이 슬롯에서 이 편집이 허용되는가. 모르는 슬롯은 거부(기본 거부). */
