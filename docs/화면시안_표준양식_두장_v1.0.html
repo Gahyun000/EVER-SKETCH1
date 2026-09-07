@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>표준 양식 — 한 장 vs 두 장 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#EAF1FE;--line:#E6E8EE;--card:#F7F8FB;
+    --sub:#5b6270;--muted:#98a1b2;--ok:#215c46;--okbg:#E9F5EF;--ink:#0f172a;
+    --warn:#8a5a10;--warnbg:#FFF4E3;--head:#FFFFCC}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:34px 0 6px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--sub);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 16px;font-size:12.5px;color:var(--sub);line-height:1.85}
+  .box.warn{border-left-color:#D98A2A}
+  .box.ok{border-left-color:#2E9E6B}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#eef1f6;border-radius:4px;padding:1px 5px;font-size:11.5px}
+
+  .picks{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+  .pick{border:1.4px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;
+    cursor:pointer;font:inherit;font-size:12.5px;font-weight:800;color:var(--sub);text-align:left;
+    display:flex;flex-direction:column;gap:2px;min-width:210px}
+  .pick .s{font-size:11px;font-weight:700;color:var(--muted)}
+  .pick.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .pick.on .s{color:rgba(255,255,255,.72)}
+
+  .stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px 22px;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .sheets{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  .sheetwrap{flex:0 0 auto}
+  .sheetcap{font-size:11.5px;font-weight:800;color:var(--navy);margin:0 0 6px;display:flex;
+    align-items:center;gap:6px}
+  .sheetcap .badge{background:var(--tint);color:var(--blue);border-radius:20px;padding:1px 8px;
+    font-size:10.5px;font-weight:800}
+  /* 종이. 실제 1040x720 을 0.46 배로 줄여 놓은 것 — 비율은 실제와 같다. */
+  .sheet{width:478px;height:331px;background:#fff;border:1px solid #cfd4de;border-radius:3px;
+    position:relative;overflow:hidden;box-shadow:0 2px 10px rgba(20,25,40,.10)}
+  .sheet .inner{position:absolute;left:0;top:0;width:1040px;height:720px;
+    transform:scale(.46);transform-origin:top left}
+  .el{position:absolute}
+  .ttl{font-size:19px;font-weight:800;color:#0f172a}
+  .sub{font-size:12px;color:#98a1b2}
+  .cap{font-size:13px;font-weight:800;color:#1c2433}
+  .foot{font-size:10.5px;color:#98a1b2}
+  table.t{border-collapse:collapse;table-layout:fixed;width:100%}
+  table.t td{border:1px solid #cfd4de;font-size:10px;color:#1c2433;padding:2px;text-align:center;
+    overflow:hidden;white-space:nowrap}
+  table.t td.h{background:var(--head);font-weight:700}
+  table.t td.l{text-align:left;padding-left:6px}
+  td.stage1{background:#FBE5D6}td.stage2{background:#DEEBF7}td.stage3{background:#E2F0D9}
+  .grow{background:repeating-linear-gradient(45deg,#EAF1FE,#EAF1FE 6px,#dfeaff 6px,#dfeaff 12px)}
+
+  .meter{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+  .m{flex:1 1 190px;border:1px solid var(--line);border-radius:10px;padding:10px 13px;background:var(--card)}
+  .m .k{font-size:11px;font-weight:800;color:var(--muted)}
+  .m .v{font-size:19px;font-weight:800;color:var(--navy);line-height:1.3}
+  .m .v em{font-style:normal;font-size:12px;color:var(--sub);font-weight:700}
+  .m.up{background:var(--okbg);border-color:#bfe0cf}
+  .m.up .v{color:var(--ok)}
+
+  table.tab{border-collapse:collapse;width:100%;font-size:12.5px;background:#fff;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  table.tab th,table.tab td{border-bottom:1px solid var(--line);padding:9px 12px;text-align:left;
+    vertical-align:top}
+  table.tab th{background:var(--card);color:var(--navy);font-size:11.5px}
+  table.tab tr:last-child td{border-bottom:0}
+  .tag{display:inline-block;border-radius:20px;padding:1px 8px;font-size:10.5px;font-weight:800}
+  .tag.doc{background:#FFF4E3;color:var(--warn)}
+  .tag.test{background:#FDECEC;color:#9b2c2c}
+  .tag.code{background:var(--tint);color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>표준 양식 — 한 장으로 둘까, 두 장으로 나눌까</h1>
+<p class="lead">「한 장 한 장 나눠서 두 장으로 만들어도 될 듯」에 대한 시안입니다.
+정하실 것은 <b>한 가지</b> — 아래 ㉮ ㉯ ㉰ 중 하나입니다.</p>
+
+<div class="box ok"><span class="t">먼저, 걱정하지 않으셔도 되는 것 세 가지</span>
+① <b>취합 코드는 아직 없습니다.</b> 저장소 전체에서 「취합」은 주석과 테스트 설명에만 나옵니다 —
+여러 사람 자료를 한 권으로 엮는 코드는 아직 한 줄도 없습니다. 두 장으로 바꿔도 <b>지금 도는 것 중 깨지는 건 없습니다.</b><br />
+② <b>뷰어는 이미 여러 장을 봅니다.</b> 좌우 화살표·쪽 번호(<code>3 / 7</code>)·섬네일이 다 있습니다. 새로 만들 것이 없습니다.<br />
+③ <b>슬롯은 쪽에 매여 있지 않습니다.</b> <code>SLOT-B</code> 를 찾을 때 「1쪽의」라고 쓴 곳이 없어서,
+2쪽으로 옮겨도 편집 정책·코멘트 앵커가 그대로 따라갑니다.</div>
+
+<h2><span class="n">1</span>세 갈래</h2>
+<div class="picks" id="picks"></div>
+<div class="stage">
+  <div class="sheets" id="sheets"></div>
+  <div class="meter" id="meter"></div>
+</div>
+
+<h2><span class="n">2</span>「1인 1장」이 지키려던 것</h2>
+<p class="lead">약속의 근거는 사양서 v2.0 에 <b>「취합 단위 = 사람」</b> 한 줄입니다.
+지키려던 건 <b>쪽수가 1이라는 것</b>이 아니라 <b>사람마다 구조가 똑같다는 것</b>입니다.
+그래서 ㉯(2장 <b>고정</b>)는 이 약속을 그대로 지키고, ㉰(넘칠 때만)는 <b>깹니다</b> —
+어떤 사람은 2쪽이 있고 어떤 사람은 없으면, 엮은 책에서 「몇 번째 쪽이 이슈 리스트인가」가 사람마다 달라집니다.</p>
+
+<div class="box warn"><span class="t">그리고 이건 원래부터 열어 둔 질문이었습니다</span>
+사양서 v1.0 §7.2 「리허설에서 확정」 표의 2번 항목이 그대로 이겁니다 —
+<b>「1인 1장이 충분한지 — 사업이 많은 본부는 2장 필요할 수 있음 / 잠정: 1장 유지 / 확정 시점: W5 리허설 실측」</b>.
+지금 실제로 써 보시고 「모자란다」가 나온 것이니, 이건 약속을 어기는 게 아니라
+<b>예약해 둔 질문에 답이 나온 것</b>입니다. 다만 답이 나왔으면 아래 여섯 군데를 <b>같이</b> 고쳐야 합니다 —
+한 군데만 고치면 「문서는 1장이라는데 코드는 2장」이 되고, 그게 지금 <code>slot_allows</code> 와 「＋ 새 페이지」에서
+이미 벌어진 일입니다.</p>
+
+<table class="tab">
+  <tr><th style="width:30%">고쳐야 할 곳</th><th style="width:12%">종류</th><th>지금 뭐라고 적혀 있나</th></tr>
+  <tr><td><code>AGENTS.md:37</code></td><td><span class="tag doc">약속</span></td>
+      <td>「1인 1장 — 표준 양식은 1인당 1장. 페이지 추가·삭제는 관리자 승인 예외만 허용」</td></tr>
+  <tr><td><code>표준템플릿_정본_사양_v2.0.md:31</code></td><td><span class="tag doc">사양</span></td>
+      <td>「1인 1장 / 페이지 1개 / 취합 단위 = 사람」</td></tr>
+  <tr><td><code>server/template_seed.py:287</code></td><td><span class="tag code">코드</span></td>
+      <td>docstring 「1인 1장 원칙 — 페이지 1개」 · <code>build_template_state</code> 가 <code>pages:[page]</code></td></tr>
+  <tr><td><code>src/persistence/projects.ts:197</code></td><td><span class="tag code">코드</span></td>
+      <td>주석 「한 장을 더 붙이면 '1인 1장'이 깨진다」 — <code>addCard</code> 를 일부러 안 부름</td></tr>
+  <tr><td><code>server/test_template_seed.py:156</code></td><td><span class="tag test">테스트</span></td>
+      <td><code>assert len(st["pages"]) == 1</code></td></tr>
+  <tr><td><code>server/test_template_project.py:114</code></td><td><span class="tag test">테스트</span></td>
+      <td><code>assert len(st["pages"]) == 1  # 1인 1장</code></td></tr>
+</table>
+
+<h2><span class="n">3</span>남는 구멍 하나 — 「＋ 새 페이지」</h2>
+<div class="box warn">
+어느 쪽으로 정하시든 <b>「＋ 새 페이지」 버튼은 여전히 아무도 막지 않습니다.</b>
+2장으로 정해도 사용자가 3장, 5장을 만들 수 있고 그때 취합은 다시 깨집니다.
+지금은 <b>약속만 있고 잠금이 없는</b> 상태 — <code>slot_allows()</code> 가 테스트에서만 쓰이고
+서버는 <code>state</code> 를 그대로 저장하던 것과 정확히 같은 모양입니다.<br />
+제안: 표준 양식으로 만든 자료에서는 <b>쪽 추가·삭제를 화면에서 아예 감추고</b>,
+서버 저장에서도 <b>쪽수가 정해진 값과 다르면 거부</b>합니다. 그래야 이번엔 약속이 실제로 지켜집니다.
+</div>
+
+<script>
+// ── 세 갈래의 정의 ─────────────────────────────────
+// 숫자는 상상이 아니라 template_seed.py 의 상수로 실제 계산한 값이다.
+//   PAGE_H 720 / ROADMAP_ROW_H 40 / LIST_ROW_H 34 / ROADMAP_Y 94 / 꼬리말 50
+var OPTS = [
+  {k:'a', t:'㉮ 지금 그대로', s:'1장 · 바꾸는 것 없음', pages:1, road:7, list:4},
+  {k:'b', t:'㉯ 2장 고정  ← 추천', s:'모든 사람이 항상 2장', pages:2, road:12, list:15},
+  {k:'c', t:'㉰ 넘칠 때만 2장', s:'사람마다 1장 또는 2장', pages:2, road:12, list:15}
+];
+var cur = 'b';
+
+function el(x,y,w,h,cls,html){
+  return '<div class="el '+(cls||'')+'" style="left:'+x+'px;top:'+y+'px;width:'+w+'px;'
+       + (h?'height:'+h+'px;':'')+'">'+(html||'')+'</div>';
+}
+// 로드맵 표 — 실제 18열의 너비 비율을 그대로 쓴다(사업그룹/프로젝트가 넓다).
+function roadmap(rows, mark){
+  var w=[2.74,3.21].concat(Array(12).fill(1)).concat([1.48,1.48,1.48,1.48]);
+  var sum=w.reduce(function(a,b){return a+b},0);
+  var cols=w.map(function(v){return '<col style="width:'+(v/sum*100)+'%">'}).join('');
+  var mn=['1','2','3','4','5','6','7','8','9','10','11','12'];
+  var h1='<tr><td class="h" rowspan="2">사업<br>그룹</td><td class="h" rowspan="2">프로젝트</td>'
+        +'<td class="h" colspan="12">2026</td><td class="h" rowspan="2">2027</td>'
+        +'<td class="h" rowspan="2">계획<br>M/M</td><td class="h" rowspan="2">투입<br>M/M</td>'
+        +'<td class="h" rowspan="2">비고</td></tr>';
+  var h2='<tr>'+mn.map(function(m){return '<td class="h">'+m+'</td>'}).join('')+'</tr>';
+  var body='';
+  for(var r=0;r<rows;r++){
+    var isNew = mark && r>=mark;
+    var c='<td class="l'+(isNew?' grow':'')+'">'+(r<2?'클라우드':'')+'</td>'
+        + '<td class="l'+(isNew?' grow':'')+'">'+(isNew?'':'프로젝트 '+(r+1))+'</td>';
+    for(var m=0;m<12;m++){
+      var st='';
+      if(!isNew){
+        if(r===0&&m>=1&&m<=3)st=' stage1'; if(r===0&&m>=4&&m<=7)st=' stage2';
+        if(r===1&&m>=3&&m<=6)st=' stage3'; if(r===2&&m>=5&&m<=9)st=' stage1';
+      }
+      c+='<td class="'+(isNew?'grow':'')+st+'">'+((r===0&&m===1)?'설계':(r===1&&m===3)?'구축':'')+'</td>';
+    }
+    c+='<td class="'+(isNew?'grow':'')+'"></td><td class="'+(isNew?'grow':'')+'"></td>'
+      +'<td class="'+(isNew?'grow':'')+'"></td><td class="'+(isNew?'grow':'')+'"></td>';
+    body+='<tr>'+c+'</tr>';
+  }
+  return '<table class="t"><colgroup>'+cols+'</colgroup>'+h1+h2+body+'</table>';
+}
+function lists(rows, mark){
+  function rowsOf(n,cols){
+    var o='';
+    for(var r=0;r<n;r++){
+      var isNew = mark && r>=mark;
+      o+='<tr>';
+      for(var c=0;c<cols;c++) o+='<td class="l '+(isNew?'grow':'')+'"></td>';
+      o+='</tr>';
+    }
+    return o;
+  }
+  return {
+    status:'<table class="t"><tr><td class="h">진행 현황</td><td class="h">향후 계획</td></tr>'
+      +rowsOf(rows,2)+'</table>',
+    issue:'<table class="t"><tr><td class="h">이슈 리스트 (미해결 · 필요 지원)</td></tr>'
+      +rowsOf(rows,1)+'</table>'
+  };
+}
+function head(sub){
+  return el(24,40,600,0,'ttl','2026년 10월 임원회의 — 홍길동')
+       + el(640,46,376,0,'sub','SI개발본부 · 제출기한 10/08'+(sub?'  ·  '+sub:''));
+}
+function foot(y){
+  return el(24,y,700,0,'foot','EVER-SKETCH · 2026-10 임원회의  ·  SI개발본부');
+}
+
+function render(){
+  var o = OPTS.filter(function(x){return x.k===cur})[0];
+  var out='';
+
+  if(o.pages===1){
+    var l=lists(4,null);
+    out += '<div class="sheetwrap"><div class="sheetcap">한 장짜리'
+      +'<span class="badge">지금</span></div><div class="sheet"><div class="inner">'
+      + head('')
+      + el(24,72,400,0,'cap','① 로드맵 / 마일스톤')
+      + el(24,94,992,0,'',roadmap(2+5,5))
+      + el(24,368,588,0,'cap','② 진행 현황 · 향후 계획')
+      + el(24,390,588,0,'',l.status)
+      + el(626,368,390,0,'cap','③ 이슈 · 필요 지원')
+      + el(626,390,390,0,'',l.issue)
+      + foot(578)
+      + '</div></div></div>';
+    out += '<div class="box" style="flex:1 1 300px;margin:0">'
+      + '<span class="t">지금 남는 자리</span>꼬리말이 578px 에서 끝나고 종이는 720px 입니다 — '
+      + '<b>108px</b>, 로드맵 기준 <b>2.7행</b>. 로드맵을 2행 늘리면 아래 목록은 <b>한 행도</b> 못 늘립니다. '
+      + '두 블록이 같은 108px 를 나눠 씁니다.</div>';
+  } else {
+    var l2=lists(15,4);
+    out += '<div class="sheetwrap"><div class="sheetcap">1쪽 — ① 로드맵 / 마일스톤'
+      +'<span class="badge">최대 12행</span></div><div class="sheet"><div class="inner">'
+      + head('1 / 2')
+      + el(24,72,400,0,'cap','① 로드맵 / 마일스톤')
+      + el(24,94,992,0,'',roadmap(2+12,5+2))
+      + foot(636)
+      + '</div></div></div>';
+    out += '<div class="sheetwrap"><div class="sheetcap">2쪽 — ② 진행 현황 · ③ 이슈'
+      +'<span class="badge">최대 15행</span></div><div class="sheet"><div class="inner">'
+      + head('2 / 2')
+      + el(24,72,588,0,'cap','② 진행 현황 · 향후 계획')
+      + el(24,94,588,0,'',l2.status)
+      + el(626,72,390,0,'cap','③ 이슈 · 필요 지원')
+      + el(626,94,390,0,'',l2.issue)
+      + foot(636)
+      + '</div></div></div>';
+    if(cur==='c'){
+      out += '<div class="box warn" style="flex:1 1 260px;margin:0">'
+        + '<span class="t">㉰ 를 고르면 이렇게 됩니다</span>'
+        + '내용이 적은 임원은 <b>1쪽만</b> 있습니다. 엮은 책에서 「홍길동 이슈 리스트」는 12쪽, '
+        + '「김철수 이슈 리스트」는 자기 1쪽 아래쪽 — <b>쪽 구조가 사람마다 다릅니다.</b> '
+        + '그리고 「지금 넘쳤는가」를 누가 판단하는지도 정해야 합니다. '
+        + '쓰다가 갑자기 2쪽이 생기면 놀랍고, 지우면 다시 사라져야 하는지도 애매합니다.</div>';
+    } else {
+      out += '<div class="box ok" style="flex:1 1 260px;margin:0">'
+        + '<span class="t">빗금 친 칸이 새로 생기는 자리</span>'
+        + '로드맵 <b>5행 → 12행</b>, 진행현황·이슈 <b>4행 → 15행</b>. '
+        + '두 블록이 더 이상 같은 여백을 놓고 다투지 않습니다 — 각자 제 종이를 씁니다.<br />'
+        + '「취합 단위 = 사람」도 그대로입니다. 사람마다 <b>항상 2쪽, 항상 같은 순서</b>니까요.</div>';
+    }
+  }
+  document.getElementById('sheets').innerHTML = out;
+
+  var m='';
+  function card(k,v,sub,up){
+    return '<div class="m'+(up?' up':'')+'"><div class="k">'+k+'</div>'
+         + '<div class="v">'+v+' <em>'+sub+'</em></div></div>';
+  }
+  m += card('로드맵 데이터 행 상한', o.road+'행', o.pages===1?'지금 5행 사용':'지금보다 +5행', o.pages>1);
+  m += card('진행현황 · 이슈 행 상한', o.list+'행', o.pages===1?'지금 4행 사용':'지금보다 +11행', o.pages>1);
+  m += card('사람당 쪽수', o.pages===1?'1쪽':(cur==='c'?'1 또는 2쪽':'2쪽 고정'),
+            cur==='c'?'구조가 사람마다 다름':'모두 같음', false);
+  m += card('고쳐야 할 문서·코드', o.pages===1?'0곳':'6곳', o.pages===1?'없음':'표 참고', false);
+  document.getElementById('meter').innerHTML = m;
+
+  document.getElementById('picks').innerHTML = OPTS.map(function(x){
+    return '<button class="pick'+(x.k===cur?' on':'')+'" data-k="'+x.k+'">'
+         + '<span>'+x.t+'</span><span class="s">'+x.s+'</span></button>';
+  }).join('');
+}
+document.getElementById('picks').addEventListener('click',function(e){
+  var b=e.target.closest('.pick'); if(!b) return; cur=b.dataset.k; render();
+});
+render();
+</script>
+</div>
+</body>
+</html>

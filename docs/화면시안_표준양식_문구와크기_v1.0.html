@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>표준 양식 — 문구 수정과 크기 조정 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#EAF1FE;--line:#E6E8EE;--card:#F7F8FB;
+    --sub:#5b6270;--muted:#98a1b2;--ok:#215c46;--okbg:#E9F5EF;--ink:#0f172a;
+    --warn:#8a5a10;--warnbg:#FFF4E3;--head:#FFFFCC}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:34px 0 6px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--sub);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 16px;font-size:12.5px;color:var(--sub);line-height:1.85}
+  .box.warn{border-left-color:#D98A2A}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+
+  .picks{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+  .pick{border:1.4px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;
+    cursor:pointer;font:inherit;font-size:12.5px;font-weight:800;color:var(--sub);text-align:left;
+    display:flex;flex-direction:column;gap:2px;min-width:200px}
+  .pick .s{font-size:11px;font-weight:700;color:var(--muted)}
+  .pick.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .pick.on .s{color:rgba(255,255,255,.72)}
+
+  .stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px 22px;
+    box-shadow:0 8px 26px rgba(20,25,40,.07);overflow-x:auto}
+  .lbl{font-size:12px;font-weight:800;color:var(--navy);margin:0 0 6px}
+  table.rm{border-collapse:collapse;table-layout:fixed;width:100%;min-width:900px}
+  table.rm td{border:1px solid #cfd4de;font-size:10.5px;color:#1c2433;padding:4px 3px;
+    text-align:center;height:24px;position:relative}
+  table.rm td.h{background:var(--head);font-weight:700}
+  /* 잠김 / 열림 표시 — **색만으로 말하지 않는다.** 자물쇠와 점선을 함께 쓴다. */
+  td.lock::after{content:'🔒';position:absolute;right:2px;top:1px;font-size:8px;opacity:.55}
+  td.open{outline:1.5px dashed rgba(36,98,235,.65);outline-offset:-2px;cursor:text}
+  td.open:hover{background:#E7F0FF}
+  .body td{background:#fff}
+
+  /* 열 너비 손잡이 */
+  .colgrip{position:absolute;top:0;bottom:0;right:-3px;width:6px;cursor:col-resize;z-index:3}
+  .colgrip::before{content:'';position:absolute;left:2px;top:0;bottom:0;width:2px;background:var(--blue);
+    opacity:0;transition:opacity .12s}
+  .colgrip:hover::before{opacity:1}
+  .showgrip td.h .colgrip::before{opacity:.35}
+  /* 표 전체 손잡이 */
+  .frame{position:relative}
+  .frame.showbox::before{content:'';position:absolute;inset:-4px;border:1.5px solid var(--blue);border-radius:3px;pointer-events:none}
+  .hnd{position:absolute;width:9px;height:9px;background:#fff;border:1.5px solid var(--blue);
+    border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .hnd.se{right:-8px;bottom:-8px;cursor:nwse-resize}
+  .hnd.e{right:-8px;top:50%;margin-top:-4px;cursor:ew-resize}
+  .hnd.s{left:50%;bottom:-8px;margin-left:-4px;cursor:ns-resize}
+  .hnd.ne{right:-8px;top:-8px;cursor:nesw-resize}
+  .hnd.nw{left:-8px;top:-8px;cursor:nwse-resize}
+  .hnd.sw{left:-8px;bottom:-8px;cursor:nesw-resize}
+  .hnd.n{left:50%;top:-8px;margin-left:-4px;cursor:ns-resize}
+  .hnd.w{left:-8px;top:50%;margin-top:-4px;cursor:ew-resize}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0 0;font-size:11.5px;color:var(--sub)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .sw{width:16px;height:12px;border:1px solid #cfd4de;display:inline-block}
+  .sw.l{background:var(--head)}
+  .sw.o{background:#fff;outline:1.5px dashed rgba(36,98,235,.65);outline-offset:-2px}
+
+  .say{margin-top:12px;padding:11px 14px;border-radius:10px;font-size:12.5px;line-height:1.85}
+  .say.good{background:var(--okbg);color:#1c4a39}
+  .say.meh{background:var(--warnbg);color:#7a4f0d}
+  .say b{font-weight:800}
+
+  .cmp{width:100%;border-collapse:collapse;margin-top:18px;background:#fff;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:12.5px}
+  .cmp th,.cmp td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+  .cmp th{background:var(--card);color:var(--navy);font-weight:800;white-space:nowrap}
+  .cmp td:first-child{white-space:nowrap;font-weight:800;color:var(--sub)}
+  .cmp tr:last-child td{border-bottom:0}
+  .why{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.6}
+  .yes{color:var(--ok);font-weight:800}.no{color:#7d2027;font-weight:800}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>표준 양식 — <u>문구 수정</u>과 <u>크기 조정</u> <span style="font-size:12px;color:var(--muted);font-weight:400">시안 v1.0 · 2026-09-07</span></h1>
+  <p class="lead">지금 무엇이 잠겨 있고, 어디까지 열 것인지를 <b>실제 로드맵 표</b> 위에 그렸습니다. 칸에 마우스를 올려 보세요.</p>
+
+  <div class="box warn">
+    <span class="t">먼저 — 지금은 잠금이 <u>반대로</u> 어긋나 있습니다</span>
+    표 <b>머리글</b>은 잠겨 있는데(의도한 것), <b>제목·작성자·기간</b>은 정책상 「아무것도 허용 안 함」인데도
+    <b>글자가 그대로 고쳐집니다</b>(실측 확인). 게다가 코드 머리말은 「우회해도 서버가 거부한다」고 적어 뒀지만
+    <b>서버에는 그 검사가 없습니다</b> — 막는 건 화면뿐입니다. 어느 안을 고르든 이 두 가지는 함께 맞춰야 합니다.
+  </div>
+
+  <h2><span class="n">1</span> 머리글 문구를 열 것인가</h2>
+  <div class="picks" id="p1">
+    <button class="pick on" data-k="a">㉮ 지금 그대로<span class="s">머리글 전부 잠금 · 제목만 마저 잠근다</span></button>
+    <button class="pick" data-k="b">㉯ 이름표만 연다<span class="s">집계에 쓰는 칸은 잠금 유지</span></button>
+    <button class="pick" data-k="c">㉰ 문구는 다 연다<span class="s">구조(열·병합)만 잠금</span></button>
+  </div>
+
+  <div class="stage">
+    <div class="lbl">① 로드맵 / 마일스톤</div>
+    <div class="frame" id="fr1"><table class="rm" id="t1"></table></div>
+    <div class="legend">
+      <span><i class="sw l"></i> 머리글</span>
+      <span>🔒 잠김 — 못 고침</span>
+      <span><i class="sw o"></i> 열림 — 글자 고칠 수 있음</span>
+    </div>
+  </div>
+  <div id="say1"></div>
+
+  <table class="cmp">
+    <tr><th style="width:120px"></th><th>㉮ 지금 그대로</th><th>㉯ 이름표만</th><th>㉰ 문구는 다</th></tr>
+    <tr><td>「Project」·「진행 현황」<br>같은 이름표</td>
+      <td class="no">못 고침</td><td class="yes">고칠 수 있음</td><td class="yes">고칠 수 있음</td></tr>
+    <tr><td>연도·월·「계획 M/M」<br>같은 집계 칸</td>
+      <td class="no">못 고침</td><td class="no">못 고침<span class="why">회차 취합의 열쇠로 남긴다</span></td>
+      <td class="yes">고칠 수 있음<span class="why">집계는 <b>열 위치</b>로 한다는 전제</span></td></tr>
+    <tr><td>제목·작성자·기간</td>
+      <td class="no">잠근다<span class="why">지금 열려 있는 것을 정책대로 되돌린다</span></td>
+      <td class="yes">연다</td><td class="yes">연다</td></tr>
+    <tr><td>열 추가·삭제·병합</td>
+      <td class="no">잠금</td><td class="no">잠금</td><td class="no">잠금<span class="why">세 안 모두 구조는 안 건드린다</span></td></tr>
+    <tr><td>새로 할 일</td>
+      <td class="yes">제목 잠그기 + 서버 검증<span class="why">가장 작다</span></td>
+      <td>칸마다 <b>이름표/집계</b> 표시<span class="why">정본 사양에 한 줄씩 붙는다</span></td>
+      <td class="yes">머리글 잠금 해제 + 서버 검증</td></tr>
+  </table>
+
+  <h2><span class="n">2</span> 크기를 어디까지 조정할 것인가</h2>
+  <div class="box">
+    <span class="t">지금은 아무것도 안 됩니다</span>
+    표준 양식 표는 잠겨 있어 <b>크기 손잡이가 아예 안 그려집니다</b>(실측 0개).
+    그리고 <b>열 너비·행 높이는 어느 표에서도 못 바꿉니다</b> — 데이터에는 값이 있는데
+    (로드맵은 실제로 열마다 다른 너비를 씁니다) <b>그걸 바꾸는 장치가 화면에 없습니다.</b>
+  </div>
+  <div class="picks" id="p2">
+    <button class="pick on" data-k="a">㉠ 지금 그대로<span class="s">아무 조정 없음</span></button>
+    <button class="pick" data-k="b">㉡ 열 너비만<span class="s">경계선을 끈다 · 표 틀은 고정</span></button>
+    <button class="pick" data-k="c">㉢ 표 크기까지<span class="s">양식 틀도 바뀐다</span></button>
+  </div>
+
+  <div class="stage">
+    <div class="lbl">① 로드맵 / 마일스톤</div>
+    <div class="frame" id="fr2"><table class="rm" id="t2"></table></div>
+    <div class="legend" id="lg2"></div>
+  </div>
+  <div id="say2"></div>
+
+  <table class="cmp">
+    <tr><th style="width:120px"></th><th>㉠ 지금 그대로</th><th>㉡ 열 너비만</th><th>㉢ 표 크기까지</th></tr>
+    <tr><td>「비고(투입인원)」가<br>두 줄로 깨지는 문제</td>
+      <td class="no">못 고침</td><td class="yes">열을 넓히면 해결</td><td class="yes">해결</td></tr>
+    <tr><td>쪽마다 표가<br>같은 자리·같은 크기</td>
+      <td class="yes">지켜진다</td><td class="yes">지켜진다<span class="why">바깥 틀은 그대로</span></td>
+      <td class="no">사람마다 달라진다<span class="why">모아 놓고 보면 들쭉날쭉해진다</span></td></tr>
+    <tr><td>실수로 망가뜨릴 여지</td>
+      <td class="yes">없다</td><td>작다<span class="why">열 너비만 바뀐다</span></td>
+      <td class="no">크다<span class="why">표가 쪽 밖으로 나갈 수 있다</span></td></tr>
+  </table>
+
+  <div class="box" style="margin-top:26px">
+    <span class="t">저는 ㉯ + ㉡ 을 권합니다</span>
+    <b>잠가야 하는 것은 「구조」지 「글자」가 아닙니다.</b> 회차 취합이 걸리는 건 열의 개수와 순서지
+    머리글 문구가 아닙니다 — 다만 ㉰까지 한 번에 가면 <b>집계 칸의 뜻이 사람마다 달라질 여지</b>가 남으므로,
+    이름표부터 열고 집계 칸은 남겨 두는 ㉯가 안전합니다.<br>
+    크기는 ㉡ — <b>실제로 아픈 건 열 너비</b>(「비고(투입인원)」가 두 줄로 깨집니다)이고,
+    표 바깥 틀까지 열면 모아 놓고 볼 때 쪽마다 표가 달라집니다.
+  </div>
+
+  <div class="box warn">
+    <span class="t">어느 안을 고르든 함께 해야 하는 것 둘</span>
+    ① <b>제목·작성자·기간의 잠금을 정책과 맞춘다</b>(지금은 정책은 잠금인데 실제로는 열려 있습니다).<br>
+    ② <b>서버가 실제로 검증하게 한다</b> — 지금은 화면만 막고 있고, 코드 머리말이 약속한 서버 거부는 없습니다.
+    화면만 막는 잠금은 「막았다」고 말할 수 없습니다.
+  </div>
+</div>
+
+<script>
+const MONTHS=['1','2','3','4','5','6','7','8','9','10','11','12']
+const COLW=[2.74,3.21,1,1,1,1,1,1,1,1,1,1,1,1,1.48,1.48,1.48,1.48]
+const TOTAL=COLW.reduce((a,b)=>a+b,0)
+// 머리글 칸의 성격 — 이름표인가, 집계에 쓰는 칸인가.
+const HEAD=[
+  {t:'Project', cs:2, rs:2, kind:'label'},
+  {t:'2026년', cs:12, rs:1, kind:'key'},
+  {t:'2027년', cs:1, rs:2, kind:'key'},
+  {t:'계획 M/M', cs:1, rs:2, kind:'key'},
+  {t:'투입 M/M', cs:1, rs:2, kind:'key'},
+  {t:'비고(투입인원)', cs:1, rs:2, kind:'label'},
+]
+function openable(kind, mode){
+  if (mode==='a') return false
+  if (mode==='b') return kind==='label'
+  return true                      // ㉰ 문구는 다 연다
+}
+function build(el, mode, opts){
+  const cols=COLW.map(w=>`<col style="width:${(w/TOTAL*100).toFixed(3)}%">`).join('')
+  const grip = opts.grip ? '<span class="colgrip"></span>' : ''
+  let h=`<colgroup>${cols}</colgroup>`
+  h+='<tr>'+HEAD.map(c=>{
+    const op=openable(c.kind,mode)
+    return `<td class="h ${op?'open':'lock'}" colspan="${c.cs}" rowspan="${c.rs}"
+      title="${op?'글자를 고칠 수 있어요':'표준 양식이라 고칠 수 없어요'}">${c.t}${grip}</td>`
+  }).join('')+'</tr>'
+  h+='<tr>'+MONTHS.map(m=>{
+    const op=openable('key',mode)
+    return `<td class="h ${op?'open':'lock'}" title="${op?'글자를 고칠 수 있어요':'표준 양식이라 고칠 수 없어요'}">${m}${grip}</td>`
+  }).join('')+'</tr>'
+  for(let r=0;r<4;r++) h+='<tr class="body">'+Array.from({length:18},()=>'<td class="open" title="본문 — 언제나 고칠 수 있어요"></td>').join('')+'</tr>'
+  el.innerHTML=h
+}
+const SAY1={
+  a:['meh','㉮ — 머리글은 <b>전부 잠깁니다</b>. 지금과 같되, <b>제목·작성자·기간도 정책대로 잠급니다</b>(지금은 열려 있습니다). 「글씨 정도는」이라는 요구는 해결되지 않습니다.'],
+  b:['good','㉯ — 「Project」·「비고(투입인원)」 같은 <b>이름표는 열리고</b>, 연도·월·M/M 처럼 <b>집계에 쓰는 칸은 잠깁니다</b>. 취합의 열쇠는 지키면서 문구는 손볼 수 있습니다.'],
+  c:['meh','㉰ — 머리글 <b>문구가 전부 열립니다</b>. 편하지만, 「계획 M/M」을 저마다 다르게 적으면 <b>집계 칸의 뜻이 사람마다 달라질</b> 여지가 남습니다.'],
+}
+const SAY2={
+  a:['meh','㉠ — 손잡이도 없고 열 너비도 못 바꿉니다. <b>「비고(투입인원)」가 두 줄로 깨지는 것</b>을 손볼 방법이 없습니다.'],
+  b:['good','㉡ — 머리글 <b>경계선에 마우스를 올리면 파란 줄</b>이 뜨고, 끌어서 열 너비를 바꿉니다. <b>표 바깥 틀은 그대로</b>라 쪽마다 표가 같은 자리에 있습니다.'],
+  c:['meh','㉢ — 표 둘레에 <b>크기 손잡이 8개</b>가 생깁니다. 자유롭지만 사람마다 표 크기가 달라지고, 표가 쪽 밖으로 나갈 수도 있습니다.'],
+}
+const LG2={
+  a:'<span>조정할 수 있는 곳이 없습니다</span>',
+  b:'<span>머리글 경계선의 <b style="color:var(--blue)">파란 줄</b>을 끌면 열 너비가 바뀝니다</span>',
+  c:'<span>표 둘레의 <b style="color:var(--blue)">네모 손잡이</b>로 표 전체 크기를 바꿉니다</span>',
+}
+let m1='a', m2='a'
+function render(){
+  build(document.getElementById('t1'), m1, {grip:false})
+  const [k1,s1]=SAY1[m1]; document.getElementById('say1').innerHTML=`<div class="say ${k1}">${s1}</div>`
+
+  build(document.getElementById('t2'), 'a', {grip:m2==='b'})
+  const fr2=document.getElementById('fr2')
+  fr2.className='frame'+(m2==='c'?' showbox':'')
+  document.getElementById('t2').parentElement.classList.toggle('showgrip', m2==='b')
+  fr2.querySelectorAll('.hnd').forEach(e=>e.remove())
+  if(m2==='c') for(const d of ['nw','n','ne','e','se','s','sw','w'])
+    fr2.insertAdjacentHTML('beforeend', `<div class="hnd ${d}"></div>`)
+  const [k2,s2]=SAY2[m2]; document.getElementById('say2').innerHTML=`<div class="say ${k2}">${s2}</div>`
+  document.getElementById('lg2').innerHTML=LG2[m2]
+}
+document.getElementById('p1').addEventListener('click',e=>{const b=e.target.closest('.pick');if(!b)return
+  m1=b.dataset.k;[...document.querySelectorAll('#p1 .pick')].forEach(x=>x.classList.toggle('on',x===b));render()})
+document.getElementById('p2').addEventListener('click',e=>{const b=e.target.closest('.pick');if(!b)return
+  m2=b.dataset.k;[...document.querySelectorAll('#p2 .pick')].forEach(x=>x.classList.toggle('on',x===b));render()})
+render()
+</script>
+</body>
+</html>

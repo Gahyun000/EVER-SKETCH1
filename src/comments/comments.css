@@ -72,6 +72,13 @@
 .cmt-pin.on { outline: 2px solid #2462EB; outline-offset: 1px; }
 .feltd { position: relative; }
 
+/* 핀이 앉는 자리. **칸 안이 아니라 칸 위에 겹친 칸**이다.
+   칸 안에 두면 편집 중인 칸의 자식이 둘이 되어 글자가 두 번 찍히고,
+   커밋이 읽는 textContent 에 핀의 숫자가 섞인다(FreeLayer.tsx 주석 참고).
+   격자에서 같은 행·열을 차지하므로 보이는 자리는 예전과 같다. */
+.feltd-pin { position: relative; pointer-events: none; z-index: 7; }
+.feltd-pin > .cmt-pin { pointer-events: auto; }
+
 /* 의견 쓰기 창 — 브라우저 기본 입력창을 대신한다(CommentComposer.tsx 주석 참고). */
 .cmt-compose-where {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;

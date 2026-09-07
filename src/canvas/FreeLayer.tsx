@@ -1,5 +1,5 @@
 import type React from 'react'
-import { useState, useEffect, useRef } from 'react'
+import { Fragment, useState, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
 import { intakeImage } from '../builder/imageIntake'
 import type { CSSProperties } from 'react'
@@ -827,8 +827,10 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                         // 같은 색이면 내가 고른 것인지 남이 짚은 것인지 구분되지 않는다.
                         const rgE = rangeEdges.get(el.id + '_' + r + '_' + c)
                         const rgC = rgE ? (rgE.done ? '#2f9e59' : '#e08b2c') : ''
+                        const pins = pinByCell.get(el.id + '_' + r + '_' + c)
                         return (
-                          <div key={k} className={'feltd' + (sel ? ' cellsel' : '') + (rgE ? ' cmt-rg' : '') + (editingThis && !canEdit ? ' cell-locked' : '')} suppressContentEditableWarning
+                          <Fragment key={k}>
+                          <div className={'feltd' + (sel ? ' cellsel' : '') + (rgE ? ' cmt-rg' : '') + (editingThis && !canEdit ? ' cell-locked' : '')} suppressContentEditableWarning
                             data-tel={el.id} data-r={r} data-c={c} data-rc={r + '_' + c}
                             title={editingThis && !canEdit ? '이 칸은 표준 양식이라 수정할 수 없어요' : undefined}
                             style={{ border: bw + 'px solid ' + border, fontSize: cfs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}`, userSelect: canEdit ? 'text' : 'none', cursor: canEdit ? 'text' : 'default',
@@ -892,12 +894,32 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                               } }
                             } : undefined}
                             onBlur={canEdit ? () => { commitEditing() } : undefined}
-                          >{val}
-                            {(() => {
-                              const ps = pinByCell.get(el.id + '_' + r + '_' + c)
-                              return ps ? <Pin list={ps} el={el} /> : null
-                            })()}
-                          </div>
+                          >{val}</div>
+                          {/* 핀은 칸 **밖**에 그린다.
+
+                              안에 두면 편집 중인 칸의 자식이 둘(글자 + 핀)이 된다.
+                              자식이 하나면 React 는 textContent 로 글자를 갈아 끼우지만,
+                              둘이면 마디를 하나씩 맞춰 넣는 방식으로 바뀐다. 그러면
+                              React 가 빈 값('')으로 만들어 둔 글자 마디가 그대로 남은 채
+                              브라우저가 타자용 마디를 하나 더 만든다 — 마디가 둘이 된다.
+                              커밋한 값이 되돌아오는 순간 React 는 **자기 마디**만 채우므로
+                              화면에는 같은 글자가 두 번 찍힌다. 빈 칸에 처음 쓸 때만
+                              벌어지던 게 이것이다.
+
+                              하나 더. 커밋은 n.textContent 를 읽는데 핀은 자기 개수를
+                              글자로 그린다(1, 2...). 핀이 칸 안에 있으면 의견이 하나 달린
+                              칸에 '가' 를 쓰면 '가1' 이 저장된다 — 화면에는 안 보이고
+                              저장에만 남는, 알아채기 어려운 오염이다.
+
+                              같은 격자 자리에 겹쳐 두므로 핀이 보이는 위치는 그대로다. */}
+                          {pins ? (
+                            <div className="feltd-pin"
+                              data-r={r} data-c={c} data-rc={r + '_' + c}
+                              style={{ gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}` }}>
+                              <Pin list={pins} el={el} />
+                            </div>
+                          ) : null}
+                          </Fragment>
                         )
                       })}
                       {ts && ts.elId === el.id && !editingThis ? (() => {

@@ -33,8 +33,12 @@ await p.waitForTimeout(600)
 const pin = p.locator('.stage .cmt-pin').first()
 ok('지적이 문서 위에 핀으로 보인다', await p.locator('.stage .cmt-pin').count() === 1,
    `${await p.locator('.stage .cmt-pin').count()}개`)
-ok('핀이 지적한 그 칸에 붙어 있다',
-   await p.locator('.stage .feltd[data-r="3"][data-c="5"] .cmt-pin').count() === 1)
+// 핀은 칸 **밖**, 같은 격자 자리에 겹친 칸(.feltd-pin)에 그린다.
+// 칸 안에 두면 편집 중 글자가 두 번 찍히고 핀의 숫자가 값에 섞여 저장된다
+// (table_type_smoke.mjs / table_cell_leaf.test.mjs 참고).
+// 어느 칸을 가리키는지는 그 자리가 data-r/data-c 로 그대로 말해 준다.
+ok('핀이 지적한 그 칸 자리에 붙어 있다',
+   await p.locator('.stage .feltd-pin[data-r="3"][data-c="5"] .cmt-pin').count() === 1)
 ok('핀에 마우스를 올리면 내용이 보인다',
    ((await pin.getAttribute('title')) || '').includes('5월 진행 구간'))
 

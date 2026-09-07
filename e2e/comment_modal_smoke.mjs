@@ -93,7 +93,7 @@ await p.locator('.cmt-compose-send').click()
 await p.waitForTimeout(600)
 ok('보내면 창이 닫힌다', await p.locator('.ui-scrim').count() === 0)
 ok('짚은 그 칸에 핀이 생긴다',
-   await p.locator('.stage .feltd[data-r="2"][data-c="3"] .cmt-pin').count() === 1)
+   await p.locator('.stage .feltd-pin[data-r="2"][data-c="3"] .cmt-pin').count() === 1)
 ok('의견이 하나 늘었다', await p.locator('.cmt-item').count() === before + 1,
    `${before} → ${await p.locator('.cmt-item').count()}`)
 ok('의견 목록이 열린 채로 남는다', await p.locator('.cmt-panel').count() === 1)
@@ -132,8 +132,8 @@ ok('줄바꿈이 그대로 남는다', (await mine.innerText()).includes('\n확�
 
   // 핀은 **범위 왼쪽 위 한 칸에만**. 칸마다 박으면 표가 핀으로 덮인다.
   ok('핀은 범위 왼쪽 위에 하나만 붙는다',
-     await p.locator('.stage .feltd[data-r="4"][data-c="2"] .cmt-pin').count() === 1
-     && await p.locator('.stage .feltd[data-r="4"][data-c="3"] .cmt-pin').count() === 0)
+     await p.locator('.stage .feltd-pin[data-r="4"][data-c="2"] .cmt-pin').count() === 1
+     && await p.locator('.stage .feltd-pin[data-r="4"][data-c="3"] .cmt-pin').count() === 0)
   // **어느 칸인지까지 본다.** 개수만 세면 앞선 실행이 남긴 표시로도 통과한다.
   const marked = await p.locator('.stage .feltd.cmt-rg').evaluateAll(
     (ns) => ns.map((n) => n.dataset.r + ',' + n.dataset.c).sort())
