@@ -41,9 +41,44 @@ export function coveredSet(merges: Merge[] | undefined): Set<string> {
 // px 로 두면 표 전체 크기를 바꾸는 순간 칸 합이 표 폭과 어긋나 마지막 칸이 잘린다.
 // 길이가 열/행 수와 다르면(구 문서·잘못된 입력) 균등 분할로 되돌린다 — 조용히 어긋난 폭을
 // 유지하는 것보다 눈에 띄게 균등해지는 편이 고치기 쉽다.
+/** 실제로 쓰이는 칸 비율. 저장된 배열이 못 믿을 상태면 **균등 분할**로 되돌린다.
+ *
+ *  화면에 그리는 쪽(sizeTracks)과 손잡이 자리를 잡는 쪽이 **같은 값을 봐야** 한다.
+ *  두 곳이 각자 판단하면, 배열이 어긋난 표에서 손잡이가 실제 경계선과 다른 데 선다. */
+export function trackSizes(arr: number[] | undefined, n: number): number[] {
+  const ok = !!arr && arr.length === n && arr.every((v) => typeof v === 'number' && v > 0 && isFinite(v))
+  return ok ? (arr as number[]).slice() : Array.from({ length: n }, () => 1)
+}
+
 export function sizeTracks(arr: number[] | undefined, n: number): string {
   const ok = !!arr && arr.length === n && arr.every((v) => typeof v === 'number' && v > 0 && isFinite(v))
   return ok ? (arr as number[]).map((v) => v + 'fr').join(' ') : `repeat(${n}, 1fr)`
+}
+
+/** 경계선 i(칸 i 와 i+1 사이)를 끌었을 때의 새 비율 배열.
+ *
+ *  **합을 그대로 둔다.** 한쪽이 넓어지면 옆이 그만큼 좁아진다 — 표 전체 크기는
+ *  안 변한다. 표를 키우는 것은 모서리 손잡이가 할 일이고, 이건 「안에서 나누는」 일이다.
+ *  둘을 한 동작에 섞으면 열 하나 넓히려다 표가 종이 밖으로 나간다.
+ *
+ *  `px` 는 이 방향의 표 크기(캔버스 px), `dPx` 는 끌린 거리다.
+ *  최소 12px 은 남긴다 — 0 으로 만들면 그 열은 다시 잡을 수 없다.
+ */
+export function dragTrack(arr: number[], i: number, dPx: number, px: number,
+                          minPx = 12): number[] {
+  if (i < 0 || i + 1 >= arr.length || !(px > 0)) return arr
+  const total = arr.reduce((a, b) => a + b, 0)
+  if (!(total > 0)) return arr
+  const min = (total * minPx) / px
+  const a0 = arr[i], b0 = arr[i + 1]
+  // 두 칸 다 이미 최소보다 작으면(아주 좁은 표) 건드리지 않는다 — 억지로 맞추면 튄다.
+  if (a0 - min < 0 && b0 - min < 0) return arr
+  let d = (dPx * total) / px
+  d = Math.max(-(a0 - min), Math.min(b0 - min, d))
+  const out = arr.slice()
+  out[i] = a0 + d
+  out[i + 1] = b0 - d
+  return out
 }
 
 // 새 행/열의 크기는 **바로 그 자리에 있던 것과 같게** 잡는다(끝에 붙이면 마지막 것과 같게).

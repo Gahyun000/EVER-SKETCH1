@@ -91,12 +91,18 @@ await clearSel()
 }
 
 // ── 4) 크기를 바꿀 수 있고, 그것도 종이 안이다 ──────────
+//
+// **칸을 한 번 누르면 바로 손잡이가 나와야 한다.** 예전에는 「그 표의 칸이 골라져
+// 있으면」 손잡이를 숨겼다. 그런데 표는 한 번만 눌러도 칸이 골라진다(그게 맞는
+// 동작이다) — 그래서 손잡이를 보려면 Esc 를 눌러야 했고, 아무도 그걸 모른다.
+// 사용자에게는 「크기 조절이 안 된다」로 보인다. 숨긴 이유(손잡이가 가장자리 칸을
+// 가로챈다)는 **칸 밖으로 밀어내는 것**으로 풀었다.
 await clearSel()
 await p.locator('.stage .feltd[data-r="3"][data-c="2"]').first().click()
-await p.waitForTimeout(200)
-await p.keyboard.press('Escape')          // 칸 선택을 풀어야 크기 손잡이가 나온다
-await p.locator('.stage .fel.table').first().click({ position: { x: 5, y: 5 } })
-await p.waitForTimeout(250)
+await p.waitForTimeout(300)
+ok('칸을 한 번 눌러도 크기 손잡이가 바로 나온다 (Esc 없이)',
+   await p.locator('.stage .rs-h').count() === 8,
+   `${await p.locator('.stage .rs-h').count()}개`)
 
 const se = p.locator('.stage .rs-se, .rs-se').first()
 if (await se.count() === 0) {
@@ -159,6 +165,57 @@ await p.waitForTimeout(700)
      && b1.y + b1.height <= (await layer.boundingBox()).y + (await layer.boundingBox()).height + 1.5)
   ok('평소에는 규칙을 한 줄로 알려 준다',
      (await p.locator('.insp-hint').allInnerTexts()).some((t2) => t2.includes('줄 높이는 그대로')))
+}
+
+// ── 6) 열 너비 · 행 높이를 하나씩 바꾼다 ────────────────
+// colw/rowh 는 오랫동안 **읽기만 하고 아무도 쓰지 않았다.** 그래서 로드맵의
+// '사업그룹' 열이 좁으면 사업명이 세 줄로 접히는데 넓힐 방법이 없었다.
+// 합을 그대로 두므로 **표 전체 크기는 안 변한다** — 한쪽이 넓어지면 옆이 좁아진다.
+await p.reload({ waitUntil: 'networkidle' })
+await p.waitForSelector('text=임원회의', { timeout: 15000 })
+await p.locator('text=임원회의').first().click()
+await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
+await p.waitForTimeout(700)
+{
+  const cell = (r, c) => p.locator(`.stage .feltd[data-r="${r}"][data-c="${c}"]`).first()
+  await cell(3, 2).click()
+  await p.waitForTimeout(300)
+
+  ok('열 경계선 손잡이가 열 수보다 하나 적게 있다',
+     await p.locator('.stage .trk-col').count() === 17,
+     `${await p.locator('.stage .trk-col').count()}개 (18열)`)
+  ok('행 경계선 손잡이도 있다',
+     await p.locator('.stage .trk-row').count() === 6,
+     `${await p.locator('.stage .trk-row').count()}개 (7행)`)
+
+  // ── 열 너비 — '사업그룹' 열을 넓힌다. 이 기능이 필요했던 바로 그 자리.
+  const t0 = await p.locator('.stage .fel.table').first().boundingBox()
+  const c0 = (await cell(3, 0).boundingBox()).width
+  const c1 = (await cell(3, 1).boundingBox()).width
+  const g = await p.locator('.stage .trk-col').first().boundingBox()
+  await drag({ x: g.x + g.width / 2, y: g.y + g.height / 2 }, 60, 0)
+  const a0 = (await cell(3, 0).boundingBox()).width
+  const a1 = (await cell(3, 1).boundingBox()).width
+  const t1 = await p.locator('.stage .fel.table').first().boundingBox()
+
+  ok('끌면 그 열이 넓어진다', a0 - c0 > 30, `${c0.toFixed(1)} → ${a0.toFixed(1)}`)
+  ok('옆 열이 그만큼 좁아진다', c1 - a1 > 30, `${c1.toFixed(1)} → ${a1.toFixed(1)}`)
+  ok('표 전체 폭은 그대로다 (표를 키우는 건 모서리 손잡이가 할 일이다)',
+     Math.abs(t1.width - t0.width) < 1.5, `${t0.width.toFixed(1)} → ${t1.width.toFixed(1)}`)
+
+  // ── 행 높이 — 2행과 3행 사이 경계선.
+  const r2 = (await cell(2, 2).boundingBox()).height
+  const r3 = (await cell(3, 2).boundingBox()).height
+  const rg = await p.locator('.stage .trk-row').nth(2).boundingBox()
+  await drag({ x: rg.x + rg.width / 2, y: rg.y + rg.height / 2 }, 0, 25)
+  const n2 = (await cell(2, 2).boundingBox()).height
+  const n3 = (await cell(3, 2).boundingBox()).height
+  const t2 = await p.locator('.stage .fel.table').first().boundingBox()
+
+  ok('행 높이도 하나씩 바꾼다', n2 - r2 > 12, `${r2.toFixed(1)} → ${n2.toFixed(1)}`)
+  ok('아래 행이 그만큼 낮아진다', r3 - n3 > 12, `${r3.toFixed(1)} → ${n3.toFixed(1)}`)
+  ok('표 전체 높이도 그대로다',
+     Math.abs(t2.height - t1.height) < 1.5, `${t1.height.toFixed(1)} → ${t2.height.toFixed(1)}`)
 }
 
 ok('페이지 오류가 없다', errs.length === 0, errs.join(' | '))

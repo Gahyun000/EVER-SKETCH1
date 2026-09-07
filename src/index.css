@@ -153,6 +153,16 @@ button{font-family:inherit;cursor:pointer}
 .fel.text{border-color:transparent;background:transparent}
 /* 잠긴 요소는 손 모양을 주지 않는다 — 못 움직이는데 움직일 수 있다고 말하면 안 된다.
    다만 **글상자는 글자를 고칠 수 있으므로** 글자 커서를 준다(더블클릭). */
+/* 열·행 경계선 손잡이. 표를 골랐을 때만 나오고, 표 **밖**(위·왼쪽 띠)에 선다 —
+   칸 위에 겹치면 칸 고르기를 가로챈다. 평소엔 흐리게, 올리면 또렷하게. */
+.trk-grip{position:absolute;pointer-events:auto;z-index:7}
+.trk-grip::before{content:'';position:absolute;background:#2462EB;opacity:.3;border-radius:2px;transition:opacity .12s}
+.trk-grip:hover::before{opacity:1}
+.trk-col{top:-15px;height:15px;width:13px;margin-left:-6.5px;cursor:col-resize}
+.trk-col::before{left:5px;top:1px;bottom:2px;width:3px}
+.trk-row{left:-15px;width:15px;height:13px;margin-top:-6.5px;cursor:row-resize}
+.trk-row::before{top:5px;left:1px;right:2px;height:3px}
+
 .fel.locked{cursor:default}
 .fel.locked.text,.fel.locked.wordart{cursor:text}
 .fel.icon{border-color:transparent;background:transparent}

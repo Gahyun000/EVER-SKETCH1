@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { makeContinuation } from '../canvas/tableFlow'
 import { cardByKey } from '../cards/registry'
 import type { ImportedDoc } from '../import/htmlImport'
 import { polish } from '../builder/polish'
@@ -13,7 +14,7 @@ export interface BookPlan { title?: string; orientation?: Orientation; theme?: T
 // G5 — 부분 수정: 대상 페이지 필드만 덮어쓰기(edits) + 새 장 끝에 추가(adds).
 export interface PageEdit { pageId: number; fields: Record<string, string> }
 export interface PageAdd { cardKey: string; fields?: Record<string, string> }
-export interface FreeEl { id: number; type: string; x: number; y: number; w: number; h: number; text: string; color: string; fs: number; src?: string; bold?: boolean; tcolor?: string; rows?: number; cols?: number; cells?: string[][]; colw?: number[]; rowh?: number[]; merges?: { r: number; c: number; rs: number; cs: number }[]; calign?: Record<string, 'left' | 'center' | 'right'>; cvalign?: Record<string, 'top' | 'middle' | 'bottom'>; cfs?: Record<string, number>; cbg?: Record<string, string>; today?: number; todayMode?: 'auto' | 'fixed' | 'off'; todayYear?: number; slot?: string; headRow?: boolean; wa?: boolean; italic?: boolean; underline?: boolean; rot?: number; align?: 'left' | 'center' | 'right'; gotoSeq?: number; blocks?: Block[]; flipH?: boolean; flipV?: boolean; opacity?: number; shadow?: boolean; reflect?: boolean; locked?: boolean; groupId?: number; borderColor?: string; borderWidth?: number }
+export interface FreeEl { id: number; type: string; x: number; y: number; w: number; h: number; text: string; color: string; fs: number; src?: string; bold?: boolean; tcolor?: string; rows?: number; cols?: number; cells?: string[][]; colw?: number[]; rowh?: number[]; merges?: { r: number; c: number; rs: number; cs: number }[]; calign?: Record<string, 'left' | 'center' | 'right'>; cvalign?: Record<string, 'top' | 'middle' | 'bottom'>; cfs?: Record<string, number>; cbg?: Record<string, string>; today?: number; todayMode?: 'auto' | 'fixed' | 'off'; todayYear?: number; slot?: string; headRow?: boolean; /** 이 표가 **앞 장에서 이어진 조각**이면, 앞에 있던 본문 행의 개수.  없으면 이 표가 머리 조각이다. 취합·저장 검사는 조각들을 한 표로 센다 (server/template_guard.py). */ contFrom?: number; wa?: boolean; italic?: boolean; underline?: boolean; rot?: number; align?: 'left' | 'center' | 'right'; gotoSeq?: number; blocks?: Block[]; flipH?: boolean; flipV?: boolean; opacity?: number; shadow?: boolean; reflect?: boolean; locked?: boolean; groupId?: number; borderColor?: string; borderWidth?: number }
 export interface Conn { from: number; to: number; bend?: { x: number; y: number }; kind?: 'straight' | 'ortho' | 'curve'; arrow?: 'end' | 'both' | 'none'; color?: string; width?: number; dash?: boolean }
 export interface Stroke { points: [number, number][]; color: string; w: number; hl?: boolean }
 export type BlockType = 'h1' | 'h2' | 'h3' | 'h4' | 'text' | 'bullet' | 'numbered' | 'todo' | 'divider' | 'toggle' | 'callout'
@@ -41,6 +42,10 @@ export interface BuilderState {
   setTheme: (t: ThemeName) => void
   toggleFree: (pageId: number) => void
   addEl: (pageId: number, el: FreeEl) => void
+  /** 표를 다음 장으로 잇는다. 새 쪽과 새 조각을 만들고 그 쪽으로 옮겨 간다.
+   *  만들어진 것을 돌려준다 — 부르는 쪽이 새 조각을 골라 줘야 사용자가 바로 이어 쓴다. */
+  continueTable: (pageId: number, elId: number, headRows: number) =>
+    { pageId: number; elId: number } | null
   updateEl: (pageId: number, elId: number, patch: Partial<FreeEl>) => void
   removeEl: (pageId: number, elId: number) => void
   addConn: (pageId: number, conn: Conn) => void
@@ -205,6 +210,48 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   setTheme: (t) => set({ theme: t }),
   toggleFree: (pageId) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, free: !p.free })) })),
   addEl: (pageId, el) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, els: [...p.els, el] })) })),
+  // 표가 종이 끝에 닿았을 때 **다음 장에서 이어 적게** 한다.
+  //
+  // 새 쪽에는 머리글·꼬리말 이름표를 함께 옮겨 붙인다. 표만 덩그러니 있는 장은
+  // 2쪽만 펼친 사람에게 「이게 누구 자료인지」를 말해 주지 못한다.
+  //
+  // 되돌리기 스택은 **쪽마다** 있어서(canvas/history.ts) 쪽이 생기는 일은 ⌘Z 로
+  // 되돌아가지 않는다. 대신 되돌릴 길을 다른 데 뒀다 — 이은 조각의 본문 행을 다 지우면
+  // 그 조각과 쪽이 함께 사라진다(RightPanel).
+  continueTable: (pageId, elId, headRows) => {
+    let made: { pageId: number; elId: number } | null = null
+    set((s) => {
+      const i = s.pages.findIndex((p) => p.id === pageId)
+      if (i < 0) return {} as Partial<BuilderState>
+      const src = s.pages[i]
+      const head = src.els.find((e) => e.id === elId)
+      if (!head || head.type !== 'table') return {} as Partial<BuilderState>
+
+      // 같은 슬롯의 조각들을 모아 「앞에 몇 줄이 있었나」를 센다.
+      // 쪽 순서대로 훑는다 — 조각은 언제나 앞 쪽에 있는 것이 먼저다.
+      let prior = 0
+      for (const pg of s.pages) {
+        for (const e of pg.els) {
+          if (e.type !== 'table' || e.slot !== head.slot) continue
+          prior += Math.max(0, (e.rows || 0) - headRows)
+        }
+      }
+
+      const cont = makeContinuation(head, prior, headRows, head.y, nextElId())
+      const labels = src.els
+        .filter((e) => e.slot === 'head' || e.slot === 'foot')
+        .map((e) => ({ ...e, id: nextElId() }))
+      const np: Page = {
+        id: uid++, cardKey: 'slide', fields: {}, free: true,
+        els: [...labels, cont], conns: [], strokes: [], blocks: [], bg: '',
+      }
+      const pages = [...s.pages]
+      pages.splice(i + 1, 0, np)
+      made = { pageId: np.id, elId: cont.id }
+      return { pages, selectedPageId: np.id }
+    })
+    return made
+  },
   updateEl: (pageId, elId, patch) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, els: p.els.map((e) => (e.id === elId ? { ...e, ...patch } : e)) })) })),
   removeEl: (pageId, elId) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, els: p.els.filter((e) => e.id !== elId), conns: p.conns.filter((c) => c.from !== elId && c.to !== elId) })) })),
   addConn: (pageId, conn) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, conns: [...p.conns, conn] })) })),

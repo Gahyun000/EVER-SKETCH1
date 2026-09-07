@@ -8,7 +8,7 @@ import { useBuilder } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
 import { mkFreeEl, pushSnap, FCOLORS } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
-import { coveredSet, mergeCovering, sizeTracks } from './tableOps'
+import { coveredSet, dragTrack, mergeCovering, sizeTracks, trackSizes } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount, todayColumn } from '../template/slots'
 import { tableAnchorLabel } from '../comments/anchorLabel'
 import { parseCell } from '../comments/anchor'
@@ -566,6 +566,40 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     const up = () => { setGuides(null); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); if (!moved && already && selEls.length > 1) setSel(el.id) }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
   }
+  /**
+   * 열 너비 · 행 높이 끌기 — **경계선 하나**를 옮긴다.
+   *
+   * 여태 `colw`/`rowh` 는 **읽기만 하고 아무도 쓰지 않았다.** 그리는 코드와 행·열을
+   * 넣고 뺄 때 배열 길이를 맞추는 코드뿐이었다. 그래서 로드맵의 '사업그룹' 열이
+   * 좁으면 사업명이 세 줄로 접히는데 넓힐 방법이 없었다.
+   *
+   * 합을 그대로 두므로 **표 전체 크기는 안 변한다** — 한쪽이 넓어지면 옆이 좁아진다.
+   * 표를 키우는 것은 모서리 손잡이가 할 일이다. 둘을 한 동작에 섞으면 열 하나
+   * 넓히려다 표가 종이 밖으로 나간다.
+   */
+  function onTrackDown(e: React.PointerEvent<HTMLDivElement>, el: FreeEl,
+                       axis: 'col' | 'row', i: number) {
+    e.preventDefault(); e.stopPropagation()
+    const n = axis === 'col' ? (el.cols || 1) : (el.rows || 1)
+    const base = trackSizes(axis === 'col' ? el.colw : el.rowh, n)
+    const px = axis === 'col' ? el.w : el.h
+    const lz = layerZoom(e.currentTarget)
+    const s0 = axis === 'col' ? e.clientX : e.clientY
+    let did = false
+    const move = (ev: PointerEvent) => {
+      if (!did) { snap(); did = true }
+      const d = ((axis === 'col' ? ev.clientX : ev.clientY) - s0) / lz
+      const next = dragTrack(base, i, d, px)
+      updateEl(page.id, el.id, axis === 'col' ? { colw: next } : { rowh: next })
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
   function onResizeDown(e: React.PointerEvent<HTMLDivElement>, el: FreeEl, dir: string) {
     e.preventDefault(); e.stopPropagation()
     const layer = (e.currentTarget as HTMLElement).closest('.freelayer') as HTMLElement | null
@@ -1020,19 +1054,27 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
           </div>
         )
       })}
-      {active && selEls.length === 1 && selEl != null && editing == null && tool === 'select' && !(tableSel && tableSel.elId === selEl) ? (() => {
+      {/* 크기 손잡이.
+          예전에는 「그 표의 칸이 골라져 있으면」 숨겼다. 그런데 표는 **한 번만 눌러도
+          칸이 골라진다**(그게 맞는 동작이다). 그래서 손잡이를 보려면 Esc 를 눌러야 했고,
+          아무도 그걸 모른다 — 「크기 조절이 안 된다」로 보인다.
+          숨긴 이유는 손잡이가 표 가장자리 칸 위에 겹쳐 칸 고르기를 가로채기 때문이었다.
+          그러면 숨길 게 아니라 **칸 밖으로 밀어내면 된다.** */}
+      {active && selEls.length === 1 && selEl != null && editing == null && tool === 'select' ? (() => {
         const se = page.els.find((e) => e.id === selEl)
         if (!se || se.locked) return null
         const w = se.w, h = se.h
+        const isTbl = se.type === 'table'
+        const pad = isTbl ? 8 : 0        // 표는 손잡이를 칸 밖으로
         const HS: { d: string; x: number; y: number; cur: string }[] = [
-          { d: 'nw', x: 0, y: 0, cur: 'nwse-resize' },
-          { d: 'n', x: w / 2, y: 0, cur: 'ns-resize' },
-          { d: 'ne', x: w, y: 0, cur: 'nesw-resize' },
-          { d: 'e', x: w, y: h / 2, cur: 'ew-resize' },
-          { d: 'se', x: w, y: h, cur: 'nwse-resize' },
-          { d: 's', x: w / 2, y: h, cur: 'ns-resize' },
-          { d: 'sw', x: 0, y: h, cur: 'nesw-resize' },
-          { d: 'w', x: 0, y: h / 2, cur: 'ew-resize' },
+          { d: 'nw', x: -pad, y: -pad, cur: 'nwse-resize' },
+          { d: 'n', x: w / 2, y: -pad, cur: 'ns-resize' },
+          { d: 'ne', x: w + pad, y: -pad, cur: 'nesw-resize' },
+          { d: 'e', x: w + pad, y: h / 2, cur: 'ew-resize' },
+          { d: 'se', x: w + pad, y: h + pad, cur: 'nwse-resize' },
+          { d: 's', x: w / 2, y: h + pad, cur: 'ns-resize' },
+          { d: 'sw', x: -pad, y: h + pad, cur: 'nesw-resize' },
+          { d: 'w', x: -pad, y: h / 2, cur: 'ew-resize' },
         ]
         return (
           <div style={{ position: 'absolute', left: se.x, top: se.y, width: w, height: h, transform: se.rot ? `rotate(${se.rot}deg)` : undefined, transformOrigin: 'center', pointerEvents: 'none', zIndex: 6 }}>
@@ -1045,6 +1087,29 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                 style={{ position: 'absolute', left: hh.x - 5, top: hh.y - 5, width: 10, height: 10, borderRadius: 2, background: '#fff', border: '1.5px solid #2462EB', boxShadow: '0 1px 2px rgba(0,0,0,.25)', cursor: hh.cur, pointerEvents: 'auto' }}
                 onPointerDown={(e) => onResizeDown(e, se, hh.d)} />
             ))}
+            {/* 열·행 경계선 손잡이 — 표를 골랐을 때만 나온다.
+                표 **밖**(위쪽 띠 · 왼쪽 띠)에 두므로 칸 고르기와 부딪히지 않는다. */}
+            {isTbl ? (() => {
+              const C = se.cols || 1, R = se.rows || 1
+              const cw = trackSizes(se.colw, C), rh = trackSizes(se.rowh, R)
+              const cT = cw.reduce((a, b) => a + b, 0), rT = rh.reduce((a, b) => a + b, 0)
+              const out: React.ReactNode[] = []
+              let acc = 0
+              for (let i = 0; i < C - 1; i++) {
+                acc += cw[i]
+                out.push(<div key={'cg' + i} className="trk-grip trk-col" title="끌어서 열 너비 조절"
+                  style={{ left: (acc / cT) * 100 + '%' }}
+                  onPointerDown={(ev) => onTrackDown(ev, se, 'col', i)} />)
+              }
+              acc = 0
+              for (let i = 0; i < R - 1; i++) {
+                acc += rh[i]
+                out.push(<div key={'rg' + i} className="trk-grip trk-row" title="끌어서 행 높이 조절"
+                  style={{ top: (acc / rT) * 100 + '%' }}
+                  onPointerDown={(ev) => onTrackDown(ev, se, 'row', i)} />)
+              }
+              return <>{out}</>
+            })() : null}
           </div>
         )
       })() : null}
