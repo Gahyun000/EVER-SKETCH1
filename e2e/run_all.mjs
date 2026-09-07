@@ -20,6 +20,7 @@ const SUITES = [
   { name: '글자 입력(표 칸 · 머리글)', file: 'table_type_smoke.mjs', env: {} },
   { name: '숫자 칸(글자 크기)', file: 'num_input_smoke.mjs', env: {} },
   { name: '화면 배율(확대·축소)', file: 'zoom_smoke.mjs', env: {} },
+  { name: '마인드맵(요소로 펼치기)', file: 'mindmap_smoke.mjs', env: {} },
   { name: '표 이동 · 크기(종이 안)', file: 'table_move_smoke.mjs', env: {} },
   { name: '옛 자료 열기(잠금 풀림)', file: 'legacy_open_smoke.mjs', env: { LEGACY: '1' } },
   { name: '연결점 자리 — 표준 양식', file: 'connect_points_smoke.mjs', env: {} },

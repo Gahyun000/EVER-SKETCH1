@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { pageSize } from '../cards/sizing'
+import { mindmapParts } from '../cards/mindmapEls'
 import { rememberOrientation } from '../persistence/prefs'
 import { makeContinuation } from '../canvas/tableFlow'
 import { cardByKey } from '../cards/registry'
@@ -42,6 +44,8 @@ export interface BuilderState {
   setSize: (s: SizePreset) => void
   setTheme: (t: ThemeName) => void
   toggleFree: (pageId: number) => void
+  /** 카드로 만들어 둔 마인드맵을 옮길 수 있는 요소들로 펼친다(되돌리기 가능). */
+  expandMindmap: (pageId: number) => void
   addEl: (pageId: number, el: FreeEl) => void
   /** 표를 다음 장으로 잇는다. 새 쪽과 새 조각을 만들고 그 쪽으로 옮겨 간다.
    *  만들어진 것을 돌려준다 — 부르는 쪽이 새 조각을 골라 줘야 사용자가 바로 이어 쓴다. */
@@ -158,6 +162,17 @@ export const useBuilder = create<BuilderState>((set, get) => ({
       const sp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true, els: [], conns: [], strokes: [], blocks: [], bg: '' }
       return { pages: [...s.pages, sp], selectedPageId: sp.id }
     }
+    // 마인드맵은 **카드로 두지 않고 그 자리에서 요소로 펼친다.**
+    // 카드로 두면 그림이 SVG 한 덩어리라 가지 하나를 잡을 수가 없다 — 임원진이
+    // 「위치 이동 및 사이즈 조정 안됨」이라고 한 것이 이것이다.
+    // 자세한 이유는 cards/mindmapEls.ts 의 설명.
+    if (cardKey === 'mindmap') {
+      const { W, H } = pageSize(s.orientation)
+      const { els, conns } = mindmapParts(defaultsFor('mindmap'), W, H, nextElId)
+      const mp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true,
+                         els, conns, strokes: [], blocks: [], bg: '' }
+      return { pages: [...s.pages, mp], selectedPageId: mp.id }
+    }
     const p: Page = { id: uid++, cardKey, fields: defaultsFor(cardKey), free: false, els: [], conns: [], strokes: [] }
     if (cardKey === 'note') {
       // 빈 제목 블록 + 빈 본문 블록. 안내 문구를 값으로 넣으면 페이지마다 같은 글이 박히고,
@@ -213,6 +228,23 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   setSize: (sz) => set({ size: sz }),
   setTheme: (t) => set({ theme: t }),
   toggleFree: (pageId) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, free: !p.free })) })),
+
+  // 이미 **카드로 만들어 둔** 마인드맵을 요소로 펼친다.
+  //
+  // 새로 넣는 것은 addCard 가 처음부터 펼쳐서 주지만, 그 전에 만든 자료는 카드 그대로
+  // 남아 있다. 열 때 자동으로 바꾸지는 않는다 — 잠금 플래그 하나 떼는 것과 달리
+  // **내용을 통째로 다시 쓰는 일**이고, 필드를 정성껏 채워 둔 사람의 자료다.
+  // 사람이 누를 때만 바꾸고, 잘못 눌렀으면 실행 취소로 되돌린다.
+  expandMindmap: (pageId) => set((s) => {
+    const src = s.pages.find((p) => p.id === pageId)
+    if (!src || src.cardKey !== 'mindmap') return {} as Partial<BuilderState>
+    const { W, H } = pageSize(s.orientation)
+    const { els, conns } = mindmapParts(src.fields || {}, W, H, nextElId)
+    return { pages: mapPage(s.pages, pageId, (p) => ({
+      ...p, cardKey: 'slide', fields: {}, free: true,
+      els: [...(p.els || []), ...els], conns: [...(p.conns || []), ...conns],
+    })) }
+  }),
   addEl: (pageId, el) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, els: [...p.els, el] })) })),
   // 표가 종이 끝에 닿았을 때 **다음 장에서 이어 적게** 한다.
   //

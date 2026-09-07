@@ -41,6 +41,7 @@ export default function RightPanel() {
   const setPageTrans = useBuilder((s) => s.setPageTrans)
   const addCard = useBuilder((s) => s.addCard)
   const duplicatePage = useBuilder((s) => s.duplicatePage)
+  const expandMindmap = useBuilder((s) => s.expandMindmap)
   const removePage = useBuilder((s) => s.removePage)
   const groupEls = useBuilder((s) => s.groupEls)
   const ungroupEls = useBuilder((s) => s.ungroupEls)
@@ -431,6 +432,19 @@ export default function RightPanel() {
             <button className="insp-pill" onClick={() => { if (selId != null) duplicatePage(selId) }}>⧉ 복제</button>
             <button className="insp-pill danger" onClick={() => { if (selId != null) removePage(selId) }}>🗑 삭제</button>
           </div>
+          {/* 이미 카드로 만들어 둔 마인드맵에만 나온다. 새로 넣는 것은 처음부터
+              요소로 펼쳐져 나오므로 이 단추가 필요 없다.
+              열 때 자동으로 바꾸지 않는 이유: 잠금 플래그 하나 떼는 것과 달리
+              **내용을 통째로 다시 쓰는 일**이고, 필드를 정성껏 채워 둔 사람의 자료다. */}
+          {page && page.cardKey === 'mindmap' ? (<>
+            <div className="insp-row">
+              <button className="insp-pill" onClick={() => { if (selId != null) { pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached })); expandMindmap(selId) } }}>
+                ⤢ 요소로 펼치기
+              </button>
+            </div>
+            <span style={cap}>가지를 하나씩 옮기고 크기를 바꿀 수 있게 됩니다.
+              대신 오른쪽 칸으로 한 번에 고치는 건 그때부터 안 돼요 — 잘못 눌렀으면 ⌘Z 로 되돌립니다.</span>
+          </>) : null}
           <div className="insp-sec">배경</div>
           <div className="insp-row seg">
             <button className={!dark ? 'on' : ''} onClick={() => setBg(false)}>밝게</button>
