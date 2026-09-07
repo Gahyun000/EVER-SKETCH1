@@ -28,21 +28,68 @@ export default function Preview() {
   const { W, H } = pageSize(orientation)
 
   const stageRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
+  // **맞춤 배율에서 100% 상한을 뺐다**(2026-09-07).
+  //   setScale(Math.min(1, avW / W, avH / H))   ← 예전
+  // 세로 이북은 논리 크기가 432×576 이라, 넓은 창에서는 줄일 것도 없으니 그냥 작은
+  // 종이가 뜨고 나머지는 회색으로 남았다. 임원진이 「세로 작업공간이 너무 좁다」고
+  // 한 게 이것이다. 확대는 CSS transform 이라 글자가 흐려지지 않는다.
+  const [fitScale, setFitScale] = useState(1)
+  // null = 맞춤(창에 맞춰 자동). 숫자를 넣으면 사람이 정한 배율.
+  // 두 값을 한 상태로 합치면 창 크기가 바뀔 때 사람이 정한 값을 덮을지 말지를
+  // 매번 따져야 한다 — 갈라 두면 그 질문 자체가 없다.
+  const [userZoom, setUserZoom] = useState<number | null>(null)
+  const scale = userZoom ?? fitScale
+
   useEffect(() => {
     const node = stageRef.current
     if (!node) return
     const fit = () => {
       const r = node.getBoundingClientRect()
-      const avW = r.width - 24, avH = r.height - 24     // .stage 패딩 12px 양쪽
+      const avW = r.width - 32, avH = r.height - 32     // .stage 패딩 16px 양쪽
       if (avW <= 0 || avH <= 0) return
-      setScale(Math.min(1, avW / W, avH / H))
+      setFitScale(Math.min(avW / W, avH / H))
     }
     fit()
     const ro = new ResizeObserver(fit)
     ro.observe(node)
     return () => ro.disconnect()
   }, [W, H])
+
+  // 방향이 바뀌면 맞춤으로 되돌린다 — 세로에 맞춰 둔 배율이 가로에서 맞을 리 없다.
+  useEffect(() => { setUserZoom(null) }, [W, H])
+
+  const ZMIN = 0.25, ZMAX = 4, ZSTEP = 1.25
+  const clampZ = (z: number) => Math.max(ZMIN, Math.min(ZMAX, z))
+  const zoomBy = (f: number) => setUserZoom((z) => clampZ((z ?? fitScale) * f))
+
+  // ⌘/Ctrl + = − 0. 글자를 치는 중에는 가로챈다 — 표 칸에 '0' 을 쓰다가
+  // 배율이 튀면 무슨 일이 난 건지 아무도 모른다.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return
+      const t = e.target as HTMLElement | null
+      if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomBy(ZSTEP) }
+      else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomBy(1 / ZSTEP) }
+      else if (e.key === '0') { e.preventDefault(); setUserZoom(null) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  // Ctrl + 휠. React 의 onWheel 은 passive 라 preventDefault 가 안 먹는다 —
+  // 그러면 브라우저가 페이지 자체를 확대해 버린다. 직접 붙인다.
+  useEffect(() => {
+    const node = stageRef.current
+    if (!node) return
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      e.preventDefault()
+      zoomBy(e.deltaY < 0 ? ZSTEP : 1 / ZSTEP)
+    }
+    node.addEventListener('wheel', onWheel, { passive: false })
+    return () => node.removeEventListener('wheel', onWheel)
+  })
 
   const pct = Math.round(scale * 100)
 
@@ -95,7 +142,17 @@ export default function Preview() {
     </div>
     <div className="pv-cap">
       {orientation === 'landscape' ? '가로 덱' : '세로 이북'} ({ratioLabel(orientation)}) · {W}×{H}
-      {pct < 100 ? ` · 화면 ${pct}%` : ''} · {font === 'auto' ? '자동 폰트' : '커스텀 폰트'} · 크기 {size === 's' ? '작게' : size === 'l' ? '크게' : '보통'}
+      {' · '}
+      {/* 배율은 여태 **보여만 주고** 바꿀 수단이 없었다(그것도 100% 미만일 때만).
+          이제 여기서 바꾼다. 「맞춤」은 창에 맞추는 자동 상태로 되돌린다. */}
+      <span className="pv-zoom">
+        <button title="축소 (⌘/Ctrl −)" onClick={() => zoomBy(1 / ZSTEP)}>−</button>
+        <span className="v" title="화면 배율">{pct}%</span>
+        <button title="확대 (⌘/Ctrl +)" onClick={() => zoomBy(ZSTEP)}>+</button>
+        <button className={'fitb' + (userZoom === null ? ' on' : '')}
+          title="창에 맞추기 (⌘/Ctrl 0)" onClick={() => setUserZoom(null)}>맞춤</button>
+      </span>
+      {' · '}{font === 'auto' ? '자동 폰트' : '커스텀 폰트'} · 크기 {size === 's' ? '작게' : size === 'l' ? '크게' : '보통'}
     </div>
   </>)
 }

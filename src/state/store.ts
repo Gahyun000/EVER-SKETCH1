@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { rememberOrientation } from '../persistence/prefs'
 import { makeContinuation } from '../canvas/tableFlow'
 import { cardByKey } from '../cards/registry'
 import type { ImportedDoc } from '../import/htmlImport'
@@ -204,7 +205,10 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   }),
   selectPage: (pageId) => set({ selectedPageId: pageId }),
   setTitle: (t) => set({ title: t }),
-  setOrientation: (o) => set({ orientation: o }),
+  // 고른 방향을 기억해 둔다 — **다음에 만드는 이북**이 이 방향으로 시작한다.
+  // (임원진 요청: 「한번 선택을 하면 이후 부터는 그 설정으로 계속 생성」)
+  // 지금 문서에는 아무 영향이 없다. 기억은 이 브라우저에만 남는다(persistence/prefs.ts).
+  setOrientation: (o) => { rememberOrientation(o); set({ orientation: o }) },
   setFont: (fv) => set({ font: fv }),
   setSize: (sz) => set({ size: sz }),
   setTheme: (t) => set({ theme: t }),

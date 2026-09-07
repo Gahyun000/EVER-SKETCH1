@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { lastOrientation } from './prefs'
 import { stripSlotConns, unlockLegacySlots } from '../template/legacyUnlock'
 import { useBuilder, reseedUids, type BuilderState } from '../state/store'
 import { snapshotFromState, type DraftStateSnapshot } from './draftStorage'
@@ -15,6 +16,16 @@ export type LibView = 'library' | 'editor'
 
 function emptySnapshot(): DraftStateSnapshot {
   return { title: '제목 없음', orientation: 'portrait', theme: 'light', font: 'auto', size: 'm', selectedPageId: null, pages: [] }
+}
+
+/** **새로 만드는** 문서의 빈 스냅샷. 방향만 마지막에 고른 것을 따른다.
+ *
+ *  `emptySnapshot()` 과 갈라 놓은 이유가 있다. 저것은 **이미 저장된 문서**의 빠진
+ *  칸을 메우는 바탕이기도 하다. 거기까지 손버릇을 섞으면, 방향이 안 적힌 옛 문서가
+ *  **열 때마다 다른 방향으로 보인다** — 사람이 바꾼 적도 없는데. 기본값을 바꾸는
+ *  변경은 어디까지 적용되는지가 절반이다(오늘 표준 양식에서 한 번 놓쳤다). */
+function newDocSnapshot(): DraftStateSnapshot {
+  return { ...emptySnapshot(), orientation: lastOrientation() }
 }
 
 // 저장된(부분적일 수 있는) state 를 완전한 스냅샷으로 보정.
@@ -104,7 +115,7 @@ export function resetWorkspace(): void {
   setAutosaveReadOnly(false)
   resetHistory()
   setActiveProjectId(null)
-  useBuilder.setState(emptySnapshot() as Partial<BuilderState>)
+  useBuilder.setState(newDocSnapshot() as Partial<BuilderState>)
   useAutosave.setState({ status: 'idle', savedAt: undefined, error: undefined })
   useProjects.setState({
     view: 'library', activeId: null, access: null, template: null, list: [], loading: false,
@@ -198,7 +209,7 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     try { await flushSave() } catch { /* noop */ }
     set({ loading: true })
     try {
-      const p = await apiCreateProject('제목 없음', emptySnapshot(), folderId)
+      const p = await apiCreateProject('제목 없음', newDocSnapshot(), folderId)
       applyProject(p)
       // 새 이북은 빈 슬라이드 한 장으로 시작(구글 슬라이드식). 추가가 자동저장을 유발한다.
       useBuilder.getState().addCard('slide')
