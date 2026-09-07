@@ -1,0 +1,89 @@
+// **기동이 어떤 경우에도 「불러오는 중…」에 갇히지 않는지** 지킨다.
+//
+// 2026-09-07 에 「명령창엔 아무 이상이 없는데 화면이 안 뜬다」는 신고를 받았다.
+// 재현은 못 했지만(서버·DB·dist·레거시 초안을 실제 것으로 돌려도 정상),
+// **그 증상을 만들 수 있는 자리**가 코드에 있었다:
+//
+//     try { await migrateLegacyDraftOnce() } catch {}      ← try/finally **바깥**
+//     try { await get().loadList() } finally { loading:false }
+//
+// `catch` 는 **던지는** 것만 잡는다. 응답이 영영 안 오는 요청이나 막힌 IndexedDB 는
+// 던지지 않고 그냥 안 끝난다. 그러면 그 줄에서 멈추고, `bootedFor` 는 이미 찍혀 있어
+// 다시 시도되지도 않는다 — 화면에는 「불러오는 중…」만 남고 어디에도 오류가 안 찍힌다.
+// **그래서 명령창이 조용했던 것이다.**
+//
+// 실행: node --experimental-strip-types --import ./ts_register.mjs boot_recovery.test.mjs
+
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { withTimeout, BOOT_STEP_MS } from './src/persistence/projects.ts'
+
+const read = (p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8')
+let pass = 0, fail = 0
+const check = (cond, label, extra = '') => {
+  if (cond) { pass++; console.log('✓ ' + label) }
+  else { fail++; console.log('✗ ' + label + (extra ? '  — ' + extra : '')) }
+}
+
+// ══════════ 시간으로 끊는다 ══════════
+{
+  const never = new Promise(() => {})          // 던지지도, 끝나지도 않는다
+  let caught = null
+  const t0 = Date.now()
+  try { await withTimeout(never, 60) } catch (e) { caught = e }
+  const dt = Date.now() - t0
+  check(!!caught, '**안 끝나는 약속을 끊는다** (이게 없으면 그 줄에서 영원히 멈춘다)')
+  check(dt < 500, `끊는 데 오래 안 걸린다 (${dt}ms)`)
+  check(String(caught?.message).includes('시간 초과'), '왜 끊겼는지 말한다', caught?.message)
+}
+{
+  const ok = await withTimeout(Promise.resolve('값'), 1000)
+  check(ok === '값', '제때 끝나면 값을 그대로 준다')
+}
+{
+  let caught = null
+  try { await withTimeout(Promise.reject(new Error('원래 오류')), 1000) } catch (e) { caught = e }
+  check(String(caught?.message) === '원래 오류', '원래 오류는 그대로 넘긴다 (시간 초과로 덮지 않는다)')
+}
+{
+  // 늦게 끝나는 약속이 나중에 성공해도 이미 끊은 결과를 뒤엎지 않는다.
+  let late
+  const p = new Promise((r) => { late = r })
+  let caught = null
+  const t = withTimeout(p, 40).catch((e) => { caught = e })
+  await new Promise((r) => setTimeout(r, 90))
+  late('늦은 값')
+  await t
+  check(!!caught, '끊긴 뒤에 늦게 도착해도 결과가 뒤집히지 않는다')
+}
+check(BOOT_STEP_MS >= 3000 && BOOT_STEP_MS <= 15000,
+  `기다리는 시간이 사람이 견딜 만하다 (${BOOT_STEP_MS}ms)`)
+
+// ══════════ 소스에서 못박는 규칙 ══════════
+const src = read('./src/persistence/projects.ts')
+const lib = read('./src/persistence/LibraryScreen.tsx')
+const bare = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+const code = bare(src)
+
+check(/withTimeout\(migrateLegacyDraftOnce\(\)/.test(code),
+  '레거시 이관을 시간으로 끊는다 — 부가 작업이 화면을 잡아 두지 않는다')
+check(/withTimeout\(get\(\)\.loadList\(\)/.test(code), '목록 받기도 시간으로 끊는다')
+check(!/^\s*try \{ await migrateLegacyDraftOnce\(\) \} catch/m.test(code),
+  '이관이 try/finally **바깥**에 있지 않다 (그게 갇히던 자리다)')
+
+// finally 가 반드시 loading 을 끈다
+const boot = code.slice(code.indexOf('boot: async'), code.indexOf('loadList: async'))
+check(/finally \{[\s\S]{0,120}loading: false/.test(boot),
+  'boot 은 **어떤 길로 끝나든** loading 을 끈다')
+check((boot.match(/await/g) || []).every(() => true) &&
+      !/await (?!withTimeout)[a-zA-Z]/.test(boot.replace(/await withTimeout/g, '')),
+  'boot 안의 기다림이 전부 시간 제한을 거친다')
+
+// 실패를 조용히 0개로 두지 않는다
+check(/listError/.test(code) && /listError: '목록을 불러오지 못했어요\.'/.test(code),
+  '못 받아 온 것을 상태로 남긴다')
+check(/listError \? \(/.test(bare(lib)) && /다시 시도/.test(lib),
+  '**0개와 못 받아 온 것을 갈라 그리고**, 다시 시도할 길을 준다')
+
+console.log(`\n${pass} passed, ${fail} failed`)
+process.exit(fail ? 1 : 0)

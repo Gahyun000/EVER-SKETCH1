@@ -49,6 +49,8 @@ interface ProjectsState {
   access: ProjectAccess | null
   list: ProjectMeta[]
   loading: boolean
+  /** 목록을 못 받아 왔다. **조용히 0개로 두지 않는다** — 사람은 자료가 사라진 줄 안다. */
+  listError: string | null
   /** 어느 계정으로 목록을 받아 뒀는가. 계정이 바뀌면 다시 받는다. */
   bootedFor: string | null
   boot: (uid: string | null) => Promise<void>
@@ -91,7 +93,36 @@ export function resetWorkspace(): void {
   useBuilder.setState(emptySnapshot() as Partial<BuilderState>)
   useAutosave.setState({ status: 'idle', savedAt: undefined, error: undefined })
   useProjects.setState({
-    view: 'library', activeId: null, access: null, list: [], loading: false, bootedFor: null,
+    view: 'library', activeId: null, access: null, list: [], loading: false,
+    listError: null, bootedFor: null,
+  })
+}
+
+/** 기동 한 단계가 이만큼 안 끝나면 그냥 지나간다. 화면이 먼저다. */
+export const BOOT_STEP_MS = 8000
+
+/**
+ * 약속이 제때 안 끝나면 **끊는다.**
+ *
+ * `try/catch` 는 *던지는* 것만 잡는다. 응답이 영영 안 오는 요청이나 막힌 IndexedDB 는
+ * 던지지 않고 그냥 안 끝나고, 그걸 `await` 하면 그 자리에서 멈춘다 —
+ * 화면에는 「불러오는 중…」만 남고 오류는 어디에도 안 찍힌다(그래서 명령창도 조용하다).
+ *
+ * 원래 약속을 취소하지는 않는다(fetch 는 계속 간다). 여기서 하는 일은
+ * **기다리기를 그만두는 것**뿐이다.
+ */
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false
+    const t = setTimeout(() => {
+      if (settled) return
+      settled = true
+      reject(new Error('시간 초과 (' + ms + 'ms)'))
+    }, ms)
+    p.then(
+      (v) => { if (settled) return; settled = true; clearTimeout(t); resolve(v) },
+      (e) => { if (settled) return; settled = true; clearTimeout(t); reject(e) },
+    )
   })
 }
 
@@ -101,6 +132,7 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   access: null,
   list: [],
   loading: false,
+  listError: null,
   bootedFor: null,
 
   boot: async (uid) => {
@@ -110,17 +142,30 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     // 스토어가 모듈 단위라 화면을 다시 그려도 저절로 사라지지 않는다.
     resetWorkspace()
     set({ bootedFor: uid, loading: true })
-    try { await migrateLegacyDraftOnce() } catch { /* noop */ }
-    // loadList 가 어떤 이유로든 던져도 라이브러리 화면은 반드시 띄운다.
-    // (여기서 멈추면 booted=true 라 재시도도 안 되고 로딩 화면에 영원히 갇힌다)
-    try { await get().loadList() } finally { set({ view: 'library', loading: false }) }
+    // **이 두 줄이 같은 보호 안에 있어야 한다.** 예전에는 이관이 try/finally 바깥에 있었고,
+    // 그래서 이관이 *던지지 않고 그냥 안 끝나면*(응답 없는 요청, 막힌 IndexedDB 등)
+    // 로딩 화면에 영원히 갇혔다 — `bootedFor` 가 이미 찍혀 있어 다시 시도되지도 않았다.
+    // catch 는 던지는 것만 잡는다. **안 끝나는 것은 시간으로 끊어야 한다.**
+    try {
+      // 레거시 이관은 **부가 작업**이다. 늦으면 그냥 지나간다 — 다음 실행에서 다시 판단한다.
+      try { await withTimeout(migrateLegacyDraftOnce(), BOOT_STEP_MS) } catch { /* noop */ }
+      await withTimeout(get().loadList(), BOOT_STEP_MS)
+    } catch {
+      set({ listError: '목록을 불러오지 못했어요.' })
+    } finally {
+      set({ view: 'library', loading: false })
+    }
   },
 
   loadList: async () => {
     try {
       const list = await apiListProjects()
-      set({ list })
-    } catch { set({ list: [] }) }
+      set({ list, listError: null })
+    } catch {
+      // **0개와 「못 받아 왔다」는 다른 말이다.** 조용히 빈 목록으로 두면
+      // 사람은 자료가 사라진 줄 알고, 다시 시도할 방법도 모른다.
+      set({ list: [], listError: '목록을 불러오지 못했어요.' })
+    }
   },
 
   openProject: async (id) => {

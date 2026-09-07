@@ -34,6 +34,8 @@ export default function LibraryScreen() {
   const view = useProjects((s) => s.view)
   const list = useProjects((s) => s.list)
   const loading = useProjects((s) => s.loading)
+  const listError = useProjects((s) => s.listError)
+  const loadList = useProjects((s) => s.loadList)
   const openProject = useProjects((s) => s.openProject)
   const newProject = useProjects((s) => s.newProject)
   const newFromTemplate = useProjects((s) => s.newFromTemplate)
@@ -317,6 +319,16 @@ export default function LibraryScreen() {
       <div className="lib-list">
         {loading ? (
           <div className="lib-empty">불러오는 중…</div>
+        ) : listError ? (
+          /* **「0개」와 「못 받아 왔다」를 갈라 말한다.** 실패를 빈 목록으로 그리면
+             사람은 자료가 사라진 줄 알고, 다시 시도할 방법도 모른 채 새로고침만 한다. */
+          <div className="lib-empty">
+            {listError}<br />
+            잠깐 끊겼을 수 있어요. 다시 시도해 보세요.
+            <div style={{ marginTop: 12 }}>
+              <button className="lib-btn dark" onClick={() => void loadList()}>다시 시도</button>
+            </div>
+          </div>
         ) : total === 0 ? (
           <div className="lib-empty">{searching
             ? `${scopeLabel(path)} 조건에 맞는 이북이 없어요.`
