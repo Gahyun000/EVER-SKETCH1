@@ -91,6 +91,19 @@ const connBtn = p.locator('.ax-tb [title="화살표 연결"], [title="화살표 
   }
 }
 
+// ── 요소 도구막대에는 연결 단추가 없다 (모든 문서에서) ──
+// 여기에도 「→ 연결(화살표)」가 있었다. 잇는 길이 셋이었던 셈이고, 표준 양식에서
+// 앞의 둘만 감춰 놓으니 이것만 열린 채 남았다. 조건을 하나 더 다는 대신 단추를 없앴다.
+{
+  const el = p.locator('.stage .fel:not(.table)').first()
+  await el.click()
+  await p.waitForTimeout(350)
+  ok('(사전) 요소 도구막대가 떴다', await p.locator('.stage .ctxbar').count() === 1)
+  ok('도구막대에 연결 단추가 없다',
+     await p.locator('.stage [title="연결(화살표)"]').count() === 0,
+     (await p.locator('.stage .ctxbar button').allTextContents()).join(' '))
+}
+
 // ── 도구모음의 연결 버튼 ──
 if (FREE) {
   ok('자유 이북에는 「→ 화살표 연결」 도구가 있다', await connBtn.count() >= 1)

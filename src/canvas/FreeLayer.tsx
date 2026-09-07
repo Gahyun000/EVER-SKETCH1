@@ -386,7 +386,6 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   const NO_CPT = ['text', 'icon', 'wordart', 'note', 'table']
   const NO_FILL = ['text', 'icon', 'wordart', 'image', 'note', 'table']  // 채우기색 안 쓰는 타입
   function setFill(el: FreeEl, c: string) { snap(); updateEl(page.id, el.id, { color: c }) }
-  function startConnectFrom(id: number) { setSelConn(null); setConnSrc(id); setTool('connect') }
   // 그룹이면 그 그룹 전체 id, 아니면 자기 id
   function expandGroupIds(id: number): number[] {
     const e = page.els.find((x) => x.id === id)
@@ -1220,7 +1219,11 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
               <button key={c} className="ctx-dot" style={{ background: c }} title="채우기색" onClick={() => setFill(se, c)} />
             )) : null}
             {showFill ? <span className="ctx-sep" /> : null}
-            <button className="ctx-b" title="연결(화살표)" onClick={() => startConnectFrom(se.id)}>→</button>
+            {/* 여기 있던 「→ 연결(화살표)」를 2026-09-07 에 뺐다.
+                잇는 길이 셋이었다 — 도구모음의 「→」, 마우스를 올리면 나오는 연결점,
+                그리고 이 단추. 앞의 둘은 표준 양식에서 감췄는데 이것만 열려 있었다.
+                여기에도 조건을 하나 더 다는 대신 **단추를 없앴다.** 두 길이 남아 있어
+                잃는 기능이 없고, 판정하는 자리가 늘기는커녕 하나 줄었다. */}
             <button className="ctx-b" title="복제" onClick={() => emit('ebook:dup')}>⧉</button>
             <button className="ctx-b" title="맨 앞으로" onClick={() => emit('ebook:z-front')}>▲</button>
             <button className="ctx-b" title="맨 뒤로" onClick={() => emit('ebook:z-back')}>▼</button>
