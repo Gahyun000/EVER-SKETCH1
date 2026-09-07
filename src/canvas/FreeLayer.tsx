@@ -945,6 +945,12 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                               // Shift+클릭은 요소 다중 선택에 쓴다 — 표가 아직 안 골라졌으면 흘려보낸다.
                               if (e.shiftKey && !tableActive) return
                               e.stopPropagation()
+                              // **다른 요소를 편집 중이었으면 거기서 끝낸다.**
+                              // 칸의 onBlur 는 값만 커밋하고 `editing` 은 그대로 둔다.
+                              // 그러면 옛 표가 계속 편집 모드로 남아 모든 칸이
+                              // contentEditable 이고, editing 을 보는 다른 겹들도 계속 숨는다.
+                              // onElDown 은 이미 같은 일을 하는데 칸으로 들어오는 길에만 빠져 있었다.
+                              if (editing != null && editing !== el.id) endEditing()
                               // **첫 누름도 칸 선택으로 시작한다.**
                               //
                               // 예전에는 첫 누름을 표 고르는 데만 쓰고 onElDown 으로 흘려보냈다.
@@ -1013,13 +1019,9 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                         const C0 = Math.min(ts.c0, ts.c1), C1 = Math.max(ts.c0, ts.c1)
                         return <div className="feltsel" style={{ gridColumn: `${C0 + 1} / ${C1 + 2}`, gridRow: `${R0 + 1} / ${R1 + 2}`, border: '2px solid #2f6df6', margin: -1, borderRadius: 2, pointerEvents: 'none', zIndex: 3 }} />
                       })() : null}
-                      {/* 이동 손잡이 — 표가 선택되면 셀 클릭이 드래그 선택으로 바뀌어서
-                          셀을 잡고 표를 옮길 수 없다. 그래서 잡을 곳을 따로 만든다.
-                          잠긴 템플릿 표에는 띄우지 않는다(어차피 못 옮긴다). */}
-                      {active && tableActive && !el.locked ? (
-                        <div className="tbl-move" title="드래그해서 표 이동"
-                          onPointerDown={(e) => { e.stopPropagation(); onElDown(e, el) }}>⠿</div>
-                      ) : null}
+                      {/* 이동 손잡이(⠿)는 **표 밖**에 그린다 — 손잡이 겹인 아래쪽
+                          overlay 에 있다. `.fel` 이 overflow:hidden 이라 여기서 밖으로
+                          내보내면 잘려서 잡을 수가 없다. 2026-09-07 에 옮겼다. */}
                       {/* Today 마커 — 기본은 실제 오늘을 따라간다(slots.todayColumn).
                           위 도구모음에서 특정 달에 고정하거나 끌 수 있다. */}
                       {(() => {
@@ -1166,6 +1168,27 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       {/* 연결점. **표준 양식에서는 아예 안 그린다** —
           임원은 양식만 쓰고 거기서 흐름도를 그릴 일이 없다. 도구모음의 연결 도구도
           같이 감춘다(EditToolbar). 자유 이북에서는 그대로다. */}
+      {/* 표 이동 손잡이(⠿) — 자기 겹에 따로 그린다.
+          표는 칸을 잡으면 **칸 선택**이 되므로(그게 맞는 동작이다) 표 자체를 끌 곳이
+          따로 필요하다. 없애면 표를 옮길 방법이 사라진다.
+
+          왜 겹을 따로 두는가. 예전에는 표 안(.feltable)에 그려서 첫 칸을 9px 덮었고,
+          꽉 찬 파란 네모라 혼자 튀었다. 밖으로 내보내려 했더니 `.fel` 이
+          overflow:hidden 이라 통째로 잘렸다(브라우저 테스트가 「손잡이는 보이는데
+          표가 안 움직인다」로 잡았다). 크기 손잡이 겹에 얹었더니 이번엔
+          **칸을 편집하는 동안 사라졌다** — 그 겹은 editing == null 일 때만 뜬다.
+          셋 다 아니어야 해서 자기 겹을 갖는다. */}
+      {active && tool === 'select' && selEls.length === 1 && selEl != null ? (() => {
+        const se = page.els.find((e) => e.id === selEl)
+        if (!se || se.type !== 'table' || se.locked) return null
+        return (
+          <div style={{ position: 'absolute', left: se.x, top: se.y, width: se.w, height: se.h,
+                        pointerEvents: 'none', zIndex: 8 }}>
+            <div className="tbl-move" title="드래그해서 표 이동"
+              onPointerDown={(e) => { e.stopPropagation(); onElDown(e, se) }}>⠿</div>
+          </div>
+        )
+      })() : null}
       {active && !isTemplateDoc && tool === 'select' && editing == null && hoverId != null && !selEls.includes(hoverId) ? (() => {
         const he = page.els.find((e) => e.id === hoverId)
         if (!he || he.locked || NO_CPT.includes(he.type)) return null
