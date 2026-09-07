@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>한 표로 저장하고 두 장에 그린다 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#EAF1FE;--line:#E6E8EE;--card:#F7F8FB;
+    --sub:#5b6270;--muted:#98a1b2;--ok:#215c46;--okbg:#E9F5EF;--ink:#0f172a;
+    --warn:#8a5a10;--warnbg:#FFF4E3;--bad:#9b2c2c;--badbg:#FDECEC;--head:#FFFFCC}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:34px 0 6px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--sub);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--sub);line-height:1.85}
+  .box.bad{border-left-color:#C0392B}
+  .box.ok{border-left-color:#2E9E6B}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#eef1f6;border-radius:4px;padding:1px 5px;font-size:11.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  .picks{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+  .pick{border:1.4px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;
+    cursor:pointer;font:inherit;font-size:12.5px;font-weight:800;color:var(--sub);text-align:left;
+    display:flex;flex-direction:column;gap:2px;min-width:250px}
+  .pick .s{font-size:11px;font-weight:700;color:var(--muted)}
+  .pick.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .pick.on .s{color:rgba(255,255,255,.72)}
+
+  .ctl{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:10px 14px;margin:0 0 14px;flex-wrap:wrap}
+  .ctl label{font-size:12px;font-weight:800;color:var(--navy)}
+  .ctl input[type=range]{flex:1 1 220px;accent-color:var(--blue)}
+  .ctl .val{font-size:13px;font-weight:800;color:var(--navy);min-width:150px}
+  .ctl .val em{font-style:normal;font-size:11px;color:var(--muted);font-weight:700}
+
+  .stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px 22px;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .flow{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .col-store{flex:0 0 268px}
+  .col-arrow{flex:0 0 74px;align-self:center;text-align:center;color:var(--muted)}
+  .col-arrow .a{font-size:26px;color:var(--blue);line-height:1}
+  .col-arrow .t{font-size:11px;font-weight:800;color:var(--navy);margin-top:2px}
+  .col-arrow .s{font-size:10.5px}
+  .col-view{flex:1 1 420px;display:flex;gap:12px;flex-wrap:wrap}
+
+  .cap{font-size:11.5px;font-weight:800;color:var(--navy);margin:0 0 6px;
+    display:flex;align-items:center;gap:6px}
+  .cap .badge{background:var(--tint);color:var(--blue);border-radius:20px;padding:1px 8px;
+    font-size:10.5px;font-weight:800}
+  .cap .badge.bad{background:var(--badbg);color:var(--bad)}
+  .cap .badge.ok{background:var(--okbg);color:var(--ok)}
+
+  /* 저장 카드 */
+  .store{border:1.5px solid var(--line);border-radius:10px;background:var(--card);
+    padding:10px 11px;margin:0 0 10px}
+  .store.two{border-color:#f0c9c4;background:var(--badbg)}
+  .store .k{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.02em}
+  .store .id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+    color:var(--navy);font-weight:700;margin:1px 0 7px}
+  .ribbon{border:1px solid #cfd4de;border-radius:5px;overflow:hidden;background:#fff}
+  .ribbon .rw{display:flex;align-items:center;gap:7px;font-size:10.5px;padding:2px 7px;
+    border-bottom:1px solid #eceff4;color:#1c2433;height:19px}
+  .ribbon .rw:last-child{border-bottom:0}
+  .ribbon .rw.h{background:var(--head);font-weight:700}
+  .ribbon .rw .no{color:var(--muted);font-family:ui-monospace,Menlo,monospace;
+    font-size:9.5px;width:16px;flex:0 0 16px}
+  .ribbon .rw.p2{background:#F4F8FF}
+  .cutline{position:relative;height:0}
+  .cutline::before{content:'';position:absolute;left:-6px;right:-6px;top:0;
+    border-top:2px dashed var(--blue)}
+  .cutline span{position:absolute;right:0;top:-9px;background:var(--blue);color:#fff;
+    font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:20px;white-space:nowrap}
+
+  /* 종이 */
+  .sheet{width:236px;background:#fff;border:1px solid #cfd4de;border-radius:3px;
+    box-shadow:0 2px 8px rgba(20,25,40,.09);padding:9px 9px 7px}
+  .sheet .hd{font-size:8.5px;font-weight:800;color:#0f172a;margin:0 0 5px;
+    display:flex;justify-content:space-between}
+  .sheet .hd span{color:var(--muted);font-weight:700}
+  .sheet table{border-collapse:collapse;width:100%;table-layout:fixed}
+  .sheet td{border:1px solid #cfd4de;font-size:8px;height:14px;text-align:center;
+    color:#1c2433;overflow:hidden;white-space:nowrap}
+  .sheet td.h{background:var(--head);font-weight:700}
+  .sheet td.l{text-align:left;padding-left:3px}
+  .sheet td.cont{background:var(--tint);color:var(--blue);font-weight:800;font-size:8px}
+  .sheet .ft{font-size:7.5px;color:var(--muted);margin-top:5px}
+
+  .lens{border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin:14px 0 0;
+    background:var(--okbg);border-color:#bfe0cf}
+  .lens.bad{background:var(--badbg);border-color:#f0c9c4}
+  .lens .t{font-size:12px;font-weight:800;color:var(--ok);margin-bottom:3px}
+  .lens.bad .t{color:var(--bad)}
+  .lens .d{font-size:12.5px;color:var(--sub);line-height:1.8}
+  .lens .d b{color:var(--navy)}
+  .lens code{background:#fff}
+
+  ol.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:flex;gap:10px;flex-wrap:wrap}
+  ol.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 36px;font-size:12.5px;
+    border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--sub);flex:1 1 250px}
+  ol.steps li::before{content:counter(s);position:absolute;left:11px;top:10px;width:19px;height:19px;
+    border-radius:50%;background:var(--card);color:var(--navy);font-size:11px;font-weight:800;
+    display:grid;place-items:center}
+  ol.steps li b{color:var(--navy)}
+  ol.steps li.bad{border-color:#f0c9c4;background:var(--badbg)}
+  ol.steps li.bad::before{background:#C0392B;color:#fff}
+  ol.steps li.bad b{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>「저장은 한 표, 그리기만 나눈다」가 무슨 뜻인가</h1>
+<p class="lead">표가 종이보다 길어졌을 때 <b>무엇을 나누느냐</b>의 이야기입니다.
+나눌 수 있는 게 두 가지인데, 하나는 되고 하나는 안 됩니다.</p>
+
+<div class="picks" id="picks"></div>
+<div class="ctl">
+  <label for="rows">로드맵 데이터 행</label>
+  <input type="range" id="rows" min="5" max="20" value="16" />
+  <div class="val" id="rowval"></div>
+</div>
+
+<div class="stage">
+  <div class="flow">
+    <div class="col-store"><div id="store"></div></div>
+    <div class="col-arrow" id="arrow"></div>
+    <div class="col-view" id="view"></div>
+  </div>
+  <div id="lens"></div>
+</div>
+
+<h2><span class="n">1</span>한 줄로 말하면</h2>
+<div class="box"><span class="t">파일에 남는 것과 눈에 보이는 것은 원래 다른 것이다</span>
+표를 <b>물건</b>으로 보면 「한 개」고, <b>그림</b>으로 보면 「두 조각」입니다.
+지금 저장 방식은 물건 하나를 통째로 적습니다 —
+<code>{ slot: 'SLOT-A', rows: 18, cells: [...] }</code>. 여기에는 <b>몇 쪽에 걸쳐 그렸는지가 안 적힙니다.</b><br />
+그러니 「이어짐」은 저장에 넣을 것이 아니라 <b>그리는 순간에 계산할 것</b>입니다 —
+「이 종이에 12행까지 들어가니 13행부터는 다음 장」. 창을 넓히거나 행 높이를 바꾸면
+나누는 자리는 저절로 옮겨집니다. <b>저장은 한 글자도 안 바뀝니다.</b></div>
+
+<h2><span class="n">2</span>고쳤을 때 무슨 일이 생기나</h2>
+<p class="lead">차이가 제일 크게 드러나는 자리입니다. <b>15행을 지운다</b>고 해 봅시다.</p>
+<ol class="steps" id="edit"></ol>
+
+<h2><span class="n">3</span>그래서 무엇이 큰 작업인가</h2>
+<div class="box"><span class="t">「한 표를 두 장에 그린다」가 지금 구조에 없다</span>
+지금 쪽은 <b>요소를 담는 상자</b>입니다. 요소마다 <code>x, y, w, h</code> 가 있고 <b>한 요소는 한 쪽에 속합니다.</b>
+「한 요소가 두 쪽에 걸친다」는 개념이 아예 없어요. 그래서 ㄴ은 둘 중 하나가 됩니다.<br /><br />
+<b>(가)</b> 요소가 여러 쪽에 걸치는 개념을 새로 만든다 — 그리기·인쇄·뷰어·코멘트 앵커가 다 따라옵니다. 큽니다.<br />
+<b>(나)</b> 쪽마다 조각을 두되 <b>「한 표의 몇 번째 조각」이라고 표시</b>하고, 읽을 때 하나로 합친다.
+저장에는 조각이 보이지만 <b>세는 쪽·고치는 쪽·취합하는 쪽은 언제나 하나로 본다.</b><br /><br />
+(나)가 현실적이고, 그래서 제가 <code>template_guard</code> 에 <b>미리 자리를 만들어 뒀습니다</b> —
+<code>contFrom</code> 이 달린 조각은 세지 않습니다. 「SLOT-A 는 정확히 하나」라고 못 박아 뒀다면
+ㄴ을 하면서 그 규칙부터 어겨야 했을 겁니다.</div>
+
+<script>
+var MODE = 'a', ROWS = 16
+var FIT = 12                       // 한 장에 들어가는 데이터 행 (실제 상한과 같다)
+var OPTS = [
+  {k:'a', t:'㉠ 한 표 · 그리기만 나눔  ← 맞는 방식', s:'저장 1개 / 화면 2조각'},
+  {k:'b', t:'㉡ 표를 실제로 둘로 쪼갬', s:'저장 2개 / 화면 2개'},
+]
+
+function ribbonRows(from, count, startNo, cls){
+  var o = ''
+  for (var i = 0; i < count; i++){
+    o += '<div class="rw ' + (cls||'') + '"><span class="no">'
+       + (startNo + i) + '</span>프로젝트 ' + (startNo + i) + '</div>'
+  }
+  return o
+}
+function head2(){
+  return '<div class="rw h"><span class="no"></span>사업그룹 · 프로젝트 · 1~12월 · …</div>'
+}
+
+function sheet(title, pg, of, inner, foot){
+  return '<div class="sheet"><div class="hd">' + title + '<span>' + pg + ' / ' + of + '</span></div>'
+       + inner + '<div class="ft">' + foot + '</div></div>'
+}
+function tbl(rows, startNo, cont){
+  var o = '<table>'
+  if (cont) o += '<tr><td class="cont" colspan="4">① 로드맵 — 앞 장에서 이어짐 (' + startNo + '행부터)</td></tr>'
+  o += '<tr><td class="h">사업그룹</td><td class="h">프로젝트</td><td class="h">1~12월</td><td class="h">비고</td></tr>'
+  for (var i = 0; i < rows; i++){
+    o += '<tr><td class="l">' + (i === 0 && !cont ? '클라우드' : '') + '</td>'
+       + '<td class="l">프로젝트 ' + (startNo + i) + '</td><td></td><td></td></tr>'
+  }
+  return o + '</table>'
+}
+
+function render(){
+  document.getElementById('picks').innerHTML = OPTS.map(function(x){
+    return '<button class="pick' + (x.k === MODE ? ' on' : '') + '" data-k="' + x.k + '">'
+      + '<span>' + x.t + '</span><span class="s">' + x.s + '</span></button>' }).join('')
+
+  var over = ROWS > FIT, rest = Math.max(0, ROWS - FIT), first = Math.min(ROWS, FIT)
+  document.getElementById('rowval').innerHTML = ROWS + '행 '
+    + '<em>' + (over ? '한 장(' + FIT + '행)을 ' + rest + '행 넘음' : '아직 한 장에 들어감') + '</em>'
+
+  // ── 저장된 것 ──
+  var store = ''
+  if (MODE === 'a'){
+    store += '<div class="cap">저장된 것<span class="badge ok">표 1개</span></div>'
+      + '<div class="store"><div class="k">SLOT-A</div>'
+      + '<div class="id">{ rows: ' + (ROWS + 2) + ', cells: […] }</div>'
+      + '<div class="ribbon">' + head2() + ribbonRows(0, first, 1, '')
+      + (over ? '<div class="cutline"><span>여기부터 2쪽에 그린다</span></div>'
+                + ribbonRows(0, rest, first + 1, 'p2') : '')
+      + '</div></div>'
+      + '<div class="box ok" style="margin:0;font-size:12px;padding:9px 11px">'
+      + '점선은 <b>저장에 없습니다.</b> 그리는 순간 계산한 자리라서, 행 높이를 바꾸면 저절로 옮겨집니다.</div>'
+  } else {
+    store += '<div class="cap">저장된 것<span class="badge bad">표 ' + (over ? 2 : 1) + '개</span></div>'
+      + '<div class="store two"><div class="k">SLOT-A &nbsp;(1쪽)</div>'
+      + '<div class="id">{ rows: ' + (first + 2) + ', cells: […] }</div>'
+      + '<div class="ribbon">' + head2() + ribbonRows(0, first, 1, '') + '</div></div>'
+    if (over){
+      store += '<div class="store two"><div class="k">SLOT-A &nbsp;(2쪽) — <b>또 하나</b></div>'
+        + '<div class="id">{ rows: ' + (rest + 2) + ', cells: […] }</div>'
+        + '<div class="ribbon">' + head2() + ribbonRows(0, rest, first + 1, 'p2') + '</div></div>'
+    }
+  }
+  document.getElementById('store').innerHTML = store
+
+  document.getElementById('arrow').innerHTML =
+    '<div class="a">→</div><div class="t">' + (MODE === 'a' ? '그릴 때 나눔' : '저장할 때 쪼갬') + '</div>'
+    + '<div class="s">' + (MODE === 'a' ? '계산' : '가위질') + '</div>'
+
+  // ── 화면 ──
+  var of = over ? 2 : 1
+  var view = '<div><div class="cap">화면</div>'
+    + sheet('2026년 10월 임원회의', 1, of, tbl(first, 1, false),
+            'EVER-SKETCH · 2026-10') + '</div>'
+  if (over){
+    view += '<div><div class="cap">&nbsp;</div>'
+      + sheet('2026년 10월 임원회의', 2, of, tbl(rest, first + 1, true),
+              'EVER-SKETCH · 2026-10') + '</div>'
+  }
+  document.getElementById('view').innerHTML = view
+
+  // ── 취합이 보는 것 ──
+  var lens = ''
+  if (MODE === 'a'){
+    lens = '<div class="lens"><div class="t">취합이 보는 것 — 「SLOT-A 1개, ' + ROWS + '행」</div>'
+      + '<div class="d">사람마다 로드맵이 <b>정확히 하나</b>씩. 이어 붙이면 끝입니다. '
+      + '누가 몇 쪽을 썼는지는 알 필요도 없습니다.<br />'
+      + '<code>template_guard</code> 도 통과합니다 — 조각(<code>contFrom</code>)은 하나로 세니까요.</div></div>'
+  } else {
+    lens = '<div class="lens ' + (over ? 'bad' : '') + '">'
+      + '<div class="t">취합이 보는 것 — ' + (over
+          ? '「SLOT-A 2개」… <b>어느 게 진짜 로드맵인가?</b>'
+          : '「SLOT-A 1개」 (아직 안 넘쳐서 티가 안 남)') + '</div>'
+      + '<div class="d">' + (over
+          ? '조각인지, 이 사람이 표를 하나 더 만든 것인지 <b>구별할 방법이 없습니다.</b> '
+            + '그리고 지금 서버는 이미 이걸 <b>거부합니다</b> — 「표가 2개예요, 한 사람 자료에 하나만 '
+            + '있어야 합니다」. ㉡ 로 만들려면 그 규칙부터 헐어야 하고, 헐면 <b>진짜 복사된 표도 '
+            + '못 잡습니다.</b>'
+          : '손잡이를 오른쪽으로 밀어 12행을 넘겨 보세요 — 그때 갈라집니다.') + '</div></div>'
+  }
+  document.getElementById('lens').innerHTML = lens
+
+  // ── 고쳤을 때 ──
+  var edit = ''
+  if (MODE === 'a'){
+    edit = '<li><b>15행을 지운다.</b> 사용자가 하는 건 이게 전부입니다.</li>'
+      + '<li><b>저장에서 한 행이 빠진다.</b> 표는 여전히 하나, <code>rows</code> 가 1 줄어듭니다.</li>'
+      + '<li><b>나누는 자리가 저절로 옮겨진다.</b> 그리면서 다시 세니까요. '
+      + '남은 행이 12행 이하가 되면 <b>2쪽은 그냥 사라집니다.</b></li>'
+  } else {
+    edit = '<li><b>15행을 지운다.</b> 그건 2쪽 표의 3번째 행입니다.</li>'
+      + '<li class="bad"><b>2쪽 표만 줄어든다.</b> 1쪽 표는 아무것도 모릅니다. '
+      + '이제 두 표의 행 수를 누군가 계속 맞춰 줘야 합니다.</li>'
+      + '<li class="bad"><b>1쪽이 한 행 빈다.</b> 2쪽 첫 행을 1쪽으로 끌어올려야 하는데, '
+      + '그건 <b>두 표 사이에 행을 옮기는 기능</b>입니다 — 지금 없습니다.</li>'
+      + '<li class="bad"><b>코멘트가 길을 잃는다.</b> 지적은 「이 표의 15행」을 가리키는데 '
+      + '표가 둘이면 「어느 표의 몇 행」인지 다시 정해야 합니다.</li>'
+  }
+  document.getElementById('edit').innerHTML = edit
+}
+
+document.getElementById('picks').addEventListener('click', function(e){
+  var b = e.target.closest('.pick'); if (!b) return; MODE = b.dataset.k; render()
+})
+document.getElementById('rows').addEventListener('input', function(e){ ROWS = +e.target.value; render() })
+render()
+</script>
+</div>
+</body>
+</html>

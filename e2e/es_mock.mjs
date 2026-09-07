@@ -28,6 +28,16 @@ const state = JSON.parse(await readFile(new URL(
   process.env.REAL ? './fixture_real_slide3.json' : './fixture_template_state.json',
   import.meta.url), 'utf-8'))
 
+// LEGACY=1 이면 **2026-09-07 이전에 만든 자료**를 흉내낸다 — 슬롯 요소마다
+// `locked: true` 가 박혀 있는 상태. 양식에서 그 기본값을 뺀 것은 앞으로 만들 자료에만
+// 적용되므로, 이미 나간 자료가 어떻게 열리는지는 따로 확인해야 한다.
+// (실제로 「기능을 넣었다는데 내 화면에는 손잡이가 없다」는 보고를 받은 자리다.)
+if (process.env.LEGACY) {
+  for (const pg of state.pages || []) {
+    for (const el of pg.els || []) if (el.slot) el.locked = true
+  }
+}
+
 // ADMIN=1 이면 관리자로 로그인된 상태.
 const ADMIN = !!process.env.ADMIN
 const ME = ADMIN

@@ -158,10 +158,12 @@ button{font-family:inherit;cursor:pointer}
 .trk-grip{position:absolute;pointer-events:auto;z-index:7}
 .trk-grip::before{content:'';position:absolute;background:#2462EB;opacity:.3;border-radius:2px;transition:opacity .12s}
 .trk-grip:hover::before{opacity:1}
-.trk-col{top:-15px;height:15px;width:13px;margin-left:-6.5px;cursor:col-resize}
-.trk-col::before{left:5px;top:1px;bottom:2px;width:3px}
-.trk-row{left:-15px;width:15px;height:13px;margin-top:-6.5px;cursor:row-resize}
-.trk-row::before{top:5px;left:1px;right:2px;height:3px}
+/* 띠는 표 바로 옆(-14..-3), 크기 손잡이는 그보다 바깥(-20). 겹치면 하나를
+   잡으려다 다른 게 잡힌다 — 2열짜리 표에서는 가운데 경계선과 n 손잡이가 같은 자리다. */
+.trk-col{top:-14px;height:11px;width:13px;margin-left:-6.5px;cursor:col-resize}
+.trk-col::before{left:5px;top:0;bottom:1px;width:3px}
+.trk-row{left:-14px;width:11px;height:13px;margin-top:-6.5px;cursor:row-resize}
+.trk-row::before{top:5px;left:0;right:1px;height:3px}
 
 .fel.locked{cursor:default}
 .fel.locked.text,.fel.locked.wordart{cursor:text}

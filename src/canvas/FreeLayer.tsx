@@ -1065,16 +1065,30 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
         if (!se || se.locked) return null
         const w = se.w, h = se.h
         const isTbl = se.type === 'table'
-        const pad = isTbl ? 8 : 0        // 표는 손잡이를 칸 밖으로
+        // 표는 손잡이를 칸 **밖**으로 낸다. 칸 위에 겹치면 칸 고르기를 가로챈다.
+        // 20px 이나 나가는 이유: 표에는 바로 안쪽에 열·행 경계선 손잡이 띠가 한 겹 더
+        // 있어서, 가운데 변 손잡이(n·w)가 그 띠의 한가운데 boundary 와 겹친다.
+        // 2열짜리 표에서는 정확히 같은 자리다 — 하나를 잡으려다 다른 게 잡힌다.
+        //
+        // **종이 가장자리에 붙은 표에서는 그만큼 안으로 들인다.** 밖으로만 내면
+        // 종이 밖에 그려져 잘리고, 아래쪽에 딱 붙은 표는 크기를 바꿀 방법이 아예 없어진다.
+        // 자리가 없으면 0 이 되어 예전처럼 테두리 위에 선다 — 겹치는 것보다 낫다.
+        const pad0 = isTbl ? 20 : 0
+        const room = (v: number) => Math.max(0, Math.min(pad0, Math.round(v)))
+        const padL = room(se.x), padT = room(se.y)
+        const padR = room(W - (se.x + w)), padB = room(H - (se.y + h))
+        // 띠(열·행 경계선)도 같은 이유로 자리가 없으면 안쪽에 붙인다.
+        const bandT = se.y >= 15 ? -14 : 1
+        const bandL = se.x >= 15 ? -14 : 1
         const HS: { d: string; x: number; y: number; cur: string }[] = [
-          { d: 'nw', x: -pad, y: -pad, cur: 'nwse-resize' },
-          { d: 'n', x: w / 2, y: -pad, cur: 'ns-resize' },
-          { d: 'ne', x: w + pad, y: -pad, cur: 'nesw-resize' },
-          { d: 'e', x: w + pad, y: h / 2, cur: 'ew-resize' },
-          { d: 'se', x: w + pad, y: h + pad, cur: 'nwse-resize' },
-          { d: 's', x: w / 2, y: h + pad, cur: 'ns-resize' },
-          { d: 'sw', x: -pad, y: h + pad, cur: 'nesw-resize' },
-          { d: 'w', x: -pad, y: h / 2, cur: 'ew-resize' },
+          { d: 'nw', x: -padL, y: -padT, cur: 'nwse-resize' },
+          { d: 'n', x: w / 2, y: -padT, cur: 'ns-resize' },
+          { d: 'ne', x: w + padR, y: -padT, cur: 'nesw-resize' },
+          { d: 'e', x: w + padR, y: h / 2, cur: 'ew-resize' },
+          { d: 'se', x: w + padR, y: h + padB, cur: 'nwse-resize' },
+          { d: 's', x: w / 2, y: h + padB, cur: 'ns-resize' },
+          { d: 'sw', x: -padL, y: h + padB, cur: 'nesw-resize' },
+          { d: 'w', x: -padL, y: h / 2, cur: 'ew-resize' },
         ]
         return (
           <div style={{ position: 'absolute', left: se.x, top: se.y, width: w, height: h, transform: se.rot ? `rotate(${se.rot}deg)` : undefined, transformOrigin: 'center', pointerEvents: 'none', zIndex: 6 }}>
@@ -1098,14 +1112,14 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
               for (let i = 0; i < C - 1; i++) {
                 acc += cw[i]
                 out.push(<div key={'cg' + i} className="trk-grip trk-col" title="끌어서 열 너비 조절"
-                  style={{ left: (acc / cT) * 100 + '%' }}
+                  style={{ left: (acc / cT) * 100 + '%', top: bandT }}
                   onPointerDown={(ev) => onTrackDown(ev, se, 'col', i)} />)
               }
               acc = 0
               for (let i = 0; i < R - 1; i++) {
                 acc += rh[i]
                 out.push(<div key={'rg' + i} className="trk-grip trk-row" title="끌어서 행 높이 조절"
-                  style={{ top: (acc / rT) * 100 + '%' }}
+                  style={{ top: (acc / rT) * 100 + '%', left: bandL }}
                   onPointerDown={(ev) => onTrackDown(ev, se, 'row', i)} />)
               }
               return <>{out}</>

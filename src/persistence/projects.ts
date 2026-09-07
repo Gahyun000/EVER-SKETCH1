@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { unlockLegacySlots } from '../template/legacyUnlock'
 import { useBuilder, reseedUids, type BuilderState } from '../state/store'
 import { snapshotFromState, type DraftStateSnapshot } from './draftStorage'
 import {
@@ -31,6 +32,10 @@ function applyProject(p: ProjectFull): void {
   resetHistory()                             // 이전 프로젝트의 되돌리기 스냅샷 폐기(페이지 id 가 겹친다)
   const st = fullState(p.state)
   reseedUids(st.pages || [])
+  // 2026-09-07 이전에 만든 표준 양식은 슬롯 요소마다 `locked: true` 가 저장돼 있다.
+  // 그 기본값을 뺀 것은 앞으로 만들 자료에만 적용되므로, 이미 나간 자료는 열 때 푼다 —
+  // 안 그러면 「크기 조절이 되게 했다」는데 예전 자료에서는 손잡이가 안 나온다.
+  unlockLegacySlots(st.pages)
   useBuilder.setState(st as Partial<BuilderState>)
   setActiveProjectId(p.id)
   // 남의 자료를 열었을 때 자동저장이 돌면 **매번 403 이 뜨고**, 사용자는
