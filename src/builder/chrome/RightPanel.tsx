@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import NumInput from './NumInput'
 import { useBuilder } from '../../state/store'
 import type { PaperType } from '../../state/store'
 import { useCanvasUI } from '../../state/canvasUI'
@@ -124,9 +125,12 @@ export default function RightPanel() {
     return () => bound.forEach(([k, g]) => window.removeEventListener(k, g))
   })
 
+  // 숫자 칸은 전부 NumInput 을 쓴다 — 치는 도중에 값을 깎지 않는다.
+  // 예전에는 한 글자마다 깎아서, 60 을 50 으로 고치려 하면 5 가 6 으로 박히고
+  // 칸을 비울 수조차 없었다(NumInput.tsx 의 설명 참고).
   const numRow = (label: string, val: number, on: (n: number) => void, min = -9999): React.ReactNode => (
     <label className="insp-num"><span>{label}</span>
-      <input type="number" value={Math.round(val)} onChange={(e) => on(Math.max(min, Number(e.target.value) || 0))} /></label>
+      <NumInput value={val} onCommit={on} min={min} ariaLabel={label} /></label>
   )
 
   // ── 표가 바뀌면 지적이 가리키는 칸도 따라 움직여야 한다 ──
@@ -293,7 +297,8 @@ export default function RightPanel() {
               <div className="insp-sec">셀 글자 크기</div>
               <div className="insp-row">
                 <label className="insp-num sm"><span>크기</span>
-                  <input type="number" value={Math.round(cellFs)} onChange={(e) => patchTable(setCellFsRange(el, ...rng(), Math.max(6, Number(e.target.value) || 6)))} /></label>
+                  <NumInput value={cellFs} min={6} max={200} ariaLabel="셀 글자 크기"
+                    onCommit={(n) => patchTable(setCellFsRange(el, ...rng(), n))} /></label>
                 <button className="insp-pill" onClick={() => patchTable(setCellFsRange(el, ...rng(), null))}>표 기본으로</button>
               </div>
               <div className="insp-sec">테두리 · 헤더</div>
@@ -337,7 +342,9 @@ export default function RightPanel() {
                 <button className={'insp-b' + (el.bold ? ' on' : '')} onClick={() => patch({ bold: !el.bold })}><b>B</b></button>
                 <button className={'insp-b' + (el.italic ? ' on' : '')} onClick={() => patch({ italic: !el.italic })}><i>I</i></button>
                 <button className={'insp-b' + (el.underline ? ' on' : '')} onClick={() => patch({ underline: !el.underline })}><u>U</u></button>
-                <label className="insp-num sm"><span>크기</span><input type="number" value={el.fs} onChange={(e) => patch({ fs: Math.max(6, Number(e.target.value) || 6) })} /></label>
+                <label className="insp-num sm"><span>크기</span>
+                  <NumInput value={el.fs} min={6} max={200} ariaLabel="글자 크기"
+                    onCommit={(n) => patch({ fs: n })} /></label>
                 <ColorPicker value={el.tcolor || '#1a1a1a'} onChange={(c) => patch({ tcolor: c })} />
               </div>
               <div className="insp-sec">정렬</div>

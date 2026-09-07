@@ -301,8 +301,8 @@ export default function EditToolbar() {
     { t: 'table', icon: '▦', title: '표' },
     { t: 'wordart', icon: '🅰', title: '글맵시' },
   ] as { t: Tool; icon: string; title: string }[]).filter((x) => !(isTemplateDoc && x.t === 'connect'))
-  const size = el ? el.fs : 30
-  function setSize(v: number) { if (el) patch({ fs: Math.max(6, Math.min(120, v)) }) }
+  // (여기 있던 size/setSize 는 아무도 안 쓰는 죽은 코드였다. 2026-09-07 에 지웠다 —
+  //  남겨 두면 누가 다시 연결하면서 「한 글자마다 깎는」 그 버그를 되살린다.)
   function cycleColor() {
     if (!el) return
     const i = TEXT_COLORS.indexOf(el.tcolor || '#1a1a1a')
