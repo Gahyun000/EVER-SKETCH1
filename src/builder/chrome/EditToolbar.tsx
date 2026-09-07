@@ -252,6 +252,8 @@ function TableTools() {
 }
 
 export default function EditToolbar() {
+  // 표준 양식 자료인가 — 서버가 심어 둔 표시. 연결 도구를 감출지 여기서 갈린다.
+  const isTemplateDoc = !!useProjects((s) => s.template)
   const tool = useCanvasUI((s) => s.tool)
   const setTool = useCanvasUI((s) => s.setTool)
   const penWidth = useCanvasUI((s) => s.penWidth)
@@ -289,13 +291,16 @@ export default function EditToolbar() {
     : saveStatus === 'error' ? '저장 실패'
     : '저장됨'
 
-  const gsTools: { t: Tool; icon: string; title: string }[] = [
+  // **표준 양식에서는 연결 도구를 감춘다.** 임원은 양식만 쓰고 거기서 흐름도를 그릴 일이
+  // 없는데, 버튼이 보이면 눌러 보게 되고 그은 선은 결재 스냅샷까지 따라간다.
+  // 자유 이북에서는 그대로다 — 마인드맵·프로세스 카드가 이 도구 위에 서 있다.
+  const gsTools: { t: Tool; icon: string; title: string }[] = ([
     { t: 'select', icon: '▣', title: '선택' },
     { t: 'text', icon: 'T', title: '텍스트' },
     { t: 'connect', icon: '→', title: '화살표 연결' },
     { t: 'table', icon: '▦', title: '표' },
     { t: 'wordart', icon: '🅰', title: '글맵시' },
-  ]
+  ] as { t: Tool; icon: string; title: string }[]).filter((x) => !(isTemplateDoc && x.t === 'connect'))
   const size = el ? el.fs : 30
   function setSize(v: number) { if (el) patch({ fs: Math.max(6, Math.min(120, v)) }) }
   function cycleColor() {

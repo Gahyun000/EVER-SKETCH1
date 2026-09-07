@@ -20,6 +20,8 @@ const SUITES = [
   { name: '글자 입력(표 칸 · 머리글)', file: 'table_type_smoke.mjs', env: {} },
   { name: '표 이동 · 크기(종이 안)', file: 'table_move_smoke.mjs', env: {} },
   { name: '옛 자료 열기(잠금 풀림)', file: 'legacy_open_smoke.mjs', env: { LEGACY: '1' } },
+  { name: '연결점 자리 — 표준 양식', file: 'connect_points_smoke.mjs', env: {} },
+  { name: '연결점 자리 — 자유 이북', file: 'connect_points_smoke.mjs', env: { FREE: '1' } },
   { name: '앵커 메모(검토 의견)', file: 'comments_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '의견 쓰기 창(모달)', file: 'comment_modal_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '대화상자 공용 껍데기', file: 'modal_shell_smoke.mjs', env: {} },

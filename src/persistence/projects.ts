@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { unlockLegacySlots } from '../template/legacyUnlock'
+import { stripSlotConns, unlockLegacySlots } from '../template/legacyUnlock'
 import { useBuilder, reseedUids, type BuilderState } from '../state/store'
 import { snapshotFromState, type DraftStateSnapshot } from './draftStorage'
 import {
@@ -36,13 +36,19 @@ function applyProject(p: ProjectFull): void {
   // 그 기본값을 뺀 것은 앞으로 만들 자료에만 적용되므로, 이미 나간 자료는 열 때 푼다 —
   // 안 그러면 「크기 조절이 되게 했다」는데 예전 자료에서는 손잡이가 안 나온다.
   unlockLegacySlots(st.pages)
+  // 잠금을 풀면서 표에 연결점이 생겼고, 그 사이 그어진 선이 자료에 남아 있을 수 있다.
+  // 선은 결재 스냅샷에 그대로 들어간다 — 그은 사람은 그은 줄도 모르는데.
+  stripSlotConns(st.pages)
   useBuilder.setState(st as Partial<BuilderState>)
   setActiveProjectId(p.id)
   // 남의 자료를 열었을 때 자동저장이 돌면 **매번 403 이 뜨고**, 사용자는
   // 자기가 뭔가 망가뜨린 줄 안다. 열자마자 저장을 잠근다.
   const acc = p.access || null
   setAutosaveReadOnly(!!acc && !acc.can_write)
-  useProjects.setState({ activeId: p.id, view: 'editor', access: acc })
+  // 표준 양식인지는 **서버가 심어 둔 표시**로 안다(요소 모양으로 짐작하지 않는다).
+  // 연결 도구를 감출지 여기서 갈린다.
+  useProjects.setState({ activeId: p.id, view: 'editor', access: acc,
+                         template: p.template || null })
   useAutosave.setState({ status: 'saved', savedAt: new Date(p.updated_at || Date.now()).toISOString(), error: undefined })
   markAutosaveHydrated()                      // 이제부터 편집=저장
 }
@@ -52,6 +58,9 @@ interface ProjectsState {
   activeId: string | null
   /** 지금 연 자료로 무엇을 할 수 있는지(서버 판정). 없으면 예전 방식대로 전부 허용. */
   access: ProjectAccess | null
+  /** 지금 연 자료가 표준 양식이면 그 판 번호("v2.0"), 자유 이북이면 null.
+   *  **서버가 심어 둔 표시**다 — 요소 모양으로 짐작하지 않는다. */
+  template: string | null
   list: ProjectMeta[]
   loading: boolean
   /** 목록을 못 받아 왔다. **조용히 0개로 두지 않는다** — 사람은 자료가 사라진 줄 안다. */
@@ -98,7 +107,7 @@ export function resetWorkspace(): void {
   useBuilder.setState(emptySnapshot() as Partial<BuilderState>)
   useAutosave.setState({ status: 'idle', savedAt: undefined, error: undefined })
   useProjects.setState({
-    view: 'library', activeId: null, access: null, list: [], loading: false,
+    view: 'library', activeId: null, access: null, template: null, list: [], loading: false,
     listError: null, bootedFor: null,
   })
 }
@@ -135,6 +144,7 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   view: 'library',
   activeId: null,
   access: null,
+  template: null,
   list: [],
   loading: false,
   listError: null,
@@ -246,7 +256,7 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     setAutosaveHydrated(false)
     setAutosaveReadOnly(false)
     setActiveProjectId(null)
-    set({ activeId: null, view: 'library', access: null })
+    set({ activeId: null, view: 'library', access: null, template: null })
     await get().loadList()
   },
 
@@ -261,7 +271,7 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     if (get().activeId === id) {
       setActiveProjectId(null)
       setAutosaveHydrated(false)
-      set({ activeId: null, view: 'library' })
+      set({ activeId: null, view: 'library', template: null })
     }
     await get().loadList()
   },

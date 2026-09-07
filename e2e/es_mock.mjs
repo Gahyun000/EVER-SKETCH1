@@ -91,10 +91,14 @@ const ACCESS = PEER_STAGE
   ? { mine: false, can_write: false, can_comment: false }
   : { mine: true, can_write: true, can_comment: true }
 
+// `template` 은 **서버만 심는 표시**다(server/projects.py 의 컬럼).
+// 화면은 이걸 보고 표준 양식인지 판정한다 — 연결 도구를 감출지가 여기서 갈린다.
+// FREE=1 이면 자유 이북인 척한다.
 const META = {
   id: 'p_test', name: '2026년 9월 임원회의 — 홍길동',
   created_at: Date.now(), updated_at: Date.now(),
-  published_id: null, page_count: 1, owner_id: 'u_test',
+  published_id: null, page_count: 2, owner_id: 'u_test',
+  template: process.env.FREE ? null : 'v2.0',
 }
 
 const json = (res, body, code = 200) => {

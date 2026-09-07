@@ -10,7 +10,7 @@
 //   이 파일은 그 절반이 빠지지 않게 붙잡아 둔다.
 //
 // 실행: node --experimental-strip-types legacy_unlock.test.mjs
-import { unlockLegacySlots } from './src/template/legacyUnlock.ts'
+import { stripSlotConns, unlockLegacySlots } from './src/template/legacyUnlock.ts'
 
 let pass = 0, fail = 0
 const check = (cond, label, extra = '') => {
@@ -78,6 +78,74 @@ const legacy = () => ([{
   const pages = [{ id: 1, els: [{ id: 51, slot: 'SLOT-Z', locked: true }] }]
   unlockLegacySlots(pages)
   check(pages[0].els[0].locked === true, '모르는 슬롯 이름은 건드리지 않는다')
+}
+
+// ── 슬롯에 붙은 연결선 걷어내기 ──────────────────────
+//
+// 연결점(도형에 마우스를 올리면 나오는 파란 점 4개)은 `locked` 요소에는 안 떴다.
+// 자리 잠금을 풀면서 **표 3개에 연결점이 새로 생겼고**, 임원이 칸을 잡으려다 선을
+// 긋는 일이 실제로 일어났다(화면 녹화로 확인).
+//
+// 선은 `conns` 에 저장되고 **결재 스냅샷에 그대로 들어간다.** 그은 사람은 그은 줄도
+// 모르는데 승인본에는 남는다. 그래서 연결점을 감추는 것만으로는 부족하다 —
+// 감추기만 하면 이미 그어진 선이 화면에 남은 채 지울 방법이 없어진다.
+
+const withConns = () => ([{
+  id: 1,
+  els: [
+    { id: 11, type: 'table', slot: 'SLOT-A' },
+    { id: 12, type: 'table', slot: 'SLOT-B' },
+    { id: 13, type: 'box' },              // 사람이 따로 붙인 도형
+    { id: 14, type: 'box' },
+  ],
+  conns: [
+    { from: 11, to: 12 },                 // 슬롯 ↔ 슬롯
+    { from: 13, to: 11 },                 // 도형 → 슬롯
+    { from: 12, to: 14 },                 // 슬롯 → 도형
+    { from: 13, to: 14 },                 // 도형 ↔ 도형 (사람이 그린 것)
+  ],
+}])
+
+{
+  const pages = withConns()
+  const n = stripSlotConns(pages)
+  check(n === 3, '슬롯에 닿은 선 셋을 걷어낸다', String(n))
+  check(pages[0].conns.length === 1, '슬롯과 무관한 선은 남는다')
+  check(pages[0].conns[0].from === 13 && pages[0].conns[0].to === 14,
+        '남은 것은 도형끼리 그은 선이다')
+}
+
+{
+  // **한쪽 끝만 닿아도 지운다.** 양식 블록에서 나가거나 들어오는 선은 의도한 것일
+  // 가능성이 거의 없다.
+  const pages = [{ id: 1, els: [{ id: 21, slot: 'SLOT-C' }, { id: 22, type: 'box' }],
+                   conns: [{ from: 22, to: 21 }] }]
+  stripSlotConns(pages)
+  check(pages[0].conns.length === 0, '한쪽 끝만 슬롯이어도 지운다')
+}
+
+{
+  // 슬롯이 없는 쪽(자유 이북)은 손대지 않는다.
+  const pages = [{ id: 1, els: [{ id: 31, type: 'box' }, { id: 32, type: 'box' }],
+                   conns: [{ from: 31, to: 32 }] }]
+  check(stripSlotConns(pages) === 0, '자유 이북의 선은 건드리지 않는다')
+  check(pages[0].conns.length === 1, '그대로 남는다')
+}
+
+{
+  // 두 번 돌려도 같다 — 열 때마다 부른다.
+  const pages = withConns()
+  stripSlotConns(pages)
+  check(stripSlotConns(pages) === 0, '두 번째부터는 걷어낼 것이 없다')
+}
+
+{
+  check(stripSlotConns(undefined) === 0, 'pages 가 없어도 죽지 않는다')
+  check(stripSlotConns([{ id: 1 }]) === 0, 'conns 가 없는 쪽도 넘어간다')
+  check(stripSlotConns([{ id: 1, els: [{ id: 41, slot: 'SLOT-A' }], conns: [] }]) === 0,
+        '빈 선 목록도 넘어간다')
+  check(stripSlotConns([{ id: 1, els: [{ id: 42, slot: 'SLOT-A' }], conns: [null] }]) === 0,
+        '깨진 선도 넘어간다')
 }
 
 console.log('\n' + pass + ' 통과, ' + fail + ' 실패')

@@ -6,6 +6,7 @@ import type { CSSProperties } from 'react'
 import type { Page, FreeEl } from '../state/store'
 import { useBuilder } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
+import { useProjects } from '../persistence/projects'
 import { mkFreeEl, pushSnap, FCOLORS } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, dragTrack, mergeCovering, sizeTracks, trackSizes } from './tableOps'
@@ -135,6 +136,9 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   const toggleSel = useCanvasUI((s) => s.toggleSel)
   const setSelMany = useCanvasUI((s) => s.setSelMany)
   const connSrc = useCanvasUI((s) => s.connSrc)
+  // 지금 연 자료가 표준 양식인가. **서버가 심어 둔 표시**를 본다 —
+  // 요소 모양으로 짐작하면 자유 이북에 표가 셋 있을 때도 양식으로 오인한다.
+  const isTemplateDoc = !!useProjects((st) => st.template)
   const setConnSrc = useCanvasUI((s) => s.setConnSrc)
   const selConn = useCanvasUI((s) => s.selConn)
   const setSelConn = useCanvasUI((s) => s.setSelConn)
@@ -373,7 +377,13 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     return () => window.removeEventListener('keydown', onKey, true)
   })
   const emit = (n: string) => window.dispatchEvent(new CustomEvent(n))
-  const NO_CPT = ['text', 'icon', 'wordart', 'note']            // 연결점 안 띄우는(순수 글자) 타입
+  // 연결점(마우스를 올리면 나오는 파란 점 4개)을 안 띄우는 타입.
+  //
+  // 2026-09-07 에 **표(table)를 넣었다.** 표에 점이 붙으면 칸을 잡으려다 선이 그어진다 —
+  // 실제로 임원회의 양식에서 그 일이 났다. 표끼리 잇는 일은 드물고, 정말 필요하면
+  // 도구모음의 「→ 화살표 연결」로 이을 수 있다. **잇는 길이 없어지는 게 아니라,
+  // 의도하지 않은 길 하나가 없어지는 것이다.**
+  const NO_CPT = ['text', 'icon', 'wordart', 'note', 'table']
   const NO_FILL = ['text', 'icon', 'wordart', 'image', 'note', 'table']  // 채우기색 안 쓰는 타입
   function setFill(el: FreeEl, c: string) { snap(); updateEl(page.id, el.id, { color: c }) }
   function startConnectFrom(id: number) { setSelConn(null); setConnSrc(id); setTool('connect') }
@@ -1153,7 +1163,10 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
           ))}
         </>)
       })() : null}
-      {active && tool === 'select' && editing == null && hoverId != null && !selEls.includes(hoverId) ? (() => {
+      {/* 연결점. **표준 양식에서는 아예 안 그린다** —
+          임원은 양식만 쓰고 거기서 흐름도를 그릴 일이 없다. 도구모음의 연결 도구도
+          같이 감춘다(EditToolbar). 자유 이북에서는 그대로다. */}
+      {active && !isTemplateDoc && tool === 'select' && editing == null && hoverId != null && !selEls.includes(hoverId) ? (() => {
         const he = page.els.find((e) => e.id === hoverId)
         if (!he || he.locked || NO_CPT.includes(he.type)) return null
         const pts: { d: 't' | 'r' | 'b' | 'l'; x: number; y: number }[] = [
