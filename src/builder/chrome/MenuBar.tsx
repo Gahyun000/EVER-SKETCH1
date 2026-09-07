@@ -115,7 +115,9 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
 
   return (
     <div className="ax-menu" ref={wrap}>
-      <button className="ax-lib" title="내 이북(라이브러리로 돌아가기)" onClick={() => void backToLibrary()}>☰ 내 이북</button>
+      {/* 라이브러리로 돌아가는 단추. 글자는 제품 이름으로 통일했다(2026-09-07) —
+          어디로 가는지는 title 이 계속 말해 준다. */}
+      <button className="ax-lib" title="EVER-SKETCH — 라이브러리로 돌아가기" onClick={() => void backToLibrary()}>☰ EVER-SKETCH</button>
       {MENUS.map((m0, i) => {
         // 관리자 전용 항목을 뺀 뒤, 위아래가 비어버린 구분선도 함께 정리한다.
         const kept = m0.items.filter((it) => admin || !it.admin)

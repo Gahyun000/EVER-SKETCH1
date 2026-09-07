@@ -173,10 +173,17 @@ export default function LibraryScreen() {
   return (
     <div className="lib-screen">
       <div className="lib-head">
-        {/* 열람자에게 이 화면은 **개인 스케치**다(D13) — 제출하지 않고 팀에도 안 뜬다.
-            이름을 그대로 「내 이북」으로 두면 결재에 낼 것으로 오해하고 만든다. */}
+        {/* 2026-09-07: 화면 이름을 **제품 이름 하나로** 통일했다(사용자 결정).
+            예전에는 작성자에게 「내 이북」, 열람자에게 「개인 스케치」였다. 열람자용 이름은
+            D13 의 뜻을 담고 있었다 — 여기 만든 것은 결재에 안 가고 팀에도 안 뜬다.
+
+            그 뜻이 사라진 것은 아니다. **말해야 하는 자리에 그대로 남아 있다:**
+              · NewProjectDialog — 「개인 스케치는 나만 봅니다 — 결재에 내지 않고, 팀에도 뜨지 않습니다」
+              · 이 화면의 빈 상태 — 「여기에 만든 것은 나만 봅니다」
+            둘 다 **만들기 직전과 빈 화면**, 그러니까 오해가 생기는 바로 그 순간에 뜬다.
+            머리줄 제목은 매일 보느라 오히려 안 읽히는 자리였다. */}
         <div className="lib-brand">
-          <div className="logo" aria-label="EVER-SKETCH" /> {canSubmit ? '내 이북' : '개인 스케치'}
+          <div className="logo" aria-label="EVER-SKETCH" /> EVER-SKETCH
         </div>
         {/* 신원 표시와 「새 이북」이 **같은 줄 안에서** 자리를 나눈다.
             예전에는 UserBar 가 화면 밖 오버레이로 떠서 이 버튼 위에 포개졌다. */}

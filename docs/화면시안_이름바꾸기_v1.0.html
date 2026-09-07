@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>「내 이북」 → EVER-SKETCH v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#EAF1FE;--line:#E6E8EE;--card:#F7F8FB;
+    --sub:#5b6270;--muted:#98a1b2;--ok:#215c46;--okbg:#E9F5EF;--ink:#0f172a;
+    --warn:#8a5a10;--warnbg:#FFF4E3;--bad:#9b2c2c;--badbg:#FDECEC}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1080px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:15px;margin:26px 0 8px;color:var(--navy)}
+  .lead{color:var(--sub);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--sub);line-height:1.85}
+  .box.warn{border-left-color:#D98A2A}
+  .box.ok{border-left-color:#2E9E6B}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#eef1f6;border-radius:4px;padding:1px 5px;font-size:11.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  .picks{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+  .pick{border:1.4px solid var(--line);background:#fff;border-radius:11px;padding:9px 13px;
+    cursor:pointer;font:inherit;font-size:12.5px;font-weight:800;color:var(--sub);text-align:left;
+    display:flex;flex-direction:column;gap:2px;min-width:190px}
+  .pick .s{font-size:11px;font-weight:700;color:var(--muted)}
+  .pick.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .pick.on .s{color:rgba(255,255,255,.72)}
+  .who{display:flex;gap:6px;margin:0 0 16px}
+  .who button{border:1.4px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;
+    font:inherit;font-size:12px;font-weight:800;color:var(--sub);cursor:pointer}
+  .who button.on{border-color:var(--blue);background:var(--tint);color:var(--blue)}
+
+  .stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px 22px;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .cap{font-size:11.5px;font-weight:800;color:var(--navy);margin:0 0 8px;
+    display:flex;align-items:center;gap:7px}
+  .cap .n{width:19px;height:19px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:10.5px;font-weight:800;flex:0 0 19px}
+  .cap .where{font-weight:700;color:var(--muted);font-size:11px}
+
+  /* ── 화면 조각들 (실물 값 그대로) ─────────────────── */
+  .shot{border:1px solid #d9dee8;border-radius:10px;overflow:hidden;background:#fff;
+    box-shadow:0 2px 8px rgba(20,25,40,.07);margin:0 0 22px}
+  /* 라이브러리 머리줄 */
+  .libhead{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 16px;background:#fff;flex-wrap:wrap}
+  .libbrand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:900;color:var(--navy)}
+  .libbrand .logo{width:30px;height:30px;border-radius:7px;background:var(--navy);
+    display:grid;place-items:center;color:#dfe8ff;font-size:15px;font-style:italic;
+    font-family:Georgia,serif;flex:0 0 30px}
+  .libbrand .sub{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:0}
+  .libright{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .chipu{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+    border-radius:20px;padding:3px 9px;font-size:11px;font-weight:700;color:var(--sub);background:#fff}
+  .chipu .av{width:16px;height:16px;border-radius:50%;background:#2E9E6B;color:#fff;
+    display:grid;place-items:center;font-size:9px}
+  .chipu .lv{background:#EAF1FE;color:var(--blue);border-radius:4px;padding:0 4px;font-size:10px}
+  .libbtn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;
+    font-size:11.5px;font-weight:700;color:var(--sub)}
+  .libnew{border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:8px;
+    padding:4px 10px;font-size:11.5px;font-weight:800}
+
+  /* 편집 화면 메뉴막대 */
+  .axtop{display:flex;align-items:center;gap:9px;padding:10px 14px;background:#fff;
+    border-bottom:1px solid #eef1f6}
+  .axtop .logo{width:24px;height:24px;border-radius:6px;background:var(--navy);
+    display:grid;place-items:center;color:#dfe8ff;font-size:12px;font-style:italic;
+    font-family:Georgia,serif;flex:0 0 24px}
+  .axtop .doct{font-size:14px;font-weight:800;color:var(--navy)}
+  .axmenu{display:flex;align-items:center;gap:2px;padding:7px 14px;background:#fff;flex-wrap:wrap}
+  .axlib{display:inline-flex;align-items:center;gap:5px;margin-right:8px;padding:3px 11px;
+    border:1.4px solid rgba(36,98,235,.35);background:rgba(36,98,235,.08);color:var(--blue);
+    font-weight:800;font-size:12px;border-radius:7px;white-space:nowrap}
+  .axmenu .m{font-size:12.5px;color:#3c4557;padding:3px 8px;border-radius:6px}
+
+  .note{font-size:12px;color:var(--muted);margin:-14px 0 22px;padding-left:2px}
+  .note b{color:var(--navy)}
+  .hl{background:#FFF4C4;border-radius:3px;padding:0 2px;box-shadow:0 0 0 1px #f0dd93}
+
+  table.tab{border-collapse:collapse;width:100%;font-size:12.5px;background:#fff;
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 0 14px}
+  table.tab th,table.tab td{border-bottom:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  table.tab th{background:var(--card);color:var(--navy);font-size:11.5px}
+  table.tab tr:last-child td{border-bottom:0}
+  table.tab td.f{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>「내 이북」을 EVER-SKETCH 로 — 바꿀 자리는 두 곳입니다</h1>
+<p class="lead">보내 주신 두 조각이 어디였는지 찾았습니다. 아래에서 바꾼 모습을 보시고,
+<b>열람자 화면 한 가지</b>만 정해 주세요.</p>
+
+<table class="tab">
+  <tr><th style="width:26%">어디</th><th style="width:30%">지금 글자</th><th>파일</th></tr>
+  <tr><td><b>①</b> 라이브러리 머리줄</td>
+      <td>내 이북 <span style="color:var(--muted)">/ 열람자에겐 <b>개인 스케치</b></span></td>
+      <td class="f">LibraryScreen.tsx:179</td></tr>
+  <tr><td><b>②</b> 편집 화면 메뉴막대</td>
+      <td>☰ 내 이북 <span style="color:var(--muted)">(누르면 라이브러리로 돌아감)</span></td>
+      <td class="f">MenuBar.tsx:118</td></tr>
+</table>
+
+<div class="picks" id="picks"></div>
+<div class="who" id="whorow"></div>
+
+<div class="stage">
+  <div class="cap"><span class="n">①</span> 라이브러리 머리줄 <span class="where">— 로그인하면 처음 보는 화면</span></div>
+  <div class="shot"><div class="libhead">
+    <div class="libbrand"><div class="logo">ℓ</div><span id="libname"></span><span class="sub" id="libsub"></span></div>
+    <div class="libright">
+      <span class="chipu"><span class="av">김</span> 김가현 <span class="lv" id="lvchip">Lv2 작성자</span></span>
+      <span class="libbtn">팀 공유</span>
+      <span class="libbtn" id="inboxbtn">결재함</span>
+      <span class="libbtn">새 폴더</span>
+      <span class="libnew">＋ 새 이북</span>
+    </div>
+  </div></div>
+  <p class="note" id="note1"></p>
+
+  <div class="cap"><span class="n">②</span> 편집 화면 <span class="where">— 자료를 열었을 때</span></div>
+  <div class="shot">
+    <div class="axtop"><div class="logo">ℓ</div><span class="doct">2026년 10월 임원회의 — 김가현</span></div>
+    <div class="axmenu">
+      <span class="axlib" id="menuname"></span>
+      <span class="m">파일</span><span class="m">수정</span><span class="m">보기</span><span class="m">삽입</span>
+      <span class="m">서식</span><span class="m">슬라이드</span><span class="m">정렬</span><span class="m">도구</span><span class="m">도움말</span>
+    </div>
+  </div>
+  <p class="note" id="note2"></p>
+</div>
+
+<h2>정해 주실 것 하나 — 열람자 화면</h2>
+<div class="box warn">
+  <span class="t">지금 열람자에게는 「개인 스케치」라고 나옵니다</span>
+  이유가 코드에 적혀 있습니다 — <b>「내 이북」이라고 하면 결재에 낼 것으로 오해하고 만듭니다.</b>
+  열람자는 제출을 못 하고 팀에도 안 뜨는, 자기만 보는 스케치판이거든요(D13).<br />
+  둘 다 <b>EVER-SKETCH</b> 로 바꾸면 그 구분이 사라집니다. 위에서 <b>열람자</b>를 눌러 확인해 보세요.
+</div>
+
+<div class="box"><span class="t">그리고 ② 버튼은 뜻이 조금 달라집니다</span>
+  지금 「☰ 내 이북」은 <b>어디로 가는지</b>를 말합니다. EVER-SKETCH 로 바꾸면
+  <b>무슨 제품인지</b>를 말하게 됩니다 — 로고를 눌러 홈으로 가는 흔한 방식이라 어색하진 않지만,
+  「저기 뭐가 있더라」를 알려 주지는 않습니다. 그래서 ㉡·㉢ 을 같이 그려 뒀습니다.
+</div>
+
+<script>
+var MODE = 'a', ROLE = 'writer'
+var OPTS = [
+  {k:'now', t:'지금',            s:'내 이북 / 개인 스케치'},
+  {k:'a',   t:'㉠ 둘 다 EVER-SKETCH', s:'말씀하신 그대로'},
+  {k:'b',   t:'㉡ 라이브러리만',  s:'돌아가기 버튼은 그대로'},
+  {k:'c',   t:'㉢ 브랜드 + 화면 이름', s:'EVER-SKETCH 내 이북'},
+]
+
+function render(){
+  document.getElementById('picks').innerHTML = OPTS.map(function(x){
+    return '<button class="pick'+(x.k===MODE?' on':'')+'" data-k="'+x.k+'">'
+      +'<span>'+x.t+'</span><span class="s">'+x.s+'</span></button>' }).join('')
+  document.getElementById('whorow').innerHTML =
+    ['writer','viewer'].map(function(r){
+      return '<button class="'+(ROLE===r?'on':'')+'" data-r="'+r+'">'
+        + (r==='writer'?'작성자로 보기':'열람자로 보기') + '</button>' }).join('')
+
+  var viewer = ROLE === 'viewer'
+  document.getElementById('lvchip').textContent = viewer ? 'Lv3 열람자' : 'Lv2 작성자'
+  document.getElementById('inboxbtn').style.display = viewer ? 'none' : ''
+
+  var libName = '', libSub = '', menuName = '', n1 = '', n2 = ''
+
+  if (MODE === 'now'){
+    libName = viewer ? '개인 스케치' : '내 이북'
+    menuName = '☰ 내 이북'
+    n1 = viewer
+      ? '지금 모습. 열람자에게는 <b>「개인 스케치」</b> — 제출도 팀 공유도 없는 자기 판이라는 뜻입니다.'
+      : '지금 모습.'
+    n2 = '지금 모습. 누르면 라이브러리로 돌아갑니다.'
+  } else if (MODE === 'a'){
+    libName = 'EVER-SKETCH'
+    menuName = '☰ EVER-SKETCH'
+    n1 = viewer
+      ? '<b>작성자와 글자가 같아집니다.</b> 「개인 스케치」가 알려 주던 것 — 여기 만든 건 결재에 안 간다 — 이 사라집니다.'
+      : '말씀하신 그대로. 화면 이름 대신 제품 이름이 섭니다.'
+    n2 = '버튼도 제품 이름이 됩니다. 로고=홈 방식이라 익숙하지만, 저기 무엇이 있는지는 안 알려 줍니다.'
+  } else if (MODE === 'b'){
+    libName = 'EVER-SKETCH'
+    menuName = '☰ 내 이북'
+    n1 = viewer
+      ? '<b>여기서도 작성자와 같아집니다.</b> ㉠ 과 같은 문제입니다 — 라이브러리 이름을 바꾸는 한 따라옵니다.'
+      : '라이브러리 머리줄만 제품 이름으로.'
+    n2 = '버튼은 그대로 <b>「내 이북」</b> — 어디로 가는지를 계속 말해 줍니다.'
+  } else {
+    libName = 'EVER-SKETCH'
+    libSub = viewer ? '개인 스케치' : '내 이북'
+    menuName = '☰ 내 이북'
+    n1 = '제품 이름을 크게, 화면 이름을 작게 나란히. <b>열람자 구분(개인 스케치)이 그대로 살아 있습니다.</b>'
+    n2 = '버튼은 그대로. ㉡ 과 같습니다.'
+  }
+
+  document.getElementById('libname').textContent = libName
+  var sub = document.getElementById('libsub')
+  sub.textContent = libSub
+  sub.style.display = libSub ? '' : 'none'
+  document.getElementById('menuname').textContent = menuName
+  document.getElementById('note1').innerHTML = n1
+  document.getElementById('note2').innerHTML = n2
+}
+document.getElementById('picks').addEventListener('click', function(e){
+  var b = e.target.closest('.pick'); if(!b) return; MODE = b.dataset.k; render() })
+document.getElementById('whorow').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return; ROLE = b.dataset.r; render() })
+render()
+</script>
+</div>
+</body>
+</html>
