@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>㉰ 새 탭 뷰어 — 앞 화면과 이어서 보기 v1.0</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --blue:#2462EB; --tint:#EAF1FE; --line:#E6E8EE;
+    --card:#F7F8FB; --sub:#5b6270; --muted:#98a1b2; --ok:#215c46; --okbg:#E9F5EF;
+    --warn:#8a5a10; --warnbg:#FFF4E3; --ink:#0f172a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1240px;margin:0 auto;padding:28px 24px 80px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  .lead{color:var(--sub);font-size:13px;margin:0 0 18px}
+  .lead b{color:var(--navy)}
+
+  .answer{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:14px 18px;margin:0 0 24px;font-size:13px;color:var(--sub);line-height:1.85}
+  .answer b{color:var(--navy)}
+  .answer .q{display:block;font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:6px}
+
+  .step{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+  .num{width:24px;height:24px;flex:0 0 24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800}
+  .step h2{font-size:15px;margin:0;color:var(--navy)}
+  .step .role{font-size:12px;color:var(--muted);font-weight:700}
+
+  .frame{background:#fff;border:1px solid #d9dde6;border-radius:12px;overflow:hidden;
+    box-shadow:0 10px 34px rgba(20,25,40,.10)}
+  .chrome{height:34px;background:#f1f3f7;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:8px;padding:0 12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#d7dbe3}
+  .addr{flex:1;height:20px;background:#fff;border:1px solid var(--line);border-radius:6px;
+    font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:8px;padding:0 8px;
+    white-space:nowrap;overflow:hidden}
+  .addr em{font-style:normal;color:#c8cdd8}
+  .addr em.hi{color:#5b86e0;font-weight:700}
+  .tabbar{height:30px;background:#e7eaf1;display:flex;align-items:flex-end;gap:4px;padding:0 10px}
+  .tabi{height:24px;background:#f1f3f7;border-radius:7px 7px 0 0;padding:0 12px;font-size:10.5px;
+    color:var(--muted);display:flex;align-items:center;max-width:220px;white-space:nowrap;overflow:hidden}
+  .tabi.on{background:#fff;color:var(--navy);font-weight:800}
+  .viewport{position:relative;background:#eef1f6;overflow:hidden}
+
+  .arrow{display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0}
+  .arrow .line{flex:0 0 auto;color:var(--blue)}
+  .arrow .txt{font-size:12.5px;font-weight:800;color:var(--blue);background:var(--tint);
+    border-radius:99px;padding:6px 14px;white-space:nowrap}
+
+  .btn{border:1.4px solid var(--line);background:#fff;color:#334155;font-weight:800;font-size:12px;
+    border-radius:9px;padding:6px 12px;cursor:pointer;font-family:inherit;display:inline-flex;
+    align-items:center;gap:5px;white-space:nowrap}
+  .btn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+  .btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--sub)}
+  .ico{width:16px;height:16px;flex:0 0 16px;display:block}
+
+  .chip{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;
+    font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:99px;white-space:nowrap}
+  .chip .ico{width:12px;height:12px;flex:0 0 12px}
+  .chip.ok{background:var(--okbg);color:var(--ok)}
+  .chip.ro{background:#eef0f3;color:#6b7480}
+  .chip.team{background:var(--tint);color:var(--blue)}
+
+  /* 슬라이드 */
+  .stagebox{background:var(--card);border-radius:10px;display:grid;place-items:center;overflow:hidden}
+  .scaler{position:relative;overflow:hidden}
+  .pg{width:1040px;height:720px;background:#fff;border-radius:4px;
+    box-shadow:0 8px 28px rgba(15,27,61,.16);position:relative;overflow:hidden}
+  .el{position:absolute}
+  .pg table{border-collapse:collapse;width:100%;height:100%;table-layout:fixed}
+  .pg td{border:1px solid #cfd4de;font-size:9px;color:#0f172a;padding:1px 2px;text-align:center;
+    overflow:hidden;white-space:nowrap}
+  .pg td.h{background:#FFFFCC;font-weight:700}
+  .today{position:absolute;top:0;bottom:0;border-left:1.6px dashed #E4761B}
+  .todaytag{position:absolute;top:-14px;transform:translateX(-50%);background:#E4761B;color:#fff;
+    font-size:7.5px;font-weight:800;border-radius:3px;padding:1px 4px;white-space:nowrap}
+
+  /* 모달 */
+  .modal-scrim{position:absolute;inset:0;background:rgba(15,27,61,.32);display:grid;place-items:center;padding:16px}
+  .modal{background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(15,27,61,.28);
+    display:flex;flex-direction:column;overflow:hidden}
+  .mhead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;gap:10px}
+  .mtitle{font-size:15px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px}
+  .mtitle span{font-size:11.5px;font-weight:700;color:var(--muted)}
+  .mbody{display:flex;gap:12px;padding:0 18px 16px;min-height:0;flex:1}
+  .list{flex:0 0 218px;border-right:1px solid var(--line);padding-right:10px;overflow:auto}
+  .row{border:1px solid var(--line);border-radius:9px;padding:7px 9px;margin-bottom:6px;font-size:11.5px}
+  .row.on{border-color:var(--blue);background:var(--tint)}
+  .row b{display:block;font-size:12px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row i{font-style:normal;color:var(--muted);font-size:10.5px}
+  .detail{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+  .dhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .dhead b{font-size:14px;color:var(--navy)}
+  .dsub{font-size:11px;color:var(--muted);margin-top:3px}
+
+  /* 미리보기 위에 얹는 안내 */
+  .peek{position:relative;cursor:pointer}
+  .peek .veil{position:absolute;inset:0;border-radius:10px;background:rgba(36,98,235,.06);
+    border:1.5px dashed rgba(36,98,235,.45);display:grid;place-items:center;opacity:0;transition:opacity .15s}
+  .peek:hover .veil{opacity:1}
+  .peek .veil span{background:var(--blue);color:#fff;font-size:11.5px;font-weight:800;
+    border-radius:99px;padding:6px 14px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .hint{font-size:11px;color:var(--muted);text-align:center;margin-top:-2px}
+
+  /* 새 탭 화면 */
+  .screen{position:absolute;inset:0;background:#e7eaf1;display:flex;flex-direction:column}
+  .tabhead{height:42px;background:#fff;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;gap:10px;padding:0 14px;flex:0 0 auto}
+
+  .cmp{width:100%;border-collapse:collapse;margin-top:26px;background:#fff;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:12.5px}
+  .cmp th,.cmp td{border-bottom:1px solid var(--line);padding:11px 13px;text-align:left;vertical-align:top}
+  .cmp th{background:var(--card);color:var(--navy);font-weight:800;white-space:nowrap}
+  .cmp td:first-child{white-space:nowrap;font-weight:800;color:var(--sub)}
+  .cmp tr:last-child td{border-bottom:0}
+  .why{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.65}
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--muted);
+    border-radius:10px;padding:12px 16px;margin:22px 0 0;font-size:12.5px;color:var(--sub);line-height:1.8}
+  .note b{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>㉰ 새 탭 읽기 전용 뷰어 — 앞 화면과 이어서 <span style="font-size:12px;color:var(--muted);font-weight:400">시안 v1.0 · 2026-09-04</span></h1>
+  <p class="lead">「㉰로 정하면 미리보기는 있는 거야?」에 대한 답과, <b>팀 공유 → 새 탭</b>으로 이어지는 두 화면입니다.</p>
+
+  <div class="answer">
+    <span class="q">네, 미리보기는 그대로 있습니다. 다만 <u>역할이 바뀝니다.</u></span>
+    지금 미리보기는 <b>읽으려다 실패한 크기</b>입니다 — 462×260이라 표가 안 읽히는데, 읽는 것 말고는 할 일이 없었습니다.<br>
+    ㉰를 고르면 <b>읽는 일은 새 탭이 맡고</b>, 미리보기는 <b>「목록에서 고른 게 이 자료가 맞나」를 확인하는 자리</b>가 됩니다.
+    그 일에는 지금 크기로 충분합니다 — 제목·머리글·표 모양만 보이면 됩니다.<br>
+    <b>덤으로 커집니다.</b> 앞서 말씀드린 세 번째 버그(모달 크기 규칙이 팀 공유에 안 걸리는 것)를 같이 고치면
+    미리보기가 <b>462×260 → 약 700×390</b>이 됩니다. 아래 시안은 그 상태입니다.
+  </div>
+
+  <div class="step"><span class="num">1</span><h2>팀 공유</h2>
+    <span class="role">— 목록에서 고르고, <b style="color:var(--navy)">맞는지 확인</b>한다</span></div>
+  <div class="frame">
+    <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="addr">127.0.0.1:8830 <em>— 자료 목록 위에 창으로</em></span></div>
+    <div class="viewport" id="vp1" style="height:628px"></div>
+  </div>
+
+  <div class="arrow">
+    <svg class="line" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+      <path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+    <span class="txt">「새 탭에서 크게 보기」를 누르거나, 미리보기 그림을 클릭</span>
+  </div>
+
+  <div class="step"><span class="num">2</span><h2>새 탭 — 읽기 전용 뷰어</h2>
+    <span class="role">— <b style="color:var(--navy)">제대로 읽는다</b>. 앞 창은 그대로 남아 있다</span></div>
+  <div class="frame">
+    <div class="tabbar">
+      <span class="tabi">EVER-SKETCH</span>
+      <span class="tabi on">2026년 9월 임원회의 — 김가현</span>
+    </div>
+    <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="addr">127.0.0.1:8830/view/a7541122da58a <em class="hi">← 링크로 열린다</em></span></div>
+    <div class="viewport" id="vp2" style="height:560px"></div>
+  </div>
+
+  <table class="cmp">
+    <tr><th style="width:130px"></th><th>① 팀 공유의 미리보기</th><th>② 새 탭 뷰어</th></tr>
+    <tr><td>무엇을 하는 곳</td>
+      <td>고른 게 <b>이 자료가 맞나</b> 확인<span class="why">제목·머리글·표 모양이 보이면 된다</span></td>
+      <td><b>읽는다</b><span class="why">표 안의 숫자·글자까지</span></td></tr>
+    <tr><td>크기</td>
+      <td>약 <b>700×390</b><span class="why">③ 버그 수정으로 지금보다 커진다</span></td>
+      <td>약 <b>1360×790</b><span class="why">창 전체</span></td></tr>
+    <tr><td>같이 보이는 것</td>
+      <td>목록 · 작성자 · 월 묶음 · 지난 승인본<span class="why">옆 자료로 바로 옮겨 갈 수 있다</span></td>
+      <td>이 자료 하나만<span class="why">읽는 데 방해가 없다</span></td></tr>
+    <tr><td>돌아가는 길</td>
+      <td>「닫기」</td>
+      <td>탭을 닫으면 <b>①이 그대로 있다</b><span class="why">고르던 자리를 잃지 않는다</span></td></tr>
+    <tr><td>링크로 넘기기</td>
+      <td>안 된다</td>
+      <td>된다<span class="why">받은 사람이 같은 팀이 아니면 서버가 막는다 — 머리줄에 그렇게 적어 둔다</span></td></tr>
+  </table>
+
+  <div class="note">
+    <b>미리보기를 아예 없애는 선택지도 있습니다</b> — 목록만 두고 누르면 바로 새 탭.
+    화면은 단순해지지만, <b>고를 때마다 탭이 하나씩 열립니다.</b> 어느 것인지 확인하려고 세 개를 열어 보고
+    두 개를 닫는 일이 생깁니다. 그래서 <b>확인은 제자리에서, 읽기는 새 탭에서</b>로 뒀습니다.
+  </div>
+</div>
+
+<script>
+const HEAD_MONTHS = ['1','2','3','4','5','6','7','8','9','10','11','12']
+const COLW = [2.74,3.21,1,1,1,1,1,1,1,1,1,1,1,1,1.48,1.48,1.48,1.48]
+function tableA(){
+  const total = COLW.reduce((a,b)=>a+b,0)
+  const cols = COLW.map(w=>`<col style="width:${(w/total*100).toFixed(3)}%">`).join('')
+  let h = `<table><colgroup>${cols}</colgroup>`
+  h += `<tr><td class="h" colspan="2" rowspan="2">Project</td><td class="h" colspan="12">2026년</td>`
+     + `<td class="h" rowspan="2">2027년</td><td class="h" rowspan="2">계획 M/M</td>`
+     + `<td class="h" rowspan="2">투입 M/M</td><td class="h" rowspan="2">비고(투입인원)</td></tr>`
+  h += `<tr>${HEAD_MONTHS.map(m=>`<td class="h">${m}</td>`).join('')}</tr>`
+  for(let r=0;r<5;r++) h += `<tr>${Array.from({length:18},()=>'<td></td>').join('')}</tr>`
+  h += `</table>`
+  const left = COLW.slice(0,11).reduce((a,b)=>a+b,0)/total*100
+  return h + `<div class="today" style="left:${left.toFixed(2)}%"><span class="todaytag">TODAY</span></div>`
+}
+function grid(rows, cols, head){
+  let h = `<table><tr>${head.map(t=>`<td class="h">${t}</td>`).join('')}</tr>`
+  for(let r=1;r<rows;r++) h += `<tr>${Array.from({length:cols},()=>'<td></td>').join('')}</tr>`
+  return h + `</table>`
+}
+function slide(){
+  return `<div class="pg">
+    <div class="el" style="left:24px;top:24px;width:620px;height:32px;font-size:19px;font-weight:800;color:#0F1B3D">2026년 9월 임원회의 — 진행보고</div>
+    <div class="el" style="left:668px;top:26px;width:348px;height:18px;font-size:12px;color:#5b6270;text-align:right">작성 김가현 · SI개발본부</div>
+    <div class="el" style="left:668px;top:46px;width:348px;height:18px;font-size:12px;color:#98a1b2;text-align:right">기간 2026-09</div>
+    <div class="el" style="left:24px;top:72px;width:400px;height:18px;font-size:13px;font-weight:800;color:#0F1B3D">① 로드맵 / 마일스톤</div>
+    <div class="el" style="left:24px;top:94px;width:992px;height:280px">${tableA()}</div>
+    <div class="el" style="left:24px;top:386px;width:645px;height:18px;font-size:12.5px;font-weight:800;color:#0F1B3D">② 진행 현황 · 향후 계획</div>
+    <div class="el" style="left:24px;top:408px;width:645px;height:170px">${grid(5,2,['진행 현황','향후 계획'])}</div>
+    <div class="el" style="left:683px;top:386px;width:333px;height:18px;font-size:12.5px;font-weight:800;color:#0F1B3D">③ 이슈 · 필요 지원</div>
+    <div class="el" style="left:683px;top:408px;width:333px;height:170px">${grid(5,1,['이슈 리스트  (미해결 · 필요 지원)'])}</div>
+    <div class="el" style="left:24px;top:596px;width:700px;height:16px;font-size:10.5px;color:#98a1b2">EVER-SKETCH · 2026-09 임원회의 · SI개발본부</div>
+  </div>`
+}
+function stage(w,h,pad){
+  const k = Math.min((w-pad*2)/1040,(h-pad*2)/720)
+  return `<div class="stagebox" style="width:${w}px;height:${h}px">
+    <div class="scaler" style="width:${Math.round(1040*k)}px;height:${Math.round(720*k)}px">
+      <div style="transform:scale(${k});transform-origin:top left;position:absolute;left:0;top:0">${slide()}</div>
+    </div></div>`
+}
+function film(){
+  const k = 70/1040
+  return `<div style="display:flex;gap:7px"><div style="border:2px solid var(--blue);border-radius:8px;
+    padding:3px;background:#EAF1FE;position:relative">
+    <span style="position:absolute;left:5px;top:5px;font-size:9px;font-weight:800;color:#fff;
+      background:rgba(15,27,61,.75);border-radius:4px;padding:0 4px;z-index:2">1</span>
+    <div style="width:70px;height:${Math.round(720*k)}px;overflow:hidden;position:relative">
+      <div style="transform:scale(${k});transform-origin:top left;position:absolute;left:0;top:0">${slide()}</div>
+    </div></div></div>`
+}
+const ICO = {
+  ext:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>',
+  lock:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  hist:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>',
+}
+const META = '1회차 · 김가현 제출 · 시스템 관리자 승인 09. 04. 18:07'
+
+// ① 팀 공유 (③ 버그 수정 후 — 카드 1180px)
+document.getElementById('vp1').innerHTML = `
+<div class="modal-scrim"><div class="modal" style="width:1180px;height:596px">
+  <div class="mhead">
+    <div class="mtitle">팀 공유 <span>승인된 자료만 올라옵니다</span></div>
+    <button class="btn ghost">닫기</button>
+  </div>
+  <div class="mbody">
+    <div class="list">
+      <div style="font-size:11.5px;font-weight:800;color:var(--navy);border-top:2px solid var(--navy);
+        padding-top:8px;margin-bottom:6px">김가현 <span class="chip team">나</span>
+        <span style="float:right;color:var(--muted);font-weight:700">1</span></div>
+      <div style="font-size:11px;font-weight:800;color:var(--sub);margin:6px 0 5px">2026년 9월
+        <span style="color:var(--muted)">1</span></div>
+      <div class="row on"><b>2026년 9월 임원회의 — 김가현</b><i>1회차 · 1쪽 · 승인 09.04</i></div>
+      <div class="row"><b>2026년 8월 임원회의 — 김가현</b><i>2회차 · 1쪽 · 승인 08.05</i></div>
+    </div>
+    <div class="detail">
+      <div class="dhead">
+        <div><b>2026년 9월 임원회의 — 김가현</b> <span class="chip ok">승인</span>
+          <div class="dsub">${META}</div></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn pri">${ICO.ext} 새 탭에서 크게 보기</button>
+          <button class="btn">${ICO.hist} 지난 승인본</button>
+        </div>
+      </div>
+      ${film()}
+      <div class="peek">
+        ${stage(700, 378, 10)}
+        <div class="veil"><span>${ICO.ext} 새 탭에서 크게 보기</span></div>
+      </div>
+      <div class="hint">↑ 미리보기 그림 위에 마우스를 올려 보세요 — 그림 자체도 눌립니다</div>
+    </div>
+  </div>
+</div></div>`
+
+// ② 새 탭 뷰어
+document.getElementById('vp2').innerHTML = `
+<div class="screen">
+  <div class="tabhead">
+    <div style="font-size:12.5px;font-weight:800;color:var(--navy);white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis">2026년 9월 임원회의 — 김가현</div>
+    <span class="chip ok">승인본</span>
+    <span class="chip ro">${ICO.lock} 읽기 전용</span>
+    <span style="font-size:11px;color:var(--muted);white-space:nowrap">${META}</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <span class="chip team">영업1팀만 볼 수 있어요</span>
+      <button class="btn">${ICO.hist} 지난 승인본</button>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;place-items:center;padding:10px">
+    ${stage(1150, 495, 12)}
+  </div>
+</div>`
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@
 """
 import os
 import pathlib
+import re
 import tempfile
 import time
 
@@ -212,16 +213,31 @@ def test_작성자별로_묶고_본인이_맨_위다():
     assert team["count"] == 2
 
 
+def _ms(y, mo, d):
+    """**저장되는 단위 그대로**(밀리초). 초로 넣으면 테스트는 통과하면서
+    실제 데이터에서는 연도가 58645 가 되는 것을 못 잡는다 — 2026-09-07 에 겪었다."""
+    return time.mktime((y, mo, d, 12, 0, 0, 0, 0, -1)) * 1000
+
+
 def test_월은_승인_시각으로_묶는다():
     """제출 시각이 아니다 — 9월 30일에 내고 10월 2일에 승인됐다면
     그 자료가 팀에 **존재하게 된 것**은 10월이다."""
     w = World()
-    sep = time.mktime((2026, 9, 20, 12, 0, 0, 0, 0, -1))
-    oct_ = time.mktime((2026, 10, 2, 12, 0, 0, 0, 0, -1))
-    w.approved(w.a, "9월 것", decided_at=sep)
-    w.approved(w.a, "10월 것", decided_at=oct_)
+    w.approved(w.a, "9월 것", decided_at=_ms(2026, 9, 20))
+    w.approved(w.a, "10월 것", decided_at=_ms(2026, 10, 2))
     author = lib.library(w.actor(w.a))["teams"][0]["authors"][0]
     assert [m["ym"] for m in author["months"]] == ["2026-10", "2026-09"]   # 최근이 위
+
+
+def test_승인_시각은_밀리초로_들어온다():
+    """**단위를 못박는다.** `approvals._now()` 가 밀리초를 저장하므로 여기도 밀리초다.
+    초로 읽으면 「승인일 미상」이 되고, 화면에서는 자료가 전부 한 덩어리로 묶인다."""
+    w = World()
+    _, a = w.approved(w.a, "9월 것")
+    assert a["decided_at"] > 1e12, "decided_at 이 밀리초가 아니다"
+    ym = lib.library(w.actor(w.a))["teams"][0]["authors"][0]["months"][0]["ym"]
+    assert re.match(r"^\d{4}-\d{2}$", ym), "화면이 못 읽는 달 표기: %r" % ym
+    assert ym == time.strftime("%Y-%m", time.localtime(a["decided_at"] / 1000.0))
 
 
 def test_한_자료는_최신_승인본_하나만_뜬다():

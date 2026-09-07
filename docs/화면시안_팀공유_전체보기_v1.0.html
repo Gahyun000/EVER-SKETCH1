@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>팀 공유 — 승인본 크게 보기 (㉮㉯㉰ 비교) v1.0</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --blue:#2462EB; --tint:#EAF1FE; --line:#E6E8EE;
+    --card:#F7F8FB; --sub:#5b6270; --muted:#98a1b2; --ok:#215c46; --okbg:#E9F5EF;
+    --warn:#8a5a10; --warnbg:#FFF4E3; --ink:#0f172a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1280px;margin:0 auto;padding:28px 24px 80px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  .lead{color:var(--sub);font-size:13px;margin:0 0 20px}
+  .lead b{color:var(--navy)}
+
+  .note{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 20px;font-size:12.5px;color:var(--sub);line-height:1.8}
+  .note b{color:var(--navy)}
+
+  /* 갈래 고르개 */
+  .picks{display:flex;gap:8px;margin:0 0 6px;flex-wrap:wrap}
+  .pick{border:1.4px solid var(--line);background:#fff;border-radius:12px;padding:10px 16px;
+    cursor:pointer;font:inherit;font-size:13px;font-weight:800;color:var(--sub);text-align:left;
+    display:flex;flex-direction:column;gap:2px;min-width:210px}
+  .pick .s{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+  .pick.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .pick.on .s{color:rgba(255,255,255,.72)}
+
+  .metaline{display:flex;gap:8px;align-items:center;margin:12px 0 10px;flex-wrap:wrap;font-size:12px}
+  .tag{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:99px;white-space:nowrap;
+    background:#eef0f3;color:#6b7480}
+  .tag.good{background:var(--okbg);color:var(--ok)}
+  .tag.warn{background:var(--warnbg);color:var(--warn)}
+  .tag.now{background:#fdf0f0;color:#7d2027}
+
+  /* 브라우저 틀 */
+  .frame{background:#fff;border:1px solid #d9dde6;border-radius:12px;overflow:hidden;
+    box-shadow:0 10px 34px rgba(20,25,40,.10)}
+  .chrome{height:34px;background:#f1f3f7;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:8px;padding:0 12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#d7dbe3}
+  .addr{flex:1;height:20px;background:#fff;border:1px solid var(--line);border-radius:6px;
+    font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:8px;
+    padding:0 8px;white-space:nowrap;overflow:hidden}
+  .addr em{font-style:normal;color:#c8cdd8}
+  .addr em.hi{color:#5b86e0;font-weight:700}
+  .viewport{position:relative;height:620px;background:#eef1f6;overflow:hidden}
+
+  /* ── 공통 조각 ── */
+  .btn{border:1.4px solid var(--line);background:#fff;color:#334155;font-weight:800;font-size:12px;
+    border-radius:9px;padding:6px 12px;cursor:pointer;font-family:inherit;display:inline-flex;
+    align-items:center;gap:5px;white-space:nowrap}
+  .btn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--sub)}
+  .ico{width:16px;height:16px;flex:0 0 16px;display:block}
+
+  .chip{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;
+    font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:99px;white-space:nowrap}
+  .chip .ico{width:12px;height:12px;flex:0 0 12px}
+  .chip.ok{background:var(--okbg);color:var(--ok)}
+  .chip.ro{background:#eef0f3;color:#6b7480}
+  .chip.team{background:var(--tint);color:var(--blue)}
+
+  /* ── 슬라이드(승인본) ── */
+  .stagebox{background:var(--card);border-radius:10px;display:grid;place-items:center;overflow:hidden}
+  .scaler{position:relative;overflow:hidden}
+  .scaler>.pg{position:absolute;left:0;top:0;transform-origin:top left}
+  .pg{width:1040px;height:720px;background:#fff;border-radius:4px;
+    box-shadow:0 8px 28px rgba(15,27,61,.16);position:relative;overflow:hidden}
+  .el{position:absolute}
+  .pg table{border-collapse:collapse;width:100%;height:100%;table-layout:fixed}
+  .pg td{border:1px solid #cfd4de;font-size:9px;color:#0f172a;padding:1px 2px;text-align:center;
+    overflow:hidden;white-space:nowrap}
+  .pg td.h{background:#FFFFCC;font-weight:700}
+  .today{position:absolute;top:0;bottom:0;border-left:1.6px dashed #E4761B}
+  .todaytag{position:absolute;top:-14px;transform:translateX(-50%);background:#E4761B;color:#fff;
+    font-size:7.5px;font-weight:800;border-radius:3px;padding:1px 4px;white-space:nowrap}
+
+  /* ── 필름스트립 ── */
+  .film{display:flex;gap:7px;padding:8px;overflow:auto}
+  .thumb{border:2px solid var(--blue);border-radius:8px;padding:3px;background:#EAF1FE;flex:0 0 auto;position:relative}
+  .thumb .no{position:absolute;left:5px;top:5px;font-size:9px;font-weight:800;color:#fff;
+    background:rgba(15,27,61,.75);border-radius:4px;padding:0 4px;z-index:2}
+
+  /* ── 안별 레이아웃 ── */
+  .modal-scrim{position:absolute;inset:0;background:rgba(15,27,61,.32);display:grid;place-items:center;padding:18px}
+  .modal{background:#fff;border-radius:16px;box-shadow:0 24px 70px rgba(15,27,61,.28);
+    display:flex;flex-direction:column;overflow:hidden}
+  .mhead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;gap:10px}
+  .mtitle{font-size:15px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px}
+  .mtitle span{font-size:11.5px;font-weight:700;color:var(--muted)}
+  .mbody{display:flex;gap:12px;padding:0 18px 16px;min-height:0;flex:1}
+  .list{flex:0 0 210px;border-right:1px solid var(--line);padding-right:10px;overflow:auto}
+  .row{border:1px solid var(--line);border-radius:9px;padding:7px 9px;margin-bottom:6px;font-size:11.5px}
+  .row.on{border-color:var(--blue);background:var(--tint)}
+  .row b{display:block;font-size:12px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row i{font-style:normal;color:var(--muted);font-size:10.5px}
+  .detail{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+  .dhead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .dhead b{font-size:14px;color:var(--navy)}
+  .dsub{font-size:11px;color:var(--muted);margin-top:3px}
+
+  .screen{position:absolute;inset:0;background:#eef1f6;display:flex;flex-direction:column}
+  .topbar{height:46px;background:#fff;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;gap:10px;padding:0 16px;flex:0 0 auto}
+  .scr-body{flex:1;min-height:0;overflow:auto;display:flex;justify-content:center;padding:16px}
+  .scr-wrap{width:min(1000px,96%);display:flex;flex-direction:column;gap:10px}
+
+  .tabhead{height:40px;background:#fff;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;gap:10px;padding:0 14px;flex:0 0 auto}
+
+  /* 비교 표 */
+  .cmp{width:100%;border-collapse:collapse;margin-top:22px;background:#fff;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:12.5px}
+  .cmp th,.cmp td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+  .cmp th{background:var(--card);color:var(--navy);font-weight:800;white-space:nowrap}
+  .cmp td:first-child{white-space:nowrap;font-weight:800;color:var(--sub)}
+  .cmp tr:last-child td{border-bottom:0}
+  .yes{color:var(--ok);font-weight:800}
+  .no{color:#7d2027;font-weight:800}
+  .why{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.65}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>팀 공유 — 승인본 「크게 보기」 세 갈래 <span style="font-size:12px;color:var(--muted);font-weight:400">시안 v1.0 · 2026-09-04</span></h1>
+  <p class="lead">
+    지금 팀 공유의 무대는 <b>462×260</b>이라 표가 읽히지 않습니다.
+    「들어가면 실제 슬라이드를 read-only로」를 어떻게 줄지 세 갈래로 그렸습니다.
+    <b>슬라이드 내용은 실제 승인본 데이터 그대로</b>라, 비교는 그릇 크기에 대한 것입니다.
+  </p>
+
+  <div class="note">
+    <b>먼저 짚을 것</b> — 세 안 중 무엇을 고르든, 지금은 <b>어느 그릇에 담아도 그림이 안 보입니다.</b>
+    이식 때 빠진 CSS 한 줄(<code>.ap-scaler&gt;div{transform-origin:top left}</code>) 때문에
+    슬라이드가 보이는 영역 밖으로 밀려나 잘리고 있고, 이건 <b>결재함도 마찬가지</b>입니다.
+    그 한 줄은 어느 안과도 무관하게 먼저 고쳐야 합니다. <b>아래 시안은 이미 고쳐진 상태를 가정</b>해서 그렸습니다.
+  </div>
+
+  <div class="picks" id="picks">
+    <button class="pick on" data-k="a">㉮ 모달 안에서 크게 보기<span class="s">지금 창 그대로 · 목록을 접는다</span></button>
+    <button class="pick" data-k="b">㉯ 전체 화면 상세<span class="s">화면이 통째로 바뀐다 · 원본 방식</span></button>
+    <button class="pick" data-k="c">㉰ 새 탭 읽기 전용 뷰어<span class="s">주소가 생긴다 · 나란히 놓고 본다</span></button>
+  </div>
+
+  <div class="metaline" id="meta"></div>
+
+  <div class="frame">
+    <div class="chrome">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="addr" id="addr">127.0.0.1:8830</span>
+    </div>
+    <div class="viewport" id="vp"></div>
+  </div>
+
+  <table class="cmp">
+    <tr><th style="width:120px"></th><th>㉮ 모달 안</th><th>㉯ 전체 화면</th><th>㉰ 새 탭</th></tr>
+    <tr>
+      <td>무대 크기<br><span class="why">1440×900 창 기준</span></td>
+      <td>약 <b>1080×560</b><span class="why">모달 최대 폭에 갇힌다</span></td>
+      <td>약 <b>1000×690</b><span class="why">거의 1:1</span></td>
+      <td>약 <b>1360×790</b><span class="why">창 전체를 쓴다</span></td>
+    </tr>
+    <tr>
+      <td>새로 만들 것</td>
+      <td class="yes">버튼 1 · 상태 1<span class="why">지금 구조 그대로</span></td>
+      <td class="no">화면 전환(셸·뒤로가기)<span class="why">P5에서 피한 위험 R8을 다시 만난다</span></td>
+      <td class="no">주소 체계 신설<span class="why">읽기 전용 경로 하나</span></td>
+    </tr>
+    <tr>
+      <td>링크로 공유</td>
+      <td class="no">못 한다</td>
+      <td class="no">못 한다<span class="why">주소가 안 생긴다</span></td>
+      <td class="yes">된다<span class="why">권한은 서버가 판정 — 같은 팀만 열린다</span></td>
+    </tr>
+    <tr>
+      <td>두 자료 나란히</td>
+      <td class="no">못 한다</td>
+      <td class="no">못 한다</td>
+      <td class="yes">된다<span class="why">회의 중 비교에 쓸모 있다</span></td>
+    </tr>
+    <tr>
+      <td>돌아가는 길</td>
+      <td>「목록 보기」<span class="why">한 번에 제자리</span></td>
+      <td>「← 팀 공유」<span class="why">브라우저 뒤로가기와의 관계를 정해야 한다</span></td>
+      <td>탭 닫기<span class="why">원래 창은 그대로 있다</span></td>
+    </tr>
+    <tr>
+      <td>새로 생기는<br>오해 소지</td>
+      <td>없다</td>
+      <td>없다</td>
+      <td class="no">「이 링크 아무나 보나?」<span class="why">머리줄에 「같은 팀만 볼 수 있어요」를 못박아야 한다</span></td>
+    </tr>
+  </table>
+
+  <div class="note" style="margin-top:20px;border-left-color:var(--muted)">
+    <b>고르실 때 갈리는 지점 하나</b> — ㉮와 ㉯는 「지금 보고 있는 사람 한 명」을 위한 것이고,
+    ㉰만 「이 자료를 남에게 보여 주는 일」까지 답합니다.
+    회의 중 화면을 띄우거나 두 달치를 나란히 놓고 보는 일이 실제로 있다면 ㉰,
+    그런 일이 없다면 ㉮가 가장 작게 끝납니다.
+  </div>
+</div>
+
+<script>
+// ── 실제 승인본 데이터(요약) — 시안이 진짜와 같은 그림을 보여주게 ──
+const HEAD_A = ['Project','','2026년','','','','','','','','','','','','2027년','계획 M/M','투입 M/M','비고(투입인원)']
+const MONTHS = ['1','2','3','4','5','6','7','8','9','10','11','12']
+const COLW = [2.74,3.21,1,1,1,1,1,1,1,1,1,1,1,1,1.48,1.48,1.48,1.48]
+
+function tableA(){
+  const total = COLW.reduce((a,b)=>a+b,0)
+  const cols = COLW.map(w=>`<col style="width:${(w/total*100).toFixed(3)}%">`).join('')
+  let html = `<table><colgroup>${cols}</colgroup>`
+  html += `<tr><td class="h" colspan="2" rowspan="2">Project</td>`
+        + `<td class="h" colspan="12">2026년</td>`
+        + `<td class="h" rowspan="2">2027년</td><td class="h" rowspan="2">계획 M/M</td>`
+        + `<td class="h" rowspan="2">투입 M/M</td><td class="h" rowspan="2">비고(투입인원)</td></tr>`
+  html += `<tr>${MONTHS.map(m=>`<td class="h">${m}</td>`).join('')}</tr>`
+  for(let r=0;r<5;r++) html += `<tr>${Array.from({length:18},(_,c)=>`<td${c<2?' ':''}></td>`).join('')}</tr>`
+  html += `</table>`
+  // TODAY 표시 — 실제 데이터의 today=10(2026)
+  const left = COLW.slice(0,2+9).reduce((a,b)=>a+b,0)/total*100
+  html += `<div class="today" style="left:${left.toFixed(2)}%"><span class="todaytag">TODAY</span></div>`
+  return html
+}
+function grid(rows, cols, head){
+  let h = `<table>`
+  h += `<tr>${head.map(t=>`<td class="h">${t}</td>`).join('')}</tr>`
+  for(let r=1;r<rows;r++) h += `<tr>${Array.from({length:cols},()=>'<td></td>').join('')}</tr>`
+  return h + `</table>`
+}
+/** 승인본 한 장 — 1040×720 원본 좌표 그대로. */
+function slide(){
+  return `<div class="pg">
+    <div class="el" style="left:24px;top:24px;width:620px;height:32px;font-size:19px;font-weight:800;color:#0F1B3D">2026년 9월 임원회의 — 진행보고</div>
+    <div class="el" style="left:668px;top:26px;width:348px;height:18px;font-size:12px;color:#5b6270;text-align:right">작성 김가현 · SI개발본부</div>
+    <div class="el" style="left:668px;top:46px;width:348px;height:18px;font-size:12px;color:#98a1b2;text-align:right">기간 2026-09</div>
+    <div class="el" style="left:24px;top:72px;width:400px;height:18px;font-size:13px;font-weight:800;color:#0F1B3D">① 로드맵 / 마일스톤</div>
+    <div class="el" style="left:24px;top:94px;width:992px;height:280px">${tableA()}</div>
+    <div class="el" style="left:24px;top:386px;width:645px;height:18px;font-size:12.5px;font-weight:800;color:#0F1B3D">② 진행 현황 · 향후 계획</div>
+    <div class="el" style="left:24px;top:408px;width:645px;height:170px">${grid(5,2,['진행 현황','향후 계획'])}</div>
+    <div class="el" style="left:683px;top:386px;width:333px;height:18px;font-size:12.5px;font-weight:800;color:#0F1B3D">③ 이슈 · 필요 지원</div>
+    <div class="el" style="left:683px;top:408px;width:333px;height:170px">${grid(5,1,['이슈 리스트  (미해결 · 필요 지원)'])}</div>
+    <div class="el" style="left:24px;top:596px;width:700px;height:16px;font-size:10.5px;color:#98a1b2">EVER-SKETCH · 2026-09 임원회의  ·  SI개발본부</div>
+  </div>`
+}
+/** 주어진 폭·높이 안에 승인본을 넣는다(원본과 같은 방식 — 다만 원점을 top left 로). */
+function stage(w,h,pad){
+  const k = Math.min((w-pad*2)/1040,(h-pad*2)/720)
+  const sw = Math.round(1040*k), sh = Math.round(720*k)
+  return {html:`<div class="stagebox" style="width:${w}px;height:${h}px">
+      <div class="scaler" style="width:${sw}px;height:${sh}px">
+        <div style="transform:scale(${k});transform-origin:top left;position:absolute;left:0;top:0">${slide()}</div>
+      </div></div>`, w:sw, h:sh}
+}
+function film(){
+  const k = 78/1040
+  return `<div class="film"><div class="thumb"><span class="no">1</span>
+    <div style="width:78px;height:${Math.round(720*k)}px;overflow:hidden;position:relative">
+      <div style="transform:scale(${k});transform-origin:top left;position:absolute;left:0;top:0">${slide()}</div>
+    </div></div></div>`
+}
+const ICO = {
+  back:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+  max:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+  min:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14h6v6M20 10h-6V4"/></svg>',
+  ext:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>',
+  lock:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  hist:'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>',
+}
+const META = '1회차 · 김가현 제출 · 시스템 관리자 승인 09. 04. 18:07'
+
+// ── ㉮ 모달 안에서 크게 보기 ──
+function viewA(big){
+  const W = 1150, H = 584
+  const HEAD = 50, PADB = 16, DHEAD = 50, GAP = 8, FILM = 74
+  // 모달 안에 **정확히** 담기게 남는 높이를 계산한다. 넘치면 안끼리 비교가 안 된다.
+  const bodyH = H - HEAD - PADB
+  const stH = bodyH - DHEAD - GAP - (big ? 0 : FILM + GAP)
+  const st = big ? stage(W - 36, stH, 10) : stage(W - 36 - 210 - 22, stH, 10)
+  return `<div class="modal-scrim"><div class="modal" style="width:${W}px;height:${H}px">
+    <div class="mhead">
+      <div class="mtitle">팀 공유 <span>승인된 자료만 올라옵니다</span></div>
+      <button class="btn ghost">닫기</button>
+    </div>
+    <div class="mbody">
+      ${big?'':`<div class="list">
+        <div style="font-size:11.5px;font-weight:800;color:var(--navy);border-top:2px solid var(--navy);padding-top:8px;margin-bottom:6px">
+          김가현 <span class="chip team">나</span></div>
+        <div style="font-size:11px;font-weight:800;color:var(--sub);margin:6px 0 5px">2026년 9월 <span style="color:var(--muted)">1</span></div>
+        <div class="row on"><b>2026년 9월 임원회의 — 김가현</b><i>1회차 · 1쪽 · 승인 09.04</i></div>
+      </div>`}
+      <div class="detail">
+        <div class="dhead">
+          <div><b>2026년 9월 임원회의 — 김가현</b> <span class="chip ok">승인</span>
+            <div class="dsub">${META}</div></div>
+          <div style="display:flex;gap:6px">
+            <button class="btn" id="toggleA">${big?ICO.min+' 목록 보기':ICO.max+' 크게 보기'}</button>
+            <button class="btn">${ICO.hist} 지난 승인본</button>
+          </div>
+        </div>
+        ${big?'':film()}
+        ${st.html}
+      </div>
+    </div>
+  </div></div>`
+}
+
+// ── ㉯ 전체 화면 상세 ──
+function viewB(){
+  const st = stage(980, 470, 12)
+  return `<div class="screen">
+    <div class="topbar">
+      <button class="btn ghost">${ICO.back} 팀 공유</button>
+      <div style="font-size:13px;font-weight:800;color:var(--navy)">2026년 9월 임원회의 — 김가현</div>
+      <span class="chip ok">승인</span><span class="chip ro">${ICO.lock} 읽기 전용</span>
+      <div style="margin-left:auto;display:flex;gap:6px"><button class="btn">${ICO.hist} 지난 승인본</button></div>
+    </div>
+    <div class="scr-body"><div class="scr-wrap">
+      <div style="font-size:11.5px;color:var(--muted)">${META} · 영업1팀 <span class="chip team">현재</span></div>
+      ${film()}
+      ${st.html}
+    </div></div>
+  </div>`
+}
+
+// ── ㉰ 새 탭 읽기 전용 뷰어 ──
+function viewC(){
+  const st = stage(1230, 505, 12)
+  return `<div class="screen" style="background:#e7eaf1">
+    <div class="tabhead">
+      <div style="font-size:12.5px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        2026년 9월 임원회의 — 김가현</div>
+      <span class="chip ok">승인본</span>
+      <span class="chip ro">${ICO.lock} 읽기 전용</span>
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap">${META}</span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <span class="chip team">영업1팀만 볼 수 있어요</span>
+        <button class="btn">${ICO.hist} 지난 승인본</button>
+      </div>
+    </div>
+    <div style="flex:1;min-height:0;display:grid;place-items:center;padding:10px">${st.html}</div>
+  </div>`
+}
+
+const ADDR = {
+  a:'127.0.0.1:8830 <em>— 자료 목록 위에 창으로 (주소 그대로)</em>',
+  b:'127.0.0.1:8830 <em>— 주소는 그대로, 화면만 바뀐다</em>',
+  c:'127.0.0.1:8830/view/a7541122da58a <em class="hi">← 새 탭 · 링크로 열린다</em>',
+}
+const NOTE = {
+  a:['<span class="tag now">지금 462×260</span>','<span class="tag good">약 1080×560</span>','<span class="tag">버튼 하나 + 상태 하나</span>','<span class="tag">주소 안 생김</span>'],
+  b:['<span class="tag now">지금 462×260</span>','<span class="tag good">약 1000×690</span>','<span class="tag warn">화면 전환 필요 (R8)</span>','<span class="tag">주소 안 생김</span>'],
+  c:['<span class="tag now">지금 462×260</span>','<span class="tag good">약 1360×790</span>','<span class="tag warn">읽기 전용 경로 신설</span>','<span class="tag good">링크로 공유 · 나란히 비교</span>'],
+}
+let cur='a', bigA=false
+function render(){
+  document.getElementById('addr').innerHTML = ADDR[cur]
+  document.getElementById('meta').innerHTML = NOTE[cur].join('')
+  const vp = document.getElementById('vp')
+  vp.innerHTML = cur==='a' ? viewA(bigA) : cur==='b' ? viewB() : viewC()
+  const t = document.getElementById('toggleA')
+  if(t) t.onclick = () => { bigA = !bigA; render() }
+}
+document.getElementById('picks').addEventListener('click', (e) => {
+  const b = e.target.closest('.pick'); if(!b) return
+  cur = b.dataset.k; bigA = false
+  ;[...document.querySelectorAll('.pick')].forEach(x=>x.classList.toggle('on', x===b))
+  render()
+})
+render()
+</script>
+</body>
+</html>

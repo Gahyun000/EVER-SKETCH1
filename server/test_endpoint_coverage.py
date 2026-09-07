@@ -17,6 +17,10 @@ SRC_DIR = pathlib.Path(__file__).resolve().parent
 # 인증 없이 열어두는 엔드포인트와 그 사유. 여기 없는 것은 전부 가드가 있어야 한다.
 PUBLIC_ALLOWLIST = {
     ("GET", "/api/health"): "기동 확인용. 내부 경로를 돌려주지 않는다",
+    ("GET", "/view/{aid}"): "읽기 전용 뷰어의 **화면 껍데기**(index.html)만 준다. 자료는 한 톨도"
+                            " 안 실린다 — 무엇이 보이는지는 화면이 부르는"
+                            " /api/team-library/approval/{aid} 가 판정한다."
+                            " 아래 test_뷰어_주소는_껍데기만_준다 가 그걸 강제한다",
 }
 
 # 로그인 가드를 붙일 수 없는 인증 경로와 그 사유.
@@ -179,6 +183,29 @@ def test_결재는_남의_건에_404_를_낸다():
         "결재 판정이 permissions 를 거치지 않습니다"
 
 
+def test_뷰어_주소는_껍데기만_준다():
+    """`/view/{aid}` 는 로그인 가드를 면제받았다. **공짜로 면제되면 안 된다.**
+
+    이 주소가 안전한 근거는 딱 하나 — **자료를 한 톨도 안 실어 보낸다.**
+    `index.html` 만 돌려주고, 무엇이 보이는지는 화면이 따로 부르는
+    `/api/team-library/approval/{aid}` 가 판정한다(`can_see_approval`).
+    그래서 링크가 새어도 남의 팀 자료는 안 열린다.
+
+    누군가 나중에 「이왕 여는 김에 데이터도 같이 실어 주자」고 고치면 그 근거가 무너진다.
+    여기서 그걸 막는다.
+    """
+    body = [b for m, p, b in ALL_ROUTES if p == "/view/{aid}"][0]
+    assert "FileResponse" in body and "index.html" in body, \
+        "뷰어 주소가 화면 껍데기를 주지 않습니다"
+    for leak in ("approvals_store", "team_library", "get_approval", "snapshot",
+                 "projects_store", "auth_store"):
+        assert leak not in body, \
+            "/view/{aid} 응답에 %s 가 섞였습니다 — 로그인 가드 없이 자료가 나갑니다" % leak
+    # 판정은 API 쪽에 그대로 살아 있어야 한다.
+    src = (SRC_DIR / "routes_team_library.py").read_text(encoding="utf-8")
+    assert "visible_approval" in src, "뷰어가 부를 API 가 없습니다"
+
+
 def test_팀공유는_단일_판정을_거친다():
     """팀 공유 라우터는 `require_action` 을 안 쓴다 — 목록은 **누구나** 부를 수 있고
     무엇이 보이는지는 건마다 갈리기 때문이다(팀이 없으면 403 이 아니라 빈 목록이다).
@@ -226,8 +253,15 @@ def test_결재_코멘트는_제_것만_고친다():
 
 
 def test_공개_허용목록이_최소한으로_유지된다():
-    """허용목록이 늘어나면 그만큼 구멍이 늘어난다. 늘릴 때 이 테스트를 함께 고치게 한다."""
-    assert len(PUBLIC_ALLOWLIST) == 1, "공개 엔드포인트가 늘었습니다: %s" % list(PUBLIC_ALLOWLIST)
+    """허용목록이 늘어나면 그만큼 구멍이 늘어난다. 늘릴 때 이 테스트를 함께 고치게 한다.
+
+    지금 둘인 이유 —
+      · `/api/health` : 기동 확인. 내부 경로를 안 돌려준다.
+      · `/view/{aid}` : 읽기 전용 뷰어의 **화면 껍데기**. 자료를 한 톨도 안 싣는다.
+    **둘 다 「데이터를 안 준다」가 근거다.** 데이터를 주는 것이 이 목록에 들어오면
+    근거가 다른 것이니, 그때는 이 문단부터 다시 써야 한다.
+    """
+    assert len(PUBLIC_ALLOWLIST) == 2, "공개 엔드포인트가 늘었습니다: %s" % list(PUBLIC_ALLOWLIST)
 
 
 def test_health가_내부_경로를_노출하지_않는다():

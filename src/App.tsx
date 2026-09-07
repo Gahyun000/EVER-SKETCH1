@@ -5,6 +5,7 @@ import LibraryScreen from './persistence/LibraryScreen'
 import { useProjects } from './persistence/projects'
 import { installAutosave } from './persistence/autosave'
 import { useAuth } from './auth/useAuth'
+import ApprovalViewer, { viewerIdFromPath } from './teamlib/ApprovalViewer'
 
 function Workspace({ uid }: { uid: string | null }) {
   const view = useProjects((s) => s.view)
@@ -20,12 +21,18 @@ function Workspace({ uid }: { uid: string | null }) {
 
 export default function App() {
   const uid = useAuth((s) => s.me?.id)
+  // **주소로 화면을 가르는 유일한 자리**(㉰). 라우터를 들이지 않는다 —
+  // 갈래가 하나뿐이고, 뷰어는 새 탭으로 열리는 막다른 화면이라 안에서 이동하지 않는다.
+  // `AuthGate` 안에 두는 이유: 로그인 안 한 사람은 로그인부터 하고, 끝나면 이 주소로 돌아온다.
+  const viewId = viewerIdFromPath(window.location.pathname)
   return (
     <AuthGate>
       {/* key 로 컴포넌트를 새로 만들지만, **이것만으로는 부족하다** —
           useProjects·useBuilder 는 모듈 단위 스토어라 리마운트로 지워지지 않는다.
           실제로 비우는 것은 boot(uid) 안의 resetWorkspace() 다. */}
-      <Workspace key={uid ?? 'anon'} uid={uid ?? null} />
+      {viewId
+        ? <ApprovalViewer key={viewId} aid={viewId} />
+        : <Workspace key={uid ?? 'anon'} uid={uid ?? null} />}
     </AuthGate>
   )
 }

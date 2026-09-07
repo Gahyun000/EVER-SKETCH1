@@ -163,3 +163,17 @@ export function pickTeam(teams: LibTeam[], id: string | null): LibTeam | null {
   if (!teams || teams.length === 0) return null
   return teams.find((t) => t.id === id) || teams[0]
 }
+
+
+/**
+ * 주소가 `/view/<결재id>` 면 그 id, 아니면 null. **화면을 고르는 유일한 기준이다**(㉰).
+ *
+ * 규칙을 좁게 잡은 이유 — 여기서 나온 값은 그대로 API 주소에 붙어 나간다.
+ * 결재 id 는 `a` + 16진수 12자리라 글자 종류가 정해져 있으므로, 그 밖의 것은
+ * **id 로 읽지 않는다.** 「일단 받아서 서버가 거르게 하자」로 두면
+ * `/view/../../…` 같은 것이 주소 조립에 섞여 들어갈 자리가 생긴다.
+ */
+export function viewerIdFromPath(pathname: string): string | null {
+  const m = /^\/view\/([A-Za-z0-9_-]{1,64})\/?$/.exec(pathname || '')
+  return m ? m[1] : null
+}

@@ -281,6 +281,12 @@ button{font-family:inherit;cursor:pointer}
 .settings-test-result.ok{background:#eef8f2;border-color:#c4e6d2}
 .settings-test-result.bad{background:#fdf4f5;border-color:#f0d3d7}
 .settings-test-result pre{margin:6px 0 0;background:#12141b;color:#e8ebf2;border-radius:8px;padding:9px 11px;font-size:11px;white-space:pre-wrap;overflow:auto}
+/* 아이콘 크기 — **여기 없는 이름을 쓰면 24px(lucide 기본)로 떨어진다.**
+   Tailwind 를 쓰지 않으므로 이 줄이 유일한 정의다. `h-3`·`h-3.5` 가 빠져 있어서
+   폴더 경로 구분자, 자료 목록의 「잠김」 자물쇠, 결재함의 코멘트 표시가 전부
+   24px 로 나오고 있었다(2026-09-07 발견). `icon_size.test.mjs` 가 빠짐을 잡는다. */
+.h-3,.w-3{width:12px;height:12px}
+.h-3\.5,.w-3\.5{width:14px;height:14px}
 .h-4,.w-4,.h-5,.w-5{width:16px;height:16px}
 .animate-spin{animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, History, Users, X } from 'lucide-react'
+import { Search, History, Users, X, ExternalLink } from 'lucide-react'
 import SlideViewer from '../approvals/SlideViewer'
 import { STATUS_LABEL, type Approval } from '../approvals/approvalApi'
 import {
@@ -77,6 +77,9 @@ export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
 
   const applySearch = () => { setQ(qIn); setPage(1); setOpenId(null) }
   const resetSearch = () => { setQIn(''); setQ(''); setPage(1); setOpenId(null) }
+
+  /** 읽기 전용 뷰어를 **새 탭**으로 연다. 앞 창은 그대로 남아 고르던 자리를 잃지 않는다. */
+  const openBig = (aid: string) => { window.open(`/view/${aid}`, '_blank', 'noopener') }
 
   const openHistory = async () => {
     if (!detail) return
@@ -228,9 +231,17 @@ export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
                           {' '}{detail.approver_name || ''} 승인 {fmt(detail.decided_at)}
                         </div>
                       </div>
-                      <button className="es-mini" onClick={() => void openHistory()}>
-                        <History className="h-4 w-4" /> 지난 승인본
-                      </button>
+                      <div className="tl-acts">
+                        {/* **읽는 일은 새 탭이 맡는다**(㉰). 여기 미리보기는 「고른 게 이
+                            자료가 맞나」를 확인하는 자리다 — 두 일을 한 자리에서 하려다
+                            둘 다 못 하고 있었다(462×260 으로는 표가 안 읽힌다). */}
+                        <button className="es-mini primary" onClick={() => openBig(detail.id)}>
+                          <ExternalLink className="h-4 w-4" /> 새 탭에서 크게 보기
+                        </button>
+                        <button className="es-mini" onClick={() => void openHistory()}>
+                          <History className="h-4 w-4" /> 지난 승인본
+                        </button>
+                      </div>
                     </div>
 
                     {(detail as LibItem).doc_state === 'revising' && (
@@ -264,9 +275,15 @@ export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
                       </div>
                     )}
 
-                    <div className="ap-viewer">
+                    {/* 그림 자체도 눌린다 — 목록에서 자료를 훑는 리듬이 버튼까지 갔다
+                        오느라 끊기지 않게. 키보드로도 닿아야 하므로 button 이다. */}
+                    <button className="ap-viewer tl-peek" title="새 탭에서 크게 보기"
+                      onClick={() => openBig(detail.id)}>
                       <SlideViewer snap={detail.snapshot as never} idx={idx} onIdx={setIdx} />
-                    </div>
+                      <span className="tl-peek-veil">
+                        <span><ExternalLink className="h-4 w-4" /> 새 탭에서 크게 보기</span>
+                      </span>
+                    </button>
 
                     {/* **자료는 팀의 것이지만 대화는 아니다.** 결재에서 오간 지적은
                         낸 사람과 결재자 사이의 일이다. 감춘 사실 자체는 감추지 않는다. */}

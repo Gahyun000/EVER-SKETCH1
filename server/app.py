@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -656,5 +656,26 @@ DECK_OUT = EBOOK_HTML / "_deck_out"
 DECK_OUT.mkdir(parents=True, exist_ok=True)
 app.mount("/deck_out", StaticFiles(directory=str(DECK_OUT)), name="deck_out")
 DIST = EBOOK_HTML / "dist"
+
+
+@app.get("/view/{aid}")
+def spa_approval_view(aid: str):
+    """읽기 전용 뷰어의 주소. **화면 껍데기만 준다.**
+
+    `/` 에 붙인 StaticFiles 는 없는 경로에 404 를 내므로, 새 탭으로 여는 이 주소에는
+    `index.html` 을 따로 돌려줘야 한다. 여기서 하는 일은 그게 전부다 —
+    **누가 무엇을 볼 수 있는지는 여기서 판정하지 않는다.**
+
+    판정은 화면이 부르는 `GET /api/team-library/approval/{aid}` 가 한다
+    (`permissions.can_see_approval` — 관리자 전부 / 낸 사람 / 지금 내 팀의 승인본).
+    그래서 이 주소는 **누구에게나 열려 있어도 안전하다**: 로그인 안 했으면 로그인 화면이,
+    남의 팀 자료면 「볼 수 없습니다」가 뜬다. 링크가 새어도 자료는 안 샌다.
+    """
+    idx = DIST / "index.html"
+    if not idx.exists():
+        raise HTTPException(status_code=404, detail="빌드된 화면이 없습니다.")
+    return FileResponse(str(idx))
+
+
 if DIST.exists():
     app.mount("/", StaticFiles(directory=str(DIST), html=True), name="app")

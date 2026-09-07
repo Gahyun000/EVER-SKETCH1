@@ -55,10 +55,17 @@ _ORDER = {CURRENT: 0, PAST: 1, OTHER: 2}
 
 
 def _ym(ts: Optional[float]) -> str:
-    """승인 시각의 `YYYY-MM`. 시각이 없으면 빈 문자열 — 없는 달을 지어내지 않는다."""
+    """승인 시각의 `YYYY-MM`. 시각이 없으면 빈 문자열 — 없는 달을 지어내지 않는다.
+
+    **`decided_at` 은 밀리초다**(`approvals._now()` = `time.time() * 1000`).
+    초로 읽으면 연도가 58645 가 되고, 화면의 4자리 연도 판정에 안 걸려
+    모든 자료가 「승인일 미상」으로 묶인다 — 2026-09-07 에 실제로 그랬다.
+    테스트가 못 잡은 이유도 같다: 픽스처가 `time.mktime()`(초)로 값을 넣고 있었다.
+    **저장 단위와 다른 픽스처는 통과해도 아무것도 안 지킨다.**
+    """
     if not ts:
         return ""
-    return time.strftime("%Y-%m", time.localtime(ts))
+    return time.strftime("%Y-%m", time.localtime(ts / 1000.0))
 
 
 def _latest_per_project(items: list[dict]) -> list[dict]:
