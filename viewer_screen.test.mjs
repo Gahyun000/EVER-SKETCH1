@@ -9,7 +9,7 @@
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { viewerIdFromPath } from './src/teamlib/teamLibraryModel.ts'
+import { viewerIdFromPath, wantsSharedFromSearch } from './src/teamlib/teamLibraryModel.ts'
 
 const read = (p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8')
 let pass = 0, fail = 0
@@ -31,6 +31,16 @@ check(viewerIdFromPath('/view/a b') === null && viewerIdFromPath('/view/<script>
 check(viewerIdFromPath('/view/' + 'x'.repeat(200)) === null, '터무니없이 긴 id 는 안 읽는다')
 check(viewerIdFromPath('/viewer/abc') === null && viewerIdFromPath('/x/view/abc') === null,
   '비슷한 주소에 걸리지 않는다')
+
+// ══════════ 돌아가는 길 (2026-09-07 확정: ㉡) ══════════
+check(wantsSharedFromSearch('?shared=1') === true, '주소가 팀 공유를 열어 달라고 하면 읽는다')
+check(wantsSharedFromSearch('?a=1&shared=1&b=2') === true, '다른 값이 섞여 있어도 읽는다')
+check(wantsSharedFromSearch('') === false && wantsSharedFromSearch('?x=1') === false,
+  '보통 주소에서는 안 연다')
+check(wantsSharedFromSearch('?shared=0') === false && wantsSharedFromSearch('?shared') === false,
+  '**값이 1일 때만** 연다 — 「shared 가 있으면」으로 두면 오타에도 열린다')
+check(wantsSharedFromSearch(null) === false && wantsSharedFromSearch(undefined) === false,
+  '값이 없어도 안 터진다')
 
 // ══════════ 소스에서 못박는 규칙 ══════════
 const app = read('./src/App.tsx')
@@ -86,6 +96,19 @@ check(/window\.open\(`\/view\/\$\{aid\}`, '_blank'/.test(panelCode),
 check(/noopener/.test(panelCode), '새 탭에 noopener 를 준다')
 check(/\.tl-peek:hover \.tl-peek-veil/.test(css) && /focus-visible/.test(css),
   '눌리는 자리임을 올려 보거나 탭으로 짚으면 알 수 있다')
+
+// ── 돌아가는 길: 뷰어 → 팀 공유 ──
+// **이게 없으면 링크를 받은 사람은 문서 한 장을 보고 끝이다.** 그 사람에게는
+// 닫고 돌아갈 앞 창이 아예 없다 — 이 탭이 전부다.
+const lib = read('./src/persistence/LibraryScreen.tsx')
+const libCode = bare(lib)
+check(/팀 공유 열기/.test(viewer), '뷰어에 「팀 공유 열기」가 있다')
+check(/window\.location\.href = '\/\?shared=1'/.test(viewerCode),
+  '`/` 가 아니라 **팀 공유로** 보낸다 (방금까지 보던 것이 팀 자료다)')
+check(/wantsSharedFromSearch\(window\.location\.search\)/.test(libCode),
+  '자료 목록이 그 주소를 읽어 창을 열어 둔다')
+check(/replaceState/.test(libCode) && !/pushState/.test(libCode),
+  '읽은 뒤 주소에서 지운다 — 안 지우면 창을 닫아도 새로 고칠 때마다 다시 열린다')
 
 // ── 서버: 껍데기만 준다 ──
 check(/@app\.get\("\/view\/\{aid\}"\)/.test(routes), '뷰어 주소가 서버에 있다')

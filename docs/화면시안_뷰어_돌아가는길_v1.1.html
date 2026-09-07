@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>㉠ vs ㉡ — 누른 다음 어디에 내리는가 v1.1</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#EAF1FE;--line:#E6E8EE;--card:#F7F8FB;
+    --sub:#5b6270;--muted:#98a1b2;--ok:#215c46;--okbg:#E9F5EF;--ink:#0f172a}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1240px;margin:0 auto;padding:26px 22px 80px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  .lead{color:var(--sub);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:13px 17px;margin:0 0 18px;font-size:12.5px;color:var(--sub);line-height:1.85}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:5px}
+
+  .who{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center}
+  .who .lbl{font-size:12px;font-weight:800;color:var(--sub);margin-right:4px}
+  .wbtn{border:1.4px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;
+    cursor:pointer;font:inherit;font-size:12.5px;font-weight:800;color:var(--sub)}
+  .wbtn.on{border-color:var(--navy);background:var(--navy);color:#fff}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .col{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .col .cap{padding:11px 15px;border-bottom:1px solid var(--line);background:var(--card)}
+  .col .cap b{font-size:13px;color:var(--navy)}
+  .col .cap span{display:block;font-size:11.5px;color:var(--muted);font-weight:700;margin-top:2px}
+  .step{display:flex;align-items:center;gap:8px;padding:9px 15px;background:#fbfcfe;
+    border-bottom:1px solid var(--line);font-size:11.5px;color:var(--muted)}
+  .step .btn{pointer-events:none}
+  .arw{color:var(--blue);font-weight:800}
+  .shot{position:relative;height:404px;background:#eef1f6;overflow:hidden}
+
+  .btn{border:1.3px solid var(--line);background:#fff;color:#334155;font-weight:800;font-size:11px;
+    border-radius:8px;padding:5px 10px;font-family:inherit;display:inline-flex;align-items:center;
+    gap:4px;white-space:nowrap}
+  .btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+  .btn svg{width:13px;height:13px}
+
+  /* 자료 목록(도착 화면) */
+  .lib{position:absolute;inset:0;padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+  .libhead{display:flex;align-items:center;gap:8px}
+  .logo{width:20px;height:20px;border-radius:5px;background:var(--navy);flex:0 0 auto}
+  .libttl{font-size:14px;font-weight:800;color:var(--navy)}
+  .libright{margin-left:auto;display:flex;gap:5px;align-items:center}
+  .crumb{font-size:11px;color:var(--sub);font-weight:700}
+  .srch{display:flex;gap:6px;align-items:center}
+  .srch .in{flex:1;height:26px;border:1.3px solid var(--line);border-radius:8px;background:#fff;
+    font-size:10.5px;color:var(--muted);display:flex;align-items:center;padding:0 9px}
+  .cards{display:flex;flex-direction:column;gap:7px}
+  .card{display:flex;align-items:center;gap:9px;background:#fff;border:1.3px solid #e9ebf0;
+    border-radius:11px;padding:9px 11px}
+  .card .ic{width:26px;height:26px;border-radius:7px;background:rgba(36,98,235,.10);flex:0 0 auto}
+  .card b{font-size:12px;color:var(--navy);display:block}
+  .card i{font-style:normal;font-size:10.5px;color:var(--muted)}
+  .empty{background:#fff;border:1.3px dashed var(--line);border-radius:12px;padding:26px 16px;
+    text-align:center;color:var(--muted);font-size:11.5px;line-height:1.9;white-space:pre-line}
+
+  /* 팀 공유 창 */
+  .scrim{position:absolute;inset:0;background:rgba(15,27,61,.34);display:grid;place-items:center;padding:12px}
+  .modal{background:#fff;border-radius:13px;width:100%;height:100%;display:flex;flex-direction:column;
+    box-shadow:0 20px 56px rgba(15,27,61,.3);overflow:hidden}
+  .mh{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 8px}
+  .mh b{font-size:13px;color:var(--navy)}
+  .mh span{font-size:10.5px;color:var(--muted);font-weight:700;margin-left:5px}
+  .mb{display:flex;gap:10px;padding:0 14px 12px;flex:1;min-height:0}
+  .mlist{flex:0 0 168px;border-right:1px solid var(--line);padding-right:9px}
+  .grp{font-size:10.5px;font-weight:800;color:var(--navy);border-top:2px solid var(--navy);
+    padding-top:6px;margin-bottom:5px}
+  .mon{font-size:10px;font-weight:800;color:var(--sub);margin:5px 0 4px}
+  .row{border:1.2px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:5px}
+  .row.on{border-color:var(--blue);background:var(--tint)}
+  .row b{display:block;font-size:10.5px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row i{font-style:normal;font-size:9.5px;color:var(--muted)}
+  .mdet{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .mdet .nm{font-size:12px;font-weight:800;color:var(--navy)}
+  .prev{flex:1;background:var(--card);border-radius:8px;display:grid;place-items:center;
+    color:var(--muted);font-size:10.5px;text-align:center;line-height:1.8}
+
+  .chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;
+    padding:2px 6px;border-radius:99px;white-space:nowrap}
+  .chip.ok{background:var(--okbg);color:var(--ok)}
+  .chip.team{background:var(--tint);color:var(--blue)}
+
+  .verdict{margin-top:10px;padding:11px 14px;border-radius:10px;font-size:12px;line-height:1.8}
+  .verdict.good{background:var(--okbg);color:#1c4a39}
+  .verdict.meh{background:#FFF4E3;color:#7a4f0d}
+  .verdict b{font-weight:800}
+
+  .cmp{width:100%;border-collapse:collapse;margin-top:22px;background:#fff;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:12.5px}
+  .cmp th,.cmp td{border-bottom:1px solid var(--line);padding:10px 13px;text-align:left;vertical-align:top}
+  .cmp th{background:var(--card);color:var(--navy);font-weight:800}
+  .cmp td:first-child{white-space:nowrap;font-weight:800;color:var(--sub)}
+  .cmp tr:last-child td{border-bottom:0}
+  .why{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>㉠ 과 ㉡ 의 차이 — <u>누른 다음 어디에 내리는가</u> <span style="font-size:12px;color:var(--muted);font-weight:400">시안 v1.1 · 2026-09-07</span></h1>
+  <p class="lead">앞 시안은 <b>머리줄만</b> 보여드려서 버튼 글자만 달라 보였습니다. 실제 차이는 <b>도착 화면</b>입니다.</p>
+
+  <div class="box">
+    <span class="t">한 줄로 말하면</span>
+    ㉠ 은 <b>내 서랍</b>에 내려놓고, ㉡ 은 <b>팀 선반</b>에 내려놓습니다.<br>
+    방금까지 보던 것이 <b>팀 자료</b>였으니, ㉠ 은 한 칸 옆으로 벗어난 자리에 내리는 셈입니다.
+  </div>
+
+  <div class="who" id="who">
+    <span class="lbl">링크를 받은 사람이</span>
+    <button class="wbtn on" data-w="l2">작성자 (제 자료가 있는 사람)</button>
+    <button class="wbtn" data-w="l3">열람자 (제 자료가 없는 사람)</button>
+  </div>
+
+  <div class="two">
+    <div class="col">
+      <div class="cap"><b>㉠ 「EVER-SKETCH 열기」</b><span>주소 <code>/</code> — 자료 목록으로</span></div>
+      <div class="step">누르면 <span class="arw">→</span> <span class="btn pri">EVER-SKETCH 열기</span> <span class="arw">→</span> 이 화면</div>
+      <div class="shot" id="s1"></div>
+    </div>
+    <div class="col">
+      <div class="cap"><b>㉡ 「팀 공유 열기」</b><span>주소 <code>/?shared=1</code> — 팀 공유가 열린 채로</span></div>
+      <div class="step">누르면 <span class="arw">→</span> <span class="btn pri">팀 공유 열기</span> <span class="arw">→</span> 이 화면</div>
+      <div class="shot" id="s2"></div>
+    </div>
+  </div>
+
+  <div id="verdict"></div>
+
+  <table class="cmp">
+    <tr><th style="width:130px"></th><th>㉠ EVER-SKETCH 열기</th><th>㉡ 팀 공유 열기</th></tr>
+    <tr><td>내리는 자리</td>
+      <td><b>내 서랍</b> (내 자료 목록)<span class="why">방금 본 팀 자료는 여기 없다</span></td>
+      <td><b>팀 선반</b><span class="why">방금 본 자료가 목록에 그대로 있다</span></td></tr>
+    <tr><td>팀 자료를 더 보려면</td>
+      <td>「팀 공유」를 <b>한 번 더</b> 누른다</td>
+      <td>이미 열려 있다</td></tr>
+    <tr><td>새로 만들 것</td>
+      <td>링크 하나<span class="why">주소는 그냥 <code>/</code></span></td>
+      <td>링크 + <code>?shared=1</code><span class="why">자료 목록이 주소를 읽게 된다 — 지금은 뷰어만 읽는다</span></td></tr>
+  </table>
+</div>
+
+<script>
+const ICO={
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>',
+}
+/** 도착 화면의 바탕 — 자료 목록. 사람에 따라 안이 다르다. */
+function lib(who){
+  const mine = who==='l2'
+    ? `<div class="cards">
+         <div class="card"><div class="ic"></div><div><b>2026년 10월 임원회의 — 나</b><i>어제 · 1페이지</i></div></div>
+         <div class="card"><div class="ic"></div><div><b>초안 메모</b><i>3일 전 · 2페이지</i></div></div>
+       </div>`
+    : `<div class="empty">아직 만든 것이 없어요.
+여기에 만든 것은 나만 봅니다.
+팀에 올라온 자료는 「팀 공유」에서 봅니다.</div>`
+  return `<div class="lib">
+    <div class="libhead"><div class="logo"></div>
+      <div class="libttl">${who==='l2'?'내 이북':'개인 스케치'}</div>
+      <div class="libright">
+        <span class="btn">${ICO.users} 팀 공유</span>
+        <span class="btn dark">${ICO.plus} 새 이북</span>
+      </div></div>
+    <div class="crumb">🏠 내 자료</div>
+    <div class="srch"><span class="in">이북 제목 또는 ID</span><span class="btn dark">검색</span></div>
+    ${mine}
+  </div>`
+}
+/** ㉡ 은 그 위에 팀 공유가 열려 있다. */
+function shared(){
+  return `<div class="scrim"><div class="modal">
+    <div class="mh"><div><b>팀 공유</b><span>승인된 자료만 올라옵니다</span></div><span class="btn">닫기</span></div>
+    <div class="mb">
+      <div class="mlist">
+        <div class="grp">김가현 <span class="chip team">나</span></div>
+        <div class="mon">2026년 9월</div>
+        <div class="row on"><b>2026년 9월 임원회의</b><i>1회차 · 승인 09.04</i></div>
+        <div class="mon">2026년 8월</div>
+        <div class="row"><b>2026년 8월 임원회의</b><i>2회차 · 승인 08.05</i></div>
+      </div>
+      <div class="mdet">
+        <div><span class="nm">2026년 9월 임원회의 — 김가현</span> <span class="chip ok">승인</span></div>
+        <div class="prev"><b style="color:var(--navy)">방금 보던 그 자료</b><br>미리보기 · 옆 자료로 바로 이동</div>
+      </div>
+    </div>
+  </div></div>`
+}
+const V = {
+  l2:{k:'meh', a:'㉠ — <b>내 자료 2건</b>이 뜹니다. 방금 본 팀 자료는 여기 없어서, 팀 것을 더 보려면 「팀 공유」를 다시 누릅니다.',
+      b:'㉡ — <b>방금 본 자료가 그대로</b> 있고 옆에 8월치도 있습니다.'},
+  l3:{k:'good', a:'㉠ — <b>빈 화면</b>이 뜹니다. 「팀에 올라온 자료는 「팀 공유」에서 봅니다」라고 적혀 있긴 하지만, <b>팀 자료를 보러 온 사람에게 제 빈 서랍을 먼저 보여 주는</b> 셈입니다.',
+      b:'㉡ — 곧바로 <b>팀 선반</b>입니다. 열람자에게는 여기가 사실상 주 화면입니다(D13).'},
+}
+let who='l2'
+function render(){
+  document.getElementById('s1').innerHTML = lib(who)
+  document.getElementById('s2').innerHTML = lib(who) + shared()
+  const v = V[who]
+  document.getElementById('verdict').innerHTML =
+    `<div class="verdict ${v.k}">${v.a}<br>${v.b}</div>`
+}
+document.getElementById('who').addEventListener('click',(e)=>{
+  const b=e.target.closest('.wbtn'); if(!b) return
+  who=b.dataset.w
+  ;[...document.querySelectorAll('.wbtn')].forEach(x=>x.classList.toggle('on',x===b))
+  render()
+})
+render()
+</script>
+</body>
+</html>

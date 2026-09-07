@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>뷰어에서 돌아가는 길 — ㉠㉡㉢ v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#EAF1FE;--line:#E6E8EE;--card:#F7F8FB;
+    --sub:#5b6270;--muted:#98a1b2;--ok:#215c46;--okbg:#E9F5EF;--ink:#0f172a;--warnbg:#FFF4E3;--warn:#8a5a10}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1120px;margin:0 auto;padding:28px 24px 80px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  .lead{color:var(--sub);font-size:13px;margin:0 0 18px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px 17px;
+    margin:0 0 22px;font-size:12.5px;color:var(--sub);line-height:1.85;border-left:3px solid var(--blue)}
+  .box.warn{border-left-color:#D98A2A}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:5px}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px}
+  .sit{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .sit .cap{font-size:12px;font-weight:800;color:var(--navy);padding:10px 14px;
+    border-bottom:1px solid var(--line);background:var(--card);display:flex;gap:7px;align-items:center}
+  .sit .cap span{font-weight:700;color:var(--muted);font-size:11px}
+  .tabbar{height:28px;background:#e7eaf1;display:flex;align-items:flex-end;gap:4px;padding:0 8px}
+  .tabi{height:22px;background:#f1f3f7;border-radius:6px 6px 0 0;padding:0 10px;font-size:10px;
+    color:var(--muted);display:flex;align-items:center;max-width:150px;white-space:nowrap;overflow:hidden}
+  .tabi.on{background:#fff;color:var(--navy);font-weight:800}
+  .head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:#fff;
+    border-bottom:1px solid var(--line);padding:8px 12px}
+  .nm{font-size:12px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;max-width:190px}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;
+    padding:2px 7px;border-radius:99px;white-space:nowrap}
+  .chip.ok{background:var(--okbg);color:var(--ok)}
+  .chip.ro{background:#eef0f3;color:#6b7480}
+  .chip.team{background:var(--tint);color:var(--blue)}
+  .chip svg{width:11px;height:11px}
+  .btn{border:1.3px solid var(--line);background:#fff;color:#334155;font-weight:800;font-size:11px;
+    border-radius:8px;padding:5px 10px;font-family:inherit;display:inline-flex;align-items:center;
+    gap:4px;white-space:nowrap;cursor:pointer}
+  .btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn svg{width:13px;height:13px}
+  .body{height:120px;background:#e7eaf1;display:grid;place-items:center;color:var(--muted);font-size:11px}
+  .none{color:#b4232a;font-weight:800;font-size:11px}
+
+  .picks{display:flex;gap:8px;margin:24px 0 12px;flex-wrap:wrap}
+  .pick{border:1.4px solid var(--line);background:#fff;border-radius:12px;padding:10px 15px;
+    cursor:pointer;font:inherit;font-size:13px;font-weight:800;color:var(--sub);text-align:left;
+    display:flex;flex-direction:column;gap:2px;min-width:215px}
+  .pick .s{font-size:11px;font-weight:700;color:var(--muted)}
+  .pick.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .pick.on .s{color:rgba(255,255,255,.72)}
+
+  .cmp{width:100%;border-collapse:collapse;margin-top:22px;background:#fff;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:12.5px}
+  .cmp th,.cmp td{border-bottom:1px solid var(--line);padding:10px 13px;text-align:left;vertical-align:top}
+  .cmp th{background:var(--card);color:var(--navy);font-weight:800;white-space:nowrap}
+  .cmp td:first-child{white-space:nowrap;font-weight:800;color:var(--sub)}
+  .cmp tr:last-child td{border-bottom:0}
+  .why{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;line-height:1.6}
+  .yes{color:var(--ok);font-weight:800}.no{color:#7d2027;font-weight:800}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>새 탭 뷰어에서 <u>돌아가는 길</u> <span style="font-size:12px;color:var(--muted);font-weight:400">시안 v1.0 · 2026-09-07</span></h1>
+  <p class="lead">「돌아가는 게 창 닫기밖에 없네?」 — 맞습니다. 그리고 <b>상황이 둘</b>인데 지금은 하나만 됩니다.</p>
+
+  <div class="box warn">
+    <span class="t">실제로 재 봤습니다</span>
+    <b>① 앱에서 버튼으로 연 탭</b> — <code>history.length = 1</code>, <code>opener = null</code>.
+    <b>뒤로가기 버튼이 죽어 있습니다.</b> 앱으로 가는 링크도 없습니다 → <b>탭 닫기가 유일</b>.
+    그래도 앞 창이 그대로 있으니 이건 괜찮습니다.<br>
+    <b>② 링크로 받아서 연 탭</b> — 앞 창이 <b>아예 없습니다.</b> 닫으면 그냥 사라집니다.
+    <b>이쪽이 진짜 구멍입니다</b> — 링크로 공유하려고 고른 안(㉰)인데, 링크를 받은 사람은
+    문서 한 장을 보고 <b>앱으로 들어갈 길이 없습니다.</b>
+  </div>
+
+  <div class="two">
+    <div class="sit">
+      <div class="cap">① 앱에서 열었을 때 <span>— 앞 창이 남아 있다</span></div>
+      <div class="tabbar"><span class="tabi">EVER-SKETCH</span><span class="tabi on">2026년 9월 임원회의</span></div>
+      <div class="head" id="h1"></div>
+      <div class="body">닫으면 <b style="color:var(--navy);margin:0 3px">EVER-SKETCH</b> 탭으로 돌아간다 — 괜찮다</div>
+    </div>
+    <div class="sit">
+      <div class="cap">② 링크로 받았을 때 <span>— 돌아갈 창이 없다</span></div>
+      <div class="tabbar"><span class="tabi on">2026년 9월 임원회의</span></div>
+      <div class="head" id="h2"></div>
+      <div class="body" id="b2"></div>
+    </div>
+  </div>
+
+  <div class="picks" id="picks">
+    <button class="pick on" data-k="a">㉠ 「EVER-SKETCH 열기」<span class="s">자료 목록으로 간다</span></button>
+    <button class="pick" data-k="b">㉡ 「팀 공유 열기」<span class="s">팀 공유가 열린 채로 간다</span></button>
+    <button class="pick" data-k="c">㉢ 상황에 따라 다르게<span class="s">앱에서 왔으면 「창 닫기」</span></button>
+  </div>
+
+  <table class="cmp">
+    <tr><th style="width:120px"></th><th>㉠ EVER-SKETCH 열기</th><th>㉡ 팀 공유 열기</th><th>㉢ 상황에 따라</th></tr>
+    <tr><td>링크 받은 사람</td>
+      <td class="yes">앱에 들어간다<span class="why">자료 목록에서 「팀 공유」를 한 번 더 누른다</span></td>
+      <td class="yes">바로 팀 공유<span class="why">보던 자료의 옆 자료로 이어진다</span></td>
+      <td class="yes">바로 팀 공유</td></tr>
+    <tr><td>앱에서 연 사람</td>
+      <td>탭이 하나 더 생긴다<span class="why">닫으면 되니 큰 문제는 아니다</span></td>
+      <td>같음</td>
+      <td class="yes">「창 닫기」가 뜬다<span class="why">하려던 일과 정확히 같다</span></td></tr>
+    <tr><td>새로 만들 것</td>
+      <td class="yes">링크 하나<span class="why">주소는 그냥 <code>/</code></span></td>
+      <td>링크 + <code>?shared=1</code><span class="why">주소로 움직이는 <b>두 번째</b> 규칙이 생긴다</span></td>
+      <td class="no">판별 + 갈래 둘<span class="why">아래 참조</span></td></tr>
+    <tr><td>위험</td>
+      <td class="yes">없다</td>
+      <td>작다<span class="why">자료 목록이 주소를 읽게 된다</span></td>
+      <td class="no">판별 근거가 약하다<span class="why"><code>noopener</code>라 <code>opener</code>는 늘 null이고 <code>referrer</code>는 브라우저 설정에 따라 빈다. <b>틀리면 링크 받은 사람에게 「창 닫기」가 떠서 막다른 길이 된다</b></span></td></tr>
+  </table>
+
+  <div class="box" style="margin-top:22px">
+    <span class="t">제 의견은 ㉡입니다</span>
+    ㉢은 <b>틀렸을 때 손해가 큽니다</b> — 판별이 빗나가면 링크 받은 사람이 정확히 지금과 같은
+    막다른 길에 갇힙니다. 판별 근거(<code>referrer</code>)는 브라우저·보안 설정에 따라 비고,
+    우리는 <code>noopener</code>를 쓰기 때문에 <code>opener</code>로는 알 수 없습니다.<br>
+    ㉠과 ㉡은 <b>둘 다 안전하고 차이는 클릭 한 번</b>입니다. 다만 승인본을 보던 사람이
+    다음에 볼 것은 대개 <b>같은 팀의 다른 자료</b>라, ㉡이 그 한 번을 아껴 줍니다.
+    대가는 「자료 목록이 주소를 읽는다」 한 줄입니다.
+  </div>
+</div>
+
+<script>
+const ICO = {
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>',
+}
+const HOME = {
+  a:`<button class="btn pri">${ICO.home} EVER-SKETCH 열기</button>`,
+  b:`<button class="btn pri">${ICO.users} 팀 공유 열기</button>`,
+  c:null,   // 상황에 따라 갈린다
+}
+function head(kind, fromApp){
+  let home
+  if (kind === 'c') home = fromApp ? `<button class="btn">${ICO.x} 창 닫기</button>` : HOME.b
+  else home = HOME[kind]
+  return `
+    <b class="nm">2026년 9월 임원회의 — 김가현</b>
+    <span class="chip ok">승인본</span>
+    <span class="chip ro">${ICO.lock} 읽기 전용</span>
+    <span style="font-size:10.5px;color:var(--muted);white-space:nowrap">1회차 · 승인 09.04</span>
+    <span class="chip team" style="margin-left:auto">이 자료를 만든 팀만</span>
+    <button class="btn">${ICO.hist} 지난 승인본</button>
+    ${home}`
+}
+let cur = 'a'
+function render(){
+  document.getElementById('h1').innerHTML = head(cur, true)
+  document.getElementById('h2').innerHTML = head(cur, false)
+  document.getElementById('b2').innerHTML = cur === 'c'
+    ? '<span style="color:var(--sub)">「팀 공유 열기」로 앱에 들어간다 — <b style="color:#b4232a">판별이 빗나가면 「창 닫기」가 떠서 갇힌다</b></span>'
+    : '<span style="color:var(--sub)">머리줄의 버튼으로 앱에 들어간다</span>'
+}
+document.getElementById('picks').addEventListener('click', (e) => {
+  const b = e.target.closest('.pick'); if(!b) return
+  cur = b.dataset.k
+  ;[...document.querySelectorAll('.pick')].forEach(x=>x.classList.toggle('on', x===b))
+  render()
+})
+render()
+</script>
+</body>
+</html>

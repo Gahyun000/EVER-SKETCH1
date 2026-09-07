@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Lock, History, X } from 'lucide-react'
+import { Lock, History, X, Users } from 'lucide-react'
 import SlideViewer from '../approvals/SlideViewer'
 import { STATUS_LABEL } from '../approvals/approvalApi'
 import { TeamLibraryError, apiTeamApproval, apiTeamHistory, type LibItem } from './teamLibraryApi'
@@ -96,6 +96,14 @@ export default function ApprovalViewer({ aid }: { aid: string }) {
         <span className="tv-only">이 자료를 만든 팀만 볼 수 있어요</span>
         <button className="es-mini" onClick={() => void openHistory()}>
           <History className="h-4 w-4" /> 지난 승인본
+        </button>
+        {/* **돌아가는 길.** 이게 없으면 링크를 받은 사람은 문서 한 장을 보고 끝이다 —
+            그 사람에게는 닫고 돌아갈 앞 창이 아예 없다(새 탭이 아니라 이 탭이 전부다).
+            `/` 가 아니라 팀 공유로 보내는 이유: 방금까지 보던 것이 팀 자료였다.
+            그냥 `/` 로 보내면 「내 서랍」에 내리고, 제 자료가 없는 열람자에게는
+            그게 빈 화면이다. */}
+        <button className="es-mini primary" onClick={() => { window.location.href = '/?shared=1' }}>
+          <Users className="h-4 w-4" /> 팀 공유 열기
         </button>
       </div>
 

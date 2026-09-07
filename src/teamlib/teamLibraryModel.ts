@@ -177,3 +177,24 @@ export function viewerIdFromPath(pathname: string): string | null {
   const m = /^\/view\/([A-Za-z0-9_-]{1,64})\/?$/.exec(pathname || '')
   return m ? m[1] : null
 }
+
+
+/**
+ * 주소에 「팀 공유를 열어 달라」가 실려 있는가. 뷰어의 「팀 공유 열기」가 붙여 보낸다.
+ *
+ * **주소를 읽는 두 번째 자리다**(첫째는 `viewerIdFromPath`). 굳이 늘린 이유 —
+ * 뷰어에서 돌아온 사람이 방금까지 보던 것은 **팀 자료**인데, 그냥 `/` 로 보내면
+ * 「내 서랍」(자기 자료 목록)에 내린다. 제 자료가 없는 열람자에게는 그게
+ * 「아직 만든 것이 없어요」 빈 화면이라, 팀 자료를 보러 온 사람을 상관없는 화면에
+ * 한 번 세웠다 보내게 된다.
+ *
+ * **읽고 나면 주소에서 지운다**(`LibraryScreen`). 창을 닫은 뒤에도 주소에 남아 있으면
+ * 새로 고칠 때마다 다시 열려서, 주소가 화면과 다른 말을 하게 된다.
+ */
+export function wantsSharedFromSearch(search: string): boolean {
+  try {
+    return new URLSearchParams(search || '').get('shared') === '1'
+  } catch {
+    return false
+  }
+}

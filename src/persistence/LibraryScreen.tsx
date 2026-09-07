@@ -3,6 +3,7 @@ import UserBar from '../auth/UserBar'
 import { useAuth } from '../auth/useAuth'
 import ApprovalsPanel from '../approvals/ApprovalsPanel'
 import TeamLibraryPanel from '../teamlib/TeamLibraryPanel'
+import { wantsSharedFromSearch } from '../teamlib/teamLibraryModel'
 import {
   ApprovalApiError, DOC_STATE_LABEL, apiRequestApproval, apiRequestRevision, apiStatusMap,
   type StatusChip,
@@ -67,7 +68,10 @@ export default function LibraryScreen() {
   const me = useAuth((s) => s.me)
   const [chips, setChips] = useState<Record<string, StatusChip>>({})
   const [inbox, setInbox] = useState(false)
-  const [shared, setShared] = useState(false)
+  // **주소가 「팀 공유를 열어 달라」고 하면 열린 채로 시작한다**(뷰어의 「팀 공유 열기」).
+  // 뷰어에서 돌아온 사람이 방금 보던 것은 팀 자료다 — 그냥 자료 목록에 내리면
+  // 제 자료가 없는 열람자에게는 빈 화면이 먼저 뜬다.
+  const [shared, setShared] = useState(() => wantsSharedFromSearch(window.location.search))
   const [submitting, setSubmitting] = useState<ProjectMeta | null>(null)
   // 수정 요청 — **제출과 다른 창이다.** 되는 일이 달라서다: 제출은 문서를 얼리고,
   // 수정 요청은 아무것도 안 얼린다(허락을 청할 뿐이다).
@@ -75,6 +79,14 @@ export default function LibraryScreen() {
   const [reviseMsg, setReviseMsg] = useState('')
   const [submitMsg, setSubmitMsg] = useState('')
   const [aErr, setAErr] = useState('')
+
+  // 읽었으면 주소에서 지운다. 남겨 두면 창을 닫은 뒤에도 새로 고칠 때마다 다시 열려서
+  // **주소가 화면과 다른 말을 하게 된다.** 기록을 쌓지 않으려고 replaceState 를 쓴다 —
+  // push 면 뒤로가기가 「같은 화면」을 한 번 더 거친다.
+  useEffect(() => {
+    if (!wantsSharedFromSearch(window.location.search)) return
+    window.history.replaceState(null, '', window.location.pathname)
+  }, [])
 
   const loadChips = async () => {
     try { setChips(await apiStatusMap()) } catch { /* 칩은 부가 정보다 — 조용히 넘어간다 */ }
