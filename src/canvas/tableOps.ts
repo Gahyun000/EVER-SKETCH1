@@ -88,6 +88,44 @@ function remapCellStyles(el: FreeEl, fn: (r: number, c: number) => [number, numb
   }
 }
 
+/**
+ * 행이 하나 늘거나 줄 때 **표 전체 높이**를 얼마로 옮길지.
+ *
+ * ── 왜 필요한가 ────────────────────────────────────
+ * 예전에는 행을 추가해도 `h` 를 안 건드렸다. 표는 고정 높이 격자이고
+ * `gridTemplateRows` 가 `fr` 이라, 행이 늘면 **남아 있던 행들이 대신 납작해졌다.**
+ * 실측: 로드맵에 6행을 넣으면 행 높이가 34.2px → 18.4px 가 된다. 진행 구간
+ * 라벨('설계·구축')이 한 줄에 안 들어가 잘리기 시작하는 크기다.
+ * 사용자 눈에는 「행을 넣었더니 표가 뭉개졌다」로 보인다.
+ *
+ * ── 규칙 ─────────────────────────────────────────
+ * **행 높이는 사람이 정하고, 표 높이는 행 수를 따라간다.**
+ * 행을 하나 넣으면 그 자리 행과 같은 크기만큼 표가 커지고, 빼면 그만큼 작아진다.
+ * 그래서 남아 있는 행들의 높이는 언제나 그대로다.
+ *
+ * 넣을 때만 늘리고 뺄 때 안 줄이면, 넣었다 뺐다 하는 동안 표가 계속 부푼다.
+ * 양쪽을 대칭으로 두는 편이 예측 가능하다.
+ *
+ * 행마다 크기가 다를 수 있으므로(`rowh` 는 fr 가중치) 비율로 계산한다 —
+ * 가중치가 모두 같으면 자연히 (R+1)/R 이 된다.
+ */
+export function rowChangedHeight(el: FreeEl, at: number, delta: 1 | -1): number | undefined {
+  const h = el.h
+  if (typeof h !== 'number' || !isFinite(h) || h <= 0) return undefined
+  const R = el.rows || (el.cells ? el.cells.length : 0) || 1
+  const arr = el.rowh
+  const ok = !!arr && arr.length === R && arr.every((v) => typeof v === 'number' && v > 0 && isFinite(v))
+  const w = ok ? (arr as number[]) : Array.from({ length: R }, () => 1)
+  const sum = w.reduce((a, b) => a + b, 0)
+  if (sum <= 0) return undefined
+  // 새 행의 크기는 insertSize() 와 **같은 규칙**으로 잡는다 — 그 자리에 있던 행과 같게.
+  // 두 곳이 다른 규칙을 쓰면 표 높이와 행 높이가 서로 안 맞는다.
+  const one = w[Math.min(Math.max(at, 0), R - 1)] || 1
+  const next = delta > 0 ? sum + one : sum - one
+  if (next <= 0) return undefined
+  return Math.max(1, Math.round((h * next) / sum))
+}
+
 export function addRow(el: FreeEl, at: number): Partial<FreeEl> {
   const { R, C, cells } = grid(el)
   const nc = cells.map((row) => row.slice())
@@ -95,7 +133,8 @@ export function addRow(el: FreeEl, at: number): Partial<FreeEl> {
   const merges = (el.merges || []).map((m) => ({ ...m }))
   for (const m of merges) { if (at <= m.r) m.r++; else if (at <= m.r + m.rs - 1) m.rs++ }
   const st = remapCellStyles(el, (r, c) => [r >= at ? r + 1 : r, c])
-  return { rows: R + 1, cells: nc, merges, ...st, rowh: insertSize(el.rowh, at, R) }
+  return { rows: R + 1, cells: nc, merges, ...st, rowh: insertSize(el.rowh, at, R),
+           h: rowChangedHeight(el, at, 1) }
 }
 
 export function delRow(el: FreeEl, at0: number): Partial<FreeEl> {
@@ -113,7 +152,8 @@ export function delRow(el: FreeEl, at0: number): Partial<FreeEl> {
     if (m.rs >= 1 && m.cs >= 1 && !(m.rs === 1 && m.cs === 1)) merges.push(m)
   }
   const st = remapCellStyles(el, (r, c) => (r === at ? null : [r > at ? r - 1 : r, c]))
-  return { rows: R - 1, cells: nc, merges, ...st, rowh: removeSize(el.rowh, at, R) }
+  return { rows: R - 1, cells: nc, merges, ...st, rowh: removeSize(el.rowh, at, R),
+           h: rowChangedHeight(el, at, -1) }
 }
 
 export function addCol(el: FreeEl, at: number): Partial<FreeEl> {

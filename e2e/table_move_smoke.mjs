@@ -118,6 +118,49 @@ if (await se.count() === 0) {
      `표 ${Math.round(t.x + t.width)}×${Math.round(t.y + t.height)} / 종이 ${Math.round(lb.x + lb.width)}×${Math.round(lb.y + lb.height)}`)
 }
 
+// ── 5) 행을 넣으면 **표가 그만큼 커진다** ─────────────
+// 예전에는 행을 추가해도 표 높이가 그대로여서 **남은 행들이 대신 납작해졌다**
+// (실측 34.2px → 18.4px). 진행 구간 라벨이 한 줄에 안 들어가 잘리는 크기다.
+// 사용자 눈에는 「행을 넣었더니 표가 뭉개졌다」로 보인다.
+{
+  ok('천장에 닿으면 그렇다고 말해 준다',
+     (await p.locator('.insp-hint.warn').count()) === 1,
+     (await p.locator('.insp-hint').allInnerTexts()).join(' / '))
+}
+
+await p.reload({ waitUntil: 'networkidle' })     // 크기를 키워 놨으니 처음 상태로 되돌린다
+await p.waitForSelector('text=임원회의', { timeout: 15000 })
+await p.locator('text=임원회의').first().click()
+await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
+await p.waitForTimeout(700)
+{
+  const t = p.locator('.stage .fel.table').first()
+  await p.locator('.stage .feltd[data-r="3"][data-c="2"]').first().click()
+  await p.waitForTimeout(300)
+
+  const rows = () => p.locator('.stage .feltd[data-c="2"]').count()
+  const box = async () => (await t.boundingBox())
+  const r0 = await rows(), b0 = await box()
+  const add = p.locator('button:has-text("아래 추가")').first()
+  ok('행 추가 단추가 있다', await add.count() === 1)
+
+  await add.click()
+  await p.waitForTimeout(400)
+  const r1 = await rows(), b1 = await box()
+
+  ok('행이 하나 늘었다', r1 === r0 + 1, `${r0} → ${r1}`)
+  ok('표 높이가 한 행만큼 커졌다', b1.height > b0.height + 10,
+     `${Math.round(b0.height)} → ${Math.round(b1.height)}`)
+  ok('줄 높이는 그대로다 (이게 고치려던 증상이다)',
+     Math.abs(b1.height / r1 - b0.height / r0) < 1.2,
+     `${(b0.height / r0).toFixed(1)}px → ${(b1.height / r1).toFixed(1)}px`)
+  ok('종이 안에 그대로 있다',
+     b1.y >= (await layer.boundingBox()).y - 1.5
+     && b1.y + b1.height <= (await layer.boundingBox()).y + (await layer.boundingBox()).height + 1.5)
+  ok('평소에는 규칙을 한 줄로 알려 준다',
+     (await p.locator('.insp-hint').allInnerTexts()).some((t2) => t2.includes('줄 높이는 그대로')))
+}
+
 ok('페이지 오류가 없다', errs.length === 0, errs.join(' | '))
 
 await b.close()

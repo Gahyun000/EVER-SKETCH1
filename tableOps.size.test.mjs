@@ -11,7 +11,7 @@
 // 이 테스트는 (재구현이 아니라) **원본 TS 모듈을 그대로 불러** 검증한다.
 // 같은 규칙을 두 번 적어두면 원본만 틀렸을 때 테스트는 통과해 버린다.
 
-import { addCol, addRow, delCol, delRow, sizeTracks } from './src/canvas/tableOps.ts'
+import { addCol, addRow, delCol, delRow, rowChangedHeight, sizeTracks } from './src/canvas/tableOps.ts'
 
 let pass = 0, fail = 0
 const check = (cond, label) => {
@@ -85,6 +85,70 @@ check(sizeTracks([3, NaN, 1], 3) === 'repeat(3, 1fr)', 'sizeTracks: NaN 은 균�
   const one = { ...base(), rows: 1, cols: 1, cells: [['x']], colw: [1], rowh: [1] }
   check(delCol(one, 0).colw === undefined || delCol(one, 0).cols === undefined,
         'delCol: 마지막 열은 지우지 않는다(빈 표 방지)')
+}
+
+
+// ── 행을 넣으면 **표가 커진다** (2026-09-07) ─────────────────
+//
+// 예전에는 행을 추가해도 h 를 안 건드렸다. 표는 고정 높이 격자이고 gridTemplateRows 가
+// fr 이라, 행이 늘면 **남아 있던 행들이 대신 납작해졌다.** 실측으로 로드맵에 6행을 넣으면
+// 34.2px → 18.4px 가 됐다. 진행 구간 라벨('설계·구축')이 한 줄에 안 들어가 잘리는 크기다.
+// 사용자 눈에는 「행을 넣었더니 표가 뭉개졌다」로 보인다.
+//
+// 규칙: **행 높이는 사람이 정하고, 표 높이는 행 수를 따라간다.**
+
+const uni = (rows, h) => ({
+  id: 9, type: 'table', x: 0, y: 0, w: 300, h, text: '', color: 'transparent', fs: 12,
+  rows, cols: 2, cells: Array.from({ length: rows }, () => ['', '']),
+  merges: [], calign: {},
+})
+
+{
+  const el = uni(4, 120)                       // 행 높이 30px
+  const got = addRow(el, 4)
+  check(got.rows === 5, '행을 넣으면 행 수가 는다')
+  check(got.h === 150, '표 높이가 한 행만큼 커진다 (120 → 150)')
+  check(got.h / got.rows === el.h / el.rows, '남는 행들의 높이가 그대로다 (30px)')
+}
+
+{
+  const el = uni(5, 150)
+  const got = delRow(el, 2)
+  check(got.h === 120, '행을 빼면 그만큼 작아진다 (150 → 120)')
+  check(got.h / got.rows === 30, '이때도 행 높이는 그대로다')
+}
+
+{
+  // 넣었다 뺐다 해도 부풀지 않는다 — 한쪽만 움직이면 쓰는 동안 표가 계속 커진다.
+  let el = uni(4, 120)
+  for (let i = 0; i < 5; i++) {
+    el = { ...el, ...addRow(el, el.rows) }
+    el = { ...el, ...delRow(el, el.rows - 1) }
+  }
+  check(el.h === 120 && el.rows === 4, '넣었다 빼기를 되풀이해도 처음 크기로 돌아온다')
+}
+
+{
+  // rowh 가 있으면 **그 자리 행과 같은 크기**로 넣는다 — insertSize 와 같은 규칙이어야
+  // 표 높이와 행 높이가 서로 맞는다.
+  const el = { ...uni(3, 120), rowh: [2, 1, 1] }     // 60 / 30 / 30
+  const got = addRow(el, 0)                          // 첫 행(2fr) 자리에 넣는다
+  check(eq(got.rowh, [2, 2, 1, 1]), '새 행은 그 자리 행과 같은 크기다')
+  check(got.h === 180, '표 높이도 그 크기만큼 커진다 (120 + 60)')
+}
+
+{
+  const el = { ...uni(3, 120), rowh: [2, 1, 1] }
+  const got = delRow(el, 0)
+  check(got.h === 60, '큰 행을 빼면 그 크기만큼 작아진다 (120 - 60)')
+}
+
+{
+  // 높이를 모르는 표(옛 자료)는 건드리지 않는다 — 0 이나 NaN 을 만들면 표가 사라진다.
+  const noH = { ...uni(3, 0) }
+  check(rowChangedHeight(noH, 0, 1) === undefined, '높이가 없으면 손대지 않는다')
+  const one = uni(1, 40)
+  check(rowChangedHeight(one, 0, -1) === undefined, '마지막 한 행을 빼는 계산은 하지 않는다')
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)
