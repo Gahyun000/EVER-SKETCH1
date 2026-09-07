@@ -172,10 +172,17 @@ const headEditable = await cell(0, 2).getAttribute('contenteditable')
 ok('머리글 칸은 편집 잠금이 유지된다', headEditable !== 'true', `contenteditable=${headEditable}`)
 
 
-// ── 8) 새로 만든(잠기지 않은) 표는 손잡이로 옮길 수 있다 ──
+// ── 8) 표는 손잡이로 옮길 수 있다 ──
 // 표가 선택되면 셀 클릭이 드래그 선택으로 바뀐다. 그러면 셀을 잡고 표를 옮길 수
-// 없으므로 잡을 곳을 따로 만들었다. 잠긴 표준 양식 표에는 띄우지 않는다.
-ok('잠긴 표준 양식 표에는 이동 손잡이가 없다', await p.locator('.stage .tbl-move').count() === 0)
+// 없으므로 잡을 곳을 따로 만들었다.
+//
+// 예전 이 자리에는 「잠긴 표준 양식 표에는 이동 손잡이가 없다」가 있었다.
+// 2026-09-07 에 양식 요소의 자리 잠금을 풀면서 그 기대가 뒤집혔다 — 이제
+// 표준 양식 표도 손잡이로 옮긴다(종이 밖으로는 못 나간다).
+// 옮기는 것과 가두는 것은 table_move_smoke.mjs 가 따로 본다.
+ok('표준 양식 표에도 이동 손잡이가 있다',
+   await p.locator('.stage .tbl-move').count() >= 1,
+   `${await p.locator('.stage .tbl-move').count()}개`)
 
 const layerBox = await p.locator('.stage .freelayer').first().boundingBox()
 await p.locator('.ib[title="표"]').first().click()

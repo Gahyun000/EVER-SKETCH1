@@ -161,6 +161,77 @@ def test_이어진_조각은_하나로_센다(ctx):
     assert guard.check_state(st) is None
 
 
+# ══════════ 종이 밖으로는 못 나간다 ══════════
+#
+# 2026-09-07 에 자리 잠금을 풀면서 생긴 규칙이다. 예전에는 좌표를 아예 못 건드리게 해서
+# 이 문제가 없었다. 이제 사람이 끌 수 있으므로, 종이 밖으로 나간 표는 **아무도 못 본다** —
+# 그리고 작성자는 결재에 올린 뒤에야 안다.
+
+@pytest.mark.parametrize("slot", ["SLOT-A", "SLOT-B", "SLOT-C"])
+def test_표가_종이_오른쪽으로_나가면_거부한다(ctx, slot):
+    st = canon()
+    table(st, slot)["x"] = ts.PAGE_W - 10
+    why = guard.check_state(st)
+    assert why and "종이 밖" in why
+
+
+def test_표가_종이_아래로_나가면_거부한다(ctx):
+    st = canon()
+    table(st, "SLOT-A")["y"] = ts.PAGE_H - 10
+    assert guard.check_state(st)
+
+
+def test_음수_좌표도_거부한다(ctx):
+    st = canon()
+    table(st, "SLOT-A")["x"] = -1
+    assert guard.check_state(st)
+
+
+def test_가장자리에_딱_붙는_것은_통과한다(ctx):
+    """0 과 끝선은 안이다. 여기서 한 픽셀 틀리면 붙여 놓은 표가 저장이 안 된다."""
+    st = canon()
+    t = table(st, "SLOT-A")
+    t["x"], t["y"] = 0, 0
+    assert guard.check_state(st) is None
+    t["x"] = ts.PAGE_W - t["w"]
+    t["y"] = ts.PAGE_H - t["h"]
+    assert guard.check_state(st) is None
+
+
+def test_이름표_글상자도_본다(ctx):
+    """세는 것은 표만이지만, 자리를 보는 것은 이름표까지다 —
+    머리글이 종이 밖에 있으면 누구 자료인지 알 수 없다."""
+    st = canon()
+    head = [e for pg in st["pages"] for e in pg["els"] if e.get("slot") == "head"][0]
+    head["y"] = ts.PAGE_H + 5
+    why = guard.check_state(st)
+    assert why and "머리글" in why
+
+
+def test_슬롯_없는_요소는_자리를_안_본다(ctx):
+    """사람이 따로 붙인 메모는 양식이 아니다. 종이에 살짝 걸쳐 두는 것도 그 사람 선택이다."""
+    st = canon()
+    st["pages"][0]["els"].append({"id": 999, "type": "text", "text": "내 메모",
+                                  "x": ts.PAGE_W + 100, "y": 0, "w": 80, "h": 20})
+    assert guard.check_state(st) is None
+
+
+def test_옮긴_것_자체는_막지_않는다(ctx):
+    """자리를 옮기는 것은 이제 허용이다 — 종이 안이기만 하면 된다."""
+    st = canon()
+    t = table(st, "SLOT-A")
+    t["x"], t["y"] = 10, 300
+    assert guard.check_state(st) is None
+
+
+def test_크기를_바꾼_것도_막지_않는다(ctx):
+    """열 **수**가 그대로면 폭이 달라지는 것은 상관없다 — 취합은 칸을 세지 px 를 세지 않는다."""
+    st = canon()
+    t = table(st, "SLOT-A")
+    t["w"], t["h"] = 600, 200
+    assert guard.check_state(st) is None
+
+
 # ══════════ 저장 경로에서 실제로 걸린다 ══════════
 
 def test_표준_양식_저장은_검사를_거친다(ctx):

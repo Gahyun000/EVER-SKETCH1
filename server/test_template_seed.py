@@ -207,11 +207,32 @@ def test_세_슬롯이_모두_있다():
     assert "SLOT-D" not in slots
 
 
-def test_모든_슬롯_요소가_잠겨_있다():
-    """위치·크기는 L3 만 바꾼다. 잠그지 않으면 임원마다 레이아웃이 달라져 취합이 깨진다."""
+def test_모든_요소에_슬롯이_있다():
+    """slot 이 없으면 어떤 규칙도 걸 수 없다 — 편집 정책도, 세트 검사도, 자리 검사도."""
     for e in page()["els"]:
-        assert e.get("locked") is True, "잠기지 않은 요소: %s" % e.get("slot")
         assert e.get("slot"), "slot 없는 요소가 있습니다: %s" % e["type"]
+
+
+def test_자리를_잠그지_않는다():
+    """예전에는 모든 슬롯 요소가 `locked: True` 였다. 근거는 「잠그지 않으면 임원마다
+    레이아웃이 달라져 취합이 깨진다」였는데 **사실이 아니었다** — 취합은 슬롯 이름과
+    칸 값을 읽지 x/y 를 읽지 않는다.
+
+    그리고 임원마다 적는 양이 다르다. 자리를 못 옮기면 내용이 자리에 안 들어가는
+    사람은 글자가 잘리는 것으로 대가를 치른다. 그게 좌표가 가지런한 것보다 나쁘다.
+
+    잠금을 푼 대신 **종이 밖으로 못 나가게** 한다 — 화면(FreeLayer.penIn)과
+    서버(template_guard) 두 곳에서.
+    """
+    for e in page()["els"]:
+        assert not e.get("locked"), "%s 가 아직 잠겨 있습니다" % e.get("slot")
+
+
+def test_모든_슬롯_요소가_종이_안에_있다():
+    """잠금을 푼 뒤 이것이 유일하게 남은 자리 규칙이다.
+    종이 밖으로 나간 표는 아무에게도 안 보인다."""
+    from server import template_guard as guard
+    assert guard.check_state(T.build_template_state("2026-10", "김OO", "본부")) is None
 
 
 def test_슬롯이_겹치지_않는다():

@@ -40,6 +40,10 @@ REQUIRED_TABLES: dict[str, int] = {
     "SLOT-C": ts.ISSUE_COLS,
 }
 
+# 종이 밖으로 나가면 안 되는 슬롯. **이름표 글상자도 포함한다** —
+# 세는 것(표)과 자리를 보는 것(표 + 이름표)은 대상이 다르다.
+_BOUNDED_SLOTS = frozenset(list(REQUIRED_TABLES) + ["head", "foot"])
+
 # 이름표(글상자)는 세지 않는다. SLOT-A 라는 slot 을 표와 제목 글상자가 함께 쓰기
 # 때문이다 — 둘을 같이 세면 「SLOT-A 가 둘」이 되어 정본조차 거부당한다.
 
@@ -82,10 +86,38 @@ def check_state(state: dict) -> Optional[str]:
             return ("표준 양식의 '%s' 표는 %d칸이어야 하는데 %s칸이에요. "
                     "열 구성이 사람마다 다르면 취합할 때 표를 이을 수 없어요."
                     % (_label(slot), cols, got))
+    return _outside_page(state)
+
+
+def _outside_page(state: dict) -> Optional[str]:
+    """슬롯 요소가 **종이 안에** 있는가.
+
+    자리 잠금을 풀면서(2026-09-07) 대신 생긴 규칙이다. 예전에는 좌표를 아예 못
+    건드리게 해서 이 문제가 없었다. 이제 사람이 끌 수 있으므로, 끌다가 종이 밖으로
+    나가면 그 표는 **아무도 못 본다** — 그리고 작성자는 결재에 올린 뒤에야 안다.
+    화면도 끌 때 막지만(FreeLayer), 화면만 믿지 않는다.
+
+    슬롯이 없는 요소(사람이 따로 붙인 메모 같은 것)는 보지 않는다. 그건 양식이
+    아니라 그 사람의 물건이고, 살짝 걸쳐 두는 것도 그 사람 선택이다.
+    """
+    for page in (state or {}).get("pages") or []:
+        for el in (page or {}).get("els") or []:
+            if not isinstance(el, dict) or el.get("slot") not in _BOUNDED_SLOTS:
+                continue
+            x, y = el.get("x") or 0, el.get("y") or 0
+            w, h = el.get("w") or 0, el.get("h") or 0
+            if x < 0 or y < 0 or x + w > ts.PAGE_W or y + h > ts.PAGE_H:
+                return ("표준 양식의 '%s' 이(가) 종이 밖으로 나갔어요 "
+                        "(가로 %d~%d · 세로 %d~%d, 종이는 %d×%d). "
+                        "종이 안으로 옮겨 주세요 — 밖으로 나간 부분은 아무에게도 안 보입니다."
+                        % (_label(el.get("slot")), x, x + w, y, y + h,
+                           ts.PAGE_W, ts.PAGE_H))
     return None
 
 
-def _label(slot: str) -> str:
+def _label(slot: Optional[str]) -> str:
     return {"SLOT-A": "① 로드맵 / 마일스톤",
             "SLOT-B": "② 진행 현황 · 향후 계획",
-            "SLOT-C": "③ 이슈 · 필요 지원"}.get(slot, slot)
+            "SLOT-C": "③ 이슈 · 필요 지원",
+            "head": "머리글",
+            "foot": "꼬리말"}.get(slot or "", slot or "요소")

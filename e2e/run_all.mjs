@@ -18,6 +18,7 @@ const SUITES = [
   { name: '로그인 · 비밀번호 보기', file: 'login_password_smoke.mjs', env: { ANON: '1' } },
   { name: '표 셀 드래그 · 병합', file: 'table_merge_smoke.mjs', env: {} },
   { name: '글자 입력(표 칸 · 머리글)', file: 'table_type_smoke.mjs', env: {} },
+  { name: '표 이동 · 크기(종이 안)', file: 'table_move_smoke.mjs', env: {} },
   { name: '앵커 메모(검토 의견)', file: 'comments_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '의견 쓰기 창(모달)', file: 'comment_modal_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '대화상자 공용 껍데기', file: 'modal_shell_smoke.mjs', env: {} },

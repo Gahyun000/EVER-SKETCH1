@@ -17,6 +17,30 @@ import '../template/template.css'
 import ColorPicker from '../builder/chrome/ColorPicker'
 
 interface Props { page: Page; W: number; H: number; SC: number; interactive: boolean }
+
+/**
+ * 표준 양식 요소를 **종이 안에** 붙잡아 둔다.
+ *
+ * 2026-09-07 에 양식 요소의 자리 잠금을 풀었다. 예전 근거였던 「잠그지 않으면
+ * 임원마다 레이아웃이 달라져 취합이 깨진다」는 사실이 아니었다 — 취합은 슬롯
+ * 이름과 칸 값을 읽지 좌표를 읽지 않는다. 하지만 풀고 나면 새로 생기는 사고가 있다:
+ * **끌다가 종이 밖으로 나가면 그 표는 아무에게도 안 보인다.** 작성자는 결재에
+ * 올린 뒤에야 안다. 이 저장소에 `test_template_geometry.py` 가 있는 이유가 그거다.
+ *
+ * 그래서 잠그는 대신 **가둔다.** 사람이 끄는 동안 종이 가장자리에서 멈춘다.
+ * 서버도 저장할 때 다시 본다(`server/template_guard.py`) — 화면만 믿지 않는다.
+ *
+ * 슬롯이 없는 요소는 건드리지 않는다. 그건 양식이 아니라 그 사람의 물건이고,
+ * 종이에 살짝 걸쳐 두는 것도 그 사람 선택이다.
+ */
+function penIn(slot: string | undefined, x: number, y: number,
+               w: number, h: number, W: number, H: number): { x: number; y: number } {
+  if (!isSlotEl(slot)) return { x, y }
+  return {
+    x: Math.min(Math.max(0, x), Math.max(0, W - w)),
+    y: Math.min(Math.max(0, y), Math.max(0, H - h)),
+  }
+}
 const ADDABLE = ['box', 'round', 'ellipse', 'diamond', 'triangle', 'hexagon', 'pentagon', 'parallelogram', 'chevron', 'arrowR', 'arrowL', 'arrowU', 'arrowD', 'star5', 'star4', 'banner', 'callout', 'text', 'sticky', 'image', 'icon', 'table', 'wordart', 'note']
 // 도구별 커서 — 펜=펜촉, 형광펜=마커(핫스팟은 팁), 지우개=크기 반영 원형(핫스팟 중앙).
 const PEN_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='#2462eb' stroke='#ffffff' stroke-width='1.3' stroke-linejoin='round'><path d='M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/></svg>"
@@ -508,6 +532,8 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       const ae = document.activeElement as HTMLElement | null
       if (ae && ae !== document.body && (ae.isContentEditable || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur()
     }
+    // 사람이 직접 잠근 요소만 못 움직인다. 표준 양식 요소는 2026-09-07 부터 움직인다
+    // — 대신 penIn() 이 종이 안에 가둔다.
     if (el.locked) { setSel(el.id); return }   // 잠금: 선택만, 이동 없음
     if (e.shiftKey) { toggleSel(el.id); return }   // Shift 클릭: 선택 토글(이동 없음)
     // 선택 대상 결정: 이미 다중 선택된 요소를 잡으면 그 세트 전체를, 아니면 이 요소(그룹이면 그룹 전체)를
@@ -527,9 +553,14 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
         const s0 = starts[0]
         const sr = computeSnap(el.w, el.h, s0.x + dx, s0.y + dy, page.els.filter((o) => o.id !== el.id), W, H)
         setGuides(sr.v.length || sr.h.length ? { v: sr.v, h: sr.h } : null)
-        updateEl(page.id, el.id, { x: sr.x, y: sr.y })
+        const pin = penIn(el.slot, sr.x, sr.y, el.w, el.h, W, H)
+        updateEl(page.id, el.id, { x: pin.x, y: pin.y })
       } else {
-        moveEls(page.id, starts.map((s0) => ({ id: s0.id, x: s0.x + dx, y: s0.y + dy })))
+        moveEls(page.id, starts.map((s0) => {
+          const d = page.els.find((x) => x.id === s0.id)
+          const pin = penIn(d?.slot, s0.x + dx, s0.y + dy, d?.w || 0, d?.h || 0, W, H)
+          return { id: s0.id, x: pin.x, y: pin.y }
+        }))
       }
     }
     const up = () => { setGuides(null); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); if (!moved && already && selEls.length > 1) setSel(el.id) }
@@ -557,7 +588,13 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       const nh = signY !== 0 ? Math.max(MINH, Math.abs(ly)) : oh
       const off = R(signX * nw / 2, signY * nh / 2)
       const ncx = Ax + off.x, ncy = Ay + off.y
-      updateEl(page.id, el.id, { x: Math.round(ncx - nw / 2), y: Math.round(ncy - nh / 2), w: Math.round(nw), h: Math.round(nh) })
+      // 양식 요소는 종이를 넘지 못한다. 폭·높이를 먼저 종이 크기로 자른 뒤 자리를 가둔다 —
+      // 순서를 뒤집으면 종이보다 큰 상자를 0 에 붙여 놓고 오른쪽이 잘려 나간다.
+      // (회전한 요소는 회전 전 상자로 잰다. 양식 요소는 회전하지 않는다.)
+      const bw = isSlotEl(el.slot) ? Math.min(nw, W) : nw
+      const bh = isSlotEl(el.slot) ? Math.min(nh, H) : nh
+      const pin = penIn(el.slot, Math.round(ncx - bw / 2), Math.round(ncy - bh / 2), bw, bh, W, H)
+      updateEl(page.id, el.id, { x: pin.x, y: pin.y, w: Math.round(bw), h: Math.round(bh) })
     }
     const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
@@ -1001,8 +1038,11 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
           <div style={{ position: 'absolute', left: se.x, top: se.y, width: w, height: h, transform: se.rot ? `rotate(${se.rot}deg)` : undefined, transformOrigin: 'center', pointerEvents: 'none', zIndex: 6 }}>
             <div style={{ position: 'absolute', left: w / 2, top: -22, width: 1, height: 22, background: '#2462EB' }} />
             <div title="회전(Shift=15°)" style={{ position: 'absolute', left: w / 2 - 7, top: -29, width: 14, height: 14, borderRadius: '50%', background: '#fff', border: '2px solid #2462EB', boxShadow: '0 1px 3px rgba(0,0,0,.25)', cursor: 'grab', pointerEvents: 'auto' }} onPointerDown={(e) => onRotateDown(e, se)} />
+            {/* 손잡이에 이름을 준다 — 브라우저 테스트가 「오른쪽 아래를 끌었다」를
+                말할 수 있어야 크기 조절이 실제로 되는지 확인할 수 있다. */}
             {HS.map((hh) => (
-              <div key={'rh' + hh.d} style={{ position: 'absolute', left: hh.x - 5, top: hh.y - 5, width: 10, height: 10, borderRadius: 2, background: '#fff', border: '1.5px solid #2462EB', boxShadow: '0 1px 2px rgba(0,0,0,.25)', cursor: hh.cur, pointerEvents: 'auto' }}
+              <div key={'rh' + hh.d} className={'rs-h rs-' + hh.d} data-rs={hh.d}
+                style={{ position: 'absolute', left: hh.x - 5, top: hh.y - 5, width: 10, height: 10, borderRadius: 2, background: '#fff', border: '1.5px solid #2462EB', boxShadow: '0 1px 2px rgba(0,0,0,.25)', cursor: hh.cur, pointerEvents: 'auto' }}
                 onPointerDown={(e) => onResizeDown(e, se, hh.d)} />
             ))}
           </div>

@@ -145,10 +145,11 @@ ok('표 어느 칸에도 같은 글자가 두 번 이어 붙어 있지 않다',
 // ── 머리글 문구는 고칠 수 있다 ─────────────────────────
 {
   const title = p.locator('.stage .fel').filter({ hasText: '임원회의' }).first()
-  ok('머리글 글상자가 잠겨 있다고 표시된다(자리 고정)',
-     ((await title.getAttribute('class')) || '').includes('locked'))
-  ok('그래도 「글자는 고칠 수 있다」고 알려 준다',
-     ((await title.getAttribute('title')) || '').includes('글자'))
+  // 2026-09-07 에 자리 잠금도 풀었다 — 이제 머리글은 옮기고 고칠 수 있는
+  // 보통 글상자다. (움직이는지는 table_move_smoke.mjs 가 본다.)
+  ok('머리글 글상자는 더 이상 잠겨 있지 않다',
+     !((await title.getAttribute('class')) || '').includes('locked'),
+     await title.getAttribute('class'))
 
   const before = (await title.textContent()) || ''
   await title.dblclick()

@@ -200,7 +200,6 @@ def build_roadmap_el(el_id: int, period_ym: str, data_rows: int = DEFAULT_DATA_R
         "today": COL_MONTH_FIRST + (month - 1),
         "todayMode": "auto",
         "todayYear": year,
-        "locked": True,
     }
 
 
@@ -216,7 +215,7 @@ def _list_el(el_id: int, slot: str, heads: tuple[str, ...], x: int, y: int, w: i
         "text": "", "color": "transparent", "fs": 11.5,
         "rows": rows, "cols": cols, "cells": cells,
         "merges": [], "calign": {}, "cbg": cbg,
-        "headRow": True, "locked": True,
+        "headRow": True,
     }
 
 
@@ -237,7 +236,7 @@ def _text_el(el_id: int, slot: str, text: str, x: int, y: int, w: int, h: int,
         "id": el_id, "type": "text", "slot": slot,
         "x": x, "y": y, "w": w, "h": h,
         "text": text, "color": "transparent", "fs": fs,
-        "bold": bold, "align": align, "tcolor": tcolor, "locked": True,
+        "bold": bold, "align": align, "tcolor": tcolor,
     }
 
 
@@ -361,6 +360,18 @@ def build_template_state(period_ym: str, owner_name: str = "", dept: str = "",
         "pages": pages,
         "selectedPageId": pages[0]["id"],
     }
+
+
+# ── 자리 잠금을 풀었다 (2026-09-07) ──────────────────
+# 예전에는 모든 슬롯 요소에 `locked: True` 를 박았다. 근거는 「잠그지 않으면
+# 임원마다 레이아웃이 달라져 취합이 깨진다」였는데, **사실이 아니었다.**
+# 취합은 슬롯 이름과 칸 값을 읽지 x/y 를 읽지 않는다. 좌표가 달라서 깨지는 것은
+# 취합이 아니라 여러 사람 자료를 이어 봤을 때의 **보기 좋음**이고, 그건
+# 내용이 자리에 안 들어가 글자가 잘리는 것보다 덜 중요하다.
+#
+# 대신 진짜 지켜야 하는 것을 남긴다: **요소는 종이 안에 있어야 한다.**
+# 종이 밖으로 나간 표는 아무도 못 보고, 작성자는 결재에 올린 뒤에야 안다.
+# 화면이 끌 때 막고(FreeLayer), 서버가 저장할 때 다시 본다(template_guard).
 
 
 # ── 슬롯별 편집 정책 (사양 §5) ──────────────────────────
