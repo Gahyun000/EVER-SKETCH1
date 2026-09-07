@@ -144,8 +144,11 @@ def projects_create_from_template(req: TemplateProjectIn, user: dict = Depends(r
     except template_seed.TemplateError as e:
         raise HTTPException(status_code=400, detail=str(e))
     _own_folder_or_404(req.folder_id, user)
+    # 표준 양식이라는 **표시를 서버가 여기서 찍는다.** 이 라우트가 유일한 발급처다 —
+    # 일반 생성(POST /api/projects)은 요청에서 받지 않으므로 자칭할 수 없다.
     return projects_store.create_project(state["title"], state, owner_id=user["id"],
-                                         folder_id=req.folder_id)
+                                         folder_id=req.folder_id,
+                                         template=template_seed.TEMPLATE_VERSION)
 
 
 @router.get("/api/projects/{pid}")

@@ -41,6 +41,17 @@ _EXTRA_COLS = (
     # **폴더는 권한과 무관하다**(D20). 가시성은 owner_id 가 정하고 folder_id 는
     # 「어디에 넣어 뒀나」만 말한다 — 목록 조회에서 둘은 AND 로 결합한다.
     ("folder_id", "TEXT"),
+    # 「이 이북이 표준 양식으로 시작됐는가」. 값은 template_seed.TEMPLATE_VERSION,
+    # 자유 이북은 NULL.
+    #
+    # **왜 state 안이 아니라 컬럼인가.** state 는 브라우저가 통째로 덮어쓰는 값이다.
+    # 표시를 거기 두면 「나는 표준 양식이 아니다」라고 스스로 말해서 검사를 빠져나갈 수
+    # 있다 — 잠금을 자기가 풀 수 있으면 잠금이 아니다. 컬럼은 만들 때 서버가 한 번
+    # 적고, 저장 경로(save_project)는 건드리지 않는다.
+    #
+    # 값을 판(v2.0)까지 적는 이유: 양식이 v3.0 으로 바뀌어도 v2.0 으로 만들어 둔
+    # 자료는 그때 규칙으로 판정해야 한다. 참/거짓만 적으면 그걸 알 길이 없다.
+    ("template", "TEXT"),
 )
 
 
@@ -93,14 +104,14 @@ def _title_of(state, fallback: str = "제목 없음") -> str:
 
 
 # ─────────────────────── 프로젝트 ───────────────────────
-_LIST_COLS = "id,name,created_at,updated_at,published_id,page_count,owner_id,folder_id"
+_LIST_COLS = "id,name,created_at,updated_at,published_id,page_count,owner_id,folder_id,template"
 
 
 def _row_to_meta(r) -> dict:
     # 인덱스는 _LIST_COLS 순서에 묶여 있다. 한쪽만 고치면 값이 통째로 밀린다.
     return {"id": r[0], "name": r[1] or "제목 없음", "created_at": r[2],
             "updated_at": r[3], "published_id": r[4], "page_count": r[5] or 0,
-            "owner_id": r[6], "folder_id": r[7] or None}
+            "owner_id": r[6], "folder_id": r[7] or None, "template": r[8] or None}
 
 
 def list_projects(visibility: str = "all", user_id: Optional[str] = None,
@@ -179,7 +190,10 @@ def project_scope(pid: str) -> Optional[dict]:
 
 
 def create_project(name: Optional[str] = None, state: Optional[dict] = None,
-                   owner_id: Optional[str] = None, folder_id: Optional[str] = None) -> dict:
+                   owner_id: Optional[str] = None, folder_id: Optional[str] = None,
+                   template: Optional[str] = None) -> dict:
+    """`template` 은 **서버만 준다.** 요청 본문에서 받아 넘기지 말 것 —
+    그러면 아무나 「나는 표준 양식이다/아니다」를 자칭하게 되고 표시가 무의미해진다."""
     pid = _new_id("p")
     ts = _now()
     st = state or {}
@@ -189,22 +203,24 @@ def create_project(name: Optional[str] = None, state: Optional[dict] = None,
         body = json.dumps(st, ensure_ascii=False)
         c.execute(
             "INSERT INTO Projects(id,name,created_at,updated_at,published_id,page_count,state,"
-            "owner_id,folder_id) VALUES(?,?,?,?,?,?,?,?,?)",
-            (pid, nm, ts, ts, None, _page_count(st), body, owner_id, folder_id or None),
+            "owner_id,folder_id,template) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (pid, nm, ts, ts, None, _page_count(st), body, owner_id, folder_id or None,
+             template or None),
         )
         c.commit()
     finally:
         c.close()
     return {"id": pid, "name": nm, "created_at": ts, "updated_at": ts,
             "published_id": None, "page_count": _page_count(st), "state": st,
-            "owner_id": owner_id, "folder_id": folder_id or None}
+            "owner_id": owner_id, "folder_id": folder_id or None,
+            "template": template or None}
 
 
 def get_project(pid: str) -> Optional[dict]:
     c = _conn()
     try:
         r = c.execute(
-            "SELECT id,name,created_at,updated_at,published_id,state,owner_id "
+            "SELECT id,name,created_at,updated_at,published_id,state,owner_id,template "
             "FROM Projects WHERE id=?",
             (pid,),
         ).fetchone()
@@ -215,7 +231,7 @@ def get_project(pid: str) -> Optional[dict]:
     return {"id": r[0], "name": r[1] or "제목 없음", "created_at": r[2],
             "updated_at": r[3], "published_id": r[4],
             "state": json.loads(r[5]) if r[5] else {},
-            "owner_id": r[6]}
+            "owner_id": r[6], "template": r[7] or None}
 
 
 def set_owner(pid: str, owner_id: str) -> dict:

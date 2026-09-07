@@ -14,6 +14,11 @@ export interface ProjectMeta {
   owner_id?: string | null
   /** 어느 개인 폴더에 들어 있나. null = 최상위 (P4). */
   folder_id?: string | null
+  /** 표준 양식으로 시작된 자료면 그 판 번호("v2.0"), 자유 이북이면 null.
+   *  **서버만 찍는다** — 화면에서 이 값을 만들거나 보내지 않는다.
+   *  자칭할 수 있으면 이걸 근거로 한 잠금이 전부 무의미해진다
+   *  (server/test_template_mark.py). */
+  template?: string | null
 }
 /** 이 자료로 **무엇을 할 수 있는지** — 서버가 판정해서 함께 내려준다.
  *  화면이 역할을 보고 다시 계산하면 규칙이 두 곳에 생기고,
