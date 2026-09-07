@@ -112,6 +112,36 @@ const doubled = await p.locator('.stage .feltd').evaluateAll((ns) =>
 ok('표 어느 칸에도 같은 글자가 두 번 이어 붙어 있지 않다',
    doubled.length === 0, doubled.join(' | '))
 
+// ── 정본은 두 장이다 ───────────────────────────────────
+// 「1인 1장」을 「1인 1세트」로 바꾸면서 양식이 두 장이 됐다(2026-09-07).
+// 한 장일 때 로드맵과 아래 두 블록은 같은 108px 여백을 나눠 썼다 —
+// 로드맵을 두 행 늘리면 아래 목록은 한 행도 못 늘렸다.
+{
+  ok('쪽 목록에 두 장이 있다', await p.locator('.axth-mini').count() === 2,
+     `${await p.locator('.axth-mini').count()}장`)
+  ok('1쪽에는 표가 로드맵 하나뿐이다',
+     await p.locator('.stage .fel.table').count() === 1,
+     `${await p.locator('.stage .fel.table').count()}개`)
+  const cols = await p.locator('.stage .fel.table').first()
+    .evaluate((n) => n.querySelectorAll('.feltd[data-r="2"]').length)
+  ok('그 표가 18열 로드맵이다', cols === 18, `${cols}열`)
+
+  // 2쪽으로 넘어가 본다 — 나눈 결과가 실제로 그렇게 그려지는지.
+  await p.locator('.axth-mini').nth(1).click()
+  await p.waitForTimeout(400)
+  ok('2쪽에는 표가 둘이다(진행현황 · 이슈)',
+     await p.locator('.stage .fel.table').count() === 2,
+     `${await p.locator('.stage .fel.table').count()}개`)
+  const txt = await p.locator('.stage').first().innerText()
+  ok('2쪽에 진행 현황과 이슈가 있다',
+     txt.includes('진행 현황') && txt.includes('이슈'), txt.slice(0, 60).replace(/\n/g, ' '))
+  ok('2쪽에도 머리글이 있다 — 여기만 열어 본 사람도 누구 것인지 안다',
+     txt.includes('임원회의'))
+
+  await p.locator('.axth-mini').nth(0).click()   // 1쪽으로 되돌려 놓는다
+  await p.waitForTimeout(400)
+}
+
 // ── 머리글 문구는 고칠 수 있다 ─────────────────────────
 {
   const title = p.locator('.stage .fel').filter({ hasText: '임원회의' }).first()

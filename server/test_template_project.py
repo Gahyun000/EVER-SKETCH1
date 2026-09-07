@@ -111,12 +111,15 @@ def test_만들어진_것이_표준_양식_정본과_같다(ctx):
 def test_가로_한_장이다(ctx):
     st = ctx.as_user("writer").post(PATH, json={"period_ym": "2026-10"}).json()["state"]
     assert st["orientation"] == "landscape"     # 빈 슬라이드는 portrait 다. 섞이면 안 된다
-    assert len(st["pages"]) == 1                # 1인 1장
+    # 1인 **1세트** — 쪽수는 계약이 아니다(2026-09-07). 지금 정본이 두 장일 뿐이고,
+    # 내용이 많은 임원은 더 늘려 써도 된다. 세트가 온전한지는 template_guard 가 본다.
+    assert len(st["pages"]) == 2
 
 
 def test_세_구획이_모두_있다(ctx):
     st = ctx.as_user("writer").post(PATH, json={"period_ym": "2026-10"}).json()["state"]
-    slots = {el.get("slot") for el in st["pages"][0]["els"]}
+    # **쪽을 가로질러** 센다. 1쪽 로드맵 · 2쪽 진행현황·이슈로 나뉘었다.
+    slots = {el.get("slot") for pg in st["pages"] for el in pg["els"]}
     assert {"SLOT-A", "SLOT-B", "SLOT-C"} <= slots
 
 

@@ -90,19 +90,34 @@ STATUS_W = int((CONTENT_W - LIST_GAP) * 6.6 / 10.0)
 ISSUE_W = CONTENT_W - LIST_GAP - STATUS_W
 
 
-def _max_data_rows() -> int:
-    """한 장에 들어가는 로드맵 데이터 행의 상한.
+# 꼬리말이 쓰는 아래쪽 높이. 두 쪽이 똑같이 쓴다.
+FOOT_ZONE = FOOT_GAP + FOOT_H + BOTTOM_PAD          # 50
 
-    종이 높이에서 아래 블록들이 쓰는 높이를 빼고 남는 만큼이다.
+# 2쪽 본문이 시작하는 y. **1쪽 로드맵과 같은 선**에 둔다 —
+# 장을 넘길 때 본문 시작선이 튀면 눈이 흔들린다.
+BLOCK_Y = ROADMAP_Y
+
+
+def _max_data_rows() -> int:
+    """1쪽(로드맵 전용)에 들어가는 데이터 행의 상한.
+
     상한을 넘겨도 조용히 그리면 표 아랫부분이 종이 밖으로 나가 **아무도 못 본다.**
     그래서 넘으면 만들지 않고 실패시킨다.
+
+    2026-09-07 에 양식을 두 장으로 나누면서 **7 → 12** 로 늘었다. 예전에는
+    같은 종이에 진행현황·이슈가 함께 있어서 로드맵이 쓸 수 있는 높이가
+    108px(=2.7행) 밖에 남지 않았다. 두 블록이 같은 여백을 놓고 다투던 것이다.
     """
-    used = (ROADMAP_Y + BLOCK_GAP + LIST_ROW_H * LIST_DEFAULT_ROWS
-            + FOOT_GAP + FOOT_H + BOTTOM_PAD)
-    return max(1, (PAGE_H - used) // ROADMAP_ROW_H - ROADMAP_HEADER_ROWS)
+    return max(1, (PAGE_H - ROADMAP_Y - FOOT_ZONE) // ROADMAP_ROW_H - ROADMAP_HEADER_ROWS)
+
+
+def _max_list_rows() -> int:
+    """2쪽(진행현황 · 이슈) 표의 상한. **머리글 행을 포함한** 전체 행 수다."""
+    return max(2, (PAGE_H - BLOCK_Y - FOOT_ZONE) // LIST_ROW_H)
 
 
 MAX_DATA_ROWS = _max_data_rows()
+MAX_LIST_ROWS = _max_list_rows()
 
 
 class TemplateError(ValueError):
@@ -226,48 +241,7 @@ def _text_el(el_id: int, slot: str, text: str, x: int, y: int, w: int, h: int,
     }
 
 
-def build_template_page(period_ym: str, owner_name: str = "", dept: str = "",
-                        due_label: str = "", page_id: int = 1,
-                        data_rows: int = DEFAULT_DATA_ROWS) -> dict:
-    """임원 1인분 1장. `Page` 타입 그대로 돌려준다."""
-    year, month = parse_period(period_ym)
-    eid = 100001
-
-    def nid() -> int:
-        nonlocal eid
-        eid += 1
-        return eid
-
-    who = " · ".join([x for x in (owner_name, dept) if x])
-    els: list[dict] = [
-        _text_el(nid(), "head", "%d년 %d월 임원회의 — 진행보고" % (year, month),
-                 MARGIN, 24, 620, 32, 19, bold=True),
-        _text_el(nid(), "head",
-                 ("작성 %s" % who) if who else "작성자",
-                 PAGE_W - MARGIN - 348, 26, 348, 18, 12, align="right", tcolor="#5b6270"),
-        _text_el(nid(), "head",
-                 "기간 %s%s" % (period_ym, ("  ·  제출기한 %s" % due_label) if due_label else ""),
-                 PAGE_W - MARGIN - 348, 46, 348, 18, 12, align="right", tcolor="#98a1b2"),
-
-        _text_el(nid(), "SLOT-A", "① 로드맵 / 마일스톤", MARGIN, 72, 400, 18, 13, bold=True),
-        build_roadmap_el(nid(), period_ym, data_rows),
-    ]
-
-    list_y = ROADMAP_Y + ROADMAP_ROW_H * (ROADMAP_HEADER_ROWS + max(1, data_rows)) + BLOCK_GAP
-    issue_x = MARGIN + STATUS_W + LIST_GAP
-
-    els.append(_text_el(nid(), "SLOT-B", "② 진행 현황 · 향후 계획",
-                        MARGIN, list_y - 22, STATUS_W, 18, 12.5, bold=True))
-    els.append(build_status_el(nid(), MARGIN, list_y, STATUS_W))
-    els.append(_text_el(nid(), "SLOT-C", "③ 이슈 · 필요 지원",
-                        issue_x, list_y - 22, ISSUE_W, 18, 12.5, bold=True))
-    els.append(build_issue_el(nid(), issue_x, list_y, ISSUE_W))
-
-    els.append(_text_el(nid(), "foot",
-                        "EVER-SKETCH · %s 임원회의%s" % (period_ym, ("  ·  " + dept) if dept else ""),
-                        MARGIN, list_y + LIST_ROW_H * LIST_DEFAULT_ROWS + FOOT_GAP,
-                        700, FOOT_H, 10.5, tcolor="#98a1b2"))
-
+def _page(page_id: int, els: list[dict]) -> dict:
     return {
         "id": page_id,
         "cardKey": "slide",
@@ -282,11 +256,99 @@ def build_template_page(period_ym: str, owner_name: str = "", dept: str = "",
     }
 
 
+def build_template_pages(period_ym: str, owner_name: str = "", dept: str = "",
+                         due_label: str = "",
+                         data_rows: int = DEFAULT_DATA_ROWS,
+                         list_rows: int = LIST_DEFAULT_ROWS) -> list[dict]:
+    """임원 1인분. **두 장**이다 — 1쪽 로드맵, 2쪽 진행현황 · 이슈.
+
+    ── 왜 두 장인가 ─────────────────────────────────
+    한 장일 때 로드맵과 아래 두 블록은 **같은 108px 여백을 나눠 썼다.**
+    로드맵을 두 행 늘리면 아래 목록은 한 행도 못 늘렸다. 임원마다 적는 양이
+    다른데 자리는 한 벌뿐이라, 자리가 부족한 사람은 행 높이를 줄여 쓰다가
+    글자가 안 보이는 지경이 됐다(34px → 18px).
+
+    나누면 각자 제 종이를 쓴다. 로드맵 5 → **12행**, 진행현황·이슈 4 → **15행**.
+
+    ── 쪽수를 계약에서 뺀 것 ──────────────────────────
+    예전 계약은 「1인 1장」이었다. 그게 지키려던 것은 쪽수가 아니라 「취합 단위 =
+    사람」이었고, 취합은 슬롯 이름으로 찾지 쪽 번호로 찾지 않는다. 그래서 계약을
+    **「1인 1세트」**로 다시 적었다(AGENTS.md · server/template_guard.py).
+    사람마다 쪽수가 달라도 된다 — 내용이 많은 임원은 늘려 쓴다.
+
+    ── 기본 행 수는 그대로 둔다 ────────────────────────
+    자리가 넓어졌다고 기본 행을 늘리지 않는다. 지금 값(로드맵 5 · 목록 4)은
+    **실물에서 잰 것**이고, 새 값을 정할 근거는 아직 없다. 사양 v1.0 §7.2 도
+    기본 행 수를 「리허설 실측으로 확정」으로 열어 뒀다. 상한만 넓히고
+    기본은 근거가 생길 때 옮긴다 — 행 추가는 작성자가 언제든 할 수 있으므로
+    부족해도 위험이 낮다.
+    """
+    year, month = parse_period(period_ym)
+    eid = 100001
+
+    def nid() -> int:
+        nonlocal eid
+        eid += 1
+        return eid
+
+    who = " · ".join([x for x in (owner_name, dept) if x])
+
+    def head_els() -> list[dict]:
+        """머리글은 **두 쪽에 다 붙인다.** 2쪽만 열어 본 사람도 누구 자료인지
+        알아야 한다. 슬롯 세트 검사는 표만 세므로 글상자가 둘이어도 문제없다."""
+        return [
+            _text_el(nid(), "head", "%d년 %d월 임원회의 — 진행보고" % (year, month),
+                     MARGIN, 24, 620, 32, 19, bold=True),
+            _text_el(nid(), "head",
+                     ("작성 %s" % who) if who else "작성자",
+                     PAGE_W - MARGIN - 348, 26, 348, 18, 12, align="right", tcolor="#5b6270"),
+            _text_el(nid(), "head",
+                     "기간 %s%s" % (period_ym,
+                                  ("  ·  제출기한 %s" % due_label) if due_label else ""),
+                     PAGE_W - MARGIN - 348, 46, 348, 18, 12, align="right", tcolor="#98a1b2"),
+        ]
+
+    def foot_el(y: int) -> dict:
+        return _text_el(nid(), "foot",
+                        "EVER-SKETCH · %s 임원회의%s" % (period_ym,
+                                                     ("  ·  " + dept) if dept else ""),
+                        MARGIN, y, 700, FOOT_H, 10.5, tcolor="#98a1b2")
+
+    # ── 1쪽 — ① 로드맵 / 마일스톤 ──
+    rows1 = ROADMAP_HEADER_ROWS + max(1, data_rows)
+    p1 = head_els()
+    p1.append(_text_el(nid(), "SLOT-A", "① 로드맵 / 마일스톤", MARGIN, 72, 400, 18, 13,
+                       bold=True))
+    p1.append(build_roadmap_el(nid(), period_ym, data_rows))
+    p1.append(foot_el(ROADMAP_Y + ROADMAP_ROW_H * rows1 + FOOT_GAP))
+
+    # ── 2쪽 — ② 진행 현황 · 향후 계획 / ③ 이슈 · 필요 지원 ──
+    if list_rows > MAX_LIST_ROWS:
+        raise TemplateError(
+            "진행현황·이슈 표가 너무 깁니다 — 한 장에 최대 %d행입니다 (요청 %d행)."
+            % (MAX_LIST_ROWS, list_rows))
+    issue_x = MARGIN + STATUS_W + LIST_GAP
+    p2 = head_els()
+    p2.append(_text_el(nid(), "SLOT-B", "② 진행 현황 · 향후 계획",
+                       MARGIN, BLOCK_Y - 22, STATUS_W, 18, 12.5, bold=True))
+    p2.append(build_status_el(nid(), MARGIN, BLOCK_Y, STATUS_W, rows=list_rows))
+    p2.append(_text_el(nid(), "SLOT-C", "③ 이슈 · 필요 지원",
+                       issue_x, BLOCK_Y - 22, ISSUE_W, 18, 12.5, bold=True))
+    p2.append(build_issue_el(nid(), issue_x, BLOCK_Y, ISSUE_W, rows=list_rows))
+    p2.append(foot_el(BLOCK_Y + LIST_ROW_H * list_rows + FOOT_GAP))
+
+    return [_page(1, p1), _page(2, p2)]
+
+
 def build_template_state(period_ym: str, owner_name: str = "", dept: str = "",
                          due_label: str = "", data_rows: int = DEFAULT_DATA_ROWS) -> dict:
-    """프로젝트 `state` 로 저장할 전체 스냅샷 (1인 1장 원칙 — 페이지 1개)."""
+    """프로젝트 `state` 로 저장할 전체 스냅샷.
+
+    **두 장**이다(「1인 1세트」 — 쪽수는 계약이 아니다). 자세한 것은
+    build_template_pages 의 설명을 보라."""
     year, month = parse_period(period_ym)
-    page = build_template_page(period_ym, owner_name, dept, due_label, data_rows=data_rows)
+    pages = build_template_pages(period_ym, owner_name, dept, due_label,
+                                 data_rows=data_rows)
     title = "%d년 %d월 임원회의" % (year, month)
     if owner_name:
         title += " — %s" % owner_name
@@ -296,8 +358,8 @@ def build_template_state(period_ym: str, owner_name: str = "", dept: str = "",
         "theme": "light",
         "font": "auto",
         "size": "m",
-        "pages": [page],
-        "selectedPageId": page["id"],
+        "pages": pages,
+        "selectedPageId": pages[0]["id"],
     }
 
 

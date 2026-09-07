@@ -194,7 +194,13 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   },
 
   // 표준 양식으로 시작. 빈 슬라이드와 달리 `addCard` 를 부르지 않는다 —
-  // 서버가 이미 한 장을 채워 보냈고, 여기서 한 장을 더 붙이면 '1인 1장'이 깨진다.
+  // **서버가 이미 다 채워 보냈다.** 여기서 한 장을 더 붙이면 빈 장이 결재에 올라간다.
+  //
+  // 예전 주석은 「한 장을 더 붙이면 '1인 1장'이 깨진다」였다. 그 계약은
+  // 2026-09-07 에 **「1인 1세트」**로 바뀌었다 — 지켜야 하는 것은 쪽수가 아니라
+  // SLOT-A/B/C 가 한 벌 있는 것이고, 쪽은 내용이 많은 사람이 늘려 써도 된다
+  // (AGENTS.md · server/template_guard.py). 그래서 여기서 안 부르는 이유도
+  // 계약이 아니라 **필요가 없어서**로 바뀌었다.
   newFromTemplate: async (periodYm, folderId) => {
     try { await flushSave() } catch { /* noop */ }
     set({ loading: true })

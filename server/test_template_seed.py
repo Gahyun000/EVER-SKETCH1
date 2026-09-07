@@ -10,7 +10,14 @@ from server import template_seed as T
 
 
 def page(period="2026-10", **kw):
-    return T.build_template_page(period, **kw)
+    """두 쪽의 요소를 **한 자루에 담아** 돌려준다.
+
+    이 스위트가 묻는 것은 대부분 「어떤 요소가 어떤 값으로 있는가」지
+    「몇 쪽에 있는가」가 아니다. 쪽 배치는 test_template_geometry.py 가 본다.
+    (2026-09-07 에 양식이 두 장이 되면서 이 자루가 생겼다.)
+    """
+    pages = T.build_template_pages(period, **kw)
+    return {"els": [e for pg in pages for e in pg["els"]], "pages": pages}
 
 
 def el_of(pg, slot, type_="table"):
@@ -151,10 +158,47 @@ def test_하단_두_표의_폭_비율이_실물과_같다():
 
 
 # ══════════ 페이지 구조 ══════════
-def test_1인_1장이다():
+def test_두_장이고_슬롯은_한_세트다():
+    """예전 이름은 「1인 1장」이었다. 계약이 지키려던 것은 쪽수가 아니라
+    「취합 단위 = 사람」이었고, 취합은 슬롯 이름으로 찾지 쪽 번호로 찾지 않는다.
+    그래서 **세는 것을 쪽에서 세트로 옮겼다**(AGENTS.md · template_guard.py).
+
+    쪽수가 2인 것은 계약이 아니라 지금 정본의 모양이다 — 사람이 늘려 써도 된다.
+    """
     st = T.build_template_state("2026-10", "김OO", "사업본부")
-    assert len(st["pages"]) == 1
+    assert len(st["pages"]) == 2
     assert st["orientation"] == "landscape"
+    tables = [e for pg in st["pages"] for e in pg["els"] if e["type"] == "table"]
+    assert sorted(e["slot"] for e in tables) == ["SLOT-A", "SLOT-B", "SLOT-C"]
+
+
+def test_1쪽은_로드맵_2쪽은_진행현황과_이슈다():
+    """나눈 이유가 여기 있다 — 한 장일 때 두 블록은 같은 108px 여백을 나눠 썼다."""
+    pages = T.build_template_pages("2026-10")
+    def slots(pg):
+        return {e["slot"] for e in pg["els"] if e["type"] == "table"}
+    assert slots(pages[0]) == {"SLOT-A"}
+    assert slots(pages[1]) == {"SLOT-B", "SLOT-C"}
+
+
+def test_머리글은_두_쪽에_다_있다():
+    """2쪽만 열어 본 사람도 누구 자료인지 알아야 한다."""
+    for pg in T.build_template_pages("2026-10", "김가현", "AI팀"):
+        txt = " ".join(e.get("text", "") for e in pg["els"])
+        assert "김가현" in txt and "임원회의" in txt
+
+
+def test_나누고_나서_자리가_넓어졌다():
+    """이 숫자가 이번 변경의 전부다. 줄어들면 나눈 의미가 없다."""
+    assert T.MAX_DATA_ROWS == 12          # 한 장일 때는 7
+    assert T.MAX_LIST_ROWS == 16          # 한 장일 때는 5 (머리글 포함)
+
+
+def test_기본_행_수는_실물_그대로_둔다():
+    """자리가 넓어졌다고 기본값을 늘리지 않는다 — 지금 값은 실물에서 잰 것이고
+    새 값을 정할 근거가 아직 없다(사양 v1.0 §7.2 「리허설 실측으로 확정」)."""
+    assert T.DEFAULT_DATA_ROWS == 5
+    assert T.LIST_DEFAULT_ROWS == 5
 
 
 def test_세_슬롯이_모두_있다():
@@ -171,8 +215,15 @@ def test_모든_슬롯_요소가_잠겨_있다():
 
 
 def test_슬롯이_겹치지_않는다():
-    """표가 서로 포개지면 화면에서 가려진다."""
-    tables = [e for e in page()["els"] if e["type"] == "table"]
+    """표가 서로 포개지면 화면에서 가려진다.
+
+    **쪽 안에서만** 본다. 다른 쪽 요소는 같은 좌표를 써도 겹치지 않는다 —
+    두 장이 된 뒤 1쪽 로드맵과 2쪽 진행현황이 둘 다 y=94 에서 시작한다."""
+    for pg in page()["pages"]:
+        _no_overlap([e for e in pg["els"] if e["type"] == "table"])
+
+
+def _no_overlap(tables):
     for i, a in enumerate(tables):
         for b in tables[i + 1:]:
             overlap_x = a["x"] < b["x"] + b["w"] and b["x"] < a["x"] + a["w"]

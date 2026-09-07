@@ -17,7 +17,8 @@ const MIME = {
   '.woff2': 'font/woff2', '.ico': 'image/x-icon',
 }
 
-// 표준 양식 1장. server/template_seed.py 가 만든 결과를 그대로 떠 놓은 것이다.
+// 표준 양식 **두 장**(1쪽 로드맵 · 2쪽 진행현황·이슈).
+// server/template_seed.py 가 만든 결과를 그대로 떠 놓은 것이다.
 //   python3 -c "import json,sys; sys.path.insert(0,'.'); from server import template_seed as T; \
 //     json.dump(T.build_template_state('2026-10','홍길동','SI개발본부'), \
 //     open('e2e/fixture_template_state.json','w'), ensure_ascii=False)"
