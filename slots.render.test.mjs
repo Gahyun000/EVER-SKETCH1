@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs'
 
 import {
   CBG_LABEL, HEADER_BG, SLOT_POLICY, STAGE_COLORS,
-  cbgPalette, cellBackground, cellEditable, cellTextColor, isSlotEl,
+  cbgPalette, cellBackground, cellEditable, cellTextColor, headerEditable, isSlotEl,
   lockedRowCount, slotAllows,
 } from './src/template/slots.ts'
 
@@ -62,11 +62,18 @@ check(!SRC.includes('repeating-linear-gradient'),
 
 // ── 4) 편집 가능 판정 ──
 check(cellEditable(undefined, 0, 0) === true, '슬롯 없는 일반 표는 제약 없음')
-check(cellEditable('SLOT-A', 0, 5) === false, '로드맵 연도 행(0)은 잠김')
-check(cellEditable('SLOT-A', 1, 5) === false, '로드맵 월 행(1)도 잠김')
+// 2026-09-07: 머리글 **글자**를 열었다(headerEdit). 예전에는 lockedRows 하나가
+// 「머리글이 몇 행인가」와 「고칠 수 있는가」를 겸해서, 「진행 현황」이나 「사업그룹」을
+// 자기 부서 말로 바꿀 방법이 없었다.
+// 열어도 취합은 안 깨진다 — 취합이 표를 잇는 근거는 **열 번호**지 열 이름이 아니다.
+// 열 **수**는 여전히 못 바꾸고(server/template_guard.py), 머리글 **행 자체를 지우는 것**도
+// 계속 막는다(RightPanel 의 headRowSelected).
+check(cellEditable('SLOT-A', 0, 5) === true, '로드맵 연도 행(0)도 글자는 고칠 수 있다')
+check(cellEditable('SLOT-A', 1, 5) === true, '로드맵 월 행(1)도 마찬가지')
 check(cellEditable('SLOT-A', 2, 5) === true, '로드맵 데이터 행(2)은 편집 가능')
 check(cellEditable('SLOT-A', 2, 0) === true, '로드맵 사업그룹 열은 편집 가능')
-check(cellEditable('SLOT-B', 0, 1) === false, '진행현황 표 머리글 행은 잠김')
+check(cellEditable('SLOT-B', 0, 1) === true, '진행현황 표 머리글 글자도 고칠 수 있다')
+check(headerEditable('head') === false, '머리글 편집 여부는 표에만 해당한다(글상자는 headerEdit 없음)')
 check(cellEditable('SLOT-B', 1, 0) === true, '진행현황 표 첫 열도 편집 가능(번호 열이 없다)')
 check(cellEditable('SLOT-C', 1, 0) === true, '이슈 표 본문은 편집 가능')
 check(cellEditable('head', 0, 0) === false, '머리말은 편집 불가')

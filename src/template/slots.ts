@@ -26,8 +26,17 @@ export interface SlotPolicy {
    *  `edit: []` 는 표 동작이라 글상자에는 애초에 걸리지 않았다 —
    *  「머리글은 다 잠겼다」로 읽히던 것이 사실이 아니었던 이유다. */
   text?: 'open' | 'locked'
-  /** 위에서부터 이 행 수만큼은 L2가 못 건드린다(헤더). */
+  /** 머리글이 **몇 행인가**. 색·굵기를 그 행에 입히고, 행 삭제를 막는다.
+   *  글자를 고칠 수 있는지는 `headerEdit` 이 따로 정한다. */
   lockedRows?: number
+  /** 머리글 행의 **글자**를 고칠 수 있는가.
+   *
+   *  예전에는 `lockedRows` 하나가 「몇 행인가」와 「고칠 수 있는가」를 겸했다.
+   *  그래서 「진행 현황」이나 「사업그룹」을 자기 부서 말로 바꿀 방법이 없었다.
+   *  열어도 취합은 안 깨진다 — 취합이 표를 잇는 근거는 **열 번호**지 열 이름이 아니다.
+   *  열 **수**는 여전히 못 바꾸고(server/template_guard.py), 머리글 **행 자체를
+   *  지우는 것**도 계속 막는다. */
+  headerEdit?: boolean
   /** 셀 배경색으로 고를 수 있는 값. 임의 색을 막아야 취합에서 색의 의미가 유지된다. */
   cbgPalette?: string[]
   /** 열 index → 고를 수 있는 값(드롭다운). 자유 입력을 막아야 집계가 된다. */
@@ -63,9 +72,10 @@ export const SLOT_POLICY: Record<string, SlotPolicy> = {
     cbgPalette: [...STAGE_COLORS],
     lockedRows: 2,        // 연도 행 + 월 행
     text: 'open',
+    headerEdit: true,
   },
-  'SLOT-B': { edit: ['cell', 'row', 'format'], lockedRows: 1, text: 'open' },
-  'SLOT-C': { edit: ['cell', 'row', 'format'], lockedRows: 1, text: 'open' },
+  'SLOT-B': { edit: ['cell', 'row', 'format'], lockedRows: 1, text: 'open', headerEdit: true },
+  'SLOT-C': { edit: ['cell', 'row', 'format'], lockedRows: 1, text: 'open', headerEdit: true },
 }
 
 /** 이 슬롯의 이름표 문구를 고칠 수 있는가.
@@ -93,11 +103,17 @@ export function lockedRowCount(slot: string | undefined): number {
 
 /** 이 칸을 편집할 수 있는가. 헤더 행은 막는다.
  *  (v1.0 에 있던 '자동 채번 0열' 규칙은 없앴다 — 실물 양식에 번호 열이 없다.) */
+export function headerEditable(slot: string | undefined): boolean {
+  if (!slot) return true
+  return SLOT_POLICY[slot]?.headerEdit === true
+}
+
 export function cellEditable(slot: string | undefined, r: number, c: number): boolean {
   void c
   if (!isSlotEl(slot)) return true
   if (!slotAllows(slot, 'cell')) return false
-  if (r < lockedRowCount(slot)) return false
+  // 머리글 행은 **행 수**로만 표시되고, 고칠 수 있는지는 headerEdit 이 따로 정한다.
+  if (r < lockedRowCount(slot)) return headerEditable(slot)
   return true
 }
 

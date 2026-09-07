@@ -83,6 +83,17 @@ def test_문구_열림이_같다(ts_src, slot):
         "%s 문구 열림이 다릅니다 (서버 %s / 프런트 %s)" % (slot, py_text, ts_text)
 
 
+@pytest.mark.parametrize("slot", sorted(T.SLOT_POLICY.keys()))
+def test_머리글_편집_허용이_같다(ts_src, slot):
+    """`lockedRows` 는 「머리글이 몇 행인가」, `headerEdit` 은 「그 글자를 고칠 수 있는가」.
+    한쪽 사본만 열면 화면에서는 써지는데 정책에는 잠겼다고 적힌 상태가 된다."""
+    py = bool(T.SLOT_POLICY[slot].get("headerEdit", False))
+    block = _ts_block(ts_src, slot)
+    ts_val = bool(re.search(r"headerEdit:\s*true", block))
+    assert py == ts_val, \
+        "%s 머리글 편집 허용이 다릅니다 (서버 %s / 프런트 %s)" % (slot, py, ts_val)
+
+
 def test_열_편집은_양쪽_모두_금지(ts_src):
     """가장 중요한 제약 — 한쪽에서라도 열리면 회차 취합이 깨진다."""
     for slot, policy in T.SLOT_POLICY.items():

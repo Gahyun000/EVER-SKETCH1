@@ -165,11 +165,15 @@ await unmergeBtn.click()
 await p.waitForTimeout(200)
 ok('해제하면 덮였던 칸이 돌아온다', await cell(2, 3).count() === 1)
 
-// ── 7) 머리글은 여전히 잠겨 있다 ──
+// ── 7) 머리글 **글자**는 고칠 수 있다 (2026-09-07) ──
+// 예전에는 lockedRows 하나가 「머리글이 몇 행인가」와 「고칠 수 있는가」를 겸해서,
+// 「진행 현황」이나 「사업그룹」을 자기 부서 말로 바꿀 방법이 없었다.
+// 열어도 취합은 안 깨진다 — 표를 잇는 근거는 열 번호지 열 이름이 아니다.
+// 열 **수**와 머리글 **행 삭제**는 여전히 막는다.
 await cell(0, 2).dblclick()
 await p.waitForTimeout(150)
 const headEditable = await cell(0, 2).getAttribute('contenteditable')
-ok('머리글 칸은 편집 잠금이 유지된다', headEditable !== 'true', `contenteditable=${headEditable}`)
+ok('머리글 칸의 글자를 고칠 수 있다', headEditable === 'true', `contenteditable=${headEditable}`)
 
 
 // ── 8) 표는 손잡이로 옮길 수 있다 ──

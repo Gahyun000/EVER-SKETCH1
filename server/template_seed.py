@@ -396,10 +396,28 @@ SLOT_POLICY: dict[str, dict] = {
         "cbgPalette": list(STAGE_COLORS),
         "lockedRows": ROADMAP_HEADER_ROWS,
         "text": "open",
+        "headerEdit": True,
     },
-    "SLOT-B": {"edit": ["cell", "row", "format"], "lockedRows": 1, "text": "open"},
-    "SLOT-C": {"edit": ["cell", "row", "format"], "lockedRows": 1, "text": "open"},
+    "SLOT-B": {"edit": ["cell", "row", "format"], "lockedRows": 1, "text": "open",
+               "headerEdit": True},
+    "SLOT-C": {"edit": ["cell", "row", "format"], "lockedRows": 1, "text": "open",
+               "headerEdit": True},
 }
+
+# ── `lockedRows` 와 `headerEdit` 은 다른 것을 말한다 ──────
+# lockedRows  머리글이 **몇 행인가**. 색과 굵기를 그 행에 입히고, 행 삭제를 막는다.
+# headerEdit  그 행의 **글자를 고칠 수 있는가**.
+#
+# 예전에는 하나가 둘을 겸했다. 그래서 「진행 현황」이나 「사업그룹」 같은 이름표를
+# 자기 부서 말로 바꾸려 해도 방법이 없었다 — 사용자가 「글씨 정도는 바꿀 수 있는 거
+# 아니냐」고 물은 자리가 여기다.
+#
+# 열어도 취합은 안 깨진다. 취합이 표를 잇는 근거는 **열 번호**지 열 이름이 아니다
+# (COL_GROUP=0, COL_MONTH_FIRST=2 ...). 열 **수**는 여전히 못 바꾼다 —
+# 그건 template_guard 가 저장할 때 막는다.
+#
+# 머리글 **행 자체를 지우는 것**은 계속 막는다. 이름표 글자를 고치는 것과 머리글이
+# 통째로 없어지는 것은 다른 일이다.
 
 
 def slot_allows(slot: Optional[str], op: str) -> bool:
