@@ -133,6 +133,12 @@ await p.waitForTimeout(120)
 }
 const mergeBtn = p.locator('.ax-tb .tbtn', { hasText: '병합' }).first()
 ok('상단 툴바에 병합 버튼이 있다(오른쪽 패널을 열지 않아도)', await mergeBtn.count() === 1)
+// 2026-09-08: 오른쪽 패널에도 같은 버튼이 있어 **두 곳이었다.** 툴바 쪽이 본체다 —
+// 여기에는 왜 못 누르는지 알려 주는 말과, 로드맵을 처음 그리는 사람에게 보여 주는
+// 안내가 붙어 있다. 패널에 있던 것은 그런 것이 없는 맨 버튼 둘이었고,
+// 「병합 해제」는 병합 안 된 칸에서도 눌렸다. 한 자리에 한 가지 일만 둔다.
+ok('오른쪽 패널에는 병합 버튼이 없다 — 한 곳에만 둔다',
+   await p.locator('.insp-body button', { hasText: '병합' }).count() === 0)
 ok('병합 버튼이 눌리는 상태다', await mergeBtn.isEnabled())
 const hint = await p.locator('.ax-tb .tbtn-hint').first().textContent()
 ok('선택 범위를 숫자로 보여준다', (hint || '').includes('1×4'), `표시: ${hint}`)

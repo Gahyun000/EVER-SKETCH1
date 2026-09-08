@@ -12,11 +12,12 @@ import { PAPER_OPTIONS } from '../../cards/paper'
 import { FCOLORS } from '../../canvas/model'
 import { pushSnap } from '../../canvas/model'
 import type { FreeEl } from '../../state/store'
-import { addRow, delRow, addCol, delCol, mergeRange, unmergeAt, setAlignRange, setVAlignRange, setCellFsRange, setCellBgRange } from '../../canvas/tableOps'
+import { addRow, delRow, addCol, delCol, setAlignRange, setVAlignRange, setCellFsRange, setCellBgRange } from '../../canvas/tableOps'
 import AnchorLossDialog from '../../comments/AnchorLossDialog'
 import { anchorLostBy } from '../../comments/anchor'
 import { useComments } from '../../comments/store'
 import { CBG_LABEL, cbgPalette, cellBackground, isSlotEl, lockedRowCount, slotAllows } from '../../template/slots'
+import { slotLabels } from '../../template/unfilled'
 import '../../template/template.css'
 
 const TRANS: [string, string][] = [['', '없음'], ['fade', '페이드'], ['slide', '밀기'], ['zoom', '확대'], ['flip', '넘기기']]
@@ -216,6 +217,16 @@ export default function RightPanel() {
   const cellFs = (el && ts && el.cfs && el.cfs[Math.min(ts.r0, ts.r1) + '_' + Math.min(ts.c0, ts.c1)]) || (el ? el.fs : 12)
   const selCount = ts ? (Math.abs(ts.r1 - ts.r0) + 1) * (Math.abs(ts.c1 - ts.c0) + 1) : 0
 
+  // 고른 것의 이름 — 표준 양식이면 문서 안의 이름표, 아니면 생김새 이름.
+  const EL_NAME: Record<string, string> = {
+    table: '표', text: '글상자', icon: '아이콘', wordart: '꾸민 글자', note: '메모',
+    image: '그림', sticky: '쪽지', connect: '연결선', pen: '펜 자국',
+  }
+  const slotName = el && isSlotEl(el.slot) ? (slotLabels(pages)[el.slot as string] || el.slot) : ''
+  const whoLabel = slotName || (el ? (EL_NAME[el.type] || '도형') : '')
+  const whoSub = el && slotName ? (EL_NAME[el.type] || '도형') : (selCount > 1 ? `${selCount}개` : '')
+  const whoTitle = slotName ? `${slotName} — 표준 양식 칸입니다` : whoLabel
+
   return (
     <div className="ax-inspector">
       {/* **맨 위 고정**(사용자 결정 ㄱ). 탭보다 위라 무엇을 골랐든 늘 보인다 —
@@ -223,6 +234,15 @@ export default function RightPanel() {
       <ApprovalCard />
       {el ? (
         <>
+          {/* **무엇을 골랐는지 먼저 말한다.**
+              여기는 「글자 크기」·「테두리」 같은 도구가 늘어선 자리라, 정작
+              **어느 것을 고치고 있는지**는 화면 가운데를 봐야 알 수 있었다.
+              표준 양식이면 문서 안의 이름표를 그대로 읽는다 — 「① 로드맵 / 마일스톤」.
+              코드에 이름을 또 적어 두면 양식이 바뀌는 날 둘이 어긋난다. */}
+          <div className="insp-who" title={whoTitle}>
+            <span className="insp-who-t">{whoLabel}</span>
+            {whoSub ? <span className="insp-who-s">{whoSub}</span> : null}
+          </div>
           <div className="insp-tabs">
             {el.type === 'table' ? <button className={tab === 'table' ? 'on' : ''} onClick={() => setTab('table')}>표</button> : null}
             <button className={tab === 'style' ? 'on' : ''} onClick={() => setTab('style')}>스타일</button>
@@ -282,11 +302,12 @@ export default function RightPanel() {
                 </div>
               </>) : null}
               {canMerge ? (<>
-                <div className="insp-sec">셀 병합</div>
-                <div className="insp-row">
-                  <button className="insp-pill" disabled={!ts || (ts.r0 === ts.r1 && ts.c0 === ts.c1)} onClick={() => { if (ts) patchTable(mergeRange(el, ts.r0, ts.c0, ts.r1, ts.c1)) }}>⤢ 병합</button>
-                  <button className="insp-pill" onClick={() => patchTable(unmergeAt(el, ar, ac))}>병합 해제</button>
-                </div>
+                {/* **병합은 위 툴바에 있다.** 여기에도 있어서 두 곳이었다.
+                    툴바 쪽이 본체다 — 예전에 「패널을 닫아 둔 사람은 병합이 없는 줄 안다」는
+                    이유로 일부러 툴바에 넣었고(table_merge_smoke.mjs 가 그걸 지킨다),
+                    거기에는 왜 못 누르는지 알려 주는 말과 로드맵을 처음 그리는 사람에게
+                    보여 주는 안내까지 붙어 있다. 여기 있던 것은 그런 것이 없는 맨 버튼 둘이었고,
+                    「병합 해제」는 병합 안 된 칸에서도 눌렸다. */}
               </>) : null}
               <div className="insp-sec">셀 정렬{selCount > 1 ? ` (${selCount}칸)` : ''}</div>
               <div className="insp-row seg">
