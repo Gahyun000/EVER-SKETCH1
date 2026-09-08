@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>결재함 보드 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--bg:#F4F5F7;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1220px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:34px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)} .box.bad{border-left-color:var(--red)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#f2f4f8;border-radius:4px;padding:1px 5px;font-size:11.5px;color:#38455e}
+  pre.dia{background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px 16px;
+    font:12px/1.75 ui-monospace,SFMono-Regular,Menlo,monospace;color:#38455e;overflow-x:auto;margin:0 0 14px}
+
+  .ctl{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 14px;align-items:center}
+  .ctl .g{display:flex;gap:7px;align-items:center}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .seg button{border:none;background:#fff;padding:6px 12px;font:inherit;font-size:12px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+
+  /* 화면 껍데기 */
+  .app{background:#fff;border:1px solid #cfd6e2;border-radius:12px;overflow:hidden;
+    box-shadow:0 10px 30px rgba(20,25,40,.10)}
+  .app .head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .app .head .logo{width:24px;height:24px;border-radius:6px;background:var(--navy);color:#dce7ff;
+    display:grid;place-items:center;font-family:Georgia,serif;font-style:italic;font-size:12px}
+  .app .head .nm{font-size:14px;font-weight:900;color:var(--navy)}
+  .app .head .who{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;
+    color:var(--muted);font-weight:700}
+  .app .head .lv{background:var(--tint);color:var(--blue);border-radius:5px;padding:0 6px;font-size:10.5px;font-weight:800}
+  .app .nav{display:flex;align-items:center;gap:6px;padding:9px 14px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .app .nav .tb{border:1.3px solid var(--line);background:#fff;border-radius:8px;padding:4px 12px;
+    font:inherit;font-size:11.5px;font-weight:800;color:var(--muted);cursor:pointer}
+  .app .nav .tb.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .app .nav .ghost{font-size:11px;color:#c3cbd8;font-weight:700;font-style:italic}
+  .app .sub{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line)}
+  .vseg{display:inline-flex;border:1.3px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .vseg button{border:none;background:#fff;padding:4px 12px;font:inherit;font-size:11.5px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .vseg button:last-child{border-right:none}
+  .vseg button.on{background:var(--navy);color:#fff}
+  .app .sub .scope{font-size:11px;color:var(--dim);font-weight:700;margin-left:auto}
+  .app .stage{padding:14px;background:var(--bg);min-height:340px}
+
+  /* 보드 */
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;align-items:start}
+  @media (max-width:900px){ .board{grid-template-columns:repeat(2,1fr)} }
+  .col{background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 9px 11px;min-height:130px}
+  .col > .ch{display:flex;align-items:center;gap:6px;padding:2px 3px 9px}
+  .col > .ch .dt{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+  .col > .ch .t{font-size:12px;font-weight:800;color:var(--navy)}
+  .col > .ch .n{margin-left:auto;font-size:11px;font-weight:800;color:var(--dim)}
+  .col.sent .dt{background:var(--amber)} .col.rej .dt{background:var(--red)}
+  .col.appr .dt{background:var(--green)} .col.wd .dt{background:#9aa3b2}
+  .col.sent{background:#fffdf8} .col.rej{background:#fffafa}
+  .col.appr{background:#fafdfb} .col.wd{background:#fbfcfe}
+  .cards{display:flex;flex-direction:column;gap:7px}
+  .cd{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;
+    transition:box-shadow .25s,border-color .25s}
+  .cd.moved{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,98,235,.14)}
+  .cd .nm{font-size:12px;font-weight:700;color:var(--text);line-height:1.4}
+  .cd .fd{font-size:10.5px;color:var(--dim);margin-top:2px}
+  .cd .row2{display:flex;align-items:center;gap:5px;margin-top:6px;flex-wrap:wrap}
+  .chip{font-size:10px;font-weight:800;border-radius:20px;padding:1px 7px;border:1px solid transparent}
+  .chip.rev{background:var(--tint);color:var(--blue);border-color:var(--tint-line)}
+  .chip.rq{background:#FBF0E1;color:#9a5d12;border-color:#F2DEBE}
+  .cd .when{font-size:10px;color:var(--dim);margin-left:auto;white-space:nowrap}
+  .cd .why{margin-top:6px;font-size:10.5px;color:#8a2f27;background:#fff6f5;
+    border:1px solid #f6d7d2;border-radius:6px;padding:4px 7px;line-height:1.55}
+  .cd .past{margin-top:6px;border-top:1px dashed var(--line);padding-top:5px}
+  .cd .past button{border:none;background:none;padding:0;font:inherit;font-size:10.5px;
+    font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px;width:100%}
+  .cd .past button .ar{color:var(--dim);margin-left:auto;font-size:9px}
+  .cd .past .body{margin-top:5px;font-size:10.5px;color:var(--muted);line-height:1.6}
+  .cd .past .body .ln{display:flex;gap:6px;align-items:baseline}
+  .cd .past .body .ln .d{color:var(--dim);margin-left:auto;white-space:nowrap;font-size:10px}
+  .empty{font-size:11px;color:#c3cbd8;text-align:center;padding:16px 0;font-weight:700}
+
+  /* 목록 보기 */
+  .tabs{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}
+  .tabs button{border:1.3px solid var(--line);background:#fff;border-radius:20px;padding:4px 12px;
+    font:inherit;font-size:11.5px;font-weight:800;color:var(--muted);cursor:pointer}
+  .tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .rows{display:flex;flex-direction:column;gap:7px}
+  .lrow{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;
+    display:flex;align-items:center;gap:9px}
+  .lrow .nm{font-size:12.5px;font-weight:700;flex:1;min-width:0}
+  .lrow .ic{width:26px;height:26px;border-radius:6px;background:var(--tint);color:var(--blue);
+    display:grid;place-items:center;font-size:12px;flex:0 0 26px}
+  .lrow .mt{font-size:10.5px;color:var(--dim);font-weight:700}
+  .lrow.dup{border-color:#f0cdc8;background:#fffafa}
+
+  .demo{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:11px 0 0;
+    background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .demo .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .demo button{border:1.3px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;
+    font:inherit;font-size:11.5px;font-weight:800;color:var(--muted);cursor:pointer}
+  .demo button:hover{background:#f7f9fd;color:var(--navy)}
+  .demo button.g{border-color:#c9e6d8;color:#24724b}
+  .demo button.r{border-color:#f0cdc8;color:#a12a21}
+  .demo .say{font-size:11.5px;color:var(--blue);font-weight:700;margin-left:auto}
+
+  table.inv{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin:0 0 14px}
+  table.inv th,table.inv td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.inv th{background:#fbfcfe;color:var(--navy);font-size:11.5px}
+  table.inv tr:last-child td{border-bottom:none}
+  td.y{color:#24724b;font-weight:800;white-space:nowrap}
+  td.n{color:#a12a21;font-weight:800;white-space:nowrap}
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>결재함 보드 — 목록은 그대로 두고, 결재함 안에 보기를 하나 더합니다</h1>
+<p class="lead">끌지 않습니다. <b>결재가 나면 카드가 그 칸에 가 있습니다.</b>
+아래 「관리자가 …」 단추를 눌러 보세요. 그리고 <b>열람자</b>로 바꿔 보세요 — 결재함 단추 자체가 없습니다.</p>
+
+<div class="ctl">
+  <div class="g"><span class="lb">누구로 볼까</span><span class="seg" id="roleSeg"></span></div>
+</div>
+
+<div class="app">
+  <div class="head">
+    <div class="logo">ℓ</div><div class="nm">EVER-SKETCH</div>
+    <div class="who"><span id="uname">김가현</span><span class="lv" id="ulv">Lv2 작성자</span></div>
+  </div>
+  <div class="nav" id="nav"></div>
+  <div class="sub" id="sub"></div>
+  <div class="stage" id="stage"></div>
+</div>
+
+<div class="demo" id="demo"></div>
+
+<h2><span class="n">1</span>왜 「내 자료」가 아니라 결재함인가</h2>
+<div class="box ok"><span class="t">화면이 통째로 없는 것은 이미 자연스럽습니다</span>
+「내 자료」에 보드를 넣으면 <b>같은 화면인데 사람마다 다릅니다</b> — 관리자·작성자에게는 보기 전환이 있고
+열람자에게는 없습니다. 「일관성이 없어 보인다」는 말씀이 정확했습니다.<br />
+<b>결재함은 다릅니다.</b> 지금도 열람자에게는 <b>단추 자체가 없습니다</b>
+(<code>{canSubmit &amp;&amp; 결재함}</code> — 작성자·관리자만). 아무도 「왜 나만 다르지」라고 묻지 않습니다.</div>
+
+<div class="box"><span class="t">그리고 v3 이 걱정하던 것이 같이 없어집니다</span>
+v3 에서는 「관리자에게는 칸 뜻이 뒤집힌다」고 적었습니다 — 작성자에게 「기다리는 중」인 것이
+관리자에게는 「내가 결정할 것」이라고요. <b>결재함의 칸 이름은 그 문제가 없습니다.</b></div>
+
+<table class="inv">
+  <tr><th style="width:90px">칸</th><th style="width:230px">작성자에게</th><th>관리자에게</th></tr>
+  <tr><td><b>제출</b></td><td>내가 낸 것 · 답을 기다림</td><td>내가 결정할 것</td></tr>
+  <tr><td><b>반려</b></td><td>고쳐야 함</td><td>돌려보냈음</td></tr>
+  <tr><td><b>승인</b></td><td>끝</td><td>끝</td></tr>
+  <tr><td><b>거둠</b></td><td>내가 거둠</td><td>거둬 갔음</td></tr>
+</table>
+<p class="note">「제출」은 <b>낸 상태라는 사실</b>만 말할 뿐, 누구 차례인지를 말하지 않습니다.
+그래서 <b>한 이름으로 둘을 다 담습니다. 보드가 하나면 됩니다.</b></p>
+
+<h2><span class="n">2</span>가장 중요한 대목 — 결재함은 「자료」가 아니라 「결재 건」 목록입니다</h2>
+<div class="box bad"><span class="t">지금 데이터베이스를 세어 봤습니다</span>
+<code>list_approvals()</code> 는 <code>Approvals</code> 표를 그대로 돌려줍니다. <b>한 자료가 여러 줄입니다.</b><br />
+<code>2026년 10월 임원회의 — 김가현 · 1회차 반려</code><br />
+<code>2026년 10월 임원회의 — 김가현 · 2회차 대기</code> ← <b>같은 자료, 두 줄</b></div>
+
+<pre class="dia">탭을 그대로 칸으로 펴면 —
+
+        제출              반려              승인
+   ┌──────────┐    ┌──────────┐    ┌──────────┐
+   │10월 2회차 │    │10월 1회차 │    │          │
+   └──────────┘    └──────────┘    └──────────┘
+        ↑ 같은 자료가 두 칸에 동시에 있다
+
+승인이 나면 2회차만 승인 칸으로 가고 1회차는 반려 칸에 남습니다.
+「반려에서 승인으로 <b>간다</b>」가 아니라 「반려에도 있고 승인에도 있다」가 됩니다.</pre>
+
+<div class="box ok"><span class="t">해법 — 칸에는 자료별 <b>최신 건</b>만 놓습니다</span>
+지난 회차는 <b>카드 안에 한 줄</b>로 접어 둡니다(위 보드에서 「1회차 반려 ›」를 눌러 보세요).
+승인이 나면 <b>그 카드가 통째로</b> 승인 칸으로 갑니다. <b>이력을 잃지 않으면서 카드가 옮겨집니다.</b><br />
+지난 회차를 전부 보고 싶으면 <b>목록 보기</b>가 그대로 있습니다 —
+「목록은 기존대로」라는 원칙을 <b>결재함 안에서도</b> 씁니다.</div>
+<p class="note">위 <b>목록</b> 보기를 눌러 보세요. 같은 자료가 두 줄인 것이 그대로 보입니다(붉은 테두리).
+보드에서는 그 둘이 카드 하나로 접힙니다.</p>
+
+<h2><span class="n">3</span>여기서는 반려 사유가 이미 있습니다</h2>
+<div class="box ok"><span class="t">결재함에 두는 것의 뜻밖의 이점</span>
+「내 자료」 보드였다면 <code>/api/approvals/status-map</code> 을 쓰는데,
+거기에는 <b>사유(<code>decision_message</code>)가 없습니다</b> — 카드에 「왜 반려됐는지」를 못 적습니다.
+<b>결재함은 결재 건을 직접 보고 있어서 사유가 이미 붙어 있습니다.</b>
+위 반려 카드의 붉은 줄이 그것입니다. <b>서버는 한 줄도 안 고칩니다.</b></div>
+
+<h2><span class="n">4</span>「내 자료」는 손대지 않습니다</h2>
+<div class="box"><span class="t">두 화면이 서로 다른 일을 합니다</span>
+자료 목록에는 이미 상태 칩(「결재 중 2회차」·「반려」·「잠김」)이 있습니다.
+<b>목록은 「내 자료가 어디에 얼마나 있나」</b>를 보고,
+<b>보드는 「결재가 지금 어디까지 갔나」</b>를 봅니다. 목록은 지금 그대로입니다.</div>
+
+<h2><span class="n">5</span>만들 것</h2>
+<table class="inv">
+  <tr><th style="width:190px">조각</th><th>새로 만드나</th></tr>
+  <tr><td>서버</td><td class="y">아무것도 안 고침</td></tr>
+  <tr><td>결재 건 목록</td><td><code>apiListApprovals()</code> 그대로 — <code>counts</code> 도 이미 준다</td></tr>
+  <tr><td><b>자료별 최신 건 고르기</b></td><td class="n">새로 — 순수 함수 <code>latestPerProject()</code></td></tr>
+  <tr><td><b>status → 칸</b></td><td class="n">새로 — 순수 함수 <code>columnOf()</code> (작다)</td></tr>
+  <tr><td>보드 화면 · 보기 전환 · 지난 회차 펼치기</td><td>새로 (결재함 안)</td></tr>
+  <tr><td>끌기</td><td class="y">없음</td></tr>
+</table>
+<p class="note"><code>latestPerProject</code> 가 <b>이 계획의 핵심</b>입니다. 여기가 틀리면 같은 자료가 두 칸에 뜨거나,
+최신이 아닌 회차가 칸에 앉습니다. 화면과 떼어 놓고 <code>node</code> 로 바로 시험합니다 —
+<code>unfilled.ts</code> 와 같은 방식입니다.</p>
+
+<h2><span class="n">6</span>정해 주실 것</h2>
+<table class="inv">
+  <tr><th style="width:40px">#</th><th style="width:300px">물음</th><th>권함</th></tr>
+  <tr><td><b>㉠</b></td><td>칸을 <b>넷</b>(제출·반려·승인·거둠) / 셋(거둠 뺌)</td><td class="y">넷</td></tr>
+  <tr><td><b>㉡</b></td><td>「수정 요청」 건도 칸에 놓을까
+      <span style="color:#9aa3b2">— 위 보드의 「안전 점검 보고」가 그 예입니다</span></td><td class="y">놓는다</td></tr>
+  <tr><td><b>㉢</b></td><td>보드가 기본 보기 / <b>목록이 기본</b></td><td class="y">목록이 기본</td></tr>
+  <tr><td><b>㉣</b></td><td>「내 자료」 보드는 <b>안 만든다</b> / 나중에</td><td class="y">안 만든다</td></tr>
+</table>
+
+<script>
+var ROLE = 'writer'
+var VIEW = 'list'
+var TAB  = 'pending'
+var MOVED = null
+var OPEN = {}
+var SAY = ''
+
+var A = [
+  {id:1, pj:'p1', nm:'2026년 10월 임원회의', ow:'김가현', fd:'2026년 / 하반기', rd:1, kind:'approval', st:'rejected',  when:'9/7 반려', why:'로드맵 3분기 칸이 비어 있습니다. 채워서 다시 주세요.'},
+  {id:2, pj:'p1', nm:'2026년 10월 임원회의', ow:'김가현', fd:'2026년 / 하반기', rd:2, kind:'approval', st:'pending',   when:'9/8 제출'},
+  {id:3, pj:'p2', nm:'제목 없음',            ow:'김가현', fd:'2026년',          rd:1, kind:'approval', st:'rejected',  when:'9/6 반려', why:'표지 제목이 비어 있습니다.'},
+  {id:4, pj:'p2', nm:'제목 없음',            ow:'김가현', fd:'2026년',          rd:2, kind:'approval', st:'pending',   when:'9/8 제출'},
+  {id:5, pj:'p3', nm:'2026년 9월 임원회의',  ow:'김가현', fd:'2026년 / 하반기', rd:1, kind:'approval', st:'approved',  when:'9/1 승인'},
+  {id:6, pj:'p4', nm:'3분기 실적 보고',      ow:'박서준', fd:'실적',            rd:1, kind:'approval', st:'withdrawn', when:'9/5 거둠'},
+  {id:7, pj:'p5', nm:'신규 사업 검토',       ow:'이민호', fd:'기획',            rd:1, kind:'approval', st:'pending',   when:'9/8 제출'},
+  {id:8, pj:'p6', nm:'안전 점검 보고',       ow:'최유진', fd:'안전',            rd:1, kind:'approval', st:'approved',  when:'8/28 승인'},
+  {id:9, pj:'p6', nm:'안전 점검 보고',       ow:'최유진', fd:'안전',            rd:0, kind:'revision', st:'pending',   when:'9/8 수정 요청'},
+  {id:10,pj:'p7', nm:'2026년 8월 임원회의',  ow:'김가현', fd:'2026년 / 하반기', rd:1, kind:'approval', st:'rejected',  when:'9/4 반려', why:'매출 표의 단위가 빠졌습니다. 백만 원 단위로 맞춰 주세요.'},
+  {id:11,pj:'p8', nm:'워크숍 계획안',        ow:'김가현', fd:'기획',            rd:1, kind:'approval', st:'withdrawn', when:'9/3 거둠'}
+]
+var A0 = JSON.stringify(A)
+
+var COL = [
+  {k:'pending',   c:'sent', t:'제출'},
+  {k:'rejected',  c:'rej',  t:'반려'},
+  {k:'approved',  c:'appr', t:'승인'},
+  {k:'withdrawn', c:'wd',   t:'거둠'}
+]
+var TABT = {pending:'대기', approved:'승인', rejected:'반려', withdrawn:'거둠'}
+
+function mine(){ return ROLE === 'admin' ? A : A.filter(function(x){ return x.ow === '김가현' }) }
+
+/* 자료별 최신 건 하나 + 지난 회차 */
+function latestPerProject(rows){
+  var by = {}, order = []
+  rows.forEach(function(r){ if(!by[r.pj]){ by[r.pj] = []; order.push(r.pj) } by[r.pj].push(r) })
+  return order.map(function(k){
+    var g = by[k].slice().sort(function(a,b){ return a.id - b.id })
+    return { top: g[g.length-1], past: g.slice(0, g.length-1) }
+  })
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;') }
+
+function card(u){
+  var t = u.top, o = OPEN[t.pj]
+  var h = '<div class="cd' + (MOVED === t.pj ? ' moved' : '') + '">'
+  h += '<div class="nm">' + esc(t.nm) + '</div>'
+  h += '<div class="fd">' + esc(t.ow) + ' · ' + esc(t.fd) + '</div>'
+  h += '<div class="row2">'
+  h += t.kind === 'revision'
+     ? '<span class="chip rq">수정 요청</span>'
+     : '<span class="chip rev">' + t.rd + '회차</span>'
+  h += '<span class="when">' + esc(t.when) + '</span></div>'
+  if (t.st === 'rejected' && t.why) h += '<div class="why">' + esc(t.why) + '</div>'
+  if (u.past.length){
+    h += '<div class="past"><button data-open="' + t.pj + '">'
+       + '지난 회차 ' + u.past.length + '건<span class="ar">' + (o ? '▲' : '▼') + '</span></button>'
+    if (o){
+      h += '<div class="body">'
+      u.past.slice().reverse().forEach(function(p){
+        h += '<div class="ln"><span>' + p.rd + '회차 ' + TABT[p.st] + '</span>'
+           + '<span class="d">' + esc(String(p.when).split(' ')[0]) + '</span></div>'
+        if (p.why) h += '<div class="why">' + esc(p.why) + '</div>'
+      })
+      h += '</div>'
+    }
+    h += '</div>'
+  }
+  return h + '</div>'
+}
+
+function boardHTML(){
+  var us = latestPerProject(mine())
+  return '<div class="board">' + COL.map(function(c){
+    var g = us.filter(function(u){ return u.top.st === c.k })
+    return '<div class="col ' + c.c + '"><div class="ch"><span class="dt"></span>'
+      + '<span class="t">' + c.t + '</span><span class="n">' + g.length + '</span></div>'
+      + '<div class="cards">'
+      + (g.length ? g.map(card).join('') : '<div class="empty">없음</div>')
+      + '</div></div>'
+  }).join('') + '</div>'
+}
+
+function listHTML(){
+  var rows = mine()
+  var cnt = {}
+  Object.keys(TABT).forEach(function(k){ cnt[k] = rows.filter(function(r){ return r.st === k }).length })
+  var h = '<div class="tabs">' + Object.keys(TABT).map(function(k){
+    return '<button data-tab="' + k + '" class="' + (TAB === k ? 'on' : '') + '">'
+      + TABT[k] + ' ' + cnt[k] + '</button>'
+  }).join('') + '</div>'
+  var g = rows.filter(function(r){ return r.st === TAB })
+  /* 같은 자료가 두 줄인지 표시 */
+  var seen = {}
+  rows.forEach(function(r){ seen[r.pj] = (seen[r.pj] || 0) + 1 })
+  if (g.some(function(r){ return seen[r.pj] > 1 })){
+    h += '<p class="note" style="margin:0 0 8px"><b style="color:#a12a21">붉은 줄</b>'
+       + ' = 같은 자료가 <b>다른 탭에도</b> 있습니다(회차가 여럿). '
+       + '보드에서는 이 둘이 <b>카드 하나</b>로 접힙니다.</p>'
+  }
+  h += '<div class="rows">' + (g.length ? g.map(function(r){
+    return '<div class="lrow' + (seen[r.pj] > 1 ? ' dup' : '') + '">'
+      + '<div class="ic">▤</div><div class="nm">' + esc(r.nm) + '</div>'
+      + '<span class="chip ' + (r.kind === 'revision' ? 'rq">수정 요청' : 'rev">' + r.rd + '회차') + '</span>'
+      + '<div class="mt">' + esc(r.ow) + ' · ' + esc(r.when) + '</div></div>'
+  }).join('') : '<div class="empty">없음</div>') + '</div>'
+  return h
+}
+
+function render(){
+  var admin = ROLE === 'admin', viewer = ROLE === 'viewer'
+  document.getElementById('uname').textContent = admin ? '관리자' : (viewer ? '정하늘' : '김가현')
+  document.getElementById('ulv').textContent  = admin ? 'Lv1 관리자' : (viewer ? 'Lv3 열람자' : 'Lv2 작성자')
+
+  document.getElementById('roleSeg').innerHTML =
+    [['admin','관리자 Lv1'],['writer','작성자 Lv2'],['viewer','열람자 Lv3']].map(function(r){
+      return '<button data-role="' + r[0] + '" class="' + (ROLE === r[0] ? 'on' : '') + '">' + r[1] + '</button>'
+    }).join('')
+
+  document.getElementById('nav').innerHTML =
+    '<button class="tb">내 자료</button>'
+    + (viewer ? '<span class="ghost">결재함 — 열람자에게는 단추가 없습니다</span>'
+              : '<button class="tb on">결재함</button>')
+
+  var sub = document.getElementById('sub'), stage = document.getElementById('stage')
+  if (viewer){
+    sub.innerHTML = ''
+    sub.style.display = 'none'
+    stage.innerHTML = '<div class="empty" style="padding:120px 0">결재함이 없습니다.<br />'
+      + '열람자는 결재를 내지 않습니다 — 화면이 통째로 없는 것이 정직합니다.</div>'
+  } else {
+    sub.style.display = ''
+    sub.innerHTML = '<span class="vseg">'
+      + '<button data-view="list" class="' + (VIEW === 'list' ? 'on' : '') + '">목록</button>'
+      + '<button data-view="board" class="' + (VIEW === 'board' ? 'on' : '') + '">보드</button></span>'
+      + '<span class="scope">' + (admin ? '팀 전체 결재 건' : '내가 낸 결재')
+      + ' · ' + (VIEW === 'board' ? '자료별 최신 건' : '모든 회차') + '</span>'
+    stage.innerHTML = VIEW === 'board' ? boardHTML() : listHTML()
+  }
+
+  document.getElementById('demo').innerHTML = viewer ? '' :
+    '<span class="lb">움직여 보기</span>'
+    + '<button class="g" data-act="approve">관리자가 승인</button>'
+    + '<button class="r" data-act="reject">관리자가 반려</button>'
+    + '<button data-act="resubmit">작성자가 다시 제출</button>'
+    + '<button data-act="reset">처음으로</button>'
+    + '<span class="say" id="say">' + esc(SAY) + '</span>'
+}
+
+document.addEventListener('click', function(e){
+  var t = e.target.closest('button'); if (!t) return
+  if (t.dataset.role){ ROLE = t.dataset.role; MOVED = null; SAY = ''; return render() }
+  if (t.dataset.view){ VIEW = t.dataset.view; return render() }
+  if (t.dataset.tab){ TAB = t.dataset.tab; return render() }
+  if (t.dataset.open){ OPEN[t.dataset.open] = !OPEN[t.dataset.open]; return render() }
+  var act = t.dataset.act; if (!act) return
+
+  var us, u
+  if (act === 'reset'){ A = JSON.parse(A0); MOVED = null; OPEN = {}; SAY = ''; VIEW = 'board' }
+  else if (act === 'approve'){
+    VIEW = 'board'
+    us = latestPerProject(mine()).filter(function(x){ return x.top.st === 'pending' })
+    u = us[0]
+    if (u){ u.top.st = 'approved'; u.top.when = '방금 승인'; MOVED = u.top.pj
+            SAY = '「' + u.top.nm + '」 카드가 제출 → 승인 칸으로 통째로 갔습니다' }
+  }
+  else if (act === 'reject'){
+    VIEW = 'board'
+    us = latestPerProject(mine()).filter(function(x){ return x.top.st === 'pending' })
+    u = us[us.length-1]
+    if (u){ u.top.st = 'rejected'; u.top.when = '방금 반려'
+            u.top.why = '숫자 근거가 빠졌습니다. 붙여서 다시 주세요.'; MOVED = u.top.pj
+            SAY = '반려 사유가 카드 안에 그대로 보입니다 — 결재함을 다시 열 필요가 없습니다' }
+  }
+  else if (act === 'resubmit'){
+    VIEW = 'board'
+    us = latestPerProject(mine()).filter(function(x){ return x.top.st === 'rejected' })
+    u = us[0]
+    if (u){
+      A.push({id: Math.max.apply(null, A.map(function(x){ return x.id })) + 1,
+              pj:u.top.pj, nm:u.top.nm, ow:u.top.ow, fd:u.top.fd,
+              rd:u.top.rd + 1, kind:'approval', st:'pending', when:'방금 제출'})
+      MOVED = u.top.pj
+      SAY = '새 회차가 제출 칸에. 지난 반려는 카드 안 「지난 회차」로 접혔습니다 — 반려 칸에 남지 않습니다'
+    } else SAY = '반려 칸이 비어 있습니다. 먼저 「관리자가 반려」를 눌러 보세요'
+  }
+  render()
+  var s = document.getElementById('say'); if (s) s.textContent = SAY
+})
+render()
+</script>
+</body>
+</html>
