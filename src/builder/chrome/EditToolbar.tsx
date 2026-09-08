@@ -265,6 +265,16 @@ export default function EditToolbar() {
   const hlWidth = useCanvasUI((s) => s.hlWidth)
   const setHlWidth = useCanvasUI((s) => s.setHlWidth)
   const eraserWidth = useCanvasUI((s) => s.eraserWidth)
+
+  /** 그리기 도구를 **접어 둔다.**
+   *
+   *  펜·형광펜·지우개는 각각 두께와 색을 달고 있어 **열다섯 칸**을 늘 차지했다.
+   *  임원회의 자료는 대부분 표와 글자로 쓰는데, 그 열다섯 칸이 매번 눈에 들어온다.
+   *
+   *  **선택에 따라 접었다 폈다 하지 않는다.** 그건 손이 가 있는 자리에서 도구가
+   *  스스로 움직이는 일이라, 표를 고르는 순간 펜 색이 사라진다. 대신
+   *  **그리는 중에는 저절로 펴 둔다** — 펜을 든 사람에게 두께와 색은 늘 필요하다. */
+  const [drawOpen, setDrawOpen] = useState(false)
   const setEraserWidth = useCanvasUI((s) => s.setEraserWidth)
   const openPicker = useCanvasUI((s) => s.openPicker)
   const selectedPageId = useBuilder((s) => s.selectedPageId)
@@ -309,6 +319,10 @@ export default function EditToolbar() {
     patch({ tcolor: TEXT_COLORS[(i + 1) % TEXT_COLORS.length] })
   }
 
+  // 그리는 중이면 저절로 펴 둔다 — 펜을 든 사람에게 두께와 색은 늘 필요하다.
+  const drawing = tool === 'pen' || tool === 'highlighter' || tool === 'eraser'
+  const showDraw = drawOpen || drawing
+
   return (
     /* 두 줄로 나눈다.
        첫 줄 = **늘 쓰는 만들기 도구**(그리기·도형·펜). 무엇을 골랐든 그대로다.
@@ -340,6 +354,13 @@ export default function EditToolbar() {
         <select className="ax-fsel" value={curPaper} title="종이 템플릿(이 페이지)" onChange={(e) => { if (selectedPageId != null) setPaper(selectedPageId, e.target.value as PaperType) }}>
           {PAPER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+        {!drawing && (
+          <button className="tbtn draw-toggle" title="펜 · 형광펜 · 지우개"
+            aria-expanded={drawOpen} onClick={() => setDrawOpen((o) => !o)}>
+            <Pen size={14} /> 그리기 {drawOpen ? '▴' : '▾'}
+          </button>
+        )}
+        {showDraw && (<>
         <button className={'ib' + (tool === 'pen' ? ' on' : '')} title="펜(두께·색) — 다시 누르면 끔" onClick={() => setTool(tool === 'pen' ? 'select' : 'pen')}><Pen size={16} /></button>
         <select className="ax-fsel" value={penWidth} title="펜 두께" onChange={(e) => setPenWidth(Number(e.target.value))}>
           <option value={1.5}>얇게</option>
@@ -360,6 +381,7 @@ export default function EditToolbar() {
           <option value={22}>보통</option>
           <option value={36}>크게</option>
         </select>
+        </>)}
       </span>
      </div>
 

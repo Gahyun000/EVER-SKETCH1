@@ -1,4 +1,7 @@
-// 오른쪽 패널 — 탭 대신 **접이식**, 그리고 「무엇을 고치는 중인가」.
+// 오른쪽 패널과 위 툴바 — **자리를 덜 먹고, 지금 값을 말한다.**
+//
+// 패널: 탭 대신 접이식, 그리고 「무엇을 고치는 중인가」.
+// 툴바: 펜·형광펜·지우개 열다섯 칸을 「그리기」 하나로 접는다.
 //
 // 탭은 「지금 어느 탭인지」를 사람이 기억해야 하고, 찾는 것이 다른 탭에 있으면
 // 네 번을 눌러 봐야 안다. 접이식은 **네 묶음이 늘 한 화면에** 있고,
@@ -70,6 +73,32 @@ const card = await p.locator('.apc').boundingBox()
 const firstAcc = await p.locator('.insp-acc').first().boundingBox()
 ok('결재 카드가 묶음들보다 위에 있다', card.y < firstAcc.y,
    `카드 ${Math.round(card.y)} / 첫 묶음 ${Math.round(firstAcc.y)}`)
+
+// ── 툴바: 그리기 도구를 접어 둔다 ─────────────────
+//
+// 펜·형광펜·지우개는 각각 두께와 색을 달고 있어 **열다섯 칸**을 늘 차지했다.
+// 임원회의 자료는 대부분 표와 글자로 쓰는데, 그 열다섯 칸이 매번 눈에 들어온다.
+const drawCells = () => p.locator('.note-grp .ib, .note-grp .ax-fsel, .note-grp .ax-dot, .note-grp .tbtn').count()
+const shut = await drawCells()
+ok('접혀 있으면 두 칸이다 — 종이와 「그리기」', shut <= 3, `${shut}칸`)
+ok('「그리기」 단추가 있다', await p.locator('.draw-toggle').count() === 1)
+
+await p.locator('.draw-toggle').click()
+await p.waitForTimeout(300)
+const opened = await drawCells()
+ok('펴면 도구가 다 나온다', opened >= 12, `${opened}칸`)
+await p.locator('.draw-toggle').click()
+await p.waitForTimeout(300)
+ok('다시 접힌다', (await drawCells()) <= 3)
+
+// **그리는 중에는 저절로 펴 둔다.** 펜을 든 사람에게 두께와 색은 늘 필요하다 —
+// 여기서 접어 버리면 색을 바꾸려고 매번 단추를 다시 눌러야 한다.
+await p.locator('.draw-toggle').click()
+await p.waitForTimeout(200)
+await p.locator('.note-grp .ib[title^="펜"]').first().click()
+await p.waitForTimeout(350)
+ok('펜을 들면 저절로 펴진다', (await drawCells()) >= 12 && await p.locator('.draw-toggle').count() === 0,
+   `${await drawCells()}칸 · 단추 ${await p.locator('.draw-toggle').count()}개`)
 
 ok('화면 오류가 없다', errs.length === 0, errs.join(' | '))
 

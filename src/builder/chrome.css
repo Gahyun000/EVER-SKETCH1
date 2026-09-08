@@ -440,3 +440,7 @@
 .insp-acc .t{font-size:12px;font-weight:800;color:var(--ax-navy,#0F1B3D);white-space:nowrap}
 .insp-acc .sub{flex:1;min-width:0;text-align:right;font-size:10.5px;color:#9aa3b2;
   font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 「그리기」 접기 단추 — 펜·형광펜·지우개 열다섯 칸을 하나로.
+   그리는 중에는 저절로 펴지므로 이 단추는 그때 사라진다. */
+.tbtn.draw-toggle{display:inline-flex;align-items:center;gap:4px}
