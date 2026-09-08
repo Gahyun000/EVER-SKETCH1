@@ -164,7 +164,7 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
   if (page.cardKey === 'deckslide') {
     return (
       <div style={{ width: W, height: H, borderRadius: 8, boxShadow: '0 14px 40px rgba(20,25,40,.18)', overflow: 'hidden', background: '#fff' }}>
-        <img src={page.fields.img} alt="슬라이드" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        <img src={page.fields?.img} alt="슬라이드" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
       </div>
     )
   }
@@ -173,7 +173,11 @@ export default function PageView({ page, docTitle, orientation, size, font, tocI
   const pad = Math.round(24 * SC)
   const fontFamily = font === 'auto' ? "-apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" : font
   const card = cardByKey(page.cardKey)
-  const f = page.fields
+  // **글 서랍이 없을 수도 있다.** 지금 페이지를 만드는 길은 전부 `fields: {}` 를 넣지만,
+  // 그건 「오늘 넣고 있다」는 뜻이지 「없을 수 없다」는 뜻이 아니다 — 예전 자료,
+  // 손으로 고친 기록, 나중에 붙일 가져오기가 다 이 자리로 들어온다.
+  // 여기서 한 줄로 막지 않으면 아래 아홉 군데가 전부 터질 자리다.
+  const f = page.fields || {}
   // 인라인 편집 필드 — 편집 모드에선 contentEditable 스팬(FreeLayer 위 z-index:4)으로 그 자리에서 수정.
   // 비편집(내보내기/미리보기)에선 값(또는 자리표시자 대체값)만 그린다.
   // 항목을 드래그하면 그 자리 그대로 자유 객체로 떼어내 따라 움직인다(문턱 넘을 때만).

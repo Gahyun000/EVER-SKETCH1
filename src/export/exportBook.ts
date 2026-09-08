@@ -47,7 +47,7 @@ export async function exportBook(pages: Page[], settings: ExportSettings, projec
     }
     if (role === 'content') {
       seq++
-      out.push({ role, seq, title: p.fields.title || p.sectionId || (c ? c.title : '페이지' + seq), imageDataUrl: dataUrl })
+      out.push({ role, seq, title: p.fields?.title || p.sectionId || (c ? c.title : '페이지' + seq), imageDataUrl: dataUrl })
     } else {
       out.push({ role, imageDataUrl: dataUrl })
       if (role === 'toc') hotspots.push(...tocHotspots(node as HTMLElement))

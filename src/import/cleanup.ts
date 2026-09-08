@@ -34,7 +34,7 @@ export function analyzeCleanup(pages: Page[]): CleanupPlan {
         .filter((t) => KV.test(t))
       if (kv.length >= 2) {
         const h1 = p.blocks.find((b) => b.type === 'h1')
-        kpi.push({ pageId: p.id, title: h1?.text || p.fields.title || '기대 성과', kv: kv.slice(0, 3) })
+        kpi.push({ pageId: p.id, title: h1?.text || p.fields?.title || '기대 성과', kv: kv.slice(0, 3) })
       }
     }
   }

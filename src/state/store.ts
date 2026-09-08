@@ -397,7 +397,7 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     })
     if (!targets.length) return { ok: false, error: '요약할 본문 페이지가 없어요(먼저 HTML을 가져오세요).' }
     const sections = targets.map((p) => ({
-      title: p.fields.title || '',
+      title: p.fields?.title || '',
       text: (p.blocks || []).map((b) => b.text).filter(Boolean).join('\n'),
     }))
     let data: { ok?: boolean; error?: string; results?: Array<{ headline?: string; bullets?: string[] }> }
@@ -420,7 +420,7 @@ export const useBuilder = create<BuilderState>((set, get) => ({
         const r = results[idx]
         if (!r || !r.bullets || !r.bullets.length) return p   // 실패 섹션 → 원문(A) 유지
         applied++
-        const headline = r.headline || p.fields.title || '요약'
+        const headline = r.headline || p.fields?.title || '요약'
         const blocks: Block[] = [{ ...newBlock('h1', headline), bold: true }]
         r.bullets.forEach((b) => blocks.push(newBlock('bullet', b)))
         return { ...p, blocks, fields: { ...p.fields, title: headline } }

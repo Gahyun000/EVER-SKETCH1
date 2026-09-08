@@ -10,7 +10,7 @@ export function tocItems(pages: Page[]): TocItem[] {
     if (c && c.kind) return          // 표지·목차·뒷표지(kind 있는 프레임)는 목차 항목이 아님
     seq++                            // 모든 본문 페이지에서 증가(exportBook seq·핫스팟과 정렬)
     if (p.contd) return              // 넘침으로 이어진 페이지는 목차에 안 보이게(단 seq는 소비)
-    out.push({ seq, title: p.fields.title || p.sectionId || (c ? c.title : '페이지' + seq), page: i + 1 })
+    out.push({ seq, title: p.fields?.title || p.sectionId || (c ? c.title : '페이지' + seq), page: i + 1 })
   })
   return out
 }
