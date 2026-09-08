@@ -480,7 +480,8 @@ export default function LibraryScreen() {
               폴더째 지우면 안에 든 자료까지 함께 사라지므로, 그렇게 하지 않습니다.
             </>
           ) : (
-            <><b>{fPendingDel.name}</b> 폴더를 지웁니다. 비어 있어 잃는 자료는 없습니다.</>
+            <><b>{fPendingDel.name}</b> 폴더를 지웁니다. 비어 있어 잃는 자료는 없지만,
+              <b> 되돌릴 수 없습니다.</b></>
           )}
           {fErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{fErr}</div>}
         </Modal>

@@ -322,7 +322,14 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
             footClassName="es-confirm-actions"
             cancel={{ label: '취소', onClick: () => setConfirm(null) }}
             footer={<>
-              <button className={'es-mini ' + (confirm === 'approve' ? 'primary' : 'danger')}
+              {/* **빨강은 「잃는다」는 뜻이어야 한다.**
+                  여기 넷은 하나도 잃지 않는다 — 반려·거절은 자료가 그대로 남고,
+                  거두기는 이력에 남으며 다시 낼 수 있고, 그만두기는 고친 내용을 안 지운다.
+                  그런데 「승인이 아닌 것」이 전부 빨강이었다. 그러면 빨강이
+                  **「되돌릴 수 없다」가 아니라 「오른쪽 아닌 쪽」**이라는 뜻이 되고,
+                  정작 이북 삭제·계정 중지에서 빨강이 아무 말도 안 하게 된다.
+                  긍정은 채운 버튼, 그 밖은 테두리 버튼으로 가른다. */}
+              <button className={'es-mini' + (confirm === 'approve' ? ' primary' : '')}
                 disabled={busy}
                 onClick={() => {
                   const c = confirm

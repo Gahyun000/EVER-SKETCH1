@@ -180,6 +180,46 @@ check(/dismissible=\{false\}/.test(readBare('./src/auth/UsersAdmin.tsx')),
 check(/e\.key !== 'Escape'/.test(readBare('./src/builder/CardPicker.tsx')),
   '새 페이지 드롭다운도 Esc 로 닫힌다 — 모달이 아니어도 갇히면 안 된다')
 
+// ── 4. 빨강은 「잃는다」는 뜻이다 ──────────────────
+//
+// 표준은 「되돌릴 수 없는 일은 **눈으로도 글로도** 구분한다」고 적었다.
+// 지키기 전에는 빨강이 **「승인이 아닌 쪽」**이라는 뜻으로 쓰이고 있었다 —
+// 결재함의 반려·거절·거두기·그만두기가 전부 빨강인데 넷 다 아무것도 안 잃는다.
+// 빨강이 흔해지면, 정작 이북 삭제·계정 중지에서 **아무 말도 안 하게 된다.**
+//
+// 그래서 규칙을 뒤집어 못박는다:
+// **빨강 버튼이 있는 창은 무엇을 잃는지 글로 적혀 있어야 한다.**
+// 잃는 게 없으면 빨강을 쓰지 않는다 — 그게 「눈으로도 글로도」의 뜻이다.
+const LOSS = /되돌릴 수 없|지울 수 없|사라집니다|사라지므로|다시 로그인할 수 없|저장되지 않을 수 있/
+// **낱말만 본다.** 처음에는 `className={'... danger'}` 모양을 찾았는데,
+// UsersAdmin 의 중지 버튼은 `` className={`es-mini ${... ? 'danger' : 'primary'}`} `` 라
+// 안쪽 따옴표에서 끊겨 **아예 검사되지 않았다.** 가장 위험한 창 하나가
+// 조용히 빠져 있었던 셈이다 — 모양을 맞추는 정규식은 이렇게 샌다.
+const DANGER = /\bdanger\b/
+
+for (const f of tsxFiles) {
+  const src = bare(readFileSync(f, 'utf8'))
+  let i = 0
+  while ((i = src.indexOf('<Modal', i)) !== -1) {
+    const j = src.indexOf('</Modal>', i)
+    const seg = src.slice(i, j === -1 ? src.length : j)
+    i = j === -1 ? src.length : j + 1
+    if (!DANGER.test(seg)) continue
+    const title = (/title=(\{[^\n]*|"[^"]*")/.exec(seg) || [, '(제목 없음)'])[1].slice(0, 30)
+    check(LOSS.test(seg),
+      `빨강 버튼이 있는 창은 무엇을 잃는지 글로 적는다 — ${f.replace(ROOT, 'src/')} ${title}`)
+  }
+}
+
+// **이 검사의 한계를 적어 둔다.** 창 하나가 여러 일을 하면(결재함은 승인·반려·허락·
+// 거절·거두기·그만두기 여섯을 한 창으로 묻는다) 「빨강 버튼」과 「잃는다는 문구」가
+// **같은 갈래인지** 이 검사는 모른다 — 다른 갈래의 문구가 대신 걸린다.
+// 실제로 반려를 다시 빨강으로 되돌려 봤더니 잡히지 않았다.
+// 그래서 그 창만 따로, **무엇이 빨강이어야 하는지**를 못박는다.
+const ap = bare(read('./src/approvals/ApprovalsPanel.tsx'))
+check(/className=\{'es-mini' \+ \(confirm === 'approve' \? ' primary' : ''\)\}/.test(ap),
+  '결재함에서 빨강은 아무 데도 안 쓴다 — 여섯 갈래 중 잃는 것이 있는 갈래가 없다')
+
 // 본문 글자는 껍데기가 정한다 — 창마다 들고 오면 13px 과 13.5px 로 갈린다.
 check(/\.ui-modal-body\s*\{[^}]*font-size/.test(mcss), '본문 글자 크기를 껍데기가 한 곳에서 정한다')
 
