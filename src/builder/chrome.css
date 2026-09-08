@@ -426,3 +426,17 @@
 .insp-who-t{font-size:12px;font-weight:800;color:var(--ax-navy,#0F1B3D);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .insp-who-s{font-size:10.5px;color:#9aa3b2;font-weight:700;white-space:nowrap}
+
+/* 접이식 묶음 — 탭을 대신한다.
+   탭은 「지금 어느 탭인지」를 기억해야 하고, 찾는 것이 다른 탭에 있으면
+   네 번을 눌러 봐야 안다. 접힌 줄에 지금 값이 적혀 있으면 열지 않아도 읽힌다. */
+.insp-acc{display:flex;align-items:center;gap:6px;width:100%;border:none;background:none;
+  padding:7px 10px;cursor:pointer;font:inherit;text-align:left;
+  border-top:1px solid var(--ax-line);min-height:32px}
+.insp-acc:first-of-type{border-top:none}
+.insp-acc:hover{background:#f7f9fd}
+.insp-acc.on{background:#f7f9fd}
+.insp-acc .ch{font-size:10px;color:#9aa3b2;width:10px;flex:0 0 10px}
+.insp-acc .t{font-size:12px;font-weight:800;color:var(--ax-navy,#0F1B3D);white-space:nowrap}
+.insp-acc .sub{flex:1;min-width:0;text-align:right;font-size:10.5px;color:#9aa3b2;
+  font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

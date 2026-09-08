@@ -57,7 +57,15 @@ export default function RightPanel() {
   const setSelConn = useCanvasUI((s) => s.setSelConn)
   const patchConn = useBuilder((s) => s.patchConn)
   const removeConn = useBuilder((s) => s.removeConn)
-  const [tab, setTab] = useState<Tab>('text')
+  /** **탭이 아니라 접이식이다.**
+   *
+   *  탭은 「지금 어느 탭인지」를 사람이 기억해야 하고, 찾는 것이 다른 탭에 있으면
+   *  네 번을 눌러 봐야 안다. 접이식은 **네 묶음이 늘 한 화면에** 있고,
+   *  접힌 줄에 지금 값이 적혀 있어 열지 않아도 읽힌다(「12pt · 굵게」).
+   *  여러 개를 함께 펴 둘 수 있다 — 표를 고치면서 글자도 만지는 일이 흔하다. */
+  const [openSec, setOpenSec] = useState<Record<Tab, boolean>>(
+    { table: true, style: false, text: false, arrange: false })
+  const toggle = (k: Tab) => setOpenSec((o) => ({ ...o, [k]: !o[k] }))
   const page = pages.find((p) => p.id === selId)
   const conn = (selConn != null && page) ? page.conns[selConn] : undefined
   function patchC(pt: Partial<import('../../state/store').Conn>) {
@@ -97,7 +105,9 @@ export default function RightPanel() {
   useEffect(() => {
     if (!el) return
     const shapeLike = ['box', 'round', 'ellipse', 'diamond', 'triangle', 'sticky', 'image', 'icon', 'table', 'wordart']
-    setTab(el.type === 'table' ? 'table' : shapeLike.includes(el.type) ? 'style' : 'text')
+    // 예전에는 기본 탭을 골라 줬다. 지금은 **그 묶음을 펴 준다** — 나머지는 접은 채로 둔다.
+    const k: Tab = el.type === 'table' ? 'table' : shapeLike.includes(el.type) ? 'style' : 'text'
+    setOpenSec({ table: false, style: false, text: false, arrange: false, [k]: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selElId])
 
@@ -217,6 +227,22 @@ export default function RightPanel() {
   const cellFs = (el && ts && el.cfs && el.cfs[Math.min(ts.r0, ts.r1) + '_' + Math.min(ts.c0, ts.c1)]) || (el ? el.fs : 12)
   const selCount = ts ? (Math.abs(ts.r1 - ts.r0) + 1) * (Math.abs(ts.c1 - ts.c0) + 1) : 0
 
+  /** 접힌 줄에 적을 **지금 값**.
+   *
+   *  이게 접이식의 값어치다 — 열어 보지 않아도 읽힌다.
+   *  「스타일」처럼 열어야만 알 수 있으면 탭과 다를 게 없다. */
+  const secSub = {
+    table: el && el.type === 'table' ? `${el.rows ?? 0}행 ${el.cols ?? 0}열` : '',
+    style: el ? [el.color && el.color !== 'transparent' ? '채움' : '',
+                 el.borderWidth ? `테두리 ${el.borderWidth}` : '',
+                 el.shadow ? '그림자' : ''].filter(Boolean).join(' · ') || '기본' : '',
+    text: el ? [`${Math.round(el.fs || 0)}pt`, el.bold ? '굵게' : '', el.italic ? '기울임' : '',
+                el.underline ? '밑줄' : ''].filter(Boolean).join(' · ') : '',
+    arrange: el ? [`${Math.round(el.w)}×${Math.round(el.h)}`,
+                   el.rot ? `${Math.round(el.rot)}°` : '',
+                   el.locked ? '잠김' : ''].filter(Boolean).join(' · ') : '',
+  }
+
   // 고른 것의 이름 — 표준 양식이면 문서 안의 이름표, 아니면 생김새 이름.
   const EL_NAME: Record<string, string> = {
     table: '표', text: '글상자', icon: '아이콘', wordart: '꾸민 글자', note: '메모',
@@ -243,14 +269,15 @@ export default function RightPanel() {
             <span className="insp-who-t">{whoLabel}</span>
             {whoSub ? <span className="insp-who-s">{whoSub}</span> : null}
           </div>
-          <div className="insp-tabs">
-            {el.type === 'table' ? <button className={tab === 'table' ? 'on' : ''} onClick={() => setTab('table')}>표</button> : null}
-            <button className={tab === 'style' ? 'on' : ''} onClick={() => setTab('style')}>스타일</button>
-            <button className={tab === 'text' ? 'on' : ''} onClick={() => setTab('text')}>텍스트</button>
-            <button className={tab === 'arrange' ? 'on' : ''} onClick={() => setTab('arrange')}>정렬</button>
-          </div>
           <div className="insp-body">
-            {tab === 'table' && el.type === 'table' && (<>
+            {el.type === 'table' && (<>
+              <button className={'insp-acc' + (openSec.table ? ' on' : '')}
+                onClick={() => toggle('table')} aria-expanded={openSec.table}>
+                <span className="ch">{openSec.table ? '▾' : '▸'}</span>
+                <span className="t">표</span>
+                <span className="sub">{secSub.table}</span>
+              </button>
+              {openSec.table && (<>
               <div className="insp-sec">활성 셀 {ts ? `(${Math.min(ts.r0, ts.r1) + 1}행, ${Math.min(ts.c0, ts.c1) + 1}열)` : '— 표에서 셀 클릭'}</div>
 
               {inTemplate && (
@@ -336,9 +363,17 @@ export default function RightPanel() {
                 <label className="insp-check"><input type="checkbox" checked={el.headRow !== false} onChange={(e) => patchTable({ headRow: e.target.checked })} /> 헤더행</label>
               </div>
               <span style={cap}>셀을 드래그하면 범위가 잡힙니다(Shift+클릭도 범위). 글자 수정은 표를 더블클릭. 표 자체를 옮길 땐 표 가장자리를 끌거나 방향키를 쓰세요.</span>
+              </>)}
             </>)}
 
-            {tab === 'style' && (<>
+            {(<>
+              <button className={'insp-acc' + (openSec.style ? ' on' : '')}
+                onClick={() => toggle('style')} aria-expanded={openSec.style}>
+                <span className="ch">{openSec.style ? '▾' : '▸'}</span>
+                <span className="t">스타일</span>
+                <span className="sub">{secSub.style}</span>
+              </button>
+              {openSec.style && (<>
               {el.type === 'image' && el.src ? (<>
                 <div className="insp-sec">사진</div>
                 <div className="insp-row">
@@ -360,9 +395,17 @@ export default function RightPanel() {
                 <label className="insp-check"><input type="checkbox" checked={!!el.shadow} onChange={(e) => patch({ shadow: e.target.checked })} /> 그림자</label>
                 <label className="insp-check"><input type="checkbox" checked={!!el.reflect} onChange={(e) => patch({ reflect: e.target.checked })} /> 반사</label>
               </div>
+              </>)}
             </>)}
 
-            {tab === 'text' && (<>
+            {(<>
+              <button className={'insp-acc' + (openSec.text ? ' on' : '')}
+                onClick={() => toggle('text')} aria-expanded={openSec.text}>
+                <span className="ch">{openSec.text ? '▾' : '▸'}</span>
+                <span className="t">텍스트</span>
+                <span className="sub">{secSub.text}</span>
+              </button>
+              {openSec.text && (<>
               <div className="insp-sec">글자</div>
               <div className="insp-row">
                 <button className={'insp-b' + (el.bold ? ' on' : '')} onClick={() => patch({ bold: !el.bold })}><b>B</b></button>
@@ -383,9 +426,17 @@ export default function RightPanel() {
                 <button className="insp-pill" onClick={() => emit('ebook:bullet')}>글머리표</button>
                 <button className="insp-pill" onClick={() => emit('ebook:fmt-clear')}>서식 지우기</button>
               </div>
+              </>)}
             </>)}
 
-            {tab === 'arrange' && (<>
+            {(<>
+              <button className={'insp-acc' + (openSec.arrange ? ' on' : '')}
+                onClick={() => toggle('arrange')} aria-expanded={openSec.arrange}>
+                <span className="ch">{openSec.arrange ? '▾' : '▸'}</span>
+                <span className="t">정렬</span>
+                <span className="sub">{secSub.arrange}</span>
+              </button>
+              {openSec.arrange && (<>
               <div className="insp-sec">순서</div>
               <div className="insp-row">
                 <button className="insp-pill" onClick={() => emit('ebook:z-front')}>맨 앞으로</button>
@@ -416,6 +467,7 @@ export default function RightPanel() {
                 <button className="insp-pill" disabled={el.groupId == null} onClick={() => { if (page && el.groupId != null) ungroupEls(page.id, page.els.filter((x) => x.groupId === el.groupId).map((x) => x.id)) }}>그룹 해제</button>
               </div>
               <span style={cap}>여러 요소를 Shift+클릭하거나 빈 곳을 드래그해 함께 고른 뒤 그룹화하세요.</span>
+              </>)}
             </>)}
           </div>
         </>

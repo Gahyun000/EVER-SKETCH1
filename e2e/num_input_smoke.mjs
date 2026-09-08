@@ -39,8 +39,14 @@ await p.waitForTimeout(700)
 const head = () => p.locator('.stage .fel.text').filter({ hasText: '임원회의' }).first()
 await head().click()
 await p.waitForTimeout(400)
-const tab = p.locator('button', { hasText: '텍스트' }).first()
-if (await tab.count()) { await tab.click(); await p.waitForTimeout(300) }
+// 2026-09-08: 탭이 **접이식**으로 바뀌었다. 예전에는 누르면 그 탭으로 갔지만
+// 지금은 **여닫는다** — 글상자를 고르면 「텍스트」가 이미 펴져 있으므로,
+// 그냥 누르면 오히려 닫혀서 칸이 사라진다. 닫혀 있을 때만 편다.
+const sec = p.locator('.insp-acc', { hasText: '텍스트' }).first()
+if (await sec.count()) {
+  const open = (await sec.getAttribute('aria-expanded')) === 'true'
+  if (!open) { await sec.click(); await p.waitForTimeout(300) }
+}
 
 const size = p.locator('input[aria-label="글자 크기"]')
 ok('(사전) 글자 크기 칸을 찾았다', await size.count() === 1)
