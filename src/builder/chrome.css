@@ -378,3 +378,44 @@
   font-weight:700;color:#0F1B3D}
 .pv-zoom .fitb{margin-left:3px}
 .pv-zoom .fitb.on{background:#EAF1FE;border-color:#bcd2fb;color:#2462EB;font-weight:700}
+
+/* ── 결재 카드 (오른쪽 패널 맨 위 고정) ────────────────────
+   자리는 「ㄱ」— 탭보다 위. 접힌 줄이 32px 을 늘 먹는 대신,
+   표를 고치는 중에도 「저장 안 됨」이 눈에 든다(사용자 결정 2026-09-08). */
+.apc{flex:0 0 auto;border-bottom:1px solid var(--ax-line);background:#f7f9fd}
+.apc-draft,.apc-revising{background:#EAF1FE}
+.apc-pending{background:#FFF4E3}
+.apc-approved{background:#E9F5EF}
+.apc-rejected{background:#FDECEC}
+.apc-readonly{background:#f4f6fa}
+.apc-hd{display:flex;align-items:center;gap:6px;width:100%;border:none;background:none;
+  padding:7px 10px;cursor:pointer;font:inherit;text-align:left;min-height:32px}
+.apc-st{font-size:10.5px;font-weight:800;border-radius:20px;padding:1px 8px;background:#fff;
+  border:1px solid rgba(0,0,0,.08);color:#0F1B3D;white-space:nowrap}
+.apc-rd{font-size:10px;color:#5B6270;white-space:nowrap}
+.apc-brief{flex:1;min-width:0;font-size:10.5px;color:#8a5a12;font-weight:700;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.apc-ch{font-size:10px;color:#9aa3b2}
+.apc-body{padding:0 10px 10px}
+.apc-ms{font-size:11px;color:#5B6270;line-height:1.6;margin:0 0 7px}
+.apc-ms b{color:#0F1B3D}
+.apc-ms .frz{color:#a1651a;font-weight:700}
+.apc-quote{font-size:10.5px;color:#8a2f27;background:#fff;border:1px solid #f0cdc8;
+  border-radius:6px;padding:5px 7px;margin:0 0 7px;line-height:1.6}
+.apc-chk{display:flex;flex-direction:column;gap:3px;margin:0 0 8px}
+.apc-chk div{display:flex;align-items:center;gap:5px;font-size:10.5px;
+  background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:6px;padding:3px 7px}
+.apc-chk .i{width:13px;text-align:center;font-size:10px;flex:0 0 13px}
+.apc-chk .ok{color:#24724b} .apc-chk .ok .i{color:#3E9E6E}
+.apc-chk .no{color:#8a5a12} .apc-chk .no .i{color:#D98A2A}
+.apc-chk .go{margin-left:auto;font-size:9.5px;color:#2462EB;font-weight:800;
+  border:none;background:none;cursor:pointer;padding:0;font-family:inherit;white-space:nowrap}
+.apc-chk .go:hover{text-decoration:underline}
+.apc-btn{display:block;width:100%;text-align:center;border-radius:7px;padding:6px 0;
+  font-size:11.5px;font-weight:800;border:1px solid #0F1B3D;background:#0F1B3D;color:#fff;
+  cursor:pointer;font-family:inherit}
+.apc-btn.line{background:#fff;color:#0F1B3D}
+.apc-btn:hover{filter:brightness(1.08)}
+.apc-note{margin-top:10px;background:#FFF4E3;border:1px solid #f0dcbb;border-radius:7px;
+  padding:7px 9px;font-size:11.5px;color:#8a5a12;line-height:1.6}
+.apc-note b{color:#0F1B3D}

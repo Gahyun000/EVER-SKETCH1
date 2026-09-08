@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import NumInput from './NumInput'
+import ApprovalCard from './ApprovalCard'
 import { useBuilder } from '../../state/store'
 import type { PaperType } from '../../state/store'
 import { useCanvasUI } from '../../state/canvasUI'
@@ -217,6 +218,9 @@ export default function RightPanel() {
 
   return (
     <div className="ax-inspector">
+      {/* **맨 위 고정**(사용자 결정 ㄱ). 탭보다 위라 무엇을 골랐든 늘 보인다 —
+          표를 고치는 중에도 「저장 안 됨」이 눈에 든다. 접힌 줄은 32px 이다. */}
+      <ApprovalCard />
       {el ? (
         <>
           <div className="insp-tabs">
