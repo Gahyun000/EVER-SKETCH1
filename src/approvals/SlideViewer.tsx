@@ -3,18 +3,18 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import PageWithCanvas from '../cards/PageWithCanvas'
 import { pageSize } from '../cards/sizing'
 import { tocItems } from '../builder/util'
-import type { DraftStateSnapshot } from '../persistence/draftStorage'
+import { fullPages, fullPage, type DraftStateSnapshot } from '../persistence/draftStorage'
 import type { Page } from '../state/store'
 
 /** 주어진 가로폭에 맞춰 페이지 한 장을 축소 렌더. */
 export function ScaledPage({ snap, page, width }: { snap: DraftStateSnapshot; page: Page; width: number }) {
   const { W, H } = pageSize(snap.orientation)
   const k = width / W
-  const items = tocItems(snap.pages)
+  const items = tocItems(fullPages(snap.pages))
   return (
     <div className="ap-scaler" style={{ width, height: Math.round(H * k) }}>
       <div style={{ transform: `scale(${k})`, width: W, height: H }}>
-        <PageWithCanvas page={page} docTitle={snap.title} orientation={snap.orientation} size={snap.size} font={snap.font} tocItems={items} interactive={false} />
+        <PageWithCanvas page={fullPage(page)} docTitle={snap.title} orientation={snap.orientation} size={snap.size} font={snap.font} tocItems={items} interactive={false} />
       </div>
     </div>
   )
@@ -30,7 +30,9 @@ interface ViewerProps {
 
 /** 필름스트립 + 큰 스테이지. 스테이지는 컨테이너 폭/높이에 맞춰 자동 축소. */
 export default function SlideViewer({ snap, idx, onIdx, badge, children }: ViewerProps) {
-  const pages = snap.pages || []
+  // **결재 스냅샷은 `fullState` 를 안 거친다.** 얼린 그대로 서버에서 온다 —
+  // 옛 자료·손으로 넣은 자료는 쪽에 칸이 빠져 있을 수 있다. 여기서 메운다.
+  const pages = fullPages(snap.pages)
   const stageRef = useRef<HTMLDivElement>(null)
   const [stageW, setStageW] = useState(600)
   useEffect(() => {

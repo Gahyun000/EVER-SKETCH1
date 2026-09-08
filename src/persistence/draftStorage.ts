@@ -33,6 +33,42 @@ export interface DraftMeta {
   pageCount: number
 }
 
+/** 저장된 쪽의 **빠진 칸을 메운다.**
+
+ *  `Page` 타입은 `els`·`conns`·`strokes` 를 **반드시 있다**고 적어 두었다.
+ *  그런데 쪽은 **서버 JSON 에서** 온다 — 타입은 거기까지 못 간다.
+ *  칸이 하나 없으면 `page.conns.map(...)` 이 멈추고, React 는 멈춘 부분을
+ *  통째로 지운다: **결재함 상세가 하얘지고, 그 위에 떠 있던 확인창까지 같이 사라진다.**
+ *  오류 메시지도 안 뜬다. 쓰는 사람 눈에는 「눌렀는데 아무 일도 안 일어난다」로만 보인다.
+ *
+ *  **`fields` 때와 같은 부류다.** 그때는 읽는 자리마다 `?.` 를 붙였는데,
+ *  `els`·`conns`·`strokes` 는 읽는 자리가 서른 곳이 넘는다 —
+ *  자리마다 막으면 다음에 새로 쓰는 한 줄이 또 샌다.
+ *  그래서 **들어오는 문 두 곳**(`fullState` · 결재 스냅샷 뷰어)에서 한 번 메운다.
+ *
+ *  **있는 값은 절대 안 건드린다.** 없는 칸만 채운다.
+ *  id 가 없는 쪽에는 **음수**를 준다 — 0 을 돌려주면 그런 쪽이 여럿일 때
+ *  React key 가 겹쳐 엉뚱한 쪽이 그려진다. 진짜 id 와도 안 부딪힌다. */
+export function fullPage(p?: Partial<Page> | null, i = 0): Page {
+  const s = (p || {}) as Partial<Page>
+  const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
+  return {
+    ...s,
+    id: typeof s.id === 'number' ? s.id : -(i + 1),
+    cardKey: s.cardKey || '',
+    fields: s.fields && typeof s.fields === 'object' ? s.fields : {},
+    free: !!s.free,
+    els: arr(s.els),
+    conns: arr(s.conns),
+    strokes: arr(s.strokes),
+  } as Page
+}
+
+/** 쪽 목록째로 메운다. 목록 자체가 없으면 빈 목록. */
+export function fullPages(pages?: unknown): Page[] {
+  return Array.isArray(pages) ? pages.map((p, i) => fullPage(p as Partial<Page>, i)) : []
+}
+
 const nowIso = () => new Date().toISOString()
 
 export function snapshotFromState(s: Pick<BuilderState, 'title' | 'orientation' | 'theme' | 'font' | 'size' | 'selectedPageId' | 'pages'>): DraftStateSnapshot {

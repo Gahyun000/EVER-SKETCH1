@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { lastOrientation } from './prefs'
 import { stripSlotConns, unlockLegacySlots } from '../template/legacyUnlock'
 import { useBuilder, reseedUids, type BuilderState } from '../state/store'
-import { snapshotFromState, type DraftStateSnapshot } from './draftStorage'
+import { snapshotFromState, fullPages, type DraftStateSnapshot } from './draftStorage'
 import {
   apiListProjects, apiCreateProject, apiCreateFromTemplate, apiGetProject, apiRenameProject,
   apiDeleteProject, apiDuplicateProject, type ProjectMeta, type ProjectFull, type ProjectAccess,
@@ -34,7 +34,8 @@ function fullState(st?: Partial<DraftStateSnapshot> | null): DraftStateSnapshot 
   const s = st || {}
   return {
     ...base, ...s,
-    pages: Array.isArray(s.pages) ? s.pages : [],
+    // 쪽 안의 빠진 칸(els·conns·strokes)까지 메운다 — 하나만 없어도 화면이 하얘진다.
+    pages: fullPages(s.pages),
   } as DraftStateSnapshot
 }
 
