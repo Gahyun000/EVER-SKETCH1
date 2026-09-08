@@ -1,3 +1,5 @@
+import Modal from '../ui/Modal'
+
 const SHORTCUTS: { k: string; d: string }[] = [
   { k: '⌘/Ctrl + Z', d: '되돌리기' },
   { k: '⌘/Ctrl + ⇧ + Z', d: '다시 실행' },
@@ -15,10 +17,12 @@ const SHORTCUTS: { k: string; d: string }[] = [
 
 export default function Help({ open, onClose, onStartTutorial }: { open: boolean; onClose: () => void; onStartTutorial: () => void }) {
   if (!open) return null
-  return (<div className="scrim on" onClick={(e) => { if ((e.target as HTMLElement).classList.contains('scrim')) onClose() }}>
-    <div className="modal">
-      <button className="close" onClick={onClose}>확인</button>
-      <h2>이렇게 쓰면 됩니다</h2>
+  // 예전에는 손으로 그린 덮개였다 — Esc 는 Hotkeys 가 따로 받아 주고 있었지만
+  // 포커스 가두기·되돌리기·배경 스크롤 잠금은 없었다. 껍데기를 쓰면 다 따라온다.
+  return (
+    <Modal title="이렇게 쓰면 됩니다" onClose={onClose} size="sm"
+      scrimClassName="scrim on" className="modal"
+      cancel={{ label: '확인', onClick: onClose }}>
       <ol>
         <li>왼쪽에서 <b>카드</b>를 고릅니다 (표지·가치제안·성과 등).</li>
         <li>오른쪽에서 <b>칸을 채웁니다</b> — 예시가 들어 있어 그대로 둬도 돼요.</li>
@@ -37,6 +41,6 @@ export default function Help({ open, onClose, onStartTutorial }: { open: boolean
           {SHORTCUTS.map((s) => (<tr key={s.k}><td className="kbd-k">{s.k}</td><td className="kbd-d">{s.d}</td></tr>))}
         </tbody></table>
       </div>
-    </div>
-  </div>)
+    </Modal>
+  )
 }

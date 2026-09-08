@@ -62,9 +62,9 @@ export default function NewProjectDialog({
       error={err}
       size="sm"
       className="np-modal"
+      cancel={{ label: '취소', onClick: onClose }}
       footer={
         <>
-          <button className="lib-btn" onClick={onClose} disabled={busy}>취소</button>
           <button className="lib-btn dark" onClick={() => void create()} disabled={busy}>
             {busy ? '만드는 중…' : '만들기'}
           </button>

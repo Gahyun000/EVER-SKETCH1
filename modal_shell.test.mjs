@@ -20,6 +20,19 @@ import { join } from 'node:path'
 const read = (p) => readFileSync(new URL(p, import.meta.url).pathname, 'utf8')
 const ROOT = new URL('./src/', import.meta.url).pathname
 
+/**
+ * **주석을 걷어 낸 소스.** 이걸 안 쓰면 검사가 거짓으로 통과한다 —
+ * 바로 위 주석이 찾으려는 글자를 적어 두고 있으면, 정작 코드에서 지워도 주석이 걸린다.
+ * 이 파일에서 **두 번** 그랬다(2026-09-08): `dismissible={false}` 와 `cancel="closeX"`.
+ * 둘 다 「왜 이렇게 했는지」를 주석에 적어 둔 자리라, 앞으로도 계속 그럴 것이다.
+ * 그래서 소스에서 무언가를 찾는 검사는 **전부** 이걸 통과시킨다.
+ */
+const bare = (src) => src
+  .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*\/\/.*$/gm, '')
+const readBare = (p) => bare(read(p))
+
 let pass = 0, fail = 0
 const check = (cond, label, extra = '') => {
   if (cond) { pass++; console.log('✓ ' + label) }
@@ -81,16 +94,49 @@ const walkTsx = (dir) => {
 }
 walkTsx(ROOT)
 
-const HAND = /<div\s+className=(["'])[^"']*\b(es-confirm|lib-confirm|ui-scrim)\b/
+// A② 때는 확인창 셋(es-confirm·lib-confirm·ui-scrim)만 봤다. 그래서
+// 도움말·환경설정·AI정리·예시영상·삽입 다섯이 손으로 그린 채로 통과했다 —
+// **검사가 좁으면 「없다」가 아니라 「안 봤다」다.** 덮개 이름을 다 적는다.
+// **낱말 하나를 통째로** 본다. `\b...\b` 로 `scrim` 을 찾으면 `cpk-scrim` 까지 걸린다
+// (`-` 와 `s` 사이가 낱말 경계다). 실제로 걸렸고, 그건 대화상자가 아니다.
+const DIALOG_SCRIMS = ['es-confirm', 'lib-confirm', 'ui-scrim', 'scrim', 'demo-scrim', 'ins-scrim']
+// **예외 하나.** `cpk-scrim` 은 「새 페이지」 버튼에 붙은 **드롭다운**의 클릭 받이다.
+// 화면 가운데 뜨는 창이 아니라 ui/Modal 로 옮기지 않는다 — 대신 Esc 를 넣었고,
+// 그건 아래에서 따로 확인한다. 예외를 **글로 적어 둔다**: 다음 사람이
+// 「왜 이건 통과하지」를 코드에서 찾지 않도록.
+const classOf = (line) => {
+  const m = /<div\s+className=(["'])([^"']*)\1/.exec(line)
+  return m ? m[2].split(/\s+/) : []
+}
+const HAND = (line) => classOf(line).some((c) => DIALOG_SCRIMS.includes(c))
 const hits = []
 for (const f of tsxFiles) {
-  readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
-    if (HAND.test(line)) hits.push(`${f.replace(ROOT, 'src/')}:${i + 1}`)
+  bare(readFileSync(f, 'utf8')).split('\n').forEach((line, i) => {
+    if (HAND(line)) hits.push(`${f.replace(ROOT, 'src/')}:${i + 1}`)
   })
 }
 check(hits.length === 0,
   '스크림을 손으로 그린 곳이 없다 — 확인창은 ui/Modal 로만 만든다',
   hits.join(', '))
+
+// ── 2-2. 덮개 클래스가 껍데기와 싸우지 않는다 ───────────
+//
+// `scrimClassName` 은 `.ui-scrim` 과 **같은 요소**에 붙는다. 그 클래스가
+// position·z-index 를 다시 적으면 어느 쪽이 이기는지 **번들 순서가 정한다** —
+// 오늘 되고 내일 안 되는 종류의 버그다.
+const SCRIMS = ['scrim', 'demo-scrim', 'ins-scrim', 'es-confirm', 'lib-confirm']
+for (const f of cssFiles) {
+  const src = readFileSync(f, 'utf8')
+  for (const name of SCRIMS) {
+    const re = new RegExp('\\.' + name + '\\s*\\{([^}]*)\\}', 'g')
+    let m
+    while ((m = re.exec(src))) {
+      check(!/z-index|position\s*:\s*fixed/.test(m[1]),
+        `.${name} 이 껍데기의 자리·순서를 다시 적지 않는다 (${f.replace(ROOT, 'src/')})`,
+        m[1].trim().slice(0, 60))
+    }
+  }
+}
 
 // ── 3. 껍데기가 지키기로 한 것들 ────────────────────
 const modal = read('./src/ui/Modal.tsx')
@@ -103,23 +149,36 @@ check(/prev && document\.contains\(prev\)\) prev\.focus\(\)/.test(modal), '닫�
 check(/e\.key !== 'Tab'/.test(modal) && /first\.focus\(\)/.test(modal), 'Tab 이 창 안에 갇힌다')
 check(/role="dialog" aria-modal="true"/.test(modal), '읽어 주는 도구에게 대화상자라고 알린다')
 
-// 닫기 ✕ 는 없다 — 모든 창에 「취소」가 있다(사용자 결정 2026-09-08).
-// 대신 **나가는 길이 하나도 없는 창**을 못 만들도록 footer 를 필수로 받는다.
-check(!/ui-modal-x/.test(modal) && !/ui-modal-x/.test(mcss),
-  '닫기 ✕ 는 없다 — 나가는 길은 「취소」 하나로 족하다')
-check(/\n  footer: ReactNode/.test(modal),
-  'footer 는 필수다 — 비워 두면 Esc 를 아는 사람만 나갈 수 있는 창이 된다')
+// **나가는 길은 타입이 지킨다.**
+// `footer` 만 필수이던 때에는 「footer 가 있다」만 보장했지 「나갈 수 있다」를
+// 보장하지 않았다 — `footer={<button>삭제</button>}` 하나짜리 창을 만들 수 있었다.
+check(/\n  cancel: ModalCancel/.test(modal),
+  'cancel 은 필수다 — 나가는 길이 없는 창은 타입이 거절한다')
+check(/footer\?: ReactNode/.test(modal),
+  'footer 는 선택이다 — 보기만 하는 창은 행동 버튼이 없다')
+check(/\{ label: string; onClick: \(\) => void \} \| 'closeX'/.test(modal),
+  '나가는 길은 「버튼」이거나 「✕」다 — 둘 다 없을 수는 없다')
+check(/cancel === 'closeX' \? \([\s\S]{0,200}ui-modal-x/.test(modal),
+  '✕ 는 closeX 라고 적은 창에만 나온다')
+
+// 취소가 없는 창(보기만 하는 창)은 실제로 closeX 를 쓰고 있는가.
+for (const [f, why] of [['./src/builder/DemoPlayer.tsx', '예시영상'],
+                        ['./src/builder/InsertPicker.tsx', '삽입 고르기']]) {
+  check(/cancel="closeX"/.test(readBare(f)), `${why} 은 취소가 없으므로 ✕ 를 단다`)
+}
 
 // **`busy` 와 `dismissible` 은 다른 일을 한다.** 한 값이 겸하면,
 // 처리가 끝난 뒤 Esc 한 번에 임시 비밀번호가 사라진다.
 check(/dismissible\?: boolean/.test(modal) && /dismissRef\.current/.test(modal),
   '「아직 안 끝났다(busy)」와 「실수로 닫으면 되돌릴 수 없다(dismissible)」를 갈라 둔다')
-// **주석을 걷어 내고 본다.** 바로 위 주석이 `dismissible={false}` 라고 적어 두었기 때문에,
-// 그냥 찾으면 속성을 지워도 주석이 대신 걸려 **검사가 거짓으로 통과한다.**
-// 실제로 그랬다 — 일부러 지워 봤더니 아무것도 안 잡혔다(2026-09-08).
-const bare = (src) => src.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '')
-check(/dismissible=\{false\}/.test(bare(read('./src/auth/UsersAdmin.tsx'))),
+check(/dismissible=\{false\}/.test(readBare('./src/auth/UsersAdmin.tsx')),
   '임시 비밀번호 창은 Esc 로 안 닫힌다 — 그 창에만 있는 값이다')
+
+// **대화상자가 아니어도 나가는 길은 있어야 한다.**
+// 「새 페이지 고르기」는 버튼에 붙은 드롭다운이라 ui/Modal 로 옮기지 않았다.
+// 그런데 나가는 길이 **바깥 누르기 하나뿐이었다** — 버튼도 Esc 도 없었다.
+check(/e\.key !== 'Escape'/.test(readBare('./src/builder/CardPicker.tsx')),
+  '새 페이지 드롭다운도 Esc 로 닫힌다 — 모달이 아니어도 갇히면 안 된다')
 
 // 본문 글자는 껍데기가 정한다 — 창마다 들고 오면 13px 과 13.5px 로 갈린다.
 check(/\.ui-modal-body\s*\{[^}]*font-size/.test(mcss), '본문 글자 크기를 껍데기가 한 곳에서 정한다')

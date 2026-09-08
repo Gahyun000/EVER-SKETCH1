@@ -18,16 +18,35 @@ import './modal.css'
  */
 export type ModalSize = 'sm' | 'md' | 'lg'
 
+/**
+ * **나가는 길.** 이 값이 없는 창은 만들 수 없다 — 타입이 막는다.
+ *
+ * 예전에는 `footer` 만 필수였다. 그건 「footer 가 있다」를 보장했지 「나갈 수 있다」를
+ * 보장하지 않았다 — `footer={<button>삭제</button>}` 하나짜리 창을 만들 수 있었고,
+ * 거기에 `dismissible={false}` 를 얹으면 **나갈 길이 아예 없는 창**이 됐다.
+ *
+ * 규칙을 검사에 두지 않고 타입에 둔다. 이 저장소가 반복해서 데인 것이
+ * 「문서에는 보장이라 적혀 있는데 지키는 코드가 없다」였다.
+ *
+ *   · `{ label, onClick }` — 나가는 버튼을 껍데기가 **맨 앞에** 그린다.
+ *     라벨은 창마다 다르다(「취소」·「닫기」·「그대로 두기」) — 하는 일이 같을 뿐이다.
+ *   · `'closeX'` — 나가는 버튼이 마땅치 않은 창(보기만 하는 창)에 ✕ 를 단다.
+ *     **취소가 없는 창은 이쪽이다.** 둘 다 없을 수는 없다.
+ */
+export type ModalCancel = { label: string; onClick: () => void } | 'closeX'
+
 export default function Modal({
-  title, onClose, children, footer, size = 'md', busy = false, error, dismissible = true,
+  title, onClose, children, cancel, footer, size = 'md', busy = false, error, dismissible = true,
   className = '', scrimClassName = '', footClassName = '', labelId,
 }: {
   title: ReactNode
   onClose: () => void
   children: ReactNode
-  /** **필수다.** 닫기 ✕ 를 없앴으므로(모든 창에 「취소」가 있다) 여기가 유일한
-   *  눈에 보이는 출구다. 비워 두면 Esc 를 아는 사람만 나갈 수 있는 창이 된다. */
-  footer: ReactNode
+  /** 나가는 길 — **필수**. 위 ModalCancel 설명 참고. */
+  cancel: ModalCancel
+  /** **행동** 버튼만. 나가는 버튼은 여기 넣지 않는다 — `cancel` 이 그린다.
+   *  보기만 하는 창은 행동이 없으므로 비워 둔다. */
+  footer?: ReactNode
   size?: ModalSize
   /** 처리 중에는 닫지 않는다 — 절반만 저장된 상태로 창이 사라지면 무엇이 참인지 알 수 없다. */
   busy?: boolean
@@ -103,10 +122,23 @@ export default function Modal({
       <div className={'ui-modal ' + size + ' ' + className} ref={boxRef} tabIndex={-1}>
         <div className="ui-modal-head">
           <h3 id={tid}>{title}</h3>
+          {cancel === 'closeX' ? (
+            <button className="ui-modal-x" onClick={onClose} disabled={busy} aria-label="닫기">✕</button>
+          ) : null}
         </div>
         {error ? <div className="ui-modal-err" role="alert">{error}</div> : null}
         <div className="ui-modal-body">{children}</div>
-        <div className={'ui-modal-foot ' + footClassName}>{footer}</div>
+        {/* 나가는 버튼이 **맨 앞**이다. 열두 창의 자리가 같아야 눈이 안 헤맨다. */}
+        {cancel !== 'closeX' || footer ? (
+          <div className={'ui-modal-foot ' + footClassName}>
+            {cancel !== 'closeX' ? (
+              <button className="ui-modal-cancel" onClick={cancel.onClick} disabled={busy}>
+                {cancel.label}
+              </button>
+            ) : null}
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   )

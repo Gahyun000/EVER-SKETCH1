@@ -31,6 +31,7 @@ import { useProjects } from '../persistence/projects'
 import { hasUnsavedChanges, useAutosave } from '../persistence/autosave'
 import ConfirmSaveModal from '../persistence/ConfirmSaveModal'
 import type { ConfirmSaveRequest } from '../persistence/ConfirmSaveModal'
+import Modal from '../ui/Modal'
 
 export default function Layout() {
   useCanvasCommands()
@@ -141,12 +142,11 @@ export default function Layout() {
     <TutorialCoach open={tutorial} onClose={() => setTutorial(false)} />
     <TutorialPlayer open={tutorialPlay} onClose={() => setTutorialPlay(false)} />
     {settings ? (
-      <div className="scrim on settings-scrim" onClick={(e) => { if ((e.target as HTMLElement).classList.contains('scrim')) setSettings(false) }}>
-        <div className="settings-modal">
-          <button className="close" onClick={() => setSettings(false)}>확인</button>
-          <SettingsPage />
-        </div>
-      </div>
+      <Modal title="환경설정" onClose={() => setSettings(false)} size="lg"
+        scrimClassName="scrim on settings-scrim" className="settings-modal"
+        cancel={{ label: '확인', onClick: () => setSettings(false) }}>
+        <SettingsPage />
+      </Modal>
     ) : null}
     {!chat ? <button className="chat-fab" onClick={() => setChat(true)}>💬 챗봇</button> : null}
     <ChatPanel isOpen={chat} onClose={() => setChat(false)} screenContext={{ page: 'builder' }} onUiAction={applyUiAction} />

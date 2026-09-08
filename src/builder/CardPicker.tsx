@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useBuilder } from '../state/store'
 import { CARD_REGISTRY } from '../cards/registry'
@@ -46,6 +46,21 @@ export default function CardPicker() {
     setOpen((o) => !o)
   }
   function pick(key: string) { addCard(key); setOpen(false); setQ('') }
+
+  /* **이건 모달이 아니라 드롭다운이다** — 버튼에 붙어 뜨므로 ui/Modal 로 옮기지 않는다.
+     그런데 나가는 길이 **바깥 누르기 하나뿐이었다.** 버튼도 없고 Esc 도 안 먹어서,
+     그걸 모르는 사람은 갇힌다. 대화상자가 아니어도 나가는 길은 있어야 한다. */
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // 캔버스가 window 에서 Escape 를 듣고 있다 — 그냥 두면 골라 둔 것까지 함께 풀린다.
+      e.preventDefault(); e.stopPropagation()
+      setOpen(false); setQ('')
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [open])
 
   const term = q.trim()
   const match = (label: string, key: string) => !term || label.includes(term) || key.includes(term)

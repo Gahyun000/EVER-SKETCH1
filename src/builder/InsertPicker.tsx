@@ -3,6 +3,7 @@ import { intakeImage } from './imageIntake'
 import { useCanvasUI } from '../state/canvasUI'
 import { useBuilder } from '../state/store'
 import { mkFreeEl, pushSnap } from '../canvas/model'
+import Modal from '../ui/Modal'
 
 // 이모지: [문자, 검색 키워드]
 const EMOJI: Record<string, [string, string][]> = {
@@ -84,13 +85,14 @@ export default function InsertPicker() {
     : EMOJI[cat]
 
   return (
-    <div className="ins-scrim" onClick={close}>
-      <div className="ins-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="이모지·아이콘·이미지 삽입">
+    // **고르기만 하는 창이라 「취소」가 없다** — 고른 순간 닫힌다.
+    // 그래서 ✕ 이고(`cancel="closeX"`), 껍데기가 제목 줄에 그린다.
+    <Modal title="이모지 · 아이콘 · 이미지 삽입" onClose={close} size="sm"
+      scrimClassName="ins-scrim" className="ins-panel" cancel="closeX">
         <div className="ins-tabs">
           <button className={'ins-tab' + (tab === 'emoji' ? ' on' : '')} onClick={() => setTab('emoji')}>이모지</button>
           <button className={'ins-tab' + (tab === 'icon' ? ' on' : '')} onClick={() => setTab('icon')}>아이콘</button>
           <button className={'ins-tab' + (tab === 'upload' ? ' on' : '')} onClick={() => setTab('upload')}>업로드</button>
-          <button className="ins-x" onClick={close} aria-label="닫기">✕</button>
         </div>
 
         {tab === 'emoji' && (
@@ -134,7 +136,6 @@ export default function InsertPicker() {
             <div className="ins-drop-sub">PNG · JPG · SVG</div>
           </label>
         )}
-      </div>
-    </div>
+    </Modal>
   )
 }

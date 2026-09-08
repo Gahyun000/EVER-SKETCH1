@@ -63,8 +63,11 @@ button{font-family:inherit;cursor:pointer}
 .pv-empty{color:#aab;font-size:14px}
 .pv-cap{text-align:center;color:var(--muted);font-size:12px;margin-top:9px}
 
-.scrim{position:fixed;inset:0;background:rgba(10,12,20,.55);display:flex;align-items:center;justify-content:center;z-index:30}
-.modal{background:#fff;border-radius:16px;max-width:460px;width:92%;padding:24px 26px;max-height:88vh;overflow:auto}
+/* 껍데기(ui/Modal)가 자리·덮개·z-index 를 정한다 — 여기서 다시 적으면 서로 싸운다.
+   이름만 남긴다: 화면 검사들이 이 선택자로 창을 찾는다. */
+/* 폭만 남긴다 — 배경·모서리·여백·스크롤은 껍데기가 정한다.
+   확인창은 폭도 못 정하지만, **내용 창**은 담는 것이 저마다 달라 넓이가 다르다. */
+.ui-modal.modal{max-width:460px;width:92%}
 /* 저장 이력(버전 기록) 패널 */
 .vh-overlay{position:fixed;inset:0;background:rgba(15,20,35,.34);z-index:60;display:flex;align-items:center;justify-content:center}
 .vh-panel{background:#fff;border-radius:16px;width:min(560px,94vw);max-height:82vh;position:relative;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(15,27,61,.28);overflow:hidden}
@@ -263,7 +266,7 @@ button{font-family:inherit;cursor:pointer}
 .fel.image img{border-radius:2px}
 
 /* ───────── 환경설정(LLM) — Agentic-PM 이식(ebook_html 토큰으로 재작성) ───────── */
-.settings-modal{background:#fff;border-radius:16px;max-width:720px;width:94%;max-height:90vh;overflow:auto;padding:22px 24px}
+.ui-modal.settings-modal{max-width:720px;width:94%}
 .settings-modal .close{border:none;background:var(--ink);color:#fff;border-radius:var(--pill);padding:9px 18px;font-weight:700;float:right}
 .settings-canvas{max-width:680px;margin:0 auto;padding:4px 0 8px}
 .settings-hero{display:flex;gap:12px;align-items:flex-start;margin:6px 0 16px}
@@ -441,7 +444,7 @@ button{font-family:inherit;cursor:pointer}
 .demo-btn.close{border-color:transparent;background:#2f6df6}
 
 /* P4 AI로 정리 패널 */
-.ai-modal{position:relative;width:min(520px,92vw);max-height:80vh;overflow:auto;background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 24px 70px rgba(15,27,61,.28)}
+.ui-modal.ai-modal{width:min(520px,92vw)}
 .ai-head{font-size:17px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px}
 .ai-head .close{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:var(--pill);padding:6px 14px;font-weight:700;font-size:12.5px;color:var(--ink)}
 .ai-sub{color:var(--muted);font-size:12.5px;margin:6px 0 14px}
@@ -500,8 +503,8 @@ button{font-family:inherit;cursor:pointer}
 .lib-c-ok.danger{background:#dc2626}
 
 /* ── 예시영상 GIF 모달 ── */
-.demo-scrim{position:fixed;inset:0;background:rgba(15,23,42,.5);display:grid;place-items:center;z-index:250}
-.demo-modal{width:min(880px,94vw);background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 30px 80px -30px rgba(0,0,0,.5)}
+/* 위와 같다 — 껍데기가 정한다. */
+.ui-modal.demo-modal{width:min(880px,94vw)}
 .demo-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eef0f4}
 .demo-ttl{font-size:14px;font-weight:800;color:#0f172a}
 .demo-x{border:none;background:#eef1f6;color:#334;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:13px}
@@ -509,8 +512,8 @@ button{font-family:inherit;cursor:pointer}
 .demo-foot{padding:11px 16px;font-size:12.5px;color:#64748b;border-top:1px solid #eef0f4}
 
 /* ── 이모지/아이콘/업로드 통합 피커 ── */
-.ins-scrim{position:fixed;inset:0;background:rgba(15,23,42,.32);display:grid;place-items:center;z-index:255}
-.ins-panel{width:min(400px,94vw);background:#fff;border:1px solid #e3e6ee;border-radius:14px;box-shadow:0 24px 64px -22px rgba(0,0,0,.45);overflow:hidden}
+/* 위와 같다 — 껍데기가 정한다. */
+.ui-modal.ins-panel{width:min(400px,94vw)}
 .ins-tabs{display:flex;align-items:center;gap:2px;padding:8px 10px;border-bottom:1px solid #eef0f4}
 .ins-tab{font-size:13px;font-weight:800;color:#7a8296;padding:6px 12px;border:none;background:none;border-radius:8px;cursor:pointer}
 .ins-tab.on{color:#2462EB;background:rgba(36,98,235,.10)}

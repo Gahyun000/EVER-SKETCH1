@@ -40,8 +40,8 @@ export default function CommentComposer({
 
   return (
     <Modal title="검토 의견 달기" size="sm" busy={busy} error={err} onClose={() => { if (!busy) onClose() }}
+      cancel={{ label: '취소', onClick: onClose }}
       footer={<>
-        <button className="ax-tbtn" onClick={onClose} disabled={busy}>취소</button>
         <button className="ax-tbtn imp cmt-compose-send" onClick={() => void send()} disabled={busy || !body.trim()}>
           {busy ? '보내는 중…' : '의견 달기'}
         </button>

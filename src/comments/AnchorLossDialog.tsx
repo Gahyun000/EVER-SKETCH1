@@ -33,8 +33,8 @@ export default function AnchorLossDialog({
     <Modal size="md" className="cy-modal" scrimClassName="cy-scrim" footClassName="cy-modal-btns"
       busy={busy} onClose={onCancel}
       title={`이 표에 달린 의견 ${lost.length}건이 가리키는 칸이 사라집니다`}
+      cancel={{ label: '그대로 두기', onClick: onCancel }}
       footer={<>
-        <button className="cy-btn" disabled={busy} onClick={onCancel}>그대로 두기</button>
         <button className="cy-btn danger-solid" disabled={busy} onClick={() => go(false)}>
           의견도 함께 지우고 바꾸기
         </button>

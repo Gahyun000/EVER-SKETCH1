@@ -39,9 +39,9 @@ export default function ConfirmSaveModal({ req, onClose }: { req: ConfirmSaveReq
       scrimClassName="save-scrim"
       title={req.title || '현재 작업을 저장하고 계속할까요?'}
       onClose={onClose}
+      cancel={{ label: '취소', onClick: onClose }}
       footer={<>
         <button className="ax-tbtn" disabled={busy} onClick={() => { req.onContinueWithoutSave(); onClose() }}>저장하지 않고 계속</button>
-        <button className="ax-tbtn" disabled={busy} onClick={onClose}>취소</button>
         <button className="ax-tbtn dark" disabled={busy} onClick={() => { void saveAndContinue() }}>
           {busy ? '저장 중…' : '저장하고 계속'}
         </button>

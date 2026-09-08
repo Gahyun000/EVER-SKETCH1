@@ -451,9 +451,8 @@ export default function LibraryScreen() {
         <Modal title="폴더 삭제" onClose={() => setFPendingDel(null)} size="sm" busy={busy}
           scrimClassName="lib-confirm" className="lib-confirm-box"
           footClassName="lib-confirm-actions"
+          cancel={{ label: '취소', onClick: () => setFPendingDel(null) }}
           footer={<>
-            <button className="lib-btn" disabled={busy}
-              onClick={() => setFPendingDel(null)}>취소</button>
             {/* **여기만 반대였다.** 응답 전에 창을 먼저 닫아서 두 번 눌릴 일은 없었지만,
                 그래서 실패하면 창이 사라진 뒤에 저 위 목록 옆에서 이유가 떴다 —
                 방금 누른 자리가 아닌 곳에서. 나머지 셋과 같은 모양으로 맞췄다. */}
@@ -497,9 +496,8 @@ export default function LibraryScreen() {
         <Modal title="결재 제출" onClose={() => setSubmitting(null)} size="sm" busy={busy}
           scrimClassName="lib-confirm" className="lib-confirm-box"
           footClassName="lib-confirm-actions"
+          cancel={{ label: '취소', onClick: () => setSubmitting(null) }}
           footer={<>
-            <button className="lib-btn" disabled={busy}
-              onClick={() => setSubmitting(null)}>취소</button>
             <button className="lib-btn dark" disabled={busy} onClick={() => {
               if (busy) return
               const target = submitting
@@ -530,9 +528,8 @@ export default function LibraryScreen() {
         <Modal title="수정 요청" onClose={() => setRevising(null)} size="sm" busy={busy}
           scrimClassName="lib-confirm" className="lib-confirm-box"
           footClassName="lib-confirm-actions"
+          cancel={{ label: '취소', onClick: () => setRevising(null) }}
           footer={<>
-            <button className="lib-btn" disabled={busy}
-              onClick={() => setRevising(null)}>취소</button>
             <button className="lib-btn dark" disabled={busy} onClick={() => {
               if (busy) return
               const target = revising
@@ -573,9 +570,8 @@ export default function LibraryScreen() {
         <Modal title="이북 삭제" onClose={() => setPendingDel(null)} size="sm" busy={busy}
           scrimClassName="lib-confirm" className="lib-confirm-box"
           footClassName="lib-confirm-actions"
+          cancel={{ label: '취소', onClick: () => setPendingDel(null) }}
           footer={<>
-            <button className="lib-c-cancel" disabled={busy}
-              onClick={() => setPendingDel(null)}>취소</button>
             <button className="lib-c-ok danger" disabled={busy}
               onClick={() => void confirmDelete()}>{busy ? '삭제 중…' : '삭제'}</button>
           </>}>

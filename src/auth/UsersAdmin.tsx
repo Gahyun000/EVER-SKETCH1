@@ -175,8 +175,8 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
             onClose={() => setConfirm(null)} size="sm" busy={busyId === confirm.user.id}
             scrimClassName="es-confirm" className="es-confirm-box"
             footClassName="es-confirm-actions"
+            cancel={{ label: '취소', onClick: () => setConfirm(null) }}
             footer={<>
-              <button className="es-mini" onClick={() => setConfirm(null)}>취소</button>
               <button className={`es-mini ${confirm.kind === 'disable' ? 'danger' : 'primary'}`}
                 onClick={() => {
                   const c = confirm
@@ -226,14 +226,14 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
             scrimClassName="es-confirm" className="es-confirm-box"
             footClassName="es-confirm-actions"
             dismissible={false}
-            footer={<>
-              <button className="es-mini"
+            cancel={{ label: '닫기', onClick: () => setIssued(null) }}
+            footer={
+              <button className="es-mini primary"
                 onClick={() => {
                   void navigator.clipboard?.writeText(issued.password)
                     .then(() => setCopied(true)).catch(() => setCopied(false))
                 }}>{copied ? '복사했습니다' : '복사'}</button>
-              <button className="es-mini primary" onClick={() => setIssued(null)}>닫기</button>
-            </>}>
+            }>
             <b>{issued.user.name}({issued.user.login_id})</b> 님에게 아래 비밀번호를 전달해 주세요.
             <br />
             <b>이 창을 닫으면 다시 볼 수 없습니다.</b> 다시 필요하면 한 번 더 초기화해야 합니다.

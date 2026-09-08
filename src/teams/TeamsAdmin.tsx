@@ -307,9 +307,8 @@ export default function TeamsAdmin({ onClose }: { onClose: () => void }) {
           <Modal title="팀 삭제" onClose={() => setConfirmDelete(null)} size="sm" busy={busy}
             scrimClassName="es-confirm" className="es-confirm-box"
             footClassName="es-confirm-actions"
+            cancel={{ label: '취소', onClick: () => setConfirmDelete(null) }}
             footer={<>
-              <button className="es-mini" disabled={busy}
-                onClick={() => setConfirmDelete(null)}>취소</button>
               <button className="es-mini danger" disabled={busy}
                 onClick={() => {
                   const g = confirmDelete

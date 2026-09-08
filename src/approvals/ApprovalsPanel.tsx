@@ -320,9 +320,8 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
             onClose={() => setConfirm(null)} size="sm" busy={busy}
             scrimClassName="es-confirm" className="es-confirm-box"
             footClassName="es-confirm-actions"
+            cancel={{ label: '취소', onClick: () => setConfirm(null) }}
             footer={<>
-              <button className="es-mini" disabled={busy}
-                onClick={() => setConfirm(null)}>취소</button>
               <button className={'es-mini ' + (confirm === 'approve' ? 'primary' : 'danger')}
                 disabled={busy}
                 onClick={() => {
