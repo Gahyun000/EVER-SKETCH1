@@ -82,6 +82,19 @@ export default function LibraryScreen() {
   const [submitMsg, setSubmitMsg] = useState('')
   const [aErr, setAErr] = useState('')
 
+  /** 서버에 보내는 중 — **확인 버튼을 잠근다.**
+   *
+   *  이게 없으면 「제출」을 두 번 누를 수 있고, 요청이 두 번 나간다.
+   *  서버는 두 번째를 `이미 결재 대기 중입니다` 로 막으니 자료가 두 번 제출되지는 않는다.
+   *  문제는 **사람에게 보이는 것**이다: 첫 번째가 성공해 창이 닫히고,
+   *  뒤늦게 온 거절이 `aErr` 에 남아 **다음에 연 확인창에 그대로 뜬다.**
+   *  아직 내지도 않은 자료를 열었는데 「이미 결재 대기 중입니다」가 붉게 적혀 있다 —
+   *  낸 사람은 무슨 일이 일어났는지 알 길이 없다.
+   *
+   *  구멍은 **응답을 기다리는 그 사이**에만 열린다. 빠른 회선에서는 잘 안 걸리고,
+   *  회의 직전 느린 날에 걸린다. e2e/double_submit_smoke.mjs 가 그 사이를 만들어 본다. */
+  const [busy, setBusy] = useState(false)
+
   // 읽었으면 주소에서 지운다. 남겨 두면 창을 닫은 뒤에도 새로 고칠 때마다 다시 열려서
   // **주소가 화면과 다른 말을 하게 된다.** 기록을 쌓지 않으려고 replaceState 를 쓴다 —
   // push 면 뒤로가기가 「같은 화면」을 한 번 더 거친다.
@@ -141,10 +154,12 @@ export default function LibraryScreen() {
 
   const goFolder = (id: string | null) => { setHere(id); setPage(1); setEditing(null) }
 
+  /** 폴더 작업. **성공했는지 돌려준다** — 삼키면 부르는 쪽이 실패해도 창을 닫는다. */
   const fAct = async (fn: () => Promise<unknown>) => {
     setFErr('')
-    try { await fn(); await loadFolders() } catch (e) {
+    try { await fn(); await loadFolders(); return true } catch (e) {
       setFErr(e instanceof FolderApiError ? e.message : '처리하지 못했어요.')
+      return false
     }
   }
 
@@ -168,7 +183,13 @@ export default function LibraryScreen() {
   const applySearch = () => { setQ(qIn); setFrom(fromIn); setTo(toIn); setPage(1) }
   const resetSearch = () => { setQIn(''); setFromIn(''); setToIn(''); setQ(''); setFrom(''); setTo(''); setPage(1) }
   const commitRename = async () => { if (editing && editing.value.trim()) await renameProject(editing.id, editing.value.trim()); setEditing(null) }
-  const confirmDelete = async () => { if (pendingDel) await deleteProject(pendingDel.id); setPendingDel(null) }
+  // 삭제도 응답을 기다리는 사이 창이 열려 있다 — 두 번 눌리면 두 번 간다.
+  // 두 번째는 404 로 떨어지고, **이미 지워졌는데 「지우지 못했습니다」로 보인다.**
+  const confirmDelete = async () => {
+    if (!pendingDel || busy) return
+    setBusy(true)
+    try { await deleteProject(pendingDel.id); setPendingDel(null) } finally { setBusy(false) }
+  }
 
   return (
     <div className="lib-screen">
@@ -291,7 +312,7 @@ export default function LibraryScreen() {
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button className="lib-act danger" title="삭제"
-                      onClick={() => setFPendingDel(f)}>
+                      onClick={() => { setFPendingDel(f); setFErr('') }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -388,13 +409,13 @@ export default function LibraryScreen() {
                     눌러 보고 400 을 받는다 — 그 자리에 오는 것은 「수정 요청」이다. */}
                 {canSubmit && chips[p.id]?.state === 'approved' && (
                   <button className="lib-act" title="수정 요청"
-                    onClick={() => { setRevising(p); setReviseMsg('') }}>
+                    onClick={() => { setRevising(p); setReviseMsg(''); setAErr('') }}>
                     <PenLine className="h-4 w-4" />
                   </button>
                 )}
                 {canSubmit && !chips[p.id]?.locked && chips[p.id]?.state !== 'approved' && (
                   <button className="lib-act" title="결재 제출"
-                    onClick={() => { setSubmitting(p); setSubmitMsg('') }}>
+                    onClick={() => { setSubmitting(p); setSubmitMsg(''); setAErr('') }}>
                     <Send className="h-4 w-4" />
                   </button>
                 )}
@@ -444,15 +465,25 @@ export default function LibraryScreen() {
               ) : (
                 <><b>{fPendingDel.name}</b> 폴더를 지웁니다. 비어 있어 잃는 자료는 없습니다.</>
               )}
+              {fErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{fErr}</div>}
             </div>
             <div className="lib-confirm-actions">
-              <button className="lib-btn" onClick={() => setFPendingDel(null)}>취소</button>
+              <button className="lib-btn" disabled={busy}
+                onClick={() => setFPendingDel(null)}>취소</button>
+              {/* **여기만 반대였다.** 응답 전에 창을 먼저 닫아서 두 번 눌릴 일은 없었지만,
+                    그래서 실패하면 창이 사라진 뒤에 저 위 목록 옆에서 이유가 뜬다 —
+                    방금 누른 자리가 아닌 곳에서. 표준이 「서버가 확인하기 전에 창을 비우지 않는다」고
+                    적은 것이 이 경우다. 나머지 셋과 같은 모양으로 맞춘다. */}
               {!fPendingDel.folder_count && !fPendingDel.project_count && (
-                <button className="lib-btn danger" onClick={() => {
+                <button className="lib-btn danger" disabled={busy} onClick={() => {
+                  if (busy) return
                   const f = fPendingDel
-                  setFPendingDel(null)
-                  void fAct(() => apiDeleteFolder(f.id))
-                }}>지우기</button>
+                  setBusy(true)
+                  void (async () => {
+                    try { if (await fAct(() => apiDeleteFolder(f.id))) setFPendingDel(null) }
+                    finally { setBusy(false) }
+                  })()
+                }}>{busy ? '지우는 중…' : '지우기'}</button>
               )}
             </div>
           </div>
@@ -480,19 +511,21 @@ export default function LibraryScreen() {
                 onChange={(e) => setSubmitMsg(e.target.value)} />
             </div>
             <div className="lib-confirm-actions">
-              <button className="lib-btn" onClick={() => setSubmitting(null)}>취소</button>
-              <button className="lib-btn dark" onClick={() => {
+              <button className="lib-btn" disabled={busy}
+                onClick={() => setSubmitting(null)}>취소</button>
+              <button className="lib-btn dark" disabled={busy} onClick={() => {
+                if (busy) return
                 const target = submitting
-                setAErr('')
+                setAErr(''); setBusy(true)
                 void (async () => {
                   try {
                     await apiRequestApproval(target.id, submitMsg.trim())
                     setSubmitting(null); await loadChips()
                   } catch (e) {
                     setAErr(e instanceof ApprovalApiError ? e.message : '제출하지 못했습니다.')
-                  }
+                  } finally { setBusy(false) }
                 })()
-              }}>제출</button>
+              }}>{busy ? '제출 중…' : '제출'}</button>
             </div>
           </div>
         </div>
@@ -515,19 +548,21 @@ export default function LibraryScreen() {
                 onChange={(e) => setReviseMsg(e.target.value)} />
             </div>
             <div className="lib-confirm-actions">
-              <button className="lib-btn" onClick={() => setRevising(null)}>취소</button>
-              <button className="lib-btn dark" onClick={() => {
+              <button className="lib-btn" disabled={busy}
+                onClick={() => setRevising(null)}>취소</button>
+              <button className="lib-btn dark" disabled={busy} onClick={() => {
+                if (busy) return
                 const target = revising
-                setAErr('')
+                setAErr(''); setBusy(true)
                 void (async () => {
                   try {
                     await apiRequestRevision(target.id, reviseMsg.trim())
                     setRevising(null); await loadChips()
                   } catch (e) {
                     setAErr(e instanceof ApprovalApiError ? e.message : '요청하지 못했습니다.')
-                  }
+                  } finally { setBusy(false) }
                 })()
-              }}>요청</button>
+              }}>{busy ? '요청 중…' : '요청'}</button>
             </div>
           </div>
         </div>
@@ -549,8 +584,10 @@ export default function LibraryScreen() {
             <div className="lib-confirm-title">이북 삭제</div>
             <div className="lib-confirm-msg">‘{pendingDel.name || '제목 없음'}’ 이북을 삭제할까요?<br />이 이북의 모든 슬라이드와 버전 기록이 함께 삭제되며 되돌릴 수 없어요.</div>
             <div className="lib-confirm-actions">
-              <button className="lib-c-cancel" onClick={() => setPendingDel(null)}>취소</button>
-              <button className="lib-c-ok danger" onClick={() => void confirmDelete()}>삭제</button>
+              <button className="lib-c-cancel" disabled={busy}
+                onClick={() => setPendingDel(null)}>취소</button>
+              <button className="lib-c-ok danger" disabled={busy}
+                onClick={() => void confirmDelete()}>{busy ? '삭제 중…' : '삭제'}</button>
             </div>
           </div>
         </div>

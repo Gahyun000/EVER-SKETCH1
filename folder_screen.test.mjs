@@ -32,7 +32,12 @@ check(/MAX_DEPTH = 3/.test(read('./server/folders.py')), 'D24 — 폴더 최대 
 check(/max_depth/.test(lib), '깊이는 **서버가 정한 값**을 받아 쓴다 — 화면이 숫자를 따로 들지 않는다')
 
 // ── 「…」을 다루는 두 가지 답 ──
-check(/pageWindow\(/.test(lib) && !/…/.test(lib.split('lib-pagebar')[1] || ''),
+// **쪽 번호 막대 안만 본다.** 예전에는 `lib-pagebar` 뒤 **전부**를 봤는데,
+// 그 아래에 확인창들이 있어서 「제출 중…」 같은 정상적인 라벨이 걸렸다(2026-09-08).
+// 규칙은 「쪽 번호에 …을 쓰지 않는다」이지 「이 파일 아래쪽에 …을 쓰지 않는다」가 아니다.
+const pagebar = (lib.match(/<div className="lib-pagebar">[\s\S]*?\n {8}<\/div>/) || [''])[0]
+check(pagebar.length > 0, '(사전) 쪽 번호 막대를 찾았다 — 못 찾으면 아래 검사가 조용히 통과한다')
+check(/pageWindow\(/.test(lib) && !/…/.test(pagebar),
   'D25 — 쪽 번호에는 「…」이 없다 (창을 고정해 끊길 자리를 없앴다)')
 check(/lib-crumb-i dots|className=\{?'lib-crumb-i dots|dots["'][\s\S]{0,120}onClick/.test(lib),
   'D26 — 경로의 「…」은 **눌리는 버튼**이다 (지나온 길은 없앨 수 없다)')

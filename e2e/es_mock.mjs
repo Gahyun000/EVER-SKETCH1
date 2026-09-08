@@ -106,6 +106,9 @@ const json = (res, body, code = 200) => {
   res.end(JSON.stringify(body))
 }
 
+// 제출이 서버에 몇 번 닿았는가 — 화면이 두 번 보내면 여기서 2가 된다.
+let submits = 0
+
 const server = http.createServer(async (req, res) => {
   const url = (req.url || '/').split('?')[0]
 
@@ -249,6 +252,26 @@ const server = http.createServer(async (req, res) => {
   // 말해서 원인을 찾는 데 한참 걸렸다. 부수 호출일수록 모양을 지켜 줘야 한다.
   if (url === '/api/folders') return json(res, { folders: [], path: [], max_depth: 3 })
   if (url === '/api/approvals/status-map') return json(res, { status_map: {} })
+
+  // 제출 — **서버처럼 답한다.** 두 번째는 400 이다(server/approvals.py 의 `이미 결재 대기 중입니다`).
+  //
+  // 여기서 `{ok:true}` 로 두 번 다 성공시키면 안 된다. 그러면 화면이 두 번 보내도
+  // 아무 일도 안 일어난 것처럼 보여서, **정작 재현하려던 것이 사라진다.**
+  // 늦게 답하는 것도 일부러다 — 이 구멍은 **응답을 기다리는 그 사이**에만 열린다.
+  if (url === '/api/approvals/request' && req.method === 'POST') {
+    submits++
+    const dup = submits > 1
+    return setTimeout(() => {
+      if (dup) { res.writeHead(400, { 'content-type': 'application/json' })
+                 return res.end(JSON.stringify({ detail: '이미 결재 대기 중입니다.' })) }
+      json(res, { ok: true, approval: { id: 'a_1', project_id: 'p_test', status: 'pending', round: 1 } })
+    }, 400)
+  }
+  // 세어 둔 것을 **되돌릴 수 있어야 한다.** mock 을 살려 둔 채 검사를 두 번 돌리면
+  // 앞 회차가 남긴 수가 뒤 회차의 실패로 나온다 — 실제로 그렇게 한 번 헤맸다.
+  // `url` 은 물음표를 이미 떼어 냈다(113줄) — 되돌리기는 **경로로** 받는다.
+  if (url === '/__submits/reset') { submits = 0; return json(res, { submits }) }
+  if (url === '/__submits') return json(res, { submits })
   if (url === '/api/approvals') return json(res, { approvals: [], counts: {} })
   if (url === '/api/team-library') return json(res, { teams: [] })
 
