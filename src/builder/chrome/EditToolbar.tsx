@@ -1,4 +1,5 @@
 import { useCanvasUI } from '../../state/canvasUI'
+import { pushSnap } from '../../canvas/model'
 import type { Tool } from '../../state/canvasUI'
 import { useSelEl } from '../useSelEl'
 import ColorPicker from './ColorPicker'
@@ -163,6 +164,78 @@ function CommentTool() {
  * 손가락은 가만히 있는데 문서가 내려오니 칸을 끌던 사람은 한 줄 아래까지 골랐다.
  * 자리를 늘 지키고 있으면 고르든 말든 높이가 같다 — 줄을 따로 만들 필요도 없다.
  */
+/** **툴바 둘째 줄이 고른 것을 따라간다**(시안 C-1, 2026-09-08).
+ *
+ *  지금까지 둘째 줄은 「표」 하나만 알았다. 글상자를 골라 놓고 굵게 하려면
+ *  오른쪽 패널로 손을 옮겨야 했고, 연결선은 패널에만 있었다.
+ *
+ *  **첫째 줄은 안 건드린다.** 거기는 「무엇을 골랐든 그대로인 만들기 도구」다 —
+ *  시안 그림은 한 줄이지만, 이 코드가 두 줄로 나눠 둔 데에는 이유가 있다:
+ *  줄이 생겼다 없어지면 툴바 높이가 42px 변하고 그만큼 문서가 아래위로 움직인다.
+ *  칸을 끌던 사람이 한 줄 아래를 고르게 된다. 그래서 **자리는 고정, 내용만 바뀐다.** */
+function TextTools() {
+  const { el, patch } = useSelEl()
+  if (!el) return null
+  const fs = el.fs || 13
+  return (
+    <span className="ax-grp gs">
+      <span className="lab">글자</span>
+      <button className={'ib' + (el.bold ? ' on' : '')} title="굵게"
+        onClick={() => patch({ bold: !el.bold })}><b>B</b></button>
+      <button className={'ib' + (el.italic ? ' on' : '')} title="기울임"
+        onClick={() => patch({ italic: !el.italic })}><i>I</i></button>
+      <button className={'ib' + (el.underline ? ' on' : '')} title="밑줄"
+        onClick={() => patch({ underline: !el.underline })}><u>U</u></button>
+      {/* 한 단계씩. 슬라이더를 툴바에 두면 끌다가 캔버스를 놓친다. */}
+      <button className="ib" title="글자 작게" onClick={() => patch({ fs: Math.max(6, fs - 1) })}>−</button>
+      <span className="tbtn-hint" title="글자 크기">{fs}</span>
+      <button className="ib" title="글자 크게" onClick={() => patch({ fs: Math.min(96, fs + 1) })}>＋</button>
+      <span className="dv" />
+      {(['left', 'center', 'right'] as const).map((a, i) => (
+        <button key={a} className={'ib' + ((el.align || 'left') === a ? ' on' : '')}
+          title={['왼쪽', '가운데', '오른쪽'][i] + ' 정렬'} onClick={() => patch({ align: a })}>
+          {['⇤', '⇔', '⇥'][i]}
+        </button>
+      ))}
+      <span className="dv" />
+      {TEXT_COLORS.map((c) => (
+        <button key={c} className={'ax-dot' + ((el.tcolor || '#1a1a1a') === c ? ' on' : '')}
+          style={{ background: c }} title="글자 색" onClick={() => patch({ tcolor: c })} />
+      ))}
+    </span>
+  )
+}
+
+/** 연결선을 고른 채로 종류·화살촉을 바꾼다. 지금까지는 오른쪽 패널에만 있었다. */
+function ConnTools() {
+  const selConn = useCanvasUI((s) => s.selConn)
+  const pages = useBuilderStore((s) => s.pages)
+  const selId = useBuilderStore((s) => s.selectedPageId)
+  const patchConn = useBuilderStore((s) => s.patchConn)
+  const page = pages.find((p) => p.id === selId)
+  if (selConn == null || !page) return null
+  const conn = page.conns[selConn]
+  if (!conn) return null
+  const patchC = (pt: Partial<typeof conn>) => {
+    pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached }))
+    patchConn(page.id, selConn, pt)
+  }
+  return (
+    <span className="ax-grp gs">
+      <span className="lab">연결선</span>
+      {([['straight', '직선'], ['ortho', '꺾은선'], ['curve', '곡선']] as const).map(([k, t]) => (
+        <button key={k} className={'tbtn' + ((conn.kind || 'straight') === k ? ' on' : '')}
+          onClick={() => patchC({ kind: k })}>{t}</button>
+      ))}
+      <span className="dv" />
+      {([['end', '→'], ['both', '↔'], ['none', '—']] as const).map(([k, t]) => (
+        <button key={k} className={'tbtn' + ((conn.arrow || 'end') === k ? ' on' : '')}
+          title="화살촉" onClick={() => patchC({ arrow: k })}>{t}</button>
+      ))}
+    </span>
+  )
+}
+
 function TableTools() {
   const { el, patch } = useSelEl()
   const tableSel = useCanvasUI((s) => s.tableSel)
@@ -323,6 +396,13 @@ export default function EditToolbar() {
   const drawing = tool === 'pen' || tool === 'highlighter' || tool === 'eraser'
   const showDraw = drawOpen || drawing
 
+  /** 둘째 줄이 무엇을 보일까. **표가 먼저다** — 표를 고른 채로 글자를 만지는 일은
+   *  칸 단위라 오른쪽 패널의 「칸」 묶음이 하고, 툴바의 표 도구(병합)는 여기밖에 없다. */
+  const selConnIdx = useCanvasUI((s) => s.selConn)
+  const ctx: 'table' | 'text' | 'conn' = el && el.type === 'table' ? 'table'
+    : selConnIdx != null ? 'conn'
+      : el ? 'text' : 'table'
+
   return (
     /* 두 줄로 나눈다.
        첫 줄 = **늘 쓰는 만들기 도구**(그리기·도형·펜). 무엇을 골랐든 그대로다.
@@ -385,8 +465,11 @@ export default function EditToolbar() {
       </span>
      </div>
 
+     {/* **자리는 고정, 내용만 바뀐다.** 고른 것이 무엇이냐에 따라 가운데가 갈린다 —
+         표면 표 도구, 글상자·도형이면 글자 도구, 연결선이면 선 도구.
+         아무것도 없으면 「표를 고르세요」가 그 자리를 지킨다(높이 유지). */}
      <div className="ax-tbrow ctx">
-      <TableTools />
+      {ctx === 'text' ? <TextTools /> : ctx === 'conn' ? <ConnTools /> : <TableTools />}
       <CommentTool />
      </div>
     </div>

@@ -31,3 +31,32 @@ export function rememberOrientation(o: Orientation): void {
     localStorage.setItem(ORI_KEY, o === 'landscape' ? 'landscape' : 'portrait')
   } catch { /* 저장이 막힌 브라우저 — 이번 판만 기억 못 할 뿐이다 */ }
 }
+
+// ── 오른쪽 패널에서 펴 둔 묶음 ────────────────────────
+//
+// 탭을 접이식으로 바꾸면서 「접고 편 상태를 기억한다」가 시안의 약속이었다(C-2).
+// 안 기억하면 **고를 때마다 처음으로 돌아간다** — 표를 고칠 때마다 「크기·자리」를
+// 다시 펴야 하고, 그건 탭을 다시 누르는 것과 같은 손품이다. 접이식으로 바꾼 이유가 반쯤 사라진다.
+//
+// 방향과 같은 부류다: **문서의 성질이 아니라 그 사람의 손버릇**이라 브라우저에 둔다.
+// 못 읽어도 잃을 게 없다 — 기본값으로 열린다.
+
+const SEC_KEY = 'es_panel_open'
+
+/** 모르는 이름은 버린다. 예전 판이 남긴 키가 화면에 안 보이는 묶음을 열어 둔 채로
+ *  숫자만 늘리는 일을 막는다. */
+export function openSections<K extends string>(
+  known: readonly K[], fallback: Record<K, boolean>,
+): Record<K, boolean> {
+  let saved: unknown = null
+  try { saved = JSON.parse(localStorage.getItem(SEC_KEY) || 'null') } catch { saved = null }
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return { ...fallback }
+  const src = saved as Record<string, unknown>
+  const out = { ...fallback }
+  for (const k of known) if (typeof src[k] === 'boolean') out[k] = src[k] as boolean
+  return out
+}
+
+export function rememberOpenSections(v: Record<string, boolean>): void {
+  try { localStorage.setItem(SEC_KEY, JSON.stringify(v)) } catch { /* 저장이 막힌 브라우저 */ }
+}

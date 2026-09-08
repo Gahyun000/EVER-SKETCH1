@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { openSections, rememberOpenSections } from '../../persistence/prefs'
 import NumInput from './NumInput'
 import ApprovalCard from './ApprovalCard'
 import { useBuilder } from '../../state/store'
@@ -31,6 +32,9 @@ const PRESETS: { name: string; color: string; tcolor: string }[] = [
   { name: '초록', color: '#2fa37a', tcolor: '#ffffff' },
 ]
 type Tab = 'style' | 'text' | 'arrange' | 'table'
+/** 기억할 이름들. 여기 없는 이름은 `openSections` 가 버린다 —
+ *  예전 판이 남긴 키가 화면에 없는 묶음을 열어 둔 채로 남지 않게. */
+const SECS: readonly Tab[] = ['table', 'style', 'text', 'arrange']
 
 // 우측 인스펙터 — PPT/키노트식. 요소 선택 시 스타일/텍스트/정렬 3탭, 미선택 시 페이지 설정.
 export default function RightPanel() {
@@ -63,9 +67,15 @@ export default function RightPanel() {
    *  네 번을 눌러 봐야 안다. 접이식은 **네 묶음이 늘 한 화면에** 있고,
    *  접힌 줄에 지금 값이 적혀 있어 열지 않아도 읽힌다(「12pt · 굵게」).
    *  여러 개를 함께 펴 둘 수 있다 — 표를 고치면서 글자도 만지는 일이 흔하다. */
+  //  **접고 편 상태는 기억한다**(C-2). 안 그러면 고를 때마다 처음으로 돌아가고,
+  //  그건 탭을 다시 누르는 것과 같은 손품이다 — 접이식으로 바꾼 이유가 반쯤 사라진다.
   const [openSec, setOpenSec] = useState<Record<Tab, boolean>>(
-    { table: true, style: false, text: false, arrange: false })
-  const toggle = (k: Tab) => setOpenSec((o) => ({ ...o, [k]: !o[k] }))
+    () => openSections(SECS, { table: true, style: false, text: false, arrange: false }))
+  const toggle = (k: Tab) => setOpenSec((o) => {
+    const next = { ...o, [k]: !o[k] }
+    rememberOpenSections(next)
+    return next
+  })
   const page = pages.find((p) => p.id === selId)
   const conn = (selConn != null && page) ? page.conns[selConn] : undefined
   function patchC(pt: Partial<import('../../state/store').Conn>) {
@@ -101,13 +111,20 @@ export default function RightPanel() {
   const tableAtCeiling = !!el && el.type === 'table' && isSlotEl(el.slot)
     && el.h >= PAGE_H - 1
 
-  // 선택이 바뀌면(새 요소) 종류에 맞는 탭을 자동으로 연다(편집 중엔 안 튐 — id 변화에만 반응).
+  /** 선택이 바뀌면 종류에 맞는 묶음을 **펴 준다.**
+   *
+   *  **나머지는 안 건드린다**(C-2, 2026-09-08). 예전에는 넷을 다 닫고 하나만 열었는데,
+   *  그러면 사람이 펴 둔 것이 **고를 때마다 도로 접혔다** — 「크기·자리」를 열어 두고
+   *  표를 만지다 다른 칸을 고르면 다시 닫혀 있다. 그건 탭을 다시 누르는 것과 같은 손품이라,
+   *  접이식으로 바꾼 이유가 반쯤 사라진다.
+   *
+   *  **이 자동 펴기는 기억에 안 적는다.** 사람이 고른 적 없는 값을 저장하면
+   *  「내가 편 적도 없는데 늘 열려 있다」가 된다. 저장은 **사람이 누를 때만**(`toggle`). */
   useEffect(() => {
     if (!el) return
     const shapeLike = ['box', 'round', 'ellipse', 'diamond', 'triangle', 'sticky', 'image', 'icon', 'table', 'wordart']
-    // 예전에는 기본 탭을 골라 줬다. 지금은 **그 묶음을 펴 준다** — 나머지는 접은 채로 둔다.
     const k: Tab = el.type === 'table' ? 'table' : shapeLike.includes(el.type) ? 'style' : 'text'
-    setOpenSec({ table: false, style: false, text: false, arrange: false, [k]: true })
+    setOpenSec((o) => (o[k] ? o : { ...o, [k]: true }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selElId])
 
