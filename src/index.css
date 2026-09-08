@@ -491,10 +491,9 @@ button{font-family:inherit;cursor:pointer}
 .lib-act{display:grid;place-items:center;width:32px;height:32px;border:none;background:transparent;color:#64748b;border-radius:8px;cursor:pointer}
 .lib-act:hover{background:#eef1f6;color:#0f172a}
 .lib-act.danger:hover{background:#fee2e2;color:#dc2626}
-.lib-confirm{position:fixed;inset:0;background:rgba(15,23,42,.32);display:grid;place-items:center;z-index:60}
-.lib-confirm-box{background:#fff;border-radius:16px;padding:22px 22px 16px;width:min(400px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.lib-confirm-title{font-size:16px;font-weight:900;color:#0f172a;margin-bottom:8px}
-.lib-confirm-msg{font-size:13.5px;color:#475569;line-height:1.6;margin-bottom:18px}
+/* **껍데기는 ui/Modal 이 그린다.** 여기 남은 이름들은 자리 표시일 뿐이다 —
+   폭·모서리·그림자·z-index 를 다시 적으면 창마다 조금씩 다르게 생기는 옛날로 돌아간다.
+   이름을 지우지 않는 것은 화면 검사들이 이 선택자로 창을 찾기 때문이다. */
 .lib-confirm-actions{display:flex;justify-content:flex-end;gap:8px}
 .lib-c-cancel{border:1.4px solid #e5e7eb;background:#fff;color:#334155;font-weight:800;font-size:13px;border-radius:9px;padding:8px 16px;cursor:pointer}
 .lib-c-ok{border:none;background:#2462EB;color:#fff;font-weight:800;font-size:13px;border-radius:9px;padding:8px 16px;cursor:pointer}

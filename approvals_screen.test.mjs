@@ -22,7 +22,11 @@ const lib = read('./src/persistence/LibraryScreen.tsx')
 const libCode = bare(lib)
 
 // ── 되돌릴 수 없는 일은 먼저 말한다 ──
-check(/es-confirm-box[\s\S]{0,600}결재 승인/.test(panel), '승인은 자체 확인창으로 한 번 더 묻는다')
+// 2026-09-08: 껍데기를 ui/Modal 로 옮기며 `es-confirm-box` 가 제목 **뒤로** 갔다.
+// 「두 글자가 이 순서로 붙어 있다」를 보던 검사라 순서가 바뀌자 깨졌다 —
+// 확인하려던 것(**우리 창으로 한 번 더 묻는가**)은 그대로였는데.
+check(/<Modal[\s\S]{0,400}결재 승인/.test(panel), '승인은 공용 껍데기(ui/Modal)로 한 번 더 묻는다')
+check(/scrimClassName="es-confirm"/.test(panel), '화면 검사가 찾던 선택자를 그대로 넘겨 준다')
 check(/같은 팀에 바로 공유/.test(panel), '승인하면 무슨 일이 생기는지 확인창이 말한다')
 check(/이 문서가 그대로 얼어붙습니다/.test(lib), '제출하면 문서가 얼어붙는다고 미리 말한다')
 check(/지울 수 없습니다/.test(lib), '제출하면 자료를 못 지우게 된다고 미리 말한다 (D16)')

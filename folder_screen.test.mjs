@@ -56,7 +56,12 @@ check(/searching \? subtreeIds|searching \?/.test(nav),
 check(/빈 폴더|비어 있지 않습니다/.test(lib), 'D20 — 빈 폴더만 지운다고 화면이 먼저 말한다')
 check(/folder_count \|\| fPendingDel\.project_count/.test(lib),
   '무엇이 남았는지 세어서 보여준다 — 「못 지웁니다」만 하면 왜인지 모른다')
-check(/lib-confirm-box[\s\S]{0,400}폴더 삭제/.test(lib), '자체 확인창을 쓴다(브라우저 confirm 금지)')
+// 2026-09-08: 껍데기를 ui/Modal 로 옮기며 `lib-confirm-box` 가 `title` **뒤로** 갔다.
+// 「이 두 글자가 이 순서로 붙어 있다」를 보던 검사라 순서가 바뀌자 깨졌다 —
+// 정작 확인하려던 것(**우리 창으로 묻는가**)은 그대로였는데.
+// 그래서 순서 대신 **무엇을 쓰는가**를 본다.
+check(/<Modal title="폴더 삭제"/.test(lib), '폴더 삭제는 공용 껍데기(ui/Modal)로 묻는다')
+check(/scrimClassName="lib-confirm"/.test(lib), '화면 검사가 찾던 선택자를 그대로 넘겨 준다')
 
 // ── 새 자료는 지금 폴더에 ──
 check(/newProject\(here\)/.test(lib) && /newFromTemplate\(ym, here\)/.test(lib),

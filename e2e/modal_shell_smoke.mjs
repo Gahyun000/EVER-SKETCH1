@@ -62,7 +62,11 @@ ok('무엇을 묻는지 제목에 있다', txt.includes('저장하고 계속할�
 ok('왜 묻는지도 적혀 있다', txt.includes('현재 작업 화면이 바뀔 수 있습니다'))
 ok('세 갈래를 모두 준다',
    txt.includes('저장하지 않고 계속') && txt.includes('취소') && txt.includes('저장하고 계속'))
-ok('닫기(✕)가 있다', await p.locator('.save-modal .ui-modal-x').count() === 1)
+// 2026-09-08 사용자 결정 — **닫기 ✕ 를 없앴다.** 모든 창에 「취소」가 있어서,
+// 나가는 길이 둘이면 어느 쪽이 「그만두기」인지 한 번 생각하게 된다.
+// 대신 **나가는 길이 하나도 없는 창**을 못 만들도록 footer 를 필수로 받는다.
+ok('닫기 ✕ 는 없다', await p.locator('.save-modal .ui-modal-x').count() === 0)
+ok('대신 나가는 길이 버튼으로 있다', await p.locator('.save-modal .ui-modal-foot button').count() >= 1)
 
 // **Esc 로 닫힌다.** 예전에는 이 창만 Esc 가 통하지 않았다 —
 // 창마다 껍데기를 따로 만들면 이런 게 하나씩 빠진다.

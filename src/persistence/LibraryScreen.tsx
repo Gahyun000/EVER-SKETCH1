@@ -11,6 +11,7 @@ import {
 import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home, Send, Inbox, Users, Lock, PenLine } from 'lucide-react'
 import { useProjects } from './projects'
 import NewProjectDialog from './NewProjectDialog'
+import Modal from '../ui/Modal'
 import type { ProjectMeta } from './projectApi'
 import {
   apiCreateFolder, apiDeleteFolder, apiListFolders, apiRenameFolder, FolderApiError,
@@ -447,47 +448,43 @@ export default function LibraryScreen() {
 
       {/* 폴더 삭제 — **빈 폴더만**(D20). 서버가 막지만 화면이 먼저 말해 준다. */}
       {fPendingDel && (
-        <div className="lib-confirm" onClick={() => setFPendingDel(null)}>
-          <div className="lib-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <div className="lib-confirm-title">폴더 삭제</div>
-            <div className="lib-confirm-msg">
-              {fPendingDel.folder_count || fPendingDel.project_count ? (
-                <>
-                  <b>{fPendingDel.name}</b> 폴더가 비어 있지 않습니다.
-                  <br /><br />
-                  {[fPendingDel.folder_count ? `하위 폴더 ${fPendingDel.folder_count}개` : '',
-                    fPendingDel.project_count ? `자료 ${fPendingDel.project_count}건` : '']
-                    .filter(Boolean).join(' · ')}이 남아 있어요.
-                  <b> 먼저 옮기거나 지워 주세요.</b>
-                  <br /><br />
-                  폴더째 지우면 안에 든 자료까지 함께 사라지므로, 그렇게 하지 않습니다.
-                </>
-              ) : (
-                <><b>{fPendingDel.name}</b> 폴더를 지웁니다. 비어 있어 잃는 자료는 없습니다.</>
-              )}
-              {fErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{fErr}</div>}
-            </div>
-            <div className="lib-confirm-actions">
-              <button className="lib-btn" disabled={busy}
-                onClick={() => setFPendingDel(null)}>취소</button>
-              {/* **여기만 반대였다.** 응답 전에 창을 먼저 닫아서 두 번 눌릴 일은 없었지만,
-                    그래서 실패하면 창이 사라진 뒤에 저 위 목록 옆에서 이유가 뜬다 —
-                    방금 누른 자리가 아닌 곳에서. 표준이 「서버가 확인하기 전에 창을 비우지 않는다」고
-                    적은 것이 이 경우다. 나머지 셋과 같은 모양으로 맞춘다. */}
-              {!fPendingDel.folder_count && !fPendingDel.project_count && (
-                <button className="lib-btn danger" disabled={busy} onClick={() => {
-                  if (busy) return
-                  const f = fPendingDel
-                  setBusy(true)
-                  void (async () => {
-                    try { if (await fAct(() => apiDeleteFolder(f.id))) setFPendingDel(null) }
-                    finally { setBusy(false) }
-                  })()
-                }}>{busy ? '지우는 중…' : '지우기'}</button>
-              )}
-            </div>
-          </div>
-        </div>
+        <Modal title="폴더 삭제" onClose={() => setFPendingDel(null)} size="sm" busy={busy}
+          scrimClassName="lib-confirm" className="lib-confirm-box"
+          footClassName="lib-confirm-actions"
+          footer={<>
+            <button className="lib-btn" disabled={busy}
+              onClick={() => setFPendingDel(null)}>취소</button>
+            {/* **여기만 반대였다.** 응답 전에 창을 먼저 닫아서 두 번 눌릴 일은 없었지만,
+                그래서 실패하면 창이 사라진 뒤에 저 위 목록 옆에서 이유가 떴다 —
+                방금 누른 자리가 아닌 곳에서. 나머지 셋과 같은 모양으로 맞췄다. */}
+            {!fPendingDel.folder_count && !fPendingDel.project_count && (
+              <button className="lib-btn danger" disabled={busy} onClick={() => {
+                if (busy) return
+                const f = fPendingDel
+                setBusy(true)
+                void (async () => {
+                  try { if (await fAct(() => apiDeleteFolder(f.id))) setFPendingDel(null) }
+                  finally { setBusy(false) }
+                })()
+              }}>{busy ? '지우는 중…' : '지우기'}</button>
+            )}
+          </>}>
+          {fPendingDel.folder_count || fPendingDel.project_count ? (
+            <>
+              <b>{fPendingDel.name}</b> 폴더가 비어 있지 않습니다.
+              <br /><br />
+              {[fPendingDel.folder_count ? `하위 폴더 ${fPendingDel.folder_count}개` : '',
+                fPendingDel.project_count ? `자료 ${fPendingDel.project_count}건` : '']
+                .filter(Boolean).join(' · ')}이 남아 있어요.
+              <b> 먼저 옮기거나 지워 주세요.</b>
+              <br /><br />
+              폴더째 지우면 안에 든 자료까지 함께 사라지므로, 그렇게 하지 않습니다.
+            </>
+          ) : (
+            <><b>{fPendingDel.name}</b> 폴더를 지웁니다. 비어 있어 잃는 자료는 없습니다.</>
+          )}
+          {fErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{fErr}</div>}
+        </Modal>
       )}
 
       {/* 새 이북은 **지금 보고 있는 폴더**에 만든다 —
@@ -497,75 +494,69 @@ export default function LibraryScreen() {
 
       {/* 제출 — **낸 순간 문서가 얼어붙는다.** 뒤에 고쳐도 결재본은 안 바뀐다. */}
       {submitting && (
-        <div className="lib-confirm" onClick={() => setSubmitting(null)}>
-          <div className="lib-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <div className="lib-confirm-title">결재 제출</div>
-            <div className="lib-confirm-msg">
-              <b>{submitting.name || '제목 없음'}</b> 을(를) 관리자에게 제출합니다.
-              <br /><br />
-              <b>지금 이 문서가 그대로 얼어붙습니다.</b> 제출한 뒤에 고쳐도 결재본은 바뀌지 않습니다.
-              <br />
-              한 번이라도 제출하면 <b>이 자료는 지울 수 없습니다.</b>
-              {aErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{aErr}</div>}
-              <input className="lib-mkin" value={submitMsg} placeholder="전달할 말 (선택)"
-                onChange={(e) => setSubmitMsg(e.target.value)} />
-            </div>
-            <div className="lib-confirm-actions">
-              <button className="lib-btn" disabled={busy}
-                onClick={() => setSubmitting(null)}>취소</button>
-              <button className="lib-btn dark" disabled={busy} onClick={() => {
-                if (busy) return
-                const target = submitting
-                setAErr(''); setBusy(true)
-                void (async () => {
-                  try {
-                    await apiRequestApproval(target.id, submitMsg.trim())
-                    setSubmitting(null); await loadChips()
-                  } catch (e) {
-                    setAErr(e instanceof ApprovalApiError ? e.message : '제출하지 못했습니다.')
-                  } finally { setBusy(false) }
-                })()
-              }}>{busy ? '제출 중…' : '제출'}</button>
-            </div>
-          </div>
-        </div>
+        <Modal title="결재 제출" onClose={() => setSubmitting(null)} size="sm" busy={busy}
+          scrimClassName="lib-confirm" className="lib-confirm-box"
+          footClassName="lib-confirm-actions"
+          footer={<>
+            <button className="lib-btn" disabled={busy}
+              onClick={() => setSubmitting(null)}>취소</button>
+            <button className="lib-btn dark" disabled={busy} onClick={() => {
+              if (busy) return
+              const target = submitting
+              setAErr(''); setBusy(true)
+              void (async () => {
+                try {
+                  await apiRequestApproval(target.id, submitMsg.trim())
+                  setSubmitting(null); await loadChips()
+                } catch (e) {
+                  setAErr(e instanceof ApprovalApiError ? e.message : '제출하지 못했습니다.')
+                } finally { setBusy(false) }
+              })()
+            }}>{busy ? '제출 중…' : '제출'}</button>
+          </>}>
+          <b>{submitting.name || '제목 없음'}</b> 을(를) 관리자에게 제출합니다.
+          <br /><br />
+          <b>지금 이 문서가 그대로 얼어붙습니다.</b> 제출한 뒤에 고쳐도 결재본은 바뀌지 않습니다.
+          <br />
+          한 번이라도 제출하면 <b>이 자료는 지울 수 없습니다.</b>
+          {aErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{aErr}</div>}
+          <input className="lib-mkin" value={submitMsg} placeholder="전달할 말 (선택)"
+            onChange={(e) => setSubmitMsg(e.target.value)} />
+        </Modal>
       )}
 
       {/* 수정 요청 — **아무것도 안 얼린다.** 제출과 헷갈리지 않게 그렇게 말한다. */}
       {revising && (
-        <div className="lib-confirm" onClick={() => setRevising(null)}>
-          <div className="lib-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <div className="lib-confirm-title">수정 요청</div>
-            <div className="lib-confirm-msg">
-              <b>{revising.name || '제목 없음'}</b> 을(를) 고칠 수 있게 해 달라고 요청합니다.
-              <br /><br />
-              <b>팀이 보는 화면은 지금 그대로입니다.</b> 허락이 나도 승인본은 안 바뀌고,
-              고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.
-              <br />
-              허락이 날 때까지는 아직 고칠 수 없습니다.
-              {aErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{aErr}</div>}
-              <input className="lib-mkin" value={reviseMsg} placeholder="무엇을 고칠지 (선택)"
-                onChange={(e) => setReviseMsg(e.target.value)} />
-            </div>
-            <div className="lib-confirm-actions">
-              <button className="lib-btn" disabled={busy}
-                onClick={() => setRevising(null)}>취소</button>
-              <button className="lib-btn dark" disabled={busy} onClick={() => {
-                if (busy) return
-                const target = revising
-                setAErr(''); setBusy(true)
-                void (async () => {
-                  try {
-                    await apiRequestRevision(target.id, reviseMsg.trim())
-                    setRevising(null); await loadChips()
-                  } catch (e) {
-                    setAErr(e instanceof ApprovalApiError ? e.message : '요청하지 못했습니다.')
-                  } finally { setBusy(false) }
-                })()
-              }}>{busy ? '요청 중…' : '요청'}</button>
-            </div>
-          </div>
-        </div>
+        <Modal title="수정 요청" onClose={() => setRevising(null)} size="sm" busy={busy}
+          scrimClassName="lib-confirm" className="lib-confirm-box"
+          footClassName="lib-confirm-actions"
+          footer={<>
+            <button className="lib-btn" disabled={busy}
+              onClick={() => setRevising(null)}>취소</button>
+            <button className="lib-btn dark" disabled={busy} onClick={() => {
+              if (busy) return
+              const target = revising
+              setAErr(''); setBusy(true)
+              void (async () => {
+                try {
+                  await apiRequestRevision(target.id, reviseMsg.trim())
+                  setRevising(null); await loadChips()
+                } catch (e) {
+                  setAErr(e instanceof ApprovalApiError ? e.message : '요청하지 못했습니다.')
+                } finally { setBusy(false) }
+              })()
+            }}>{busy ? '요청 중…' : '요청'}</button>
+          </>}>
+          <b>{revising.name || '제목 없음'}</b> 을(를) 고칠 수 있게 해 달라고 요청합니다.
+          <br /><br />
+          <b>팀이 보는 화면은 지금 그대로입니다.</b> 허락이 나도 승인본은 안 바뀌고,
+          고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.
+          <br />
+          허락이 날 때까지는 아직 고칠 수 없습니다.
+          {aErr && <div style={{ color: '#b4232a', marginTop: 10 }}>{aErr}</div>}
+          <input className="lib-mkin" value={reviseMsg} placeholder="무엇을 고칠지 (선택)"
+            onChange={(e) => setReviseMsg(e.target.value)} />
+        </Modal>
       )}
 
       {picking && (
@@ -577,20 +568,20 @@ export default function LibraryScreen() {
         />
       )}
 
-      {/* 프로젝트 자체 확인 다이얼로그(표준: 브라우저 confirm 금지) */}
+      {/* 이북 삭제 — **되돌릴 수 없다.** 그 말을 색이 아니라 글로 적는다. */}
       {pendingDel && (
-        <div className="lib-confirm" onClick={() => setPendingDel(null)}>
-          <div className="lib-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <div className="lib-confirm-title">이북 삭제</div>
-            <div className="lib-confirm-msg">‘{pendingDel.name || '제목 없음'}’ 이북을 삭제할까요?<br />이 이북의 모든 슬라이드와 버전 기록이 함께 삭제되며 되돌릴 수 없어요.</div>
-            <div className="lib-confirm-actions">
-              <button className="lib-c-cancel" disabled={busy}
-                onClick={() => setPendingDel(null)}>취소</button>
-              <button className="lib-c-ok danger" disabled={busy}
-                onClick={() => void confirmDelete()}>{busy ? '삭제 중…' : '삭제'}</button>
-            </div>
-          </div>
-        </div>
+        <Modal title="이북 삭제" onClose={() => setPendingDel(null)} size="sm" busy={busy}
+          scrimClassName="lib-confirm" className="lib-confirm-box"
+          footClassName="lib-confirm-actions"
+          footer={<>
+            <button className="lib-c-cancel" disabled={busy}
+              onClick={() => setPendingDel(null)}>취소</button>
+            <button className="lib-c-ok danger" disabled={busy}
+              onClick={() => void confirmDelete()}>{busy ? '삭제 중…' : '삭제'}</button>
+          </>}>
+          ‘{pendingDel.name || '제목 없음'}’ 이북을 삭제할까요?<br />
+          이 이북의 모든 슬라이드와 버전 기록이 함께 삭제되며 <b>되돌릴 수 없어요.</b>
+        </Modal>
       )}
     </div>
   )

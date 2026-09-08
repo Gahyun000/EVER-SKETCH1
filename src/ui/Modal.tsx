@@ -19,16 +19,25 @@ import './modal.css'
 export type ModalSize = 'sm' | 'md' | 'lg'
 
 export default function Modal({
-  title, onClose, children, footer, size = 'md', busy = false, error,
+  title, onClose, children, footer, size = 'md', busy = false, error, dismissible = true,
   className = '', scrimClassName = '', footClassName = '', labelId,
 }: {
   title: ReactNode
   onClose: () => void
   children: ReactNode
-  footer?: ReactNode
+  /** **필수다.** 닫기 ✕ 를 없앴으므로(모든 창에 「취소」가 있다) 여기가 유일한
+   *  눈에 보이는 출구다. 비워 두면 Esc 를 아는 사람만 나갈 수 있는 창이 된다. */
+  footer: ReactNode
   size?: ModalSize
   /** 처리 중에는 닫지 않는다 — 절반만 저장된 상태로 창이 사라지면 무엇이 참인지 알 수 없다. */
   busy?: boolean
+  /** Esc·바깥 누르기로 닫히지 않게 한다.
+   *
+   *  `busy` 와 **다른 이유**다. `busy` 는 「아직 안 끝났다」이고 이건 「실수로 닫으면
+   *  되돌릴 수 없다」이다 — 임시 비밀번호처럼 **닫는 순간 사라지는** 것이 그렇다.
+   *  한 값이 두 일을 겸하면, 처리가 끝난 뒤 Esc 한 번에 사라진다.
+   *  이 창에서 나가는 길은 footer 의 버튼뿐이다. */
+  dismissible?: boolean
   error?: string
   /** 기존 화면이 쓰던 선택자를 유지하기 위한 덧붙임(.cy-modal 등). */
   className?: string
@@ -39,6 +48,8 @@ export default function Modal({
   const boxRef = useRef<HTMLDivElement>(null)
   const busyRef = useRef(busy)
   busyRef.current = busy
+  const dismissRef = useRef(dismissible)
+  dismissRef.current = dismissible
 
   // 열릴 때 안으로, 닫을 때 원래 자리로.
   // 돌려놓지 않으면 창을 닫은 뒤 Tab 이 화면 맨 위부터 다시 시작한다 —
@@ -65,7 +76,7 @@ export default function Modal({
       if (e.key !== 'Escape') return
       e.preventDefault()
       e.stopPropagation()
-      if (!busyRef.current) onClose()
+      if (!busyRef.current && dismissRef.current) onClose()
     }
     document.addEventListener('keydown', onKey, true)
     return () => document.removeEventListener('keydown', onKey, true)
@@ -88,15 +99,14 @@ export default function Modal({
   return (
     <div className={'ui-scrim ' + scrimClassName} role="dialog" aria-modal="true" aria-labelledby={tid}
       onKeyDown={onKeyDown}
-      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose() }}>
+      onClick={(e) => { if (e.target === e.currentTarget && !busy && dismissible) onClose() }}>
       <div className={'ui-modal ' + size + ' ' + className} ref={boxRef} tabIndex={-1}>
         <div className="ui-modal-head">
           <h3 id={tid}>{title}</h3>
-          <button className="ui-modal-x" onClick={onClose} disabled={busy} aria-label="닫기">✕</button>
         </div>
         {error ? <div className="ui-modal-err" role="alert">{error}</div> : null}
         <div className="ui-modal-body">{children}</div>
-        {footer ? <div className={'ui-modal-foot ' + footClassName}>{footer}</div> : null}
+        <div className={'ui-modal-foot ' + footClassName}>{footer}</div>
       </div>
     </div>
   )

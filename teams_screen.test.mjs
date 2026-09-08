@@ -76,8 +76,10 @@ check(/apiRemoveMember/.test(tsx) && /팀에서 빼기/.test(tsx),
   '팀에서 빼는 길이 있다 — 옮기기만 있으면 미배정으로 되돌릴 방법이 없다')
 
 // ── 되돌릴 수 없는 일은 자체 확인창 ──
-check(/es-confirm-box[\s\S]{0,600}팀 삭제/.test(tsx),
-  '팀 삭제는 자체 확인창으로 한 번 더 묻는다')
+// 2026-09-08: 껍데기를 ui/Modal 로 옮기며 `es-confirm-box` 가 제목 **뒤로** 갔다.
+// 순서가 아니라 **무엇을 쓰는가**를 본다.
+check(/<Modal title="팀 삭제"/.test(tsx), '팀 삭제는 공용 껍데기(ui/Modal)로 한 번 더 묻는다')
+check(/scrimClassName="es-confirm"/.test(tsx), '화면 검사가 찾던 선택자를 그대로 넘겨 준다')
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

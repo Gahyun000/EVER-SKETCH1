@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ApiError, apiApprove, apiListUsers, apiResetPassword, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
 import { useAuth } from './useAuth'
+import Modal from '../ui/Modal'
 
 type Tab = 'pending' | 'active' | 'all'
 
@@ -168,84 +169,82 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
         )}
 
         {confirm && (
-          <div className="es-confirm" onClick={() => setConfirm(null)}>
-            <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
-              <div className="es-confirm-title">
-                {confirm.kind === 'grantAdmin' ? '관리자 권한 부여'
-                  : confirm.kind === 'resetPw' ? '비밀번호 초기화' : '계정 사용 중지'}
-              </div>
-              <div className="es-confirm-msg">
-                {confirm.kind === 'resetPw' ? (
-                  <>
-                    <b>{confirm.user.name}({confirm.user.login_id})</b> 님의 비밀번호를 초기화합니다.
-                    <br /><br />
-                    <b>임시 비밀번호를 이 화면에 한 번만 보여드립니다.</b> 당사자에게 전달해 주세요.
-                    그 사람은 <b>다음 로그인에서 반드시 새 비밀번호로 바꿔야</b> 합니다.
-                    <br /><br />
-                    지금 접속 중이라면 <b>즉시 로그아웃</b>되고, 예전 비밀번호는 더 이상 쓸 수 없습니다.
-                  </>
-                ) : confirm.kind === 'grantAdmin' ? (
-                  <>
-                    <b>{confirm.user.name}({confirm.user.login_id})</b> 님에게 <b>Lv1 관리자</b> 권한을 부여합니다.
-                    <br /><br />
-                    관리자는 <b>모든 임원의 자료를 열람·수정·삭제</b>할 수 있고, 다른 사람의 가입을 승인하고
-                    팀을 편성할 수 있습니다.
-                  </>
-                ) : (
-                  <>
-                    <b>{confirm.user.name}({confirm.user.login_id})</b> 님의 계정을 중지합니다.
-                    <br /><br />
-                    지금 접속 중이라면 <b>즉시 로그아웃</b>되고 다시 로그인할 수 없습니다.
-                    작성 중이던 내용이 저장되지 않을 수 있습니다.
-                  </>
-                )}
-              </div>
-              <div className="es-confirm-actions">
-                <button className="es-mini" onClick={() => setConfirm(null)}>취소</button>
-                <button className={`es-mini ${confirm.kind === 'disable' ? 'danger' : 'primary'}`}
-                  onClick={() => {
-                    const c = confirm
-                    setConfirm(null)
-                    if (c.kind === 'grantAdmin') void act(() => apiApprove(c.user.id, 'admin'), c.user.id)
-                    else if (c.kind === 'resetPw') void resetPw(c.user)
-                    else void act(() => apiSetStatus(c.user.id, 'disabled'), c.user.id)
-                  }}>
-                  {confirm.kind === 'grantAdmin' ? '관리자로 지정'
-                    : confirm.kind === 'resetPw' ? '초기화' : '중지'}
-                </button>
-              </div>
-            </div>
-          </div>
+          <Modal
+            title={confirm.kind === 'grantAdmin' ? '관리자 권한 부여'
+              : confirm.kind === 'resetPw' ? '비밀번호 초기화' : '계정 사용 중지'}
+            onClose={() => setConfirm(null)} size="sm" busy={busyId === confirm.user.id}
+            scrimClassName="es-confirm" className="es-confirm-box"
+            footClassName="es-confirm-actions"
+            footer={<>
+              <button className="es-mini" onClick={() => setConfirm(null)}>취소</button>
+              <button className={`es-mini ${confirm.kind === 'disable' ? 'danger' : 'primary'}`}
+                onClick={() => {
+                  const c = confirm
+                  setConfirm(null)
+                  if (c.kind === 'grantAdmin') void act(() => apiApprove(c.user.id, 'admin'), c.user.id)
+                  else if (c.kind === 'resetPw') void resetPw(c.user)
+                  else void act(() => apiSetStatus(c.user.id, 'disabled'), c.user.id)
+                }}>
+                {confirm.kind === 'grantAdmin' ? '관리자로 지정'
+                  : confirm.kind === 'resetPw' ? '초기화' : '중지'}
+              </button>
+            </>}>
+            {confirm.kind === 'resetPw' ? (
+              <>
+                <b>{confirm.user.name}({confirm.user.login_id})</b> 님의 비밀번호를 초기화합니다.
+                <br /><br />
+                <b>임시 비밀번호를 이 화면에 한 번만 보여드립니다.</b> 당사자에게 전달해 주세요.
+                그 사람은 <b>다음 로그인에서 반드시 새 비밀번호로 바꿔야</b> 합니다.
+                <br /><br />
+                지금 접속 중이라면 <b>즉시 로그아웃</b>되고, 예전 비밀번호는 더 이상 쓸 수 없습니다.
+              </>
+            ) : confirm.kind === 'grantAdmin' ? (
+              <>
+                <b>{confirm.user.name}({confirm.user.login_id})</b> 님에게 <b>Lv1 관리자</b> 권한을 부여합니다.
+                <br /><br />
+                관리자는 <b>모든 임원의 자료를 열람·수정·삭제</b>할 수 있고, 다른 사람의 가입을 승인하고
+                팀을 편성할 수 있습니다.
+              </>
+            ) : (
+              <>
+                <b>{confirm.user.name}({confirm.user.login_id})</b> 님의 계정을 중지합니다.
+                <br /><br />
+                지금 접속 중이라면 <b>즉시 로그아웃</b>되고 다시 로그인할 수 없습니다.
+                작성 중이던 내용이 저장되지 않을 수 있습니다.
+              </>
+            )}
+          </Modal>
         )}
 
         {/* 임시 비밀번호는 **여기에만** 있다 — 감사로그에도 목록에도 남지 않는다.
-            닫으면 사라지므로, 닫기 전에 전달하라고 분명히 말한다. */}
+            닫으면 사라지므로 닫기 전에 전달하라고 분명히 말하고,
+            **Esc·바깥 누르기로는 닫히지 않게 한다**(`dismissible={false}`).
+            실수로 한 번 누르면 되돌릴 길이 「한 번 더 초기화」밖에 없고,
+            그건 당사자를 또 로그아웃시킨다. */}
         {issued && (
-          <div className="es-confirm">
-            <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
-              <div className="es-confirm-title">임시 비밀번호</div>
-              <div className="es-confirm-msg">
-                <b>{issued.user.name}({issued.user.login_id})</b> 님에게 아래 비밀번호를 전달해 주세요.
-                <br />
-                <b>이 창을 닫으면 다시 볼 수 없습니다.</b> 다시 필요하면 한 번 더 초기화해야 합니다.
-                <div style={{
-                  marginTop: 12, padding: '11px 13px', background: '#f6f8fc',
-                  border: '1px solid #e6e8ee', borderRadius: 7,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                  fontSize: 15, fontWeight: 700, color: '#0F1B3D',
-                  userSelect: 'all', wordBreak: 'break-all',
-                }}>{issued.password}</div>
-              </div>
-              <div className="es-confirm-actions">
-                <button className="es-mini"
-                  onClick={() => {
-                    void navigator.clipboard?.writeText(issued.password)
-                      .then(() => setCopied(true)).catch(() => setCopied(false))
-                  }}>{copied ? '복사했습니다' : '복사'}</button>
-                <button className="es-mini primary" onClick={() => setIssued(null)}>닫기</button>
-              </div>
-            </div>
-          </div>
+          <Modal title="임시 비밀번호" onClose={() => setIssued(null)} size="sm"
+            scrimClassName="es-confirm" className="es-confirm-box"
+            footClassName="es-confirm-actions"
+            dismissible={false}
+            footer={<>
+              <button className="es-mini"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(issued.password)
+                    .then(() => setCopied(true)).catch(() => setCopied(false))
+                }}>{copied ? '복사했습니다' : '복사'}</button>
+              <button className="es-mini primary" onClick={() => setIssued(null)}>닫기</button>
+            </>}>
+            <b>{issued.user.name}({issued.user.login_id})</b> 님에게 아래 비밀번호를 전달해 주세요.
+            <br />
+            <b>이 창을 닫으면 다시 볼 수 없습니다.</b> 다시 필요하면 한 번 더 초기화해야 합니다.
+            <div style={{
+              marginTop: 12, padding: '11px 13px', background: '#f6f8fc',
+              border: '1px solid #e6e8ee', borderRadius: 7,
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontSize: 15, fontWeight: 700, color: '#0F1B3D',
+              userSelect: 'all', wordBreak: 'break-all',
+            }}>{issued.password}</div>
+          </Modal>
         )}
 
         <div className="es-msg info" style={{ marginTop: 18, marginBottom: 0 }}>

@@ -8,6 +8,7 @@ import {
   PAGE_SIZE, buildGroups, highlight, moveMessage, normalizeQuery,
   type Group, type Team, type TeamUser,
 } from './teamModel'
+import Modal from '../ui/Modal'
 
 /**
  * 팀 편성 — L1 전용. 화면 설계 **SCR-TEAM-01**
@@ -303,25 +304,23 @@ export default function TeamsAdmin({ onClose }: { onClose: () => void }) {
 
         {/* 팀 삭제는 되돌릴 수 없다 — 브라우저 기본 창을 쓰지 않고 자체 확인창으로 묻는다(표준). */}
         {confirmDelete && (
-          <div className="es-confirm" onClick={() => setConfirmDelete(null)}>
-            <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
-              <div className="es-confirm-title">팀 삭제</div>
-              <div className="es-confirm-msg">
-                <b>{confirmDelete.name}</b> 팀을 지웁니다.
-                <br /><br />
-                이 팀 이름으로 공유됐던 자료는 <b>지난 팀 자료로 남습니다.</b> 되돌릴 수 없습니다.
-              </div>
-              <div className="es-confirm-actions">
-                <button className="es-mini" onClick={() => setConfirmDelete(null)}>취소</button>
-                <button className="es-mini danger" disabled={busy}
-                  onClick={() => {
-                    const g = confirmDelete
-                    setConfirmDelete(null)
-                    void act(async () => { await apiDeleteTeam(g.id); setNote(`${g.name} 팀을 지웠습니다.`) })
-                  }}>지우기</button>
-              </div>
-            </div>
-          </div>
+          <Modal title="팀 삭제" onClose={() => setConfirmDelete(null)} size="sm" busy={busy}
+            scrimClassName="es-confirm" className="es-confirm-box"
+            footClassName="es-confirm-actions"
+            footer={<>
+              <button className="es-mini" disabled={busy}
+                onClick={() => setConfirmDelete(null)}>취소</button>
+              <button className="es-mini danger" disabled={busy}
+                onClick={() => {
+                  const g = confirmDelete
+                  setConfirmDelete(null)
+                  void act(async () => { await apiDeleteTeam(g.id); setNote(`${g.name} 팀을 지웠습니다.`) })
+                }}>지우기</button>
+            </>}>
+            <b>{confirmDelete.name}</b> 팀을 지웁니다.
+            <br /><br />
+            이 팀 이름으로 공유됐던 자료는 <b>지난 팀 자료로 남습니다.</b> 되돌릴 수 없습니다.
+          </Modal>
         )}
 
         <div className="es-msg info" style={{ marginTop: 16, marginBottom: 0 }}>

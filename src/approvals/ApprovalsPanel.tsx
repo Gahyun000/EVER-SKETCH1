@@ -9,6 +9,7 @@ import {
 } from './approvalApi'
 import { useAuth } from '../auth/useAuth'
 import { isAdmin } from '../auth/authApi'
+import Modal from '../ui/Modal'
 
 const fmt = (ts?: number | null) =>
   ts ? new Date(ts).toLocaleString('ko-KR', {
@@ -311,88 +312,86 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
 
         {/* 되돌릴 수 없는 일은 자체 확인창으로 한 번 더 묻는다(표준: 브라우저 confirm 금지). */}
         {confirm && detail && (
-          <div className="es-confirm" onClick={() => setConfirm(null)}>
-            <div className="es-confirm-box" onClick={(e) => e.stopPropagation()}>
-              {/* **문구가 갈린다.** 같은 「승인」 버튼이라도 문서에 도장을 찍는 것과
-                  「고쳐도 된다」고 허락하는 것은 되는 일이 완전히 다르다 —
-                  한 문구를 돌려 쓰면 확인창이 거짓말을 한다. */}
-              <div className="es-confirm-title">
-                {confirm === 'end' ? '수정 그만두기'
-                  : confirm === 'withdraw' ? '요청 거두기'
-                    : isRevision ? (confirm === 'approve' ? '수정 허락' : '수정 거절')
-                      : (confirm === 'approve' ? '결재 승인' : '결재 반려')}
-              </div>
-              <div className="es-confirm-msg">
-                <b>{detail.project_name}</b>{isRevision ? '' : ` ${detail.round}회차`}
-                {confirm === 'end' ? (
-                  <>
-                    의 <b>수정을 그만둡니다</b>.
-                    <br /><br />
-                    자료는 <b>다시 잠기고</b> 팀은 승인본을 그대로 봅니다.
-                    <b>고친 내용은 지워지지 않습니다</b> — 승인본에 반영되지 않을 뿐이고,
-                    나중에 다시 수정 요청을 낼 수 있습니다.
-                  </>
-                ) : confirm === 'withdraw' ? (
-                  <>
-                    를 <b>거둡니다</b>.
-                    <br /><br />
-                    고쳐서 다시 낼 수 있습니다. 다만 <b>결재 이력에는 남습니다</b> —
-                    이력이 있는 자료는 지울 수 없습니다.
-                  </>
-                ) : isRevision ? (
-                  confirm === 'approve' ? (
-                    <>
-                      를 고쳐도 좋다고 <b>허락</b>합니다.
-                      <br /><br />
-                      <b>승인본은 안 바뀝니다.</b> 팀은 직전 승인본을 계속 보고,
-                      작성자가 고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.
-                    </>
-                  ) : (
-                    <>
-                      의 수정 요청을 <b>거절</b>합니다.
-                      <br /><br />
-                      자료는 <b>승인된 채로 그대로</b> 남고 작성자는 고칠 수 없습니다.
-                      이유를 적어 두면 무엇 때문인지 압니다.
-                    </>
-                  )
-                ) : confirm === 'approve' ? (
-                  <>
-                    를 <b>승인</b>합니다.
-                    <br /><br />
-                    승인하면 <b>같은 팀에 바로 공유</b>됩니다. 되돌리려면 작성자가
-                    수정 요청을 내야 합니다.
-                  </>
-                ) : (
-                  <>
-                    를 <b>반려</b>합니다.
-                    <br /><br />
-                    작성자가 고쳐서 다시 낼 수 있습니다. 의견을 적어 두면 무엇을 고칠지 압니다.
-                  </>
-                )}
-              </div>
-              <div className="es-confirm-actions">
-                <button className="es-mini" onClick={() => setConfirm(null)}>취소</button>
-                <button className={'es-mini ' + (confirm === 'approve' ? 'primary' : 'danger')}
-                  disabled={busy}
-                  onClick={() => {
-                    const c = confirm
-                    setConfirm(null)
-                    void act(() => c === 'end'
-                      ? apiEndRevision(detail.id)
-                      : c === 'withdraw'
-                        ? apiWithdraw(detail.id)
-                        : isRevision
-                          ? apiDecideRevision(detail.id, c, msg.trim())
-                          : apiDecide(detail.id, c, msg.trim()))
-                  }}>
-                  {confirm === 'end' ? '그만두기'
-                    : confirm === 'withdraw' ? '거두기'
-                      : isRevision ? (confirm === 'approve' ? '허락' : '거절')
-                        : (confirm === 'approve' ? '승인' : '반려')}
-                </button>
-              </div>
-            </div>
-          </div>
+          <Modal
+            title={confirm === 'end' ? '수정 그만두기'
+              : confirm === 'withdraw' ? '요청 거두기'
+                : isRevision ? (confirm === 'approve' ? '수정 허락' : '수정 거절')
+                  : (confirm === 'approve' ? '결재 승인' : '결재 반려')}
+            onClose={() => setConfirm(null)} size="sm" busy={busy}
+            scrimClassName="es-confirm" className="es-confirm-box"
+            footClassName="es-confirm-actions"
+            footer={<>
+              <button className="es-mini" disabled={busy}
+                onClick={() => setConfirm(null)}>취소</button>
+              <button className={'es-mini ' + (confirm === 'approve' ? 'primary' : 'danger')}
+                disabled={busy}
+                onClick={() => {
+                  const c = confirm
+                  setConfirm(null)
+                  void act(() => c === 'end'
+                    ? apiEndRevision(detail.id)
+                    : c === 'withdraw'
+                      ? apiWithdraw(detail.id)
+                      : isRevision
+                        ? apiDecideRevision(detail.id, c, msg.trim())
+                        : apiDecide(detail.id, c, msg.trim()))
+                }}>
+                {confirm === 'end' ? '그만두기'
+                  : confirm === 'withdraw' ? '거두기'
+                    : isRevision ? (confirm === 'approve' ? '허락' : '거절')
+                      : (confirm === 'approve' ? '승인' : '반려')}
+              </button>
+            </>}>
+            {/* **문구가 갈린다.** 같은 「승인」 버튼이라도 문서에 도장을 찍는 것과
+                「고쳐도 된다」고 허락하는 것은 되는 일이 완전히 다르다 —
+                한 문구를 돌려 쓰면 확인창이 거짓말을 한다. */}
+            <b>{detail.project_name}</b>{isRevision ? '' : ` ${detail.round}회차`}
+            {confirm === 'end' ? (
+              <>
+                의 <b>수정을 그만둡니다</b>.
+                <br /><br />
+                자료는 <b>다시 잠기고</b> 팀은 승인본을 그대로 봅니다.
+                <b>고친 내용은 지워지지 않습니다</b> — 승인본에 반영되지 않을 뿐이고,
+                나중에 다시 수정 요청을 낼 수 있습니다.
+              </>
+            ) : confirm === 'withdraw' ? (
+              <>
+                를 <b>거둡니다</b>.
+                <br /><br />
+                고쳐서 다시 낼 수 있습니다. 다만 <b>결재 이력에는 남습니다</b> —
+                이력이 있는 자료는 지울 수 없습니다.
+              </>
+            ) : isRevision ? (
+              confirm === 'approve' ? (
+                <>
+                  를 고쳐도 좋다고 <b>허락</b>합니다.
+                  <br /><br />
+                  <b>승인본은 안 바뀝니다.</b> 팀은 직전 승인본을 계속 보고,
+                  작성자가 고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.
+                </>
+              ) : (
+                <>
+                  의 수정 요청을 <b>거절</b>합니다.
+                  <br /><br />
+                  자료는 <b>승인된 채로 그대로</b> 남고 작성자는 고칠 수 없습니다.
+                  이유를 적어 두면 무엇 때문인지 압니다.
+                </>
+              )
+            ) : confirm === 'approve' ? (
+              <>
+                를 <b>승인</b>합니다.
+                <br /><br />
+                승인하면 <b>같은 팀에 바로 공유</b>됩니다. 되돌리려면 작성자가
+                수정 요청을 내야 합니다.
+              </>
+            ) : (
+              <>
+                를 <b>반려</b>합니다.
+                <br /><br />
+                작성자가 고쳐서 다시 낼 수 있습니다. 의견을 적어 두면 무엇을 고칠지 압니다.
+              </>
+            )}
+          </Modal>
         )}
       </div>
     </div>
