@@ -168,7 +168,7 @@ v3 에서는 「관리자에게는 칸 뜻이 뒤집힌다」고 적었습니다
   <tr><td><b>제출</b></td><td>내가 낸 것 · 답을 기다림</td><td>내가 결정할 것</td></tr>
   <tr><td><b>반려</b></td><td>고쳐야 함</td><td>돌려보냈음</td></tr>
   <tr><td><b>승인</b></td><td>끝</td><td>끝</td></tr>
-  <tr><td><b>거둠</b></td><td>내가 거둠</td><td>거둬 갔음</td></tr>
+  <tr><td><b>회수</b></td><td>내가 물렸음</td><td>낸 사람이 물렸음</td></tr>
 </table>
 <p class="note">「제출」은 <b>낸 상태라는 사실</b>만 말할 뿐, 누구 차례인지를 말하지 않습니다.
 그래서 <b>한 이름으로 둘을 다 담습니다. 보드가 하나면 됩니다.</b></p>
@@ -228,7 +228,7 @@ v3 에서는 「관리자에게는 칸 뜻이 뒤집힌다」고 적었습니다
 <h2><span class="n">6</span>정해 주실 것</h2>
 <table class="inv">
   <tr><th style="width:40px">#</th><th style="width:300px">물음</th><th>권함</th></tr>
-  <tr><td><b>㉠</b></td><td>칸을 <b>넷</b>(제출·반려·승인·거둠) / 셋(거둠 뺌)</td><td class="y">넷</td></tr>
+  <tr><td><b>㉠</b></td><td>칸을 <b>넷</b>(제출·반려·승인·회수) / 셋(회수 뺌)</td><td class="y">넷</td></tr>
   <tr><td><b>㉡</b></td><td>「수정 요청」 건도 칸에 놓을까
       <span style="color:#9aa3b2">— 위 보드의 「안전 점검 보고」가 그 예입니다</span></td><td class="y">놓는다</td></tr>
   <tr><td><b>㉢</b></td><td>보드가 기본 보기 / <b>목록이 기본</b></td><td class="y">목록이 기본</td></tr>
@@ -249,12 +249,12 @@ var A = [
   {id:3, pj:'p2', nm:'제목 없음',            ow:'김가현', fd:'2026년',          rd:1, kind:'approval', st:'rejected',  when:'9/6 반려', why:'표지 제목이 비어 있습니다.'},
   {id:4, pj:'p2', nm:'제목 없음',            ow:'김가현', fd:'2026년',          rd:2, kind:'approval', st:'pending',   when:'9/8 제출'},
   {id:5, pj:'p3', nm:'2026년 9월 임원회의',  ow:'김가현', fd:'2026년 / 하반기', rd:1, kind:'approval', st:'approved',  when:'9/1 승인'},
-  {id:6, pj:'p4', nm:'3분기 실적 보고',      ow:'박서준', fd:'실적',            rd:1, kind:'approval', st:'withdrawn', when:'9/5 거둠'},
+  {id:6, pj:'p4', nm:'3분기 실적 보고',      ow:'박서준', fd:'실적',            rd:1, kind:'approval', st:'withdrawn', when:'9/5 회수'},
   {id:7, pj:'p5', nm:'신규 사업 검토',       ow:'이민호', fd:'기획',            rd:1, kind:'approval', st:'pending',   when:'9/8 제출'},
   {id:8, pj:'p6', nm:'안전 점검 보고',       ow:'최유진', fd:'안전',            rd:1, kind:'approval', st:'approved',  when:'8/28 승인'},
   {id:9, pj:'p6', nm:'안전 점검 보고',       ow:'최유진', fd:'안전',            rd:0, kind:'revision', st:'pending',   when:'9/8 수정 요청'},
   {id:10,pj:'p7', nm:'2026년 8월 임원회의',  ow:'김가현', fd:'2026년 / 하반기', rd:1, kind:'approval', st:'rejected',  when:'9/4 반려', why:'매출 표의 단위가 빠졌습니다. 백만 원 단위로 맞춰 주세요.'},
-  {id:11,pj:'p8', nm:'워크숍 계획안',        ow:'김가현', fd:'기획',            rd:1, kind:'approval', st:'withdrawn', when:'9/3 거둠'}
+  {id:11,pj:'p8', nm:'워크숍 계획안',        ow:'김가현', fd:'기획',            rd:1, kind:'approval', st:'withdrawn', when:'9/3 회수'}
 ]
 var A0 = JSON.stringify(A)
 
@@ -262,9 +262,9 @@ var COL = [
   {k:'pending',   c:'sent', t:'제출'},
   {k:'rejected',  c:'rej',  t:'반려'},
   {k:'approved',  c:'appr', t:'승인'},
-  {k:'withdrawn', c:'wd',   t:'거둠'}
+  {k:'withdrawn', c:'wd',   t:'회수'}
 ]
-var TABT = {pending:'대기', approved:'승인', rejected:'반려', withdrawn:'거둠'}
+var TABT = {pending:'대기', approved:'승인', rejected:'반려', withdrawn:'회수'}
 
 function mine(){ return ROLE === 'admin' ? A : A.filter(function(x){ return x.ow === '김가현' }) }
 

@@ -295,7 +295,7 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
                     )}
                     {canWithdraw && (
                       <button className="es-mini" disabled={busy} onClick={() => setConfirm('withdraw')}>
-                        <Undo2 className="h-4 w-4" /> 거두기
+                        <Undo2 className="h-4 w-4" /> 회수
                       </button>
                     )}
                     {canEndRevision && (
@@ -314,7 +314,7 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
         {confirm && detail && (
           <Modal
             title={confirm === 'end' ? '수정 그만두기'
-              : confirm === 'withdraw' ? '요청 거두기'
+              : confirm === 'withdraw' ? '결재 회수'
                 : isRevision ? (confirm === 'approve' ? '수정 허락' : '수정 거절')
                   : (confirm === 'approve' ? '결재 승인' : '결재 반려')}
             onClose={() => setConfirm(null)} size="sm" busy={busy}
@@ -324,7 +324,7 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
             footer={<>
               {/* **빨강은 「잃는다」는 뜻이어야 한다.**
                   여기 넷은 하나도 잃지 않는다 — 반려·거절은 자료가 그대로 남고,
-                  거두기는 이력에 남으며 다시 낼 수 있고, 그만두기는 고친 내용을 안 지운다.
+                  회수는 이력에 남으며 다시 낼 수 있고, 그만두기는 고친 내용을 안 지운다.
                   그런데 「승인이 아닌 것」이 전부 빨강이었다. 그러면 빨강이
                   **「되돌릴 수 없다」가 아니라 「오른쪽 아닌 쪽」**이라는 뜻이 되고,
                   정작 이북 삭제·계정 중지에서 빨강이 아무 말도 안 하게 된다.
@@ -343,7 +343,7 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
                         : apiDecide(detail.id, c, msg.trim()))
                 }}>
                 {confirm === 'end' ? '그만두기'
-                  : confirm === 'withdraw' ? '거두기'
+                  : confirm === 'withdraw' ? '회수'
                     : isRevision ? (confirm === 'approve' ? '허락' : '거절')
                       : (confirm === 'approve' ? '승인' : '반려')}
               </button>
@@ -362,7 +362,7 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
               </>
             ) : confirm === 'withdraw' ? (
               <>
-                를 <b>거둡니다</b>.
+                를 <b>회수합니다</b>.
                 <br /><br />
                 고쳐서 다시 낼 수 있습니다. 다만 <b>결재 이력에는 남습니다</b> —
                 이력이 있는 자료는 지울 수 없습니다.

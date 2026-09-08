@@ -198,7 +198,7 @@ export async function apiDeleteComment(cid: string): Promise<void> {
 
 // ── 화면 표시 ──
 export const STATUS_LABEL: Record<ApprovalStatus, string> = {
-  pending: '대기', approved: '승인', rejected: '반려', withdrawn: '거둠',
+  pending: '대기', approved: '승인', rejected: '반려', withdrawn: '회수',
 }
 /** 상태 순서 — **대기가 먼저**다. 할 일이 맨 앞에 온다. */
 export const STATUS_ORDER: ApprovalStatus[] = ['pending', 'approved', 'rejected', 'withdrawn']
