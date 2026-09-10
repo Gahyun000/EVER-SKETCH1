@@ -219,21 +219,13 @@ export default function LibraryScreen() {
               · 이 화면의 빈 상태 — 「여기에 만든 것은 나만 봅니다」
             둘 다 **만들기 직전과 빈 화면**, 그러니까 오해가 생기는 바로 그 순간에 뜬다.
             머리줄 제목은 매일 보느라 오히려 안 읽히는 자리였다. */}
-        <div className="lib-brand">
-          <div className="logo" aria-label="EVER-SKETCH" /> EVER-SKETCH
-        </div>
-        {/* 신원 표시와 「새 이북」이 **같은 줄 안에서** 자리를 나눈다.
-            예전에는 UserBar 가 화면 밖 오버레이로 떠서 이 버튼 위에 포개졌다. */}
+        {/* **브랜드·신원·갈 곳은 셸이 갖는다**(2026-09-10).
+            셸이 들어오기 전에는 이 줄이 그 넷을 다 들고 있었다 — 로고, 이름표,
+            「팀 공유」, 「결재함」. 셸에 같은 것이 생기면서 **화면에 두 번씩** 나왔다.
+            여기 남는 것은 **이 화면에서 하는 일**뿐이다: 새 폴더 · 새 이북.
+            (「팀 공유」·「결재함」으로 가는 길은 왼쪽 메뉴에 있다 —
+             `go()` 는 남겨 둔다: 뷰어에서 `?shared=1` 로 돌아오는 길이 쓴다.) */}
         <div className="lib-head-right">
-          <UserBar />
-          <button className="lib-btn" onClick={() => go('team')}>
-            <Users className="h-4 w-4" /> 팀 공유
-          </button>
-          {canSubmit && (
-            <button className="lib-btn" onClick={() => go('inbox')}>
-              <Inbox className="h-4 w-4" /> 결재함
-            </button>
-          )}
           <button className="lib-btn" disabled={!canCreateHere(path.length, maxDepth)}
             title={canCreateHere(path.length, maxDepth) ? '' : `폴더는 ${maxDepth}단까지만 만들 수 있어요`}
             onClick={() => { setMkOpen(true); setMkName('') }}>

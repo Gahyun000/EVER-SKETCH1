@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react'
-import UserBar from '../../auth/UserBar'
 import { useBuilder } from '../../state/store'
 import { useProjects } from '../../persistence/projects'
 
@@ -20,7 +19,7 @@ export default function TitleBar({ onPresent }: { onPresent: () => void }) {
   const w = Math.min(Math.max(units + 1.4, 6), 40)
   return (
     <div className="ax-title">
-      <div className="logo" aria-label="EVER-SKETCH" />
+      {/* 로고도 셸 머리줄에 있다 — 여기서 뺀다. 남는 것은 **이 문서**의 제목이다. */}
       <input className="ttl" style={{ width: w + 'em' }} value={title} onChange={(e) => setTitle(e.target.value)} aria-label="문서 제목" />
       <span className="sp" />
       {/* 다른 앱(EVER-FOLIO 이북 라이브러리)으로 가는 이동 버튼 */}
@@ -28,9 +27,8 @@ export default function TitleBar({ onPresent }: { onPresent: () => void }) {
          title="EVER-FOLIO(이북 라이브러리) 열기 — 127.0.0.1:8811">↗ EVER-FOLIO</a>
       <button className="rbtn" onClick={onPresent} title="구글 슬라이드식 슬라이드쇼">▷ 슬라이드쇼</button>
       <button className="rbtn pri" onClick={() => void newProject()} title="새 이북 시작">＋ 새 이북</button>
-      {/* 사용자 표시는 여기 한 곳뿐이다 — 예전에 있던 '가' 초록 원은 로그인한
-          사람과 무관한 자리표시자였고, 오른쪽 위 이름표와 신원 표시가 둘로 갈렸다. */}
-      <UserBar />
+      {/* **신원 표시는 셸 머리줄로 올라갔다**(2026-09-10).
+          여기 두면 셸의 것과 나란히 두 번 나온다 — 같은 이름표가 위아래로 겹친다. */}
     </div>
   )
 }

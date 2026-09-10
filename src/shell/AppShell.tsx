@@ -17,6 +17,7 @@
 // 자리는 덜 먹는다.
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
+import UserBar from '../auth/UserBar'
 import { apiListApprovals } from '../approvals/approvalApi'
 import { shellFolded, rememberShellFolded } from '../persistence/prefs'
 import type { ShellView } from './shellPath'
@@ -96,7 +97,6 @@ export default function AppShell({ view, onView, crumb, children }: {
   ]
 
   const fold = (v: boolean) => { setFolded(v); rememberShellFolded(v) }
-  const initial = (me?.name || '?').slice(0, 1)
 
   return (
     <div className="sh">
@@ -111,11 +111,11 @@ export default function AppShell({ view, onView, crumb, children }: {
           {crumb ? <><span className="sp">›</span><b>{crumb}</b></> : null}
         </nav>
         <div className="sh-sp" />
-        <span className="sh-user">
-          <span className="av">{initial}</span>
-          <span className="nm">{me?.name || ''}</span>
-          <span className="lv">{admin ? 'Lv1 관리자' : canSubmit ? 'Lv2 작성자' : 'Lv3 열람자'}</span>
-        </span>
+        {/* **신원은 앱에 한 곳뿐이어야 한다.** 셸이 들어오기 전에는 자료 목록 머리줄과
+            편집 화면 제목줄에 각각 있었고, 셸이 생기면서 **셋이 됐다.**
+            여기로 모으고 두 곳에서 뺐다 — 로그아웃 버튼이 화면마다 다른 자리에 있으면
+            「방금 그거 어디 있었지」가 된다. */}
+        <UserBar />
       </header>
 
       <div className={'sh-body' + (shut ? ' shut' : '')}>

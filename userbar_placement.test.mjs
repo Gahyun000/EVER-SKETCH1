@@ -38,21 +38,39 @@ const gate = read('./src/auth/AuthGate.tsx')
 check(!/<UserBar/.test(gate),
   'AuthGate 는 UserBar 를 직접 띄우지 않는다 — 화면 밖에서 띄우면 화면은 그게 있는 줄 모른다')
 
-// ── 화면마다 자기 머리줄 안에 하나씩 ──
-const screens = {
-  '라이브러리(lib-head)': read('./src/persistence/LibraryScreen.tsx'),
-  '편집 화면(TitleBar)': read('./src/builder/chrome/TitleBar.tsx'),
-}
-for (const [name, src] of Object.entries(screens)) {
-  const n = (src.match(/<UserBar\b/g) || []).length
-  check(n === 1, `${name} 은 UserBar 를 정확히 한 번 놓는다 (지금 ${n}번)`)
-  check(/import UserBar from/.test(src), `${name} 이 UserBar 를 직접 들여온다`)
+// ── **한 곳뿐이다 — 셸 머리줄** ──
+//
+// 2026-09-10 · 셸(머리줄 + 사이드바)이 생겼다. 그 전에는 화면마다 자기 머리줄이 있어서
+// **화면마다 하나씩** 두는 것이 맞았다. 셸이 생기자 그 규칙이 정확히 반대로 뒤집혔다 —
+// 셸 머리줄에도 신원이 있으니 자료 목록에서는 **이름표가 위아래로 두 번** 나왔다.
+// 겹침이 아니라 중복이고, 로그아웃 버튼이 화면마다 다른 자리에 있으면
+// 「방금 그거 어디 있었지」가 된다.
+//
+// 그래서 셸로 모았다. 규칙은 이제 이렇다: **UserBar 는 앱에 한 번, 셸 머리줄에.**
+// (위의 「오버레이로 안 띄운다」는 그대로다 — 그건 자리 다툼 이야기고 여전히 참이다.)
+const shell = read('./src/shell/AppShell.tsx')
+check((shell.match(/<UserBar\b/g) || []).length === 1,
+  '셸 머리줄이 UserBar 를 **정확히 한 번** 놓는다')
+check(/import UserBar from/.test(shell), '셸이 UserBar 를 직접 들여온다')
+check(shell.indexOf('<UserBar') > shell.indexOf('sh-head') &&
+      shell.indexOf('<UserBar') < shell.indexOf('sh-body'),
+  '머리줄 안에 둔다 — 본문에 두면 화면 내용과 자리를 다툰다')
+
+// 그리고 **다른 어디에도 없다.** 하나라도 남으면 그 화면에서만 두 번 나온다.
+for (const [name, path] of [
+  ['라이브러리', './src/persistence/LibraryScreen.tsx'],
+  ['편집 화면(TitleBar)', './src/builder/chrome/TitleBar.tsx'],
+]) {
+  const src = read(path)
+  check(!/<UserBar\b/.test(src), `${name} 에는 UserBar 가 없다 — 셸의 것과 두 번 나온다`)
 }
 
-// 라이브러리는 머리줄(lib-head) 안에 둔다 — 본문에 두면 목록과 자리를 다툰다.
-const lib = screens['라이브러리(lib-head)']
-const head = lib.slice(lib.indexOf('lib-head'), lib.indexOf('lib-search'))
-check(/<UserBar/.test(head), '라이브러리는 머리줄(lib-head) 안에 둔다')
+// 로고도 같은 이유로 셸에만 있다. 자료 목록·편집 제목줄에 각각 있었고, 셸이 생기면서
+// 「EVER-SKETCH」가 한 화면에 두 번 적혔다.
+check(!/lib-brand/.test(read('./src/persistence/LibraryScreen.tsx')),
+  '자료 목록에 브랜드가 두 번 적히지 않는다')
+check(!/className="logo"/.test(read('./src/builder/chrome/TitleBar.tsx')),
+  '편집 제목줄에 로고가 두 번 적히지 않는다')
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)
