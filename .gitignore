@@ -36,3 +36,7 @@ _to_delete_gitjunk/
 
 # 전환 작업 전 DB 백업본 — 9MB 짜리가 커밋에 딸려 들어가면 안 된다
 server/_db_backup/
+
+# 원격이 없어 만든 통째 백업(git bundle). 저장소에 넣지 않는다.
+_backup/
+*.bundle
