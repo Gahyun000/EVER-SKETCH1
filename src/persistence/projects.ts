@@ -12,7 +12,10 @@ import { setAutosaveHydrated, setAutosaveReadOnly, markAutosaveHydrated, useAuto
 import { migrateLegacyDraftOnce } from './legacyMigration'
 import { resetHistory } from '../canvas/history'
 
-export type LibView = 'library' | 'editor'
+/** 화면 이름. 둘에서 여섯으로 늘었다 — 결재함·팀 공유·팀 관리·환경 설정이
+ *  **덮개에서 화면으로** 올라왔다(셸, 2026-09-10). 덮개는 뒤로 가기도 새로고침도
+ *  안 통했고, 편집 중에는 아예 갈 수가 없었다. */
+export type LibView = 'library' | 'editor' | 'inbox' | 'team' | 'users' | 'admin' | 'settings'
 
 function emptySnapshot(): DraftStateSnapshot {
   return { title: '제목 없음', orientation: 'portrait', theme: 'light', font: 'auto', size: 'm', selectedPageId: null, pages: [] }
@@ -79,6 +82,10 @@ interface ProjectsState {
   listError: string | null
   /** 어느 계정으로 목록을 받아 뒀는가. 계정이 바뀌면 다시 받는다. */
   bootedFor: string | null
+  /** 화면을 옮긴다. **자료를 여는 것과 다르다** — 여는 것은 `open()` 이 하고,
+   *  이건 셸의 왼쪽 메뉴와 주소가 쓴다. 편집으로는 여기로 못 간다:
+   *  편집은 「어느 자료냐」가 있어야 뜻이 생기므로 반드시 `open()` 을 거친다. */
+  setView: (v: Exclude<LibView, 'editor'>) => void
   boot: (uid: string | null) => Promise<void>
   loadList: () => Promise<void>
   openProject: (id: string) => Promise<void>
@@ -162,6 +169,8 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   listError: null,
   bootedFor: null,
 
+  setView: (v) => set({ view: v }),
+
   boot: async (uid) => {
     // 계정이 같으면 이미 받아 둔 목록을 그대로 쓴다.
     if (get().bootedFor === uid) return
@@ -180,7 +189,12 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     } catch {
       set({ listError: '목록을 불러오지 못했어요.' })
     } finally {
-      set({ view: 'library', loading: false })
+      // **편집 화면에서만 내려온다.** 예전에는 무조건 'library' 로 되돌렸는데,
+      // 셸이 들어오면서 그게 주소를 이겼다 — `/inbox` 로 들어와도 목록을 받고 나면
+      // 「내 자료」로 튕겼다(주소는 /inbox 인데 화면은 내 자료였다).
+      // 여기가 하려던 일은 「앞사람 것을 비웠으니 편집에 남아 있지 말자」이지,
+      // 「어느 화면이든 내 자료로 보내자」가 아니다.
+      set((st) => ({ view: st.view === 'editor' ? 'library' : st.view, loading: false }))
     }
   },
 

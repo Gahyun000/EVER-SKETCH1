@@ -29,7 +29,10 @@ const fmt = (ts?: number | null) =>
  * **승인은 「그때 본 것」에 대한 승인이다.** 여기 보이는 슬라이드는 제출 시점에 얼린
  * 스냅샷이고, 작성자가 그 뒤 자료를 고쳐도 이 화면은 안 바뀐다.
  */
-export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
+/** `embedded` — **덮개가 아니라 화면으로** 그린다(셸, 2026-09-10).
+ *  덮개일 때는 뒤를 어둡게 하고 가운데 카드를 띄웠다. 셸 안에서는 뒤에 가릴 것이 없다 —
+ *  자기가 그 화면이다. 그래서 스크림도, 「닫기」도 없다. 닫을 데가 없으니까. */
+export default function ApprovalsPanel({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
   const me = useAuth((s) => s.me)
   const admin = isAdmin(me)
 
@@ -120,14 +123,14 @@ export default function ApprovalsPanel({ onClose }: { onClose: () => void }) {
   const canEndRevision = mine && isRevision && detail?.status === 'approved'
 
   return (
-    <div className="es-auth ap" onClick={onClose}>
+    <div className={embedded ? 'sh-page ap' : 'es-auth ap'} onClick={embedded ? undefined : onClose}>
       <div className="es-card wide ap-card" onClick={(e) => e.stopPropagation()}>
         <div className="ap-head">
           <div className="es-brand">
             <b>결재함</b>
             <span>{admin ? '전체 결재 건' : '내가 낸 결재'}</span>
           </div>
-          <button className="es-mini" onClick={onClose}>닫기</button>
+          {!embedded && <button className="es-mini" onClick={onClose}>닫기</button>}
         </div>
 
         <div className="es-tabs">

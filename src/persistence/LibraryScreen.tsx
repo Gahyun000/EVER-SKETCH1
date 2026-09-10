@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import UserBar from '../auth/UserBar'
 import { useAuth } from '../auth/useAuth'
-import ApprovalsPanel from '../approvals/ApprovalsPanel'
-import TeamLibraryPanel from '../teamlib/TeamLibraryPanel'
 import { wantsSharedFromSearch } from '../teamlib/teamLibraryModel'
 import {
   ApprovalApiError, DOC_STATE_LABEL, apiRequestApproval, apiRequestRevision, apiStatusMap,
@@ -70,11 +68,28 @@ export default function LibraryScreen() {
   // 상태 칩은 **한 번에** 받아 온다. 자료마다 되물으면 12건에 요청이 13번 나간다.
   const me = useAuth((s) => s.me)
   const [chips, setChips] = useState<Record<string, StatusChip>>({})
-  const [inbox, setInbox] = useState(false)
-  // **주소가 「팀 공유를 열어 달라」고 하면 열린 채로 시작한다**(뷰어의 「팀 공유 열기」).
+  /** 셸의 화면으로 옮긴다. 덮개를 띄우던 자리가 이제 여기로 온다. */
+  const setView = useProjects((s2) => s2.setView)
+  const go = (v: 'inbox' | 'team', replace = false) => {
+    setView(v)
+    try {
+      const to = v === 'inbox' ? '/inbox' : '/team'
+      if (window.location.pathname + window.location.search === to) return
+      // **`?shared=1` 로 들어온 길은 밀어 넣지 않고 갈아 끼운다.**
+      // 밀어 넣으면 뒤로 가기가 `/?shared=1` 로 돌아가고, 그 주소는 팀 공유를 **또** 연다 —
+      // 닫아도 새로 고칠 때마다 다시 열리는 그 증상이 뒤로 가기로 되살아난다.
+      if (replace) window.history.replaceState({ v }, '', to)
+      else window.history.pushState({ v }, '', to)
+    } catch { /* 주소를 못 써도 화면은 바뀐다 */ }
+  }
+  // **주소가 「팀 공유를 열어 달라」고 하면 거기로 시작한다**(뷰어의 「팀 공유 열기」).
   // 뷰어에서 돌아온 사람이 방금 보던 것은 팀 자료다 — 그냥 자료 목록에 내리면
   // 제 자료가 없는 열람자에게는 빈 화면이 먼저 뜬다.
-  const [shared, setShared] = useState(() => wantsSharedFromSearch(window.location.search))
+  // 덮개였을 때는 여기서 열었고, 지금은 **팀 공유 화면으로 보낸다.**
+  useEffect(() => {
+    if (wantsSharedFromSearch(window.location.search)) go('team', true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [submitting, setSubmitting] = useState<ProjectMeta | null>(null)
   // 수정 요청 — **제출과 다른 창이다.** 되는 일이 달라서다: 제출은 문서를 얼리고,
   // 수정 요청은 아무것도 안 얼린다(허락을 청할 뿐이다).
@@ -211,11 +226,11 @@ export default function LibraryScreen() {
             예전에는 UserBar 가 화면 밖 오버레이로 떠서 이 버튼 위에 포개졌다. */}
         <div className="lib-head-right">
           <UserBar />
-          <button className="lib-btn" onClick={() => setShared(true)}>
+          <button className="lib-btn" onClick={() => go('team')}>
             <Users className="h-4 w-4" /> 팀 공유
           </button>
           {canSubmit && (
-            <button className="lib-btn" onClick={() => setInbox(true)}>
+            <button className="lib-btn" onClick={() => go('inbox')}>
               <Inbox className="h-4 w-4" /> 결재함
             </button>
           )}
@@ -489,8 +504,9 @@ export default function LibraryScreen() {
 
       {/* 새 이북은 **지금 보고 있는 폴더**에 만든다 —
           만들고 나서 옮기게 하면 사람은 매번 두 번 일한다(만들기 → 찾기 → 옮기기). */}
-      {inbox && <ApprovalsPanel onClose={() => { setInbox(false); void loadChips() }} />}
-      {shared && <TeamLibraryPanel onClose={() => setShared(false)} />}
+      {/* **덮개가 아니라 화면이 됐다**(셸, 2026-09-10). 여기서 띄우던 결재함·팀 공유는
+          이제 왼쪽 메뉴에 자기 자리가 있다 — 편집 중에도 갈 수 있고, 주소도 남는다.
+          뷰어에서 「팀 공유 열기」로 돌아오는 길(?shared=1)은 위에서 그 화면으로 보낸다. */}
 
       {/* 제출 — **낸 순간 문서가 얼어붙는다.** 뒤에 고쳐도 결재본은 안 바뀐다. */}
       {submitting && (

@@ -29,7 +29,10 @@ import Modal from '../ui/Modal'
  *     칸 폭에 꽉 채우므로 글자 수가 달라도 세로줄이 안 어긋난다.
  *   · **색만으로 말하지 않는다** — 묶음은 글자가 먼저 무엇인지 말하고 색은 거든다.
  */
-export default function TeamsAdmin({ onClose }: { onClose: () => void }) {
+/** `embedded` — **덮개가 아니라 화면으로** 그린다(셸, 2026-09-10).
+ *  덮개일 때는 뒤를 어둡게 하고 가운데 카드를 띄웠다. 셸 안에서는 뒤에 가릴 것이 없다 —
+ *  자기가 그 화면이다. 그래서 스크림도, 「닫기」도 없다. 닫을 데가 없으니까. */
+export default function TeamsAdmin({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
   const [teams, setTeams] = useState<Team[]>([])
   const [users, setUsers] = useState<Me[]>([])
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -232,7 +235,7 @@ export default function TeamsAdmin({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="es-auth tm" onClick={onClose}>
+    <div className={embedded ? 'sh-page tm' : 'es-auth tm'} onClick={embedded ? undefined : onClose}>
       <div className="es-card wide" onClick={(e) => e.stopPropagation()}>
         <div className="tm-head">
           <button className="es-mini tm-new" disabled={busy}
@@ -243,7 +246,7 @@ export default function TeamsAdmin({ onClose }: { onClose: () => void }) {
           <p className="es-lede">
             팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.
           </p>
-          <button className="es-mini tm-close" onClick={onClose}>닫기</button>
+          {!embedded && <button className="es-mini tm-close" onClick={onClose}>닫기</button>}
         </div>
 
         {err && phase === 'ready' && <div className="es-msg err">{err}</div>}

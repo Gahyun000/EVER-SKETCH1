@@ -107,8 +107,14 @@ check(/window\.location\.href = '\/\?shared=1'/.test(viewerCode),
   '`/` 가 아니라 **팀 공유로** 보낸다 (방금까지 보던 것이 팀 자료다)')
 check(/wantsSharedFromSearch\(window\.location\.search\)/.test(libCode),
   '자료 목록이 그 주소를 읽어 창을 열어 둔다')
-check(/replaceState/.test(libCode) && !/pushState/.test(libCode),
+// 2026-09-10 · 셸이 들어오면서 자료 화면도 주소를 쓰게 됐다(`pushState`).
+// 그래서 「pushState 가 없다」로는 더 못 잡는다 — **`?shared=1` 로 들어온 길만**
+// 갈아 끼우는지를 본다. 밀어 넣으면 뒤로 가기가 `/?shared=1` 로 돌아가고,
+// 그 주소는 팀 공유를 또 연다 — 고치려던 증상이 뒤로 가기로 되살아난다.
+check(/wantsSharedFromSearch\(window\.location\.search\)\) go\('team', true\)/.test(libCode),
   '읽은 뒤 주소에서 지운다 — 안 지우면 창을 닫아도 새로 고칠 때마다 다시 열린다')
+check(/if \(replace\) window\.history\.replaceState/.test(libCode),
+  '그 길만 replaceState 로 갈아 끼운다')
 
 // ── 서버: 껍데기만 준다 ──
 check(/@app\.get\("\/view\/\{aid\}"\)/.test(routes), '뷰어 주소가 서버에 있다')

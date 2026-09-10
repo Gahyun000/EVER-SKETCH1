@@ -8,7 +8,10 @@ type Tab = 'pending' | 'active' | 'all'
 const TAB_LABEL: Record<Tab, string> = { pending: '승인 대기', active: '사용 중', all: '전체' }
 
 /** L3 사용자 관리 — 가입 승인, 레벨 변경, 비활성화. */
-export default function UsersAdmin({ onClose }: { onClose: () => void }) {
+/** `embedded` — **덮개가 아니라 화면으로** 그린다(셸, 2026-09-10).
+ *  덮개일 때는 뒤를 어둡게 하고 가운데 카드를 띄웠다. 셸 안에서는 뒤에 가릴 것이 없다 —
+ *  자기가 그 화면이다. 그래서 스크림도, 「닫기」도 없다. 닫을 데가 없으니까. */
+export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
   const me = useAuth((s) => s.me)
   const [tab, setTab] = useState<Tab>('pending')
   const [users, setUsers] = useState<Me[]>([])
@@ -74,7 +77,7 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
   const pendingCount = users.filter((u) => u.status === 'pending').length
 
   return (
-    <div className="es-auth" onClick={onClose}>
+    <div className={embedded ? 'sh-page' : 'es-auth'} onClick={embedded ? undefined : onClose}>
       <div className="es-card wide" onClick={(e) => e.stopPropagation()}>
         <div className="es-admin-head">
           <div>
@@ -83,7 +86,7 @@ export default function UsersAdmin({ onClose }: { onClose: () => void }) {
               가입 신청을 승인하고 권한을 정합니다. <b>승인해야 실제 권한이 부여됩니다.</b>
             </p>
           </div>
-          <button className="es-mini" onClick={onClose}>닫기</button>
+          {!embedded && <button className="es-mini" onClick={onClose}>닫기</button>}
         </div>
 
         <div className="es-tabs">

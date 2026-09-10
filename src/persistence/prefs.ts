@@ -60,3 +60,20 @@ export function openSections<K extends string>(
 export function rememberOpenSections(v: Record<string, boolean>): void {
   try { localStorage.setItem(SEC_KEY, JSON.stringify(v)) } catch { /* 저장이 막힌 브라우저 */ }
 }
+
+// ── 셸 사이드바를 접어 뒀는가 ──────────────────────
+//
+// 방향·묶음과 같은 부류다 — **그 사람의 손버릇**이라 브라우저에 둔다.
+// 편집 화면에서는 이 값과 무관하게 접힌다(자리가 좁아서). 그건 화면이 정하는 것이고,
+// 여기 적히는 것은 **사람이 정한 것**뿐이다. 둘을 섞으면 편집에 한 번 들어갔다 온
+// 사람의 「펴 둠」이 조용히 사라진다.
+
+const FOLD_KEY = 'es_shell_folded'
+
+export function shellFolded(): boolean {
+  try { return localStorage.getItem(FOLD_KEY) === '1' } catch { return false }
+}
+
+export function rememberShellFolded(v: boolean): void {
+  try { localStorage.setItem(FOLD_KEY, v ? '1' : '0') } catch { /* 저장이 막힌 브라우저 */ }
+}

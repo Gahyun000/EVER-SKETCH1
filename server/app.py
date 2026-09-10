@@ -677,5 +677,27 @@ def spa_approval_view(aid: str):
     return FileResponse(str(idx))
 
 
+# 셸이 쓰는 주소들. **화면 껍데기만 준다** — `/view/{aid}` 와 같은 이유다.
+# `/` 에 붙인 StaticFiles 는 없는 경로에 404 를 내므로, 이 주소로 **새로 고치면**
+# 「Not Found」가 뜬다. 셸을 넣으면서 「뒤로 가기·새로고침이 통한다」고 약속했으니
+# 여기가 없으면 그 약속이 절반만 지켜진다.
+#
+# **판정은 여기서 안 한다.** 누가 무엇을 볼 수 있는지는 화면이 부르는 API 가 정한다 —
+# 관리자 화면 주소를 열람자가 쳐도 껍데기만 오고, 그 안에서 API 가 거절한다.
+# 목록에 없는 주소는 그대로 404 로 둔다: 오타를 「내 자료」로 삼켜 주면
+# 주소가 화면과 다른 말을 하게 된다.
+SHELL_PATHS = ("inbox", "team", "users", "admin", "settings")
+
+
+@app.get("/{shell_path}")
+def spa_shell_view(shell_path: str):
+    if shell_path not in SHELL_PATHS:
+        raise HTTPException(status_code=404, detail="없는 주소입니다.")
+    idx = DIST / "index.html"
+    if not idx.exists():
+        raise HTTPException(status_code=404, detail="빌드된 화면이 없습니다.")
+    return FileResponse(str(idx))
+
+
 if DIST.exists():
     app.mount("/", StaticFiles(directory=str(DIST), html=True), name="app")

@@ -4,7 +4,9 @@
   --ax-muted:#8a8883; --ax-line:#e3e4e8; --ax-blue:#2a78d6; --ax-blue-d:#184f95;
   --ax-blue-100:#eaf2fd; --ax-navy:#0e1c30; --ax-gs:#2a78d6; --ax-hwp:#0f9d58; --ax-keep:#c5501f;
   --ax-mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
-  display:flex; flex-direction:column; height:100vh; overflow:hidden; background:#e9eaed; letter-spacing:-.01em;
+  /* **셸 안에 들어왔다**(2026-09-10). `height:100vh` 는 머리줄 52px 을 모르고
+     제 키를 100vh 로 잡아서, 화면 아래가 그만큼 잘렸다. 자리는 `.sh-main` 이 정한다. */
+  display:flex; flex-direction:column; height:100%; min-height:0; flex:1; overflow:hidden; background:#e9eaed; letter-spacing:-.01em;
 }
 .ax-app button{font-family:inherit}
 

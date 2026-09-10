@@ -30,7 +30,10 @@ const fmt = (ts?: number | null) =>
  *
  * 「현재」·「이전」은 **글자로 붙는다**(D19) — 색으로만 상태를 구분하지 않는다(표준).
  */
-export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
+/** `embedded` — **덮개가 아니라 화면으로** 그린다(셸, 2026-09-10).
+ *  덮개일 때는 뒤를 어둡게 하고 가운데 카드를 띄웠다. 셸 안에서는 뒤에 가릴 것이 없다 —
+ *  자기가 그 화면이다. 그래서 스크림도, 「닫기」도 없다. 닫을 데가 없으니까. */
+export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
   const [teams, setTeams] = useState<LibTeam[]>([])
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
   const [err, setErr] = useState('')
@@ -87,14 +90,14 @@ export default function TeamLibraryPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="es-auth tl" onClick={onClose}>
+    <div className={embedded ? 'sh-page tl' : 'es-auth tl'} onClick={embedded ? undefined : onClose}>
       <div className="es-card wide ap-card" onClick={(e) => e.stopPropagation()}>
         <div className="ap-head">
           <div className="es-brand">
             <b>팀 공유</b>
             <span>승인된 자료만 올라옵니다</span>
           </div>
-          <button className="es-mini" onClick={onClose}>닫기</button>
+          {!embedded && <button className="es-mini" onClick={onClose}>닫기</button>}
         </div>
 
         {err && <div className="es-msg err">{err}</div>}

@@ -166,6 +166,7 @@ const css = read('./src/auth/auth.css')
 /** 주석을 걷어낸 코드. 「거르지 않는다」는 **설명**이 「거른다」로 읽히면 안 된다. */
 const bare = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 const panelCode = bare(panel)
+const readBare = (p) => bare(read(p))
 
 check(PAGE_SIZE === 12, '한 쪽 12건 — 자료 목록과 **같은 눈금**을 쓴다')
 // 「…」은 **쪽 번호 자리에만** 없으면 된다 — 「불러오는 중…」 같은 문구까지 잡으면
@@ -182,11 +183,25 @@ check(!/team_id\s*===|team_ids/.test(panelCode),
   '화면이 팀을 직접 비교하지 않는다 — 「같은 팀인가」는 서버의 판정이다')
 
 // 팀 공유는 등급으로 가리지 않는다 — 열람자가 이 도구를 쓰는 주된 이유다.
-check(/setShared\(true\)/.test(lib), '자료 화면에 「팀 공유」로 들어가는 길이 있다')
-check(!/canSubmit && \([\s\S]{0,80}setShared/.test(lib),
+// 2026-09-10 · 덮개가 화면이 되면서 여는 방법이 `setShared(true)` 에서 `go('team')` 으로
+// 바뀌었다. **지키는 규칙은 그대로다** — 팀 공유는 안 가리고, 결재함은 가린다.
+// 검사를 지우지 않고 새 방법으로 고쳐 쓴다: 지우면 규칙이 사라진다.
+check(/go\('team'\)/.test(lib), '자료 화면에 「팀 공유」로 들어가는 길이 있다')
+check(!/canSubmit && \([\s\S]{0,80}go\('team'\)/.test(lib),
   '**팀 공유 버튼은 등급으로 가리지 않는다** — 열람자도 팀의 승인본을 본다')
-check(/canSubmit && \([\s\S]{0,120}setInbox/.test(lib),
+check(/canSubmit && \([\s\S]{0,120}go\('inbox'\)/.test(lib),
   '결재함은 등급으로 가린다 — 열람자는 낼 것이 없다(D13)')
+
+// 그리고 **셸의 왼쪽 메뉴도 같은 규칙을 쓴다.** 길이 둘로 늘었으니 둘 다 지켜야 한다 —
+// 한쪽만 가리면 열람자가 사이드바로 들어가 403 을 받는다.
+{
+  const shell = readBare('./src/shell/AppShell.tsx')
+  check(/canSubmit \? \[\{ k: 'inbox'/.test(shell),
+    '셸 메뉴에서도 결재함은 작성자·관리자만')
+  check(/\{ k: 'team', t: '팀 공유'/.test(shell) && !/canSubmit[\s\S]{0,40}k: 'team'/.test(shell),
+    '셸 메뉴에서 팀 공유는 안 가린다')
+  check(/admin \? \[\{ sep: '관리' \}/.test(shell), '관리 묶음은 관리자만')
+}
 
 // 승인본만 올라온다는 사실을 **화면이 말한다**.
 check(/승인된 자료만/.test(panel), '「승인된 자료만 올라옵니다」를 화면이 말한다(D6)')

@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { apiListUsers, isAdmin } from './authApi'
 import { useAuth } from './useAuth'
-import UsersAdmin from './UsersAdmin'
 import ChangePasswordDialog from './ChangePasswordDialog'
-import TeamsAdmin from '../teams/TeamsAdmin'
+import { useProjects } from '../persistence/projects'
 
 /**
  * 로그인한 사람 표시 + 사용자 관리 + 로그아웃.
@@ -27,13 +26,21 @@ import TeamsAdmin from '../teams/TeamsAdmin'
  * 한 사람인데 신원 표시가 두 개였다.
  */
 export default function UserBar() {
+  /** 관리 화면으로 옮긴다 — 덮개를 띄우던 자리다. */
+  const setView = useProjects((s2) => s2.setView)
+  const go = (v: 'users' | 'admin') => {
+    setView(v)
+    try {
+      const to = '/' + v
+      if (window.location.pathname !== to) window.history.pushState({ v }, '', to)
+    } catch { /* 주소를 못 써도 화면은 바뀐다 */ }
+  }
   const me = useAuth((s) => s.me)
   const logout = useAuth((s) => s.logout)
-  const [showAdmin, setShowAdmin] = useState(false)
-  const [showTeams, setShowTeams] = useState(false)
   const [showPw, setShowPw] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const admin = isAdmin(me)
+  const view = useProjects((s2) => s2.view)
 
   // 승인 대기 인원 배지 — 관리자가 승인을 놓치면 그게 곧 병목이 된다.
   useEffect(() => {
@@ -48,7 +55,9 @@ export default function UserBar() {
     void tick()
     const t = setInterval(tick, 60_000)
     return () => { alive = false; clearInterval(t) }
-  }, [admin, showAdmin])
+    // 예전에는 「사용자 관리 덮개를 닫을 때」 다시 셌다. 덮개가 화면이 되면서
+    // 그 순간이 없어졌으므로, **지금 보고 있는 화면**이 바뀔 때 다시 센다.
+  }, [admin, view])
 
   const initial = (me?.name || me?.login_id || '?').trim().charAt(0) || '?'
 
@@ -62,19 +71,20 @@ export default function UserBar() {
           <span className={`es-lv r-${me?.role || ''}`}>{me?.role_label}</span>
         </span>
         {admin && (
-          <button className="es-linkbtn" onClick={() => setShowAdmin(true)}>
+          <button className="es-linkbtn" onClick={() => go('users')}>
             사용자 관리
             {pendingCount > 0 && <span className="es-badge">{pendingCount}</span>}
           </button>
         )}
         {admin && (
-          <button className="es-linkbtn" onClick={() => setShowTeams(true)}>팀 관리</button>
+          <button className="es-linkbtn" onClick={() => go('admin')}>팀 관리</button>
         )}
         <button className="es-linkbtn" onClick={() => setShowPw(true)}>비밀번호 변경</button>
         <button className="es-linkbtn" onClick={() => void logout()}>로그아웃</button>
       </div>
-      {showAdmin && <UsersAdmin onClose={() => setShowAdmin(false)} />}
-      {showTeams && <TeamsAdmin onClose={() => setShowTeams(false)} />}
+      {/* 사용자 관리·팀 관리는 **덮개에서 화면으로** 올라갔다(셸, 2026-09-10).
+          이름표 안 작은 글씨라 아는 사람만 찾던 것이, 이제 왼쪽 메뉴 「관리」에 있다.
+          여기 링크는 그대로 둔다 — 손에 익은 길을 뺏지 않는다. */}
       {showPw && <ChangePasswordDialog onClose={() => setShowPw(false)} />}
     </>
   )
