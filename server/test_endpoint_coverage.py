@@ -284,13 +284,13 @@ def test_health가_내부_경로를_노출하지_않는다():
         assert leak not in body, "/api/health 가 내부 경로를 노출합니다: %s" % leak
 
 
-def test_LLM설정은_L3만():
+def test_LLM설정은_관리자만():
     for m, p, body in ALL_ROUTES:
         if p.startswith("/api/settings/llm"):
-            assert "SETTINGS_MANAGE" in body, "%s %s 가 L3 전용이 아닙니다" % (m, p)
+            assert "SETTINGS_MANAGE" in body, "%s %s 가 관리자 전용이 아닙니다" % (m, p)
 
 
-def test_발행은_L3만():
+def test_발행은_관리자만():
     body = [b for m, p, b in ALL_ROUTES if p == "/api/build"][0]
     assert "perm.PUBLISH" in body
 

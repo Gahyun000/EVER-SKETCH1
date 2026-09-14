@@ -239,38 +239,41 @@ from server.permissions import (  # noqa: E402
 )
 
 _PEND = Actor(id="p", role="", status="pending")
-_L1 = Actor(id="a", role="viewer", status="active")
-_L2 = Actor(id="b", role="writer", status="active")
-_L3 = Actor(id="c", role="admin", status="active")
+# **숫자로 이름 짓지 않는다.** 예전엔 「엘1 = 열람 … 엘3 = 관리」로 적혀 있었는데,
+# 사내 표기가 「1등급이 최고」로 뒤집히면서 이름이 통째로 반대가 됐다(2026-09-14 발견).
+# permissions.py 가 저장·판정에 역할명을 쓰는 것과 같은 이유로 여기도 역할명을 쓴다.
+_VIEWER = Actor(id="a", role="viewer", status="active")
+_WRITER = Actor(id="b", role="writer", status="active")
+_ADMIN = Actor(id="c", role="admin", status="active")
 
 
-def test_LLM설정은_L3만_판정():
+def test_LLM설정은_관리자만_판정():
     """API 키를 다루는 설정 — base_url 을 바꾸면 이후 모든 대화가 그쪽으로 간다."""
-    assert decide(_L3, SETTINGS_MANAGE) is True
-    for a in (_L2, _L1, _PEND, None):
+    assert decide(_ADMIN, SETTINGS_MANAGE) is True
+    for a in (_WRITER, _VIEWER, _PEND, None):
         assert decide(a, SETTINGS_MANAGE) is False
 
 
-def test_발행은_L3만_판정():
-    """발행하면 L1 전원에게 공개된다. 작성자가 초안을 실수로 내보내면 되돌릴 수 없다."""
-    assert decide(_L3, PUBLISH) is True
-    for a in (_L2, _L1, _PEND, None):
+def test_발행은_관리자만_판정():
+    """발행하면 열람자 전원에게 공개된다. 작성자가 초안을 실수로 내보내면 되돌릴 수 없다."""
+    assert decide(_ADMIN, PUBLISH) is True
+    for a in (_WRITER, _VIEWER, _PEND, None):
         assert decide(a, PUBLISH) is False
 
 
-def test_AI도구는_L2_이상():
-    """L1 은 열람자다 — 작성 보조가 필요 없고, LLM 호출은 비용과 외부 전송을 수반한다."""
-    assert decide(_L2, AI_USE) is True
-    assert decide(_L3, AI_USE) is True
-    assert decide(_L1, AI_USE) is False
+def test_AI도구는_작성자_이상():
+    """열람자는 자료를 내지 않는다 — 작성 보조가 필요 없고, LLM 호출은 비용과 외부 전송을 수반한다."""
+    assert decide(_WRITER, AI_USE) is True
+    assert decide(_ADMIN, AI_USE) is True
+    assert decide(_VIEWER, AI_USE) is False
     assert decide(_PEND, AI_USE) is False
     assert decide(None, AI_USE) is False
 
 
 def test_AI도구는_리소스_없이도_판정된다():
     """챗봇은 특정 이북에 매이지 않는다. Resource 를 요구하면 항상 거부되어 버린다."""
-    assert decide(_L2, AI_USE, None) is True
-    assert decide(_L2, AI_USE, Resource(owner_id=None)) is True
+    assert decide(_WRITER, AI_USE, None) is True
+    assert decide(_WRITER, AI_USE, Resource(owner_id=None)) is True
 
 
 def test_대화가_사용자별로_분리된다():

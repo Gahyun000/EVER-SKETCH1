@@ -88,7 +88,10 @@ def health():
 
 @app.post("/api/build")
 def build(req: BuildReq, user: dict = Depends(require_active)):
-    # 발행은 L3만. 발행하는 순간 L1 열람자 전원에게 공개되고, 본 사람은 되돌릴 수 없다.
+    # 발행은 **Lv1 관리자만**. 발행하는 순간 열람자 전원에게 공개되고, 본 사람은 되돌릴 수 없다.
+    # (2026-09-14: 여기에 등급 숫자를 뒤집기 전의 옛 표기가 남아 **역할이 반대로** 적혀 있었다.
+    #  판정은 그때도 perm.PUBLISH = 관리자 전용이라 동작은 맞았고, 글만 반대였다.
+    #  주석은 테스트가 안 잡아서 틀린 코드보다 오래 산다 — test_grade_wording.py 가 이제 잡는다.)
     require_action(user, perm.PUBLISH)
     if not GEN_PY.exists():
         return {"ok": False, "error": "generator.py 없음: %s" % GEN_PY}
@@ -265,7 +268,7 @@ def _coalesce(incoming: dict, current: dict, key: str, default=None):
 @app.get("/api/settings/llm")
 def get_llm(user: dict = Depends(require_active)):
     # LLM 설정은 API 키를 다룬다(UDS-107 §5 비밀정보). 키는 마스킹해 내보내지만
-    # base_url·model 같은 내부 구성도 기밀에 해당하므로 L3만 본다.
+    # base_url·model 같은 내부 구성도 기밀에 해당하므로 관리자만 본다.
     require_action(user, perm.SETTINGS_MANAGE)
     return _effective_payload(load_llm_settings())
 
@@ -373,7 +376,7 @@ class ChatIn(BaseModel):
 
 
 def _require_own_conversation(user: dict, cid: str) -> None:
-    """대화는 만든 사람 것이다. 단일 사용자 시절 대화(user_id 없음)는 L3 만 볼 수 있다.
+    """대화는 만든 사람 것이다. 단일 사용자 시절 대화(user_id 없음)는 관리자만 볼 수 있다.
 
     이게 없으면 임원 A가 대화 id 만 알면 임원 B의 챗봇 대화를 그대로 읽는다.
     """

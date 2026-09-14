@@ -146,7 +146,7 @@ def test_승인대기는_전부_403(ctx):
         assert r.status_code == 403, "%s %s → %d" % (method, path, r.status_code)
 
 
-# ═══════════ L1 열람자 ═══════════
+# ═══════════ Lv3 열람자 ═══════════
 def test_열람자는_발행본만_목록에_보인다(ctx):
     c = ctx["as_user"]("viewer")
     ids = {p["id"] for p in c.get("/api/projects").json()["projects"]}
@@ -215,7 +215,7 @@ def test_열람자는_발행본_버전도_읽지만_수정_불가(ctx):
                   json={"state": {"pages": []}}).status_code == 403
 
 
-# ═══════════ L2 작성자 ═══════════
+# ═══════════ Lv2 작성자 ═══════════
 def test_작성자_목록은_본인_것만(ctx):
     """P2 에서 좁아졌다 — 예전에는 남의 발행본도 함께 보였다.
 
@@ -320,7 +320,7 @@ def test_본인_버전은_정상_조회(ctx):
     assert r.status_code == 200 and r.json()["id"] == ctx["ver"]
 
 
-# ═══════════ L3 관리자 ═══════════
+# ═══════════ Lv1 관리자 ═══════════
 def test_관리자는_전부_본다(ctx):
     c = ctx["as_admin"]()
     ids = {p["id"] for p in c.get("/api/projects").json()["projects"]}

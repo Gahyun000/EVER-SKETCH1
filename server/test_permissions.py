@@ -43,7 +43,7 @@ def test_비활성은_관리자여도_거부():
     assert decide(DISABLED, USER_MANAGE) is False
 
 
-# ── L1 열람자 ─────────────────────────────
+# ── Lv3 열람자 ─────────────────────────────
 VIEWER_OWN = Resource(owner_id="u_l1", published=False)   # VIEWER_U 의 개인 스케치
 
 
@@ -203,7 +203,7 @@ def test_작성자는_리소스_없으면_거부():
     assert decide(WRITER_U, READ, None) is False
 
 
-# ── L3 관리자 ─────────────────────────────
+# ── Lv1 관리자 ─────────────────────────────
 # **관리자에게도 열리지 않는 액션.** 여기 적힌 것만 예외다 —
 # 목록에 없는 액션이 관리자에게 막히면 아래 테스트가 잡는다.
 ADMIN_EXCEPTIONS = {FOLDER_MANAGE}
