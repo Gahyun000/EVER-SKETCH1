@@ -69,6 +69,26 @@ export function rememberOpenSections(v: Record<string, boolean>): void {
 // 사람의 「펴 둠」이 조용히 사라진다.
 
 const FOLD_KEY = 'es_shell_folded'
+const WIDTH_KEY = 'es_shell_width'
+
+/** 펼친 사이드바 폭. 사람이 경계선을 끌어 맞춘 값이다.
+ *  **접힘과 따로 둔다** — 접었다 펴면 맞춰 둔 폭으로 돌아와야 한다.
+ *  터무니없는 값은 버린다(예전 판이 남긴 것, 손으로 고친 것). */
+export const SIDE_MIN = 150, SIDE_MAX = 360, SIDE_DEFAULT = 214
+
+export function shellWidth(): number {
+  try {
+    const n = Number(localStorage.getItem(WIDTH_KEY))
+    if (Number.isFinite(n) && n >= SIDE_MIN && n <= SIDE_MAX) return Math.round(n)
+  } catch { /* 저장이 막힌 브라우저 */ }
+  return SIDE_DEFAULT
+}
+
+export function rememberShellWidth(px: number): void {
+  const n = Math.round(Math.min(SIDE_MAX, Math.max(SIDE_MIN, px)))
+  try { localStorage.setItem(WIDTH_KEY, String(n)) } catch { /* 저장이 막힌 브라우저 */ }
+}
+
 
 export function shellFolded(): boolean {
   try { return localStorage.getItem(FOLD_KEY) === '1' } catch { return false }

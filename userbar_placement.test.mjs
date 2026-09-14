@@ -72,5 +72,40 @@ check(!/lib-brand/.test(read('./src/persistence/LibraryScreen.tsx')),
 check(!/className="logo"/.test(read('./src/builder/chrome/TitleBar.tsx')),
   '편집 제목줄에 로고가 두 번 적히지 않는다')
 
+// ── 사이드바 접기는 **경계선 위 손잡이 하나** ──
+//
+// 2026-09-14 · 처음에는 머리줄 ☰ 였고, 다음 시안에서 사이드바 맨 아래로 갔다가,
+// 마지막에 **경계선 위**로 왔다. 세로 자리를 안 쓰고, 움직이는 그 경계에 붙어 있어
+// 「이 선이 왼쪽으로 간다」가 모양으로 읽힌다.
+//
+// **둘이 되면 안 된다.** 사이드바가 60px 로만 접혀 늘 보이므로,
+// 머리줄에 ☰ 를 또 두면 같은 일을 하는 단추가 둘이 된다.
+{
+  const shell = read('./src/shell/AppShell.tsx')
+  check(/className="sh-edge"/.test(shell), '경계선 위 손잡이가 있다')
+  check(!/sh-burger/.test(shell), '머리줄 ☰ 는 없다 — 같은 일을 하는 단추가 둘이 되지 않는다')
+  check(/onPointerDown=\{onDragStart\}/.test(shell) && /fold\(!shut\)/.test(shell),
+    '**한 자리에 한 물건** — 누르면 접히고 끌면 넓어진다')
+  // **끌고 난 뒤의 click 을 버린다.** 브라우저는 pointerup 다음에 click 을 한 번 더 보낸다 —
+  // 안 막으면 폭을 넓히자마자 접힌다(2026-09-14, 진짜 서버에서 그랬다).
+  check(/if \(dragged\.current\) \{ dragged\.current = false; return \}/.test(shell),
+    '끌고 난 직후의 누름은 버린다 — 넓히자마자 접히지 않는다')
+
+  check(/left: \(shut \? 60 : width\)/.test(shell),
+    '손잡이가 경계선을 따라간다 — 접힌 상태와 편 상태가 같은 물건이다')
+  check(/aria-label=\{shut \? '메뉴 펴기' : '메뉴 접기'\}/.test(shell),
+    '무엇을 하는 단추인지 글자로도 있다(아이콘 하나뿐이므로)')
+
+  const css = read('./src/shell/shell.css')
+  check(/\.sh:hover \.sh-edge \{ opacity: 1/.test(css),
+    '평소에는 흐리고 셸에 마우스가 올 때 드러난다 — 본문 위로 걸치기 때문')
+  check(/\.sh-edge:hover, \.sh-edge:focus-visible/.test(css),
+    '키보드로 짚어도 드러난다')
+  check(/@media \(hover: none\)/.test(css),
+    '끌 수 없는 기계에서는 늘 보이고 **누르는** 단추가 된다')
+  check(/\.sh-body\.drag \{ transition: none/.test(css),
+    '끄는 동안에는 폭이 손을 따라온다 — 애니메이션이 걸려 있으면 한 박자 늦는다')
+}
+
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

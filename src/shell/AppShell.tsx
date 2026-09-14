@@ -15,11 +15,14 @@
 // 편집은 필름스트립 + 캔버스 + 오른쪽 패널로 이미 꽉 차 있어서, 214px 를 더 얹으면
 // 방금 C에서 아낀 자리를 도로 내주는 셈이 된다. 60px 아이콘 줄이면 갈 곳은 있고
 // 자리는 덜 먹는다.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
 import UserBar from '../auth/UserBar'
 import { apiListApprovals } from '../approvals/approvalApi'
-import { shellFolded, rememberShellFolded } from '../persistence/prefs'
+import {
+  shellFolded, rememberShellFolded, shellWidth, rememberShellWidth,
+  SIDE_MIN, SIDE_MAX, SIDE_DEFAULT,
+} from '../persistence/prefs'
 import type { ShellView } from './shellPath'
 import './shell.css'
 
@@ -58,6 +61,13 @@ export default function AppShell({ view, onView, crumb, children }: {
 }) {
   const me = useAuth((s) => s.me)
   const [folded, setFolded] = useState(() => shellFolded())
+  const [width, setWidth] = useState(() => shellWidth())
+  /** 끄는 중인가 — 끄는 동안에는 폭이 손을 따라가야 하므로 애니메이션을 끈다. */
+  const [dragging, setDragging] = useState(false)
+  /** **끌고 난 뒤에는 누른 것으로 치지 않는다.**
+   *  손잡이를 끌면 `pointerup` 다음에 `click` 이 한 번 더 온다 — 브라우저가 원래 그렇다.
+   *  이걸 안 막으면 **폭을 넓히자마자 접힌다**(2026-09-14, 실제로 그랬다). */
+  const dragged = useRef(false)
   const [pending, setPending] = useState(0)
 
   const role = me?.role
@@ -98,11 +108,44 @@ export default function AppShell({ view, onView, crumb, children }: {
 
   const fold = (v: boolean) => { setFolded(v); rememberShellFolded(v) }
 
+  /** 경계선을 끌어 폭을 맞춘다(ㄹ).
+   *
+   *  **손잡이가 곧 끄는 자리다.** 접기 단추를 따로 두고 끄는 띠를 또 두면
+   *  같은 경계에 장치가 둘이 된다 — 누르면 접히고, 끌면 넓어진다.
+   *
+   *  `SIDE_MIN` 보다 좁게 끌면 **접는다.** 끌어서 없앨 수 있다는 뜻이라
+   *  「최소 폭에서 더 안 줄어드는」 벽에 부딪히는 느낌이 안 생긴다. */
+  const onDragStart = (e: React.PointerEvent) => {
+    if (shut) return
+    e.preventDefault()
+    setDragging(true)
+    const startX = e.clientX, startW = width
+    let moved = false
+    dragged.current = false
+    const move = (ev: PointerEvent) => {
+      const w = startW + (ev.clientX - startX)
+      if (Math.abs(ev.clientX - startX) > 3) { moved = true; dragged.current = true }
+      if (w < SIDE_MIN - 28) { setWidth(SIDE_MIN) ; return }
+      setWidth(Math.min(SIDE_MAX, Math.max(SIDE_MIN, w)))
+    }
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      setDragging(false)
+      // 끝까지 좁게 끌었으면 접는다. 안 움직였으면 그냥 누른 것이다 — 그건 onClick 이 받는다.
+      if (moved && ev.clientX - startX < -(startW - SIDE_MIN) - 28) fold(true)
+      else if (moved) rememberShellWidth(startW + (ev.clientX - startX))
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
   return (
     <div className="sh">
       <header className="sh-head">
-        <button className="sh-burger" onClick={() => fold(!shut)}
-          aria-label={shut ? '메뉴 펴기' : '메뉴 접기'} title={shut ? '메뉴 펴기' : '메뉴 접기'}>☰</button>
+        {/* **접기는 머리줄이 아니라 경계선에 있다**(2026-09-14).
+            여기 ☰ 를 두면 손이 왼쪽 메뉴에 가 있는데 접으려고 위로 올라가야 하고,
+            사이드바가 60px 로만 접혀 늘 보이므로 같은 일을 하는 단추가 둘일 이유가 없다. */}
         <div className="sh-brand"><span className="lg">ℓ</span><span className="nm">EVER-SKETCH</span></div>
         {/* **어디에 있는지 늘 보인다.** 편집에 들어가도 남는다 —
             지금까지는 편집에 들어가는 순간 어느 화면에서 왔는지가 사라졌다. */}
@@ -118,7 +161,8 @@ export default function AppShell({ view, onView, crumb, children }: {
         <UserBar />
       </header>
 
-      <div className={'sh-body' + (shut ? ' shut' : '')}>
+      <div className={'sh-body' + (shut ? ' shut' : '') + (dragging ? ' drag' : '')}
+        style={shut ? undefined : { gridTemplateColumns: width + 'px 1fr' }}>
         <nav className="sh-side" aria-label="갈 곳">
           {items.map((it, i) => 'sep' in it ? (
             <div className="sh-grp" key={'s' + i}>{it.sep}</div>
@@ -133,6 +177,24 @@ export default function AppShell({ view, onView, crumb, children }: {
           ))}
         </nav>
         <main className="sh-main">{children}</main>
+
+        {/* **경계선 위 손잡이**(사용자 결정 ㄴ+ㄹ).
+            세로 자리를 하나도 안 쓰고, **움직이는 그 경계에 붙어** 있어
+            「이 선이 왼쪽으로 간다」가 모양으로 읽힌다. 접히면 손잡이가 따라가므로
+            편 상태와 접힌 상태가 **같은 물건**이다.
+            누르면 접히고 끌면 넓어진다 — 한 자리에 한 물건. */}
+        <button className="sh-edge" style={{ left: (shut ? 60 : width) - 11 + 'px' }}
+          onPointerDown={onDragStart}
+          onClick={() => {
+            // 끌고 난 직후의 click 은 버린다 — 안 그러면 넓히자마자 접힌다.
+            if (dragged.current) { dragged.current = false; return }
+            fold(!shut)
+          }}
+          onDoubleClick={() => { setWidth(SIDE_DEFAULT); rememberShellWidth(SIDE_DEFAULT) }}
+          aria-label={shut ? '메뉴 펴기' : '메뉴 접기'}
+          title={shut ? '펴기' : '접기 · 끌어서 폭 조절'}>
+          {shut ? '›' : '‹'}
+        </button>
       </div>
     </div>
   )
