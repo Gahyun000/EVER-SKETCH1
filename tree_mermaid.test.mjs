@@ -98,6 +98,23 @@ const SAMPLE = `graph LR
   check(byText['기획'].x < byText['설계'].x, '왼→오른: 자식이 부모보다 오른쪽')
   check(byText['설계'].x < byText['안 고르기'].x, '레벨이 깊을수록 더 오른쪽')
   check(byText['안 고르기'].type === 'diamond', '판단은 마름모로 그린다')
+  // **앱이 아는 도형 이름만 쓴다.** 처음에 'rect' 라고 적었더니 화면에는 그럴듯하게
+  // 그려졌지만, 그건 앱의 이름이 아니라 내보내기의 기본값에 우연히 걸린 것이었다.
+  // 모르는 이름은 **되는 것처럼 보이다가** 도형 갤러리·PPTX 에서 어긋난다.
+  {
+    const tb = bare(read('./src/builder/chrome/EditToolbar.tsx'))
+    const known = new Set((tb.match(/\{ t: '([a-zA-Z0-9]+)', label:/g) || [])
+      .map((m) => m.replace(/.*'([a-zA-Z0-9]+)'.*/, '$1')))
+    const used = [...new Set(t.els.map((e) => e.type))]
+    check(known.size > 5, '(사전) 도형 갤러리에서 이름 목록을 읽었다', known.size + '개')
+    check(used.every((u) => known.has(u)),
+      '트리가 쓰는 도형이 **전부 앱이 아는 이름**이다',
+      used.filter((u) => !known.has(u)).join(',') || '')
+    const pp = bare(read('./src/export/exportPptx.ts'))
+    check(used.every((u) => new RegExp('\\b' + u + ':').test(pp)),
+      '그 이름들이 **PPTX 내보내기 표에도** 있다 — 기본값에 우연히 걸리지 않는다',
+      used.filter((u) => !new RegExp('\\b' + u + ':').test(pp)).join(','))
+  }
   check(t.els.every((e) => e.w === NODE_W && e.h === NODE_H), '상자 크기가 한결같다')
   check(t.rootId === byText['기획'].id, '뿌리를 알려 준다 — 「이게 트리였다」의 표시')
   // 종이 밖으로 안 나간다.

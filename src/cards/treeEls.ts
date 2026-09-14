@@ -163,8 +163,15 @@ export function treeSlots(g: Pick<MmGraph, 'order' | 'edges'>):
   return { depth, slot, rows: next, levels }
 }
 
+/**
+ * 머메이드 괄호 → **앱이 아는 도형 이름.**
+ *
+ * 처음에 `'rect'` 라고 적었다가 고쳤다. 화면에는 그럴듯하게 그려졌는데,
+ * 앱이 쓰는 이름은 `'box'` 다(도형 갤러리 · `exportPptx` 의 SHAPE 표).
+ * 모르는 이름은 **되는 것처럼 보이다가** 내보내기·도형 바꾸기에서 어긋난다.
+ */
 const FILL: Record<NodeShape, { type: string; color: string; tcolor: string }> = {
-  box:   { type: 'rect',  color: '#eaf0ff', tcolor: '#1c2433' },
+  box:   { type: 'box',   color: '#eaf0ff', tcolor: '#1c2433' },
   round: { type: 'round', color: '#eaf0ff', tcolor: '#1c2433' },
   // 판단은 **색으로도 다르다** — 갈림길인지 아닌지가 한눈에 보여야 한다.
   dec:   { type: 'diamond', color: '#fff3e2', tcolor: '#7a4412' },
