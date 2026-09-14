@@ -25,12 +25,18 @@ export type CalloutTone = 'info' | 'key' | 'warn'
 export interface Block { id: number; type: BlockType; text: string; bold?: boolean; italic?: boolean; done?: boolean; align?: 'left' | 'center' | 'right'; collapsed?: boolean; children?: Block[]; tone?: CalloutTone; color?: string; fs?: number }
 export type PageRole = 'cover' | 'toc' | 'content' | 'back'
 export interface DeckTocItem { sectionId: string; markN?: string; title: string; summary?: string; pageNo: string }
-export interface Page { id: number; cardKey: string; fields: Record<string, string>; free: boolean; els: FreeEl[]; conns: Conn[]; strokes: Stroke[]; paper?: PaperType; blocks?: Block[]; detached?: string[]; bg?: string; contd?: boolean; trans?: string; role?: PageRole; sectionId?: string; pageNo?: string; tocItems?: DeckTocItem[] }
+export interface Page { id: number; cardKey: string; fields: Record<string, string>; free: boolean; els: FreeEl[]; conns: Conn[]; strokes: Stroke[]; paper?: PaperType; blocks?: Block[]; detached?: string[]; bg?: string; contd?: boolean; trans?: string; role?: PageRole; sectionId?: string; pageNo?: string; tocItems?: DeckTocItem[];
+  /** 이 쪽이 **마인드맵에서 펼쳐진 것**이면 중심 도형의 id.
+   *
+   *  펼치고 나면 그냥 도형과 선이라 「이게 마인드맵이었다」를 알 길이 없다.
+   *  그래서 「＋ 가지」를 어디에 붙일지도 모른다. 중심 id 하나만 적어 두면
+   *  **표시와 붙일 자리**를 한꺼번에 해결한다. */
+  mindmapCenter?: number }
 export interface CanvasData { els: FreeEl[]; conns: Conn[]; strokes: Stroke[]; detached?: string[] }
 export interface BuilderState {
   title: string; orientation: Orientation; font: string; size: SizePreset; theme: ThemeName
   pages: Page[]; selectedPageId: number | null
-  addCard: (cardKey: string) => void
+  addCard: (cardKey: string, count?: number) => void
   updateField: (pageId: number, key: string, value: string) => void
   removePage: (pageId: number) => void
   movePage: (pageId: number, dir: number) => void
@@ -156,7 +162,7 @@ export function reseedUids(pages: Page[]): void {
 export const useBuilder = create<BuilderState>((set, get) => ({
   title: '유니에버 AX 사업모델', orientation: 'portrait', font: 'auto', size: 'm', theme: 'light',
   pages: [], selectedPageId: null,
-  addCard: (cardKey) => set((s) => {
+  addCard: (cardKey, count) => set((s) => {
     // 슬라이드 = 빈 캔버스 편집 페이지(구글 슬라이드식). 블록편집기 없이 요소로 직접 편집.
     if (cardKey === 'slide') {
       const sp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true, els: [], conns: [], strokes: [], blocks: [], bg: '' }
@@ -168,9 +174,11 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     // 자세한 이유는 cards/mindmapEls.ts 의 설명.
     if (cardKey === 'mindmap') {
       const { W, H } = pageSize(s.orientation)
-      const { els, conns } = mindmapParts(defaultsFor('mindmap'), W, H, nextElId)
+      const { els, conns } = mindmapParts(defaultsFor('mindmap'), W, H, nextElId, count)
+      // 중심은 제목 다음(제목이 없으면 첫째)이다 — 가지들이 여기로 이어져 있다.
+      const center = conns.length ? conns[0].from : undefined
       const mp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true,
-                         els, conns, strokes: [], blocks: [], bg: '' }
+                         els, conns, strokes: [], blocks: [], bg: '', mindmapCenter: center }
       return { pages: [...s.pages, mp], selectedPageId: mp.id }
     }
     const p: Page = { id: uid++, cardKey, fields: defaultsFor(cardKey), free: false, els: [], conns: [], strokes: [] }

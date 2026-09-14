@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { openSections, rememberOpenSections } from '../../persistence/prefs'
+import { BRANCH_MAX, BRANCH_BOX, nextBranchSpot } from '../../cards/mindmapEls'
 import NumInput from './NumInput'
 import ApprovalCard from './ApprovalCard'
 import { useBuilder } from '../../state/store'
@@ -73,6 +74,7 @@ export default function RightPanel() {
   const setTableSel = useCanvasUI((s) => s.setTableSel)
   const selElId = useCanvasUI((s) => s.selEl)
   const selEls = useCanvasUI((s) => s.selEls)
+  const setCanvas = useBuilder((s) => s.setCanvas)
   const selConn = useCanvasUI((s) => s.selConn)
   const setSelConn = useCanvasUI((s) => s.setSelConn)
   const patchConn = useBuilder((s) => s.patchConn)
@@ -99,6 +101,40 @@ export default function RightPanel() {
     pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached }))
     patchConn(page.id, selConn, pt)
   }
+  /** 펼쳐진 마인드맵에서 중심에 이어진 가지 수. */
+  const branchCount = page && page.mindmapCenter != null
+    ? page.conns.filter((c) => c.from === page.mindmapCenter || c.to === page.mindmapCenter).length
+    : 0
+
+  /** 가장 넓게 벌어진 틈에 가지 하나를 얹는다. **있던 것은 안 건드린다.** */
+  function addBranch() {
+    if (!page || page.mindmapCenter == null) return
+    const center = page.els.find((e) => e.id === page.mindmapCenter)
+    if (!center || branchCount >= BRANCH_MAX) return
+    const ids = new Set(page.conns
+      .filter((c) => c.from === center.id || c.to === center.id)
+      .map((c) => (c.from === center.id ? c.to : c.from)))
+    const branches = page.els.filter((e) => ids.has(e.id))
+    const { W, H } = pageSize(orientation)
+    const spot = nextBranchSpot(center, branches, W, H)
+    const nid = Math.max(0, ...page.els.map((e) => e.id)) + 1
+    pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached }))
+    setCanvas(page.id, {
+      els: [...page.els, {
+        id: nid, type: 'round', x: spot.x, y: spot.y, w: BRANCH_BOX.w, h: BRANCH_BOX.h,
+        text: `가지 ${branchCount + 1}`, color: '#eaf0ff', fs: 13, tcolor: '#1c2433',
+      }],
+      // 화살표가 아니라 **선**이다 — 마인드맵의 가지에 방향이 없다(mindmapEls 와 같은 규칙).
+      conns: [...page.conns, { from: center.id, to: nid, kind: 'straight', arrow: 'none', color: '#c3cbdb', width: 1.5 }],
+      strokes: page.strokes,
+      detached: page.detached,
+    })
+    // **새 가지를 고르지 않는다.** 고르면 패널이 요소 쪽으로 넘어가면서
+    // 「＋ 가지」가 화면에서 사라진다 — 둘째 가지를 붙이려면 빈 데를 한 번 눌러야 한다.
+    // 가지는 대개 두셋을 이어 붙이므로, **단추가 그 자리에 남아 있는 편**이 낫다.
+    // 새로 생긴 것은 「가지 N」이라 눈으로 찾기 어렵지 않다.
+  }
+
   const dark = !!(page && page.bg)
   const curPaper: PaperType = (page && page.paper) || 'blank'
   const { W, H: PAGE_H } = pageSize(orientation)
@@ -609,6 +645,25 @@ export default function RightPanel() {
             <span style={cap}>가지를 하나씩 옮기고 크기를 바꿀 수 있게 됩니다.
               대신 오른쪽 칸으로 한 번에 고치는 건 그때부터 안 돼요 — 잘못 눌렀으면 ⌘Z 로 되돌립니다.</span>
           </>) : null}
+
+          {/* **＋ 가지**(사용자 결정 ㄷ). 펼쳐진 마인드맵에만 나온다 —
+              `mindmapCenter` 가 중심 도형 id 를 들고 있어 「이게 마인드맵이다」와
+              「어디에 이을까」를 한꺼번에 알려 준다.
+              **있던 가지는 안 건드린다.** 가장 넓게 벌어진 틈에 하나 얹을 뿐이라,
+              사람이 옮겨 둔 자리가 흐트러지지 않는다. */}
+          {page && page.mindmapCenter != null && page.els.some((e) => e.id === page.mindmapCenter) ? (<>
+            <div className="insp-sec">마인드맵</div>
+            <div className="insp-row">
+              <button className="insp-pill" disabled={branchCount >= BRANCH_MAX}
+                title={branchCount >= BRANCH_MAX
+                  ? `가지는 ${BRANCH_MAX}개까지예요 — 더 늘리면 선이 얼룩처럼 보입니다`
+                  : '가장 넓게 벌어진 자리에 하나 붙입니다'}
+                onClick={addBranch}>＋ 가지</button>
+              <span className="insp-hint" style={{ margin: 0 }}>지금 {branchCount}개</span>
+            </div>
+            <span style={cap}>있던 가지는 안 건드려요. 빈 자리에 하나 얹습니다.</span>
+          </>) : null}
+
           <div className="insp-sec">배경</div>
           <div className="insp-row seg">
             <button className={!dark ? 'on' : ''} onClick={() => setBg(false)}>밝게</button>

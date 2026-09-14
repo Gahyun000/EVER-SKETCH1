@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useBuilder } from '../state/store'
 import { CARD_REGISTRY } from '../cards/registry'
+import { BRANCH_MIN, BRANCH_MAX, BRANCH_DEFAULT } from '../cards/mindmapEls'
 
 const GROUPS: { key: string; label: string }[] = [
   { key: 'frame', label: '틀 구조' },
@@ -36,6 +37,10 @@ export default function CardPicker() {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  /** 마인드맵만 **넣기 전에 한 번 더 묻는다** — 가지 수(사용자 결정 ㄱ).
+   *  그때가 개수를 정하기 가장 좋은 순간이다: 아직 아무것도 안 옮겨 놨으므로
+   *  마음껏 다시 배치할 수 있다. 넣고 난 뒤에 바꾸려면 사람이 맞춰 둔 자리가 흐트러진다. */
+  const [askBranches, setAskBranches] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
 
   function toggle() {
@@ -45,7 +50,11 @@ export default function CardPicker() {
     }
     setOpen((o) => !o)
   }
-  function pick(key: string) { addCard(key); setOpen(false); setQ('') }
+  function close() { setOpen(false); setQ(''); setAskBranches(false) }
+  function pick(key: string) {
+    if (key === 'mindmap') { setAskBranches(true); return }
+    addCard(key); close()
+  }
 
   /* **이건 모달이 아니라 드롭다운이다** — 버튼에 붙어 뜨므로 ui/Modal 로 옮기지 않는다.
      그런데 나가는 길이 **바깥 누르기 하나뿐이었다.** 버튼도 없고 Esc 도 안 먹어서,
@@ -70,8 +79,19 @@ export default function CardPicker() {
       <button ref={btnRef} className="add" onClick={toggle}>＋ 새 페이지 ▾</button>
       {open && pos && createPortal(
         <>
-          <div className="cpk-scrim" onClick={() => setOpen(false)} />
+          <div className="cpk-scrim" onClick={close} />
           <div className="cpk-pop" style={{ top: pos.top, left: pos.left }}>
+            {askBranches ? (<>
+              <div className="cpk-grp">마인드맵 · 가지 수</div>
+              <div className="cpk-brs">
+                {Array.from({ length: BRANCH_MAX - BRANCH_MIN + 1 }, (_, i) => BRANCH_MIN + i).map((n) => (
+                  <button key={n} className={'cpk-br' + (n === BRANCH_DEFAULT ? ' def' : '')}
+                    onClick={() => { addCard('mindmap', n); close() }}>{n}</button>
+                ))}
+              </div>
+              <div className="cpk-hint">나중에 오른쪽 패널에서 <b>＋ 가지</b>로 더 붙일 수 있어요.</div>
+              <button className="cpk-back" onClick={() => setAskBranches(false)}>← 카드 고르기로</button>
+            </>) : (<>
             <div className="cpk-quick">
               <button className="cpk-q" onClick={() => pick('slide')}>＋ 빈 슬라이드</button>
               <button className="cpk-q alt" onClick={() => pick('dsection')}>＋ 덱 섹션</button>
@@ -94,6 +114,7 @@ export default function CardPicker() {
                 </div>
               )
             })}
+            </>)}
           </div>
         </>,
         document.body,

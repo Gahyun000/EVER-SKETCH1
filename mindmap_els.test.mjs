@@ -10,6 +10,7 @@
 // 두 번 겪었고 두 번 다 **역할을 갈라서** 풀렸다. 여기서는 아예 주인을 하나로 만든다.
 //
 // 실행: node --experimental-strip-types mindmap_els.test.mjs
+import { CARD_REGISTRY } from './src/cards/registry.ts'
 import { BRANCH_KEYS, mindmapParts } from './src/cards/mindmapEls.ts'
 
 let pass = 0, fail = 0
@@ -96,7 +97,18 @@ const F = {
   check(Math.abs(fx - cx) < 8, '첫 가지가 중심과 같은 세로줄에 있다', `${fx} vs ${cx}`)
 }
 
-check(BRANCH_KEYS.length === 5, '가지는 다섯 개까지다 (카드 정의와 같다)')
+// 2026-09-14 · 다섯에서 여덟로 늘었다(가지 수를 고를 수 있게 되면서).
+// **숫자를 박아 두지 않는다** — 지키려던 것은 「다섯」이 아니라
+// **「펼치는 쪽과 카드 정의가 같은 개수를 안다」**였다. 숫자로 적어 두면
+// 늘릴 때마다 두 곳을 따로 고치게 되고, 한쪽만 고치는 날이 온다.
+{
+  const card = CARD_REGISTRY.find((c) => c.key === 'mindmap')
+  const fields = card.fields.filter((f) => /^b\d+$/.test(f.key)).map((f) => f.key)
+  check(fields.length === BRANCH_KEYS.length,
+    `가지 칸 수가 카드 정의와 같다 (${BRANCH_KEYS.length}개)`,
+    `카드 ${fields.length} / 펼치기 ${BRANCH_KEYS.length}`)
+  check(fields.join() === [...BRANCH_KEYS].join(), '이름도 순서도 같다', fields.join())
+}
 
 console.log('\n' + pass + ' 통과, ' + fail + ' 실패')
 if (fail) process.exit(1)

@@ -26,7 +26,7 @@ export const CARD_REGISTRY: CardDef[] = [
   { key: 'flow', group: 'viz', label: '프로세스(플로우)', title: '도입 프로세스', viz: 'flow',
     fields: [f('title', '제목', '도입 프로세스'), f('s1', '단계 1', '데이터 연결'), f('s2', '단계 2', 'AI 학습'), f('s3', '단계 3', '현장 적용'), f('s4', '단계 4 (선택)', '성과 검증')] },
   { key: 'mindmap', group: 'viz', label: '마인드맵', title: 'AX 추진 영역', viz: 'mindmap',
-    fields: [f('title', '제목', 'AX 추진 영역'), f('center', '중심 주제', '유니에버 AX'), f('b1', '가지 1', '품질'), f('b2', '가지 2', '생산'), f('b3', '가지 3', '물류'), f('b4', '가지 4 (선택)', '경영정보'), f('b5', '가지 5 (선택)')] },
+    fields: [f('title', '제목', 'AX 추진 영역'), f('center', '중심 주제', '유니에버 AX'), f('b1', '가지 1', '품질'), f('b2', '가지 2', '생산'), f('b3', '가지 3', '물류'), f('b4', '가지 4 (선택)', '경영정보'), f('b5', '가지 5 (선택)'), f('b6', '가지 6 (선택)'), f('b7', '가지 7 (선택)'), f('b8', '가지 8 (선택)')] },
   { key: 'sticky', group: 'viz', label: '스티키 메모', title: '아이디어 메모', viz: 'sticky',
     fields: [f('title', '제목', '아이디어 메모'), f('n1', '메모 1', '현장 니즈 인터뷰'), f('n2', '메모 2', 'PoC 대상 라인'), f('n3', '메모 3', 'ROI 계산'), f('n4', '메모 4 (선택)')] },
   { key: 'board', group: 'viz', label: '자유 메모 보드', title: '자유 보드', viz: 'board',
