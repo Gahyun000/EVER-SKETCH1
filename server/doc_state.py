@@ -7,7 +7,7 @@
 
 그래서 상태는 **최신 결재 행 하나에서 계산한다.** 진실은 `Approvals` 에만 있다.
 
-    없음 / 거둠            → draft             편집 O · 팀에 안 보임
+    없음 / 회수            → draft             편집 O · 팀에 안 보임
     approval  · pending    → pending           편집 X · 「결재 중」
     approval  · rejected   → rejected          편집 O · 「반려」
     approval  · approved   → approved          편집 X · 팀이 본다

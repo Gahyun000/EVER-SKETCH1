@@ -31,7 +31,9 @@ _CONTENT_FIELDS: dict[str, list[str]] = {
     "roadmap": ["p1", "p2"],
     "market": ["p1", "p2"],
     "flow": ["s1", "s2", "s3", "s4"],
-    "mindmap": ["center", "b1", "b2", "b3", "b4", "b5"],
+    # 가지는 여덟까지 있다(2026-09-14). 여기가 다섯에 머물면, b6~b8 만 채운 쪽을
+    # 「빈 페이지」라고 잘못 경고한다.
+    "mindmap": ["center", "b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8"],
     "sticky": ["n1", "n2", "n3", "n4"],
     "board": ["n1", "n2", "n3", "n4", "n5", "n6"],
 }

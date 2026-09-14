@@ -43,7 +43,7 @@ def test_결재를_안_탄_자료는_초안이다():
     assert ds.derive({}) == ds.DRAFT
 
 
-def test_거둬들이면_다시_초안이다():
+def test_회수하면_다시_초안이다():
     """이력에는 남지만(D16) 지금 걸려 있는 결재는 없다 — 고쳐서 다시 낼 수 있다."""
     assert ds.derive(row("approval", "withdrawn")) == ds.DRAFT
     assert ds.is_locked(ds.DRAFT) is False

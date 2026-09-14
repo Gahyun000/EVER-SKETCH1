@@ -225,7 +225,7 @@ def decide_approval(aid: str, req: DecideIn, user: dict = Depends(require_active
 
 @router.post("/{aid}/withdraw")
 def withdraw_approval(aid: str, user: dict = Depends(require_active)):
-    """거두기 — **낸 사람만**. 관리자가 대신 거두면 「반려」와 구분이 안 된다."""
+    """회수 — **낸 사람만**. 관리자가 대신 회수하면 「반려」와 구분이 안 된다."""
     a = _mine_or_404(aid, user)
     if a["requester"] != user["id"]:
         raise HTTPException(status_code=404, detail="결재 건을 찾을 수 없습니다.")

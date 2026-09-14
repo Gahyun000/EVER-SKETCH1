@@ -321,7 +321,7 @@ def project_version_delete(pid: str, vid: str, user: dict = Depends(require_acti
 
 # ─────────────────────── 앵커 메모 ───────────────────────
 # 의견은 **가리키는 대상과 함께** 있어야 한 번에 통한다.
-# 권한은 프로젝트 단위로 판정한다 — 남의 배부본에 다는 것은 관리자만,
+# 권한은 프로젝트 단위로 판정한다 — 남의 자료에 다는 것은 관리자만,
 # 작성자는 자기 것에만, 열람자는 아예 못 단다(permissions.decide).
 @router.get("/api/projects/{pid}/comments")
 def comments_list(pid: str, user: dict = Depends(require_active)):

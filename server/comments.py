@@ -399,8 +399,8 @@ def counts_for(project_ids: list[str], include_resolved: bool = False) -> dict[s
     """여러 자료의 미해결 수를 한 번에 — 회차 화면에서 20명분을 한 줄씩 물어보지 않게.
 
     `include_resolved` 를 켜면 해결된 것까지 센다. **무엇이 사라지는지 보여줄 때**
-    쓴다 — 배부를 무르면 해결된 지적도 함께 없어지고, 그건 그 회차가 무엇을
-    검토했는지에 대한 기록이다.
+    쓴다 — 자료를 지우면 해결된 지적도 함께 없어지고, 그건 그 자료를 두고
+    무엇을 검토했는지에 대한 기록이다.
     """
     if not project_ids:
         return {}

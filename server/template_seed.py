@@ -65,7 +65,7 @@ LIST_DEFAULT_ROWS = 5     # 헤더 1 + 데이터 4
 
 # ── 페이지 기하 ────────────────────────────────────────
 # **캔버스 좌표계다.** src/cards/sizing.ts 의 DECK_W/DECK_H 와 반드시 같아야 한다.
-# 다르면 배부된 양식이 종이 밖으로 나가 화면에 아무것도 안 보인다.
+# 다르면 표준 양식으로 만든 자료가 종이 밖으로 나가 화면에 아무것도 안 보인다.
 # (test_template_geometry.py 가 두 값의 일치와 요소가 종이 안에 있는지를 검사한다.)
 PAGE_W = 1040
 PAGE_H = 720
@@ -127,7 +127,7 @@ class TemplateError(ValueError):
 def parse_period(period_ym: str) -> tuple[int, int]:
     """'2026-10' → (2026, 10). 형식이 어긋나면 즉시 실패한다.
 
-    조용히 기본값으로 넘어가면 전 임원에게 엉뚱한 연도의 표가 배부된다.
+    조용히 기본값으로 넘어가면 엉뚱한 연도의 표로 전 임원의 자료가 만들어진다.
     """
     try:
         y, m = period_ym.split("-")

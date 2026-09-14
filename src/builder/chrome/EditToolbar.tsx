@@ -259,7 +259,7 @@ function TableTools() {
   const cols = ts ? Math.abs(ts.c1 - ts.c0) + 1 : 0
   const ranged = rows * cols > 1
   const onMerged = !!ts && !!mergeCovering(table.merges, ts.r1, ts.c1)
-  // 배부받은 빈 로드맵 — 아직 아무것도 안 그린 상태.
+  // 표준 양식으로 만든 빈 로드맵 — 아직 아무것도 안 그린 상태.
   // 정본에서 진행 구간은 '가로 병합 + 단계 이름' 인데, 빈 표만 보고는
   // 그걸 어떻게 만드는지 알 길이 없다. 그 순간에만 방법을 알려준다.
   // 머리글 병합 6건은 정본이 처음부터 갖고 있다 — 그 이상이 없으면 아직 아무것도 안 그린 것이다.

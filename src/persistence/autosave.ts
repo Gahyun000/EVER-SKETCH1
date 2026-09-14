@@ -36,7 +36,7 @@ export const useAutosave = create<AutosaveState>((set) => ({
   saveNow: async () => {
     const pid = getActiveProjectId()
     if (!pid) { set({ status: 'idle', error: undefined }); return false }
-    // 열람자·배부 잠금 상태에서는 저장할 것이 없다. 실패가 아니므로 true 로 돌려
+    // 열람자·결재 잠금 상태에서는 저장할 것이 없다. 실패가 아니므로 true 로 돌려
     // '저장하고 계속' 이 막히지 않게 한다.
     if (readOnly) { set({ status: 'idle', error: undefined }); return true }
     set({ status: 'saving', error: undefined })

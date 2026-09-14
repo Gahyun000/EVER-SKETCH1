@@ -150,16 +150,16 @@ def test_모르는_동작은_거부():
         ap.decide(a["id"], "approve_maybe", admin["id"])
 
 
-def test_작성자가_대기_중인_요청을_거둔다():
+def test_작성자가_대기_중인_요청을_회수한다():
     admin, w, t, p = ctx()
     a = ap.request(p["id"], w["id"])
     d = ap.withdraw(a["id"])
     assert d["status"] == "withdrawn"
-    # 거둔 뒤에는 다시 낼 수 있다
+    # 회수한 뒤에는 다시 낼 수 있다
     assert ap.request(p["id"], w["id"])["round"] == 2
 
 
-def test_이미_처리된_건은_못_거둔다():
+def test_이미_처리된_건은_못_회수한다():
     admin, w, t, p = ctx()
     a = ap.request(p["id"], w["id"])
     ap.decide(a["id"], "approve", admin["id"])
@@ -182,8 +182,8 @@ def test_이력이_있으면_자료를_못_지운다():
     assert ap.has_history(p["id"]) is True
 
 
-def test_거둬들인_것도_이력이다():
-    """제출했다가 거둔 것도 남이 봤을 수 있다. 「없었던 일」로 만들지 않는다."""
+def test_회수한_것도_이력이다():
+    """제출했다가 회수한 것도 남이 봤을 수 있다. 「없었던 일」로 만들지 않는다."""
     admin, w, t, p = ctx()
     a = ap.request(p["id"], w["id"])
     ap.withdraw(a["id"])
@@ -381,15 +381,15 @@ def test_라우트_작성자는_결정하지_못한다():
     assert r.status_code == 403, "제 것이라고 스스로 승인할 수는 없다(D11)"
 
 
-def test_라우트_남의_건은_못_거둔다():
+def test_라우트_남의_건은_못_회수한다():
     app = make_app()
     admin, w = two_writers(app)
     assert w["writer1"]["client"].post(
         "/api/approvals/%s/withdraw" % w["writer2"]["aid"]).status_code == 404
 
 
-def test_라우트_관리자도_남의_건을_대신_거두지_못한다():
-    """관리자가 대신 거두면 **「반려」와 구분이 안 된다** — 결재 이력이 무슨 일이 있었는지
+def test_라우트_관리자도_남의_건을_대신_회수하지_못한다():
+    """관리자가 대신 회수하면 **「반려」와 구분이 안 된다** — 결재 이력이 무슨 일이 있었는지
     말해주지 못하게 된다."""
     app = make_app()
     admin, w = two_writers(app)

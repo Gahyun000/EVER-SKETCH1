@@ -49,7 +49,7 @@ def test_본인_자료는_결재_전에만_지운다():
     결재 테이블이 없어 판정할 이력이 없었기 때문이고, 없는 근거로 열어 두지 않았다.
 
     이제 갈리는 것은 **결재를 탔는가**다. 제출한 적 없는 초안은 제 것이니 지운다.
-    한 번이라도 냈으면 못 지운다 — 거둬들인 건도 마찬가지다(남이 봤을 수 있다).
+    한 번이라도 냈으면 못 지운다 — 회수한 건도 마찬가지다(남이 봤을 수 있다).
     """
     assert decide(ME, DELETE, Resource(owner_id=ME.id, has_approval_history=False)) is True
     assert decide(ME, DELETE, Resource(owner_id=ME.id, has_approval_history=True)) is False

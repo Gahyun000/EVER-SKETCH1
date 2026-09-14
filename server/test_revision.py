@@ -208,7 +208,7 @@ def test_수정을_그만둬도_고친_내용은_안_지운다():
 
 def test_대기중인_요청은_그만두기가_아니다():
     """아직 허락도 안 났는데 「그만둔다」고 하면 무엇을 그만두는지 모호하다 —
-    그건 `withdraw`(요청 거두기)다."""
+    그건 `withdraw`(요청 회수)다."""
     w = World()
     p, _ = w.approved()
     rv = ap.request_revision(p["id"], w.a["id"])

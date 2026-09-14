@@ -30,13 +30,13 @@ check(/scrimClassName="es-confirm"/.test(panel), '화면 검사가 찾던 선택
 check(/같은 팀에 바로 공유/.test(panel), '승인하면 무슨 일이 생기는지 확인창이 말한다')
 check(/이 문서가 그대로 얼어붙습니다/.test(lib), '제출하면 문서가 얼어붙는다고 미리 말한다')
 check(/지울 수 없습니다/.test(lib), '제출하면 자료를 못 지우게 된다고 미리 말한다 (D16)')
-check(/결재 이력에는 남습니다/.test(panel), '거둬도 이력에 남는다고 말한다')
+check(/결재 이력에는 남습니다/.test(panel), '회수해도 이력에 남는다고 말한다')
 
 // ── 누가 무엇을 하는가 ──
 check(/isAdmin\(me\)/.test(panel), '결정 권한은 서버 판정과 같은 근거(역할)로 그린다')
 check(/canDecide = admin && detail\?\.status === 'pending'/.test(panel),
   '대기 중인 건만 결정할 수 있다 — 되돌리기는 P7 의 수정 요청이 한다')
-check(/mine && detail\?\.status === 'pending'/.test(panel), '거두기는 낸 사람만, 대기 중일 때만')
+check(/mine && detail\?\.status === 'pending'/.test(panel), '회수는 낸 사람만, 대기 중일 때만')
 check(/me\?\.role === 'writer' \|\| me\?\.role === 'admin'/.test(libCode),
   '열람자에게는 결재함도 제출 버튼도 없다 (D13)')
 check(/c\.author === me\?\.id/.test(panel), '제 코멘트만 지운다 — 남의 말은 못 건드린다')

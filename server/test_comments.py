@@ -1,11 +1,11 @@
 """앵커 메모 — 문서의 그 자리에 붙는 검토 의견.
 
 지키려는 것
-  1. 관리자는 남의 배부본에 지적할 수 있고, 작성자는 자기 것에만, 열람자는 못 단다
+  1. 관리자는 남의 자료에 지적할 수 있고, 작성자는 자기 것에만, 열람자는 못 단다
   2. 지적은 **가리키는 곳**을 잃지 않는다(페이지·요소·칸)
   3. 해결은 스레드 단위 — 답글마다 상태가 따로 놀면 처리 여부를 아무도 못 본다
   4. 남의 지적을 함부로 지울 수 없다(반려 사유가 조용히 사라지면 안 된다)
-  5. 자료를 회수하면 지적도 함께 사라진다(죽은 id 를 가리킨 채 남지 않는다)
+  5. 자료를 지우면 지적도 함께 사라진다(죽은 id 를 가리킨 채 남지 않는다)
 """
 import os
 import pathlib
@@ -56,7 +56,7 @@ def ctx():
     viewer = mk("view1", "viewer", "열람자")
 
     proj = projects_store.create_project(
-        name="홍길동 배부본", state={"pages": [{"id": 1, "els": []}]}, owner_id=writer["id"])
+        name="홍길동 자료", state={"pages": [{"id": 1, "els": []}]}, owner_id=writer["id"])
 
     def as_user(login, pw="password123"):
         c = TestClient(make_app())
@@ -76,7 +76,7 @@ def _add(client, pid, body="여기 수치가 실제와 다릅니다", **kw):
 
 
 # ══════════ 권한 ══════════
-def test_관리자는_남의_배부본에_지적할_수_있다(ctx):
+def test_관리자는_남의_자료에_지적할_수_있다(ctx):
     r = _add(ctx["as_admin"](), ctx["pid"], el_id=100006, cell="3_5")
     assert r.status_code == 200, r.text
     assert r.json()["comment"]["cell"] == "3_5"
@@ -303,7 +303,7 @@ def test_뿌리를_지우면_스레드가_통째로_사라진다(ctx):
 
 
 def test_자료를_지우면_지적도_함께_사라진다(ctx):
-    """죽은 project_id 를 가리킨 채 남으면, 회수했는데 지적 내용은 DB 에 남는다."""
+    """죽은 project_id 를 가리킨 채 남으면, 지웠는데 지적 내용은 DB 에 남는다."""
     _add(ctx["as_admin"](), ctx["pid"])
     projects_store.delete_project(ctx["pid"])
     assert comments_store.list_for_project(ctx["pid"]) == []
