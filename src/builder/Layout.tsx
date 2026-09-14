@@ -33,6 +33,40 @@ import ConfirmSaveModal from '../persistence/ConfirmSaveModal'
 import type { ConfirmSaveRequest } from '../persistence/ConfirmSaveModal'
 import Modal from '../ui/Modal'
 
+/**
+ * 「요소 N개를 종이 안으로 옮겼습니다 · 되돌리기」 한 줄.
+ *
+ * **조용히 옮기면 안 된다.** 방향을 바꿨더니 요소가 움직여 있는데 아무 말도 없으면
+ * 「내가 놓은 자리가 아닌데」가 된다. 그렇다고 확인창을 띄우면 방향을 바꿀 때마다
+ * 창이 뜬다 — 옮기는 일이 되돌릴 수 있는 일이라 그렇게까지 할 것은 아니다.
+ *
+ * **⌘Z 로는 부족하다.** 되돌리기 이력이 쪽별이라 ⌘Z 는 지금 쪽 하나만 되돌린다.
+ * 방향은 모든 쪽을 건드리므로 여기 「되돌리기」가 통째로 돌려놓는다.
+ */
+function FitToast() {
+  const undoFit = useBuilder((s) => s.undoFit)
+  const [moved, setMoved] = useState(0)
+  useEffect(() => {
+    const on = (e: Event) => {
+      setMoved((e as CustomEvent<{ moved: number }>).detail?.moved || 0)
+      // 10초면 읽고 누르기에 넉넉하다. 더 오래 두면 다음 작업을 가린다.
+      window.setTimeout(() => setMoved(0), 10_000)
+    }
+    window.addEventListener('ebook:fitted', on)
+    return () => window.removeEventListener('ebook:fitted', on)
+  }, [])
+  if (!moved) return null
+  return (
+    <div className="fit-toast" role="status">
+      {/* 한 문장은 **한 덩어리로 묶는다.** 묶음이 flex(gap:10px)라 글자를 맨몸으로 두면
+          「요소 / 3개 / 를 …」 세 조각이 되어 사이가 벌어진다 — 실물에서 그렇게 나왔다. */}
+      <span>요소 <b>{moved}개</b>를 종이 안으로 옮겼습니다.</span>
+      <button onClick={() => { undoFit(); setMoved(0) }}>되돌리기</button>
+      <button className="x" onClick={() => setMoved(0)} aria-label="닫기">×</button>
+    </div>
+  )
+}
+
 export default function Layout() {
   useCanvasCommands()
   // 편집 중인 자료가 바뀌면 검토 의견도 그 자료 것으로 바꾼다.
@@ -156,5 +190,6 @@ export default function Layout() {
     <InsertPicker />
     <AiCleanup open={ai} onClose={() => setAi(false)} />
     {confirmSave ? <ConfirmSaveModal req={confirmSave} onClose={() => setConfirmSave(null)} /> : null}
+    <FitToast />
   </div>)
 }

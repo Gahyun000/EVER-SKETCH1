@@ -479,3 +479,20 @@
 /* 「그리기」 접기 단추 — 펜·형광펜·지우개 열다섯 칸을 하나로.
    그리는 중에는 저절로 펴지므로 이 단추는 그때 사라진다. */
 .tbtn.draw-toggle{display:inline-flex;align-items:center;gap:4px}
+
+/* 「요소 N개를 종이 안으로 옮겼습니다」 — 한 줄 알림.
+   확인창이 아니라 알림이다: 되돌릴 수 있는 일이라 길을 막을 것은 아니다.
+   화면 아래 가운데, 챗봇 단추를 피해 왼쪽으로 치우쳐 앉는다.
+
+   z-index 3900 — **확인창(4200)·전체 덮개(4000) 아래**다. 알림 한 줄이
+   확인창을 가리면 안 되고, 결재함 같은 전체 화면이 덮개로 올라왔을 때
+   남아 있던 알림이 그 위에 떠 있어도 안 된다. 편집기 안 것들(최대 121)보다는 위. */
+.fit-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-58%);z-index:3900;
+  display:flex;align-items:center;gap:10px;background:#0F1B3D;color:#fff;
+  border-radius:10px;padding:9px 12px 9px 14px;font-size:12.5px;
+  box-shadow:0 10px 30px rgba(15,27,61,.3)}
+.fit-toast b{color:#FFD79A}
+.fit-toast button{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;
+  border-radius:7px;padding:4px 10px;font:inherit;font-size:11.5px;font-weight:800;cursor:pointer}
+.fit-toast button:hover{background:rgba(255,255,255,.14)}
+.fit-toast button.x{border:none;padding:2px 6px;font-size:14px;font-weight:400;opacity:.7}

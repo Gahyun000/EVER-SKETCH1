@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { pageSize } from '../cards/sizing'
+import { fitPagesToPaper } from '../canvas/fitPaper'
 import { mindmapParts } from '../cards/mindmapEls'
 import { rememberOrientation } from '../persistence/prefs'
 import { makeContinuation } from '../canvas/tableFlow'
@@ -46,6 +47,10 @@ export interface BuilderState {
   selectPage: (pageId: number) => void
   setTitle: (t: string) => void
   setOrientation: (o: Orientation) => void
+  /** 방향을 바꾸며 끌어들인 것을 **통째로 되돌린다.**
+   *  ⌘Z 는 **지금 쪽 하나만** 되돌린다(이력이 쪽별이다) — 방향은 모든 쪽을 건드리므로
+   *  그걸로는 부족하다. 그래서 되돌릴 것을 따로 들고 있다가 한 번에 돌려놓는다. */
+  undoFit: () => void
   setFont: (f: string) => void
   setSize: (s: SizePreset) => void
   setTheme: (t: ThemeName) => void
@@ -98,6 +103,10 @@ export function nextElId(): number { return elUid++ }
 // 지우지 않은 예시 문구가 그대로 내보내기까지 따라간다.
 // 빈칸은 PageView 의 data-ph 자리표시자가 안내하므로 화면이 비어 보이지도 않는다.
 // (AI 경로 buildPlanPage 도 같은 이유로 빈칸을 쓴다 — 정책을 하나로 맞춘 것)
+/** 방금 방향을 바꾸며 끌어들인 것. 「되돌리기」 한 번을 위해서만 들고 있는다 —
+ *  다음 번 끌어들임이 덮어쓴다. 쌓아 두면 언제 적 것인지 아무도 모른다. */
+let lastFit: { pages: Page[]; orientation: Orientation } | null = null
+
 function defaultsFor(cardKey: string): Record<string, string> {
   const c = cardByKey(cardKey); const f: Record<string, string> = {}
   if (c) c.fields.forEach((fd) => { f[fd.key] = '' })
@@ -231,7 +240,30 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   // 고른 방향을 기억해 둔다 — **다음에 만드는 이북**이 이 방향으로 시작한다.
   // (임원진 요청: 「한번 선택을 하면 이후 부터는 그 설정으로 계속 생성」)
   // 지금 문서에는 아무 영향이 없다. 기억은 이 브라우저에만 남는다(persistence/prefs.ts).
-  setOrientation: (o) => { rememberOrientation(o); set({ orientation: o }) },
+  setOrientation: (o) => set((s) => {
+    rememberOrientation(o)
+    // **종이 밖으로 나가는 것을 안으로 끌어들인다**(사용자 결정 ㄴ).
+    // 방향은 종이 크기만 바꾸고 요소 좌표는 그대로라, 가로에서 만든 것을 세로로 바꾸면
+    // 오른쪽에 있던 것들이 밖에 남는다 — 화면에서는 잘려서 안 보이고 내보내야 안다.
+    // **안 나간 것은 안 건드린다.** 비율대로 전부 옮기면 사람이 맞춰 둔 자리가 통째로 흐트러진다.
+    const { W, H } = pageSize(o)
+    const { pages, moved } = fitPagesToPaper(s.pages, W, H)
+    // 조용히 옮기면 「내가 놓은 자리가 아닌데」가 된다. 화면이 한 줄로 알린다.
+    if (moved) {
+      lastFit = { pages: s.pages, orientation: s.orientation }
+      window.dispatchEvent(new CustomEvent('ebook:fitted', { detail: { moved } }))
+    }
+    return { orientation: o, pages }
+  }),
+
+  undoFit: () => set(() => {
+    if (!lastFit) return {}
+    const back = lastFit
+    lastFit = null
+    // 방향도 같이 되돌린다. `setOrientation` 을 거치면 또 끌어들이므로 곧장 넣는다.
+    rememberOrientation(back.orientation)
+    return { pages: back.pages, orientation: back.orientation }
+  }),
   setFont: (fv) => set({ font: fv }),
   setSize: (sz) => set({ size: sz }),
   setTheme: (t) => set({ theme: t }),
