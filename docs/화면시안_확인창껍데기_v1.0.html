@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>확인창 껍데기 갈아 끼우기</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C;--badbg:#FDECEC;--warnbg:#FFF4E3;--okbg:#E9F5EF}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1120px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:32px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)} .box.bad{border-left-color:var(--red)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#f2f4f8;border-radius:4px;padding:1px 5px;font-size:11.5px;color:#38455e}
+
+  table.inv{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin:0 0 14px}
+  table.inv th,table.inv td{padding:7px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.inv th{background:#fbfcfe;color:var(--navy);font-size:11.5px}
+  table.inv tr:last-child td{border-bottom:none}
+  table.inv td.hl{background:#fff6f5;color:#a12a21;font-weight:800}
+  table.inv td.g{color:#24724b;font-weight:700}
+  .mono{font-variant-numeric:tabular-nums}
+
+  /* 겹침 시연 */
+  .stage{position:relative;height:250px;border:1px solid var(--line);border-radius:11px;
+    background:#eef1f6;overflow:hidden;margin:0 0 10px}
+  .stage .panel{position:absolute;inset:16px;background:#fff;border-radius:10px;
+    box-shadow:0 12px 34px rgba(10,16,30,.14);z-index:4000;padding:12px 14px;overflow:hidden}
+  .stage .panel .ph{font-size:12.5px;font-weight:800;color:var(--navy);margin-bottom:6px}
+  .stage .panel .pr{height:9px;background:#eef1f6;border-radius:3px;margin:0 0 5px}
+  .stage .panel .pz{position:absolute;right:10px;bottom:8px;font-size:10px;color:var(--dim);font-weight:800}
+  .stage .scrim{position:absolute;inset:0;background:rgba(15,20,35,.42);
+    display:grid;place-items:center;transition:z-index 0s}
+  .stage .dlg{background:#fff;border-radius:14px;width:min(300px,86%);padding:12px 14px 13px;
+    box-shadow:0 18px 44px rgba(10,16,30,.3)}
+  .stage .dlg .t{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  .stage .dlg .m{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:9px}
+  .stage .dlg .f{display:flex;gap:6px;justify-content:flex-end}
+  .stage .dlg .f span{border:1px solid var(--line);border-radius:6px;padding:3px 11px;
+    font-size:11px;font-weight:800;color:var(--muted);background:#fff}
+  .stage .dlg .f span.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+  .stage .zl{position:absolute;left:10px;top:8px;font-size:10px;font-weight:800;
+    background:#fff;border:1px solid var(--line);border-radius:20px;padding:1px 9px;z-index:9999;color:var(--navy)}
+
+  .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;align-items:center}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .seg button{border:none;background:#fff;padding:6px 12px;font:inherit;font-size:12px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+
+  /* 겉모습 비교 */
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  @media (max-width:880px){ .cmp{grid-template-columns:1fr} }
+  .side{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .side > .cap{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .side > .cap .t{font-size:12.5px;font-weight:800;color:var(--navy)}
+  .side > .cap .m{font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px}
+  .m.old{background:var(--badbg);color:#a12a21}
+  .m.new{background:var(--okbg);color:#24724b}
+  .body{padding:16px;background:#f4f6fa;display:grid;place-items:center;min-height:230px}
+
+  /* 지금 껍데기 (lib-confirm) */
+  .d-lib{background:#fff;border-radius:16px;padding:22px 22px 16px;width:min(400px,100%);
+    box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .d-lib .t{font-size:16px;font-weight:900;color:#0f172a;margin-bottom:8px}
+  .d-lib .m{font-size:13.5px;color:#475569;line-height:1.6;margin-bottom:18px}
+  .d-lib .f{display:flex;justify-content:flex-end;gap:8px}
+  .d-lib .f span{border:1.4px solid #e5e7eb;background:#fff;color:#334155;font-weight:800;
+    font-size:13px;border-radius:9px;padding:8px 16px}
+  .d-lib .f span.pri{border:none;background:#2462EB;color:#fff}
+
+  /* 지금 껍데기 (es-confirm) */
+  .d-es{background:#fff;border-radius:11px;max-width:400px;width:100%;padding:22px 24px 18px;
+    box-shadow:0 12px 40px rgba(15,27,61,.22)}
+  .d-es .t{font-size:15.5px;font-weight:800;color:#0F1B3D;margin-bottom:10px}
+  .d-es .m{font-size:13px;color:#5b6270;line-height:1.65;margin-bottom:18px}
+  .d-es .f{display:flex;justify-content:flex-end;gap:8px}
+  .d-es .f span{border:1px solid #e6e8ee;background:#fff;border-radius:6px;padding:7px 16px;font-size:13px;color:#1c2433}
+  .d-es .f span.pri{background:#2462EB;border-color:#2462EB;color:#fff;font-weight:700}
+
+  /* 새 껍데기 (ui/Modal sm) */
+  .d-ui{background:#fff;border-radius:14px;width:min(460px,100%);padding:20px 24px 22px;
+    box-shadow:0 24px 70px rgba(15,27,61,.3);max-height:300px;display:flex;flex-direction:column}
+  .d-ui .h{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+  .d-ui .h h3{flex:1;margin:0;font-size:16.5px;font-weight:800;line-height:1.35;color:#16234a}
+  .d-ui .h .x{border:0;background:none;font-size:15px;color:#8b94a6;width:28px;height:28px;
+    border-radius:8px;cursor:pointer}
+  .d-ui .m{flex:1;min-height:0;overflow:auto;font-size:13px;color:#5b6270;line-height:1.65}
+  .d-ui .f{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .d-ui .f span{border:1.4px solid #e5e7eb;background:#fff;color:#334155;font-weight:800;
+    font-size:13px;border-radius:9px;padding:8px 16px}
+  .d-ui .f span.pri{border:none;background:#0F1B3D;color:#fff}
+  .ruler{font-size:10.5px;color:var(--dim);text-align:center;margin-top:7px;font-weight:700}
+
+  ul.pt{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  ul.pt li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;
+    font-size:12.5px;color:var(--muted);border-left:3px solid var(--line)}
+  ul.pt li b{color:var(--navy)}
+  ul.pt li.k{border-left-color:var(--red)}
+  ul.pt li.g{border-left-color:var(--green)}
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>확인창 8개를 <code>ui/Modal</code> 로 — 갈아 끼우면 겉모습도 바뀝니다</h1>
+<p class="lead">A②는 「기능은 그대로, 껍데기만 교체」로 적어 뒀는데,
+<b>세 껍데기의 숫자가 다 다릅니다.</b> 그리고 그중 하나는 그냥 바꾸면 <b>창이 안 보이게 됩니다.</b></p>
+
+<h2><span class="n">1</span>그냥 바꾸면 깨지는 것</h2>
+<div class="box bad"><span class="t"><code>ui-scrim</code> 은 z-index 300, 결재함 패널은 4000입니다</span>
+<code>es-confirm</code> 이 <b>4200</b>인 건 우연이 아닙니다. 결재함·계정·팀 화면은
+<code>z-index: 4000</code> 짜리 덮개 위에 뜨고, 확인창은 <b>그것보다 위에 있어야</b> 합니다.
+<code>ui/Modal</code> 을 그대로 가져다 쓰면 <b>300</b>이라 결재함 <b>뒤로 숨습니다</b> —
+관리자가 「승인」을 눌렀는데 아무 일도 안 일어난 것처럼 보입니다.
+<b>지금 있는 어떤 검사도 이걸 못 잡습니다</b> — 글자만 보지, 무엇이 무엇을 가리는지는 안 봅니다.</div>
+
+<div class="ctl">
+  <span class="lb">확인창의 z-index</span>
+  <span class="seg" id="segZ">
+    <button data-z="300">300 (ui-scrim 그대로)</button>
+    <button data-z="4200" class="on">4200 (지금 es-confirm)</button>
+  </span>
+</div>
+
+<div class="stage" id="stage">
+  <span class="zl" id="zl"></span>
+  <div class="scrim" id="scrim">
+    <div class="dlg">
+      <div class="t">결재 승인</div>
+      <div class="m"><b>9월 실적 보고 · 홍길동</b> 를 승인합니다.<br>승인하면 같은 팀에 바로 공유됩니다.</div>
+      <div class="f"><span>취소</span><span class="pri">승인</span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph">결재함 — 대기 3건</div>
+    <div class="pr" style="width:78%"></div><div class="pr" style="width:64%"></div>
+    <div class="pr" style="width:71%"></div><div class="pr" style="width:52%"></div>
+    <div class="pr" style="width:80%"></div><div class="pr" style="width:46%"></div>
+    <div class="pz">z-index 4000</div>
+  </div>
+</div>
+<p class="note" id="zNote"></p>
+
+<h2><span class="n">2</span>세 껍데기의 숫자</h2>
+<table class="inv mono">
+  <tr><th style="width:150px"></th><th style="width:170px">lib-confirm<br><span style="font-weight:600;color:var(--dim)">라이브러리 4개</span></th>
+      <th style="width:170px">es-confirm<br><span style="font-weight:600;color:var(--dim)">결재·계정·팀 4개</span></th>
+      <th>ui/Modal<br><span style="font-weight:600;color:var(--dim)">바꾼 뒤</span></th></tr>
+  <tr><td><b>z-index</b></td><td>60</td><td class="hl">4200</td><td class="hl">300 ← 손봐야 함</td></tr>
+  <tr><td><b>폭</b></td><td>400</td><td>400</td><td>460 (sm)</td></tr>
+  <tr><td><b>모서리</b></td><td>16</td><td>11</td><td>14</td></tr>
+  <tr><td><b>제목</b></td><td>16px · 900</td><td>15.5px · 800</td><td>16.5px · 800</td></tr>
+  <tr><td><b>본문</b></td><td>13.5px · #475569</td><td>13px · #5b6270</td><td class="hl">껍데기가 안 정함</td></tr>
+  <tr><td><b>닫기 ×</b></td><td>없음</td><td>없음</td><td class="g">있음</td></tr>
+  <tr><td><b>넘칠 때</b></td><td>화면 밖으로 나감</td><td>화면 밖으로 나감</td><td class="g">86vh · 안에서 스크롤</td></tr>
+  <tr><td><b>Esc · 포커스</b></td><td>없음</td><td>없음</td><td class="g">있음</td></tr>
+</table>
+
+<h2><span class="n">3</span>겉모습 — 같은 창, 두 껍데기</h2>
+<div class="ctl">
+  <span class="lb">어느 창</span>
+  <span class="seg" id="segC"></span>
+</div>
+<div class="cmp">
+  <div class="side">
+    <div class="cap"><span class="t">지금</span><span class="m old" id="capOld"></span></div>
+    <div class="body" id="old"></div>
+  </div>
+  <div class="side">
+    <div class="cap"><span class="t">바꾼 뒤</span><span class="m new">ui/Modal · sm 460</span></div>
+    <div class="body" id="new"></div>
+  </div>
+</div>
+
+<h2><span class="n">4</span>그래서 A②는 세 가지를 더 정해야 합니다</h2>
+<ul class="pt">
+  <li class="k"><b>① z-index 를 어떻게 할까.</b>
+  <code>ui-scrim</code> 을 <b>4200으로 올리는</b> 게 맞습니다 — 확인창은 화면에서 가장 위에 있어야 하는 물건이고,
+  지금 300인 건 저장 확인·새 자료처럼 <b>덮개 없는 화면</b>에서만 써 왔기 때문입니다.
+  올려도 기존 네 곳은 그대로 뜹니다(아무것도 그 위에 없으니까).
+  <b>검사도 하나 답니다</b> — 「확인창이 어떤 덮개보다 위에 있다」. 지금은 아무도 안 보고 있습니다.</li>
+
+  <li><b>② 본문 글자 크기를 껍데기가 정할까, 창이 들고 갈까.</b>
+  <code>ui/Modal</code> 은 본문 스타일을 안 정합니다 — 넘기는 쪽이 정합니다.
+  그대로 옮기면 여덟 창의 본문이 <b>13px과 13.5px로 갈립니다</b>(지금 그렇습니다).
+  <b>껍데기에 하나로 정해 넣는 쪽</b>을 권합니다. 「한 곳에 둔다」가 이 교체의 이유니까요.</li>
+
+  <li><b>③ 삭제 창에도 닫기 ×를 달까.</b>
+  표준은 「명시적 닫기 동작」을 요구하고, <code>ui/Modal</code> 은 그래서 ×를 답니다.
+  지금 여덟 창에는 <b>하나도 없습니다.</b> 다는 게 맞다고 봅니다 — 다만 <b>여덟 창의 겉모습이 다 바뀝니다.</b>
+  <span style="color:#a12a21">쓰시는 분들이 「뭔가 바뀌었네」라고 느낄 유일한 지점입니다.</span></li>
+</ul>
+
+<div class="box ok"><span class="t">안 바뀌는 것</span>
+<b>문구는 한 글자도 안 바꿉니다.</b> 「지금 이 문서가 그대로 얼어붙습니다」,
+「승인하면 같은 팀에 바로 공유됩니다」 — 지금 것이 표준이 요구하는 것보다 낫습니다. 그대로 옮깁니다.
+버튼 라벨·순서·색 구분도 그대로입니다. A①에서 넣은 잠금도 그대로 따라갑니다.</div>
+
+<p class="note">시안 v1.0 · 1번의 겹침 시연과 2번의 숫자는 <b>실제 CSS 값 그대로입니다</b>
+(<code>src/ui/modal.css</code> · <code>src/index.css:494</code> · <code>src/auth/auth.css:161</code>).
+3번의 그림도 그 값으로 그렸습니다 — 글꼴만 이 문서 것입니다.</p>
+
+</div>
+
+<script>
+/* ── z-index 시연 ── */
+const scrim = document.getElementById('scrim'), zl = document.getElementById('zl'),
+      zNote = document.getElementById('zNote'), segZ = document.getElementById('segZ');
+function setZ(z){
+  scrim.style.zIndex = z;
+  zl.textContent = '확인창 z-index ' + z;
+  zNote.innerHTML = (z === '300')
+    ? '<b style="color:#a12a21">확인창이 결재함 뒤에 있습니다.</b> 눌러도 아무 일이 없는 것처럼 보이고, 화면은 멈춰 있습니다 — 스크림이 클릭은 먹으니까요.'
+    : '확인창이 결재함 위에 있습니다. <b>지금 동작이 이렇습니다.</b>';
+  [...segZ.querySelectorAll('button')].forEach(b => b.classList.toggle('on', b.dataset.z === z));
+}
+segZ.onclick = e => { const b = e.target.closest('button'); if (b) setZ(b.dataset.z); };
+setZ('4200');
+
+/* ── 겉모습 비교 ── */
+const CASES = {
+  submit: { label:'작성자 · 제출', shell:'lib', title:'결재 제출', ok:'제출', pri:true,
+    body:'<b>9월 실적 보고</b> 을(를) 관리자에게 제출합니다.<br><br>'+
+         '<b>지금 이 문서가 그대로 얼어붙습니다.</b> 제출한 뒤에 고쳐도 결재본은 바뀌지 않습니다.<br>'+
+         '한 번이라도 제출하면 <b>이 자료는 지울 수 없습니다.</b>' },
+  del:    { label:'자료 삭제', shell:'lib', title:'이북 삭제', ok:'삭제', pri:true,
+    body:'‘9월 실적 보고’ 이북을 삭제할까요?<br>이 이북의 모든 슬라이드와 버전 기록이 함께 삭제되며 되돌릴 수 없어요.' },
+  approve:{ label:'관리자 · 승인', shell:'es', title:'결재 승인', ok:'승인', pri:true,
+    body:'<b>9월 실적 보고 · 홍길동 · 2회차</b> 를 <b>승인</b>합니다.<br><br>'+
+         '승인하면 <b>같은 팀에 바로 공유</b>됩니다. 되돌리려면 작성자가 수정 요청을 내야 합니다.' },
+  reject: { label:'관리자 · 반려', shell:'es', title:'결재 반려', ok:'반려', pri:true,
+    body:'<b>9월 실적 보고 · 홍길동 · 2회차</b> 를 <b>반려</b>합니다.<br><br>'+
+         '작성자가 고쳐서 다시 낼 수 있습니다. 의견을 적어 두면 무엇을 고칠지 압니다.' },
+};
+let cur = 'submit';
+const segC = document.getElementById('segC');
+segC.innerHTML = Object.entries(CASES).map(([k,v]) => `<button data-k="${k}">${v.label}</button>`).join('');
+segC.onclick = e => { const b = e.target.closest('button'); if (b) { cur = b.dataset.k; paint(); } };
+
+function paint(){
+  const c = CASES[cur];
+  document.getElementById('capOld').textContent =
+    c.shell === 'lib' ? 'lib-confirm · 400' : 'es-confirm · 400';
+  document.getElementById('old').innerHTML = (c.shell === 'lib')
+    ? `<div><div class="d-lib"><div class="t">${c.title}</div><div class="m">${c.body}</div>
+         <div class="f"><span>취소</span><span class="pri">${c.ok}</span></div></div>
+       <div class="ruler">◀ 400px ▶ · 모서리 16 · z-index 60 · 닫기 × 없음</div></div>`
+    : `<div><div class="d-es"><div class="t">${c.title}</div><div class="m">${c.body}</div>
+         <div class="f"><span>취소</span><span class="pri">${c.ok}</span></div></div>
+       <div class="ruler">◀ 400px ▶ · 모서리 11 · z-index 4200 · 닫기 × 없음</div></div>`;
+  document.getElementById('new').innerHTML =
+    `<div><div class="d-ui"><div class="h"><h3>${c.title}</h3><button class="x">×</button></div>
+       <div class="m">${c.body}</div>
+       <div class="f"><span>취소</span><span class="pri">${c.ok}</span></div></div>
+     <div class="ruler">◀ 460px ▶ · 모서리 14 · Esc·포커스 있음 · <b>닫기 × 새로 생김</b></div></div>`;
+  [...segC.querySelectorAll('button')].forEach(b => b.classList.toggle('on', b.dataset.k === cur));
+}
+paint();
+</script>
+</body>
+</html>

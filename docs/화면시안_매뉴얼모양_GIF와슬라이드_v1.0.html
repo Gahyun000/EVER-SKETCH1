@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면시안 — 매뉴얼의 모양 (ㄴ · GIF + 진짜 슬라이드)</title>
+<style>
+  :root{
+    --ink:#16203a; --muted:#6b7590; --line:#dfe3ec; --plane:#f4f6fa; --surf:#fff;
+    --blue:#2a78d6; --blue-d:#1b5bab; --blue-100:#e4effc;
+    --warn:#b9541b; --warn-bg:#fff3e2; --warn-line:#f0d7b4;
+    --bad:#b3261e; --bad-bg:#fdeceb; --bad-line:#f3c9c6;
+    --ok:#1c7a4a; --ok-bg:#e8f6ee; --ok-line:#bfe2ce;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    padding-block:28px;padding-left:20px;padding-right:20px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  section{background:var(--surf);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+  h2{font-size:15.5px;margin:0 0 10px;letter-spacing:-.01em}
+  h2 .tag{display:inline-block;background:var(--blue-100);color:var(--blue-d);
+    border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:800;margin-right:7px;vertical-align:2px}
+  h3{font-size:13.5px;margin:18px 0 8px}
+  p{margin:0 0 10px}
+  .muted{color:var(--muted)}
+  b.hi{color:var(--blue-d)}
+  table.t{border-collapse:collapse;width:100%;font-size:12.3px;margin:8px 0 4px}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+  table.t th{color:var(--muted);font-weight:700;font-size:11.5px;border-bottom:1px solid #c9cfdd;background:var(--plane)}
+  table.t td.c{text-align:center;white-space:nowrap}
+  td.bad{color:var(--bad);font-weight:800} td.good{color:var(--ok);font-weight:800} td.mid{color:var(--warn);font-weight:700}
+  .note{background:var(--warn-bg);border:1px solid var(--warn-line);border-left:3px solid var(--warn);
+    border-radius:8px;padding:10px 13px;font-size:12.8px;margin:12px 0}
+  .note.bad{background:var(--bad-bg);border-color:var(--bad-line);border-left-color:var(--bad)}
+  .note.ok{background:var(--ok-bg);border-color:var(--ok-line);border-left-color:var(--ok)}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--plane);
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  ul{margin:6px 0 10px;padding-left:19px} li{margin-bottom:5px}
+  .chk{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:11px;margin-top:6px}
+  .chk div{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--plane);font-size:12.6px;line-height:1.6}
+  .chk div .k{font-weight:800;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  .chk div .k i{font-style:normal;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
+    font-size:10px;font-weight:800;background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)}
+  .chk div.no .k i{background:var(--bad-bg);color:var(--bad);border-color:var(--bad-line)}
+
+  /* ── 매뉴얼 한 장 모형 ── */
+  .man{border:1px solid #c9cfdd;border-radius:12px;overflow:hidden;background:#fff;margin-top:10px}
+  .man-top{background:#0F1B3D;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px}
+  .man-top .logo{font-weight:800;font-size:13px;letter-spacing:-.01em}
+  .man-top .nav{margin-left:auto;display:flex;gap:12px;font-size:11.5px;color:#b9c3dc}
+  .man-top .nav b{color:#fff}
+  .man-body{display:flex;min-height:330px}
+  .man-side{flex:0 0 168px;border-right:1px solid var(--line);background:var(--plane);padding:12px 0}
+  .man-side div{padding:5px 14px;font-size:11.5px;color:var(--muted)}
+  .man-side div.on{background:#fff;border-left:3px solid var(--blue);color:var(--blue-d);font-weight:800}
+  .man-main{flex:1;padding:16px 20px;min-width:0}
+  .man-h{font-size:17px;font-weight:800;margin-bottom:3px}
+  .man-s{font-size:12px;color:var(--muted);margin-bottom:14px}
+  .pair{display:flex;gap:14px;flex-wrap:wrap}
+  .pair>div{flex:1 1 250px;min-width:230px}
+  .plab{font-size:11px;font-weight:800;color:var(--muted);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+  .plab .dot{width:7px;height:7px;border-radius:50%}
+  .slidebox{border:1px solid #cfd5e2;border-radius:7px;background:#fff;aspect-ratio:1040/720;
+    position:relative;overflow:hidden;padding:10px 12px}
+  .slidebox .t{font-size:11px;font-weight:800;margin-bottom:8px}
+  .row3{display:flex;gap:5px;align-items:center}
+  .bx{border:1px solid #8fb3e0;background:#e9f0fb;border-radius:6px;padding:5px 4px;
+    font-size:8px;flex:1;text-align:center;line-height:1.3;color:#1c2433}
+  .bx.w{background:#fff3e2;border-color:#d8a45e;color:#7a4412}
+  .bx.o{background:#e8f6ee;border-color:#bfe2ce;color:#1c7a4a}
+  .ar{color:#a7b0c4;font-size:9px}
+  .gifbox{border:1px solid #cfd5e2;border-radius:7px;background:#20283d;aspect-ratio:3/2;
+    position:relative;display:grid;place-items:center;overflow:hidden}
+  .gifbox .pl{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.14);
+    border:1.5px solid rgba(255,255,255,.5);display:grid;place-items:center;color:#fff;font-size:11px}
+  .gifbox .cp{position:absolute;left:0;right:0;bottom:0;background:rgba(15,22,40,.85);color:#cfd8ea;
+    font-size:9px;padding:5px 7px;line-height:1.4}
+  .gifbox .badge{position:absolute;right:7px;top:7px;background:#e8f6ee;color:#1c7a4a;
+    border-radius:4px;padding:1px 6px;font-size:9px;font-weight:800}
+  .man-note{margin-top:13px;background:var(--warn-bg);border:1px solid var(--warn-line);
+    border-radius:7px;padding:8px 11px;font-size:11.5px;color:#7a4412}
+  .man-foot{border-top:1px solid var(--line);padding:9px 20px;font-size:11px;color:var(--muted);
+    display:flex;gap:14px;flex-wrap:wrap;background:var(--plane)}
+
+  .two{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0}
+  .two>div{flex:1 1 290px;border:1px solid var(--line);border-radius:11px;padding:12px 14px;background:var(--plane)}
+  .two>div .k{font-weight:800;font-size:13px;margin-bottom:4px}
+  .two>div .d{font-size:12.4px;color:var(--muted);line-height:1.6}
+  .b{display:inline-block;border:1px solid #c3cbdb;background:#fff;border-radius:6px;
+    padding:1px 6px;font-size:11.5px;white-space:nowrap}
+  .b.pri{background:var(--blue-100);border-color:var(--blue);color:var(--blue-d);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>매뉴얼의 모양 — <b class="hi">밖에 두고(ㄴ), GIF 와 진짜 슬라이드를 같이</b></h1>
+<p class="sub">2026-09-14 · 제가 이해한 것이 맞는지만 봐 주세요. 코드는 한 줄도 안 건드렸습니다.</p>
+
+<section>
+  <h2><span class="tag">확인</span>제가 이해한 것</h2>
+  <div class="chk">
+    <div><div class="k"><i>✓</i>ㄴ — 매뉴얼은 EVER-SKETCH 밖</div>GIF 를 붙인 <b>웹 페이지 한 벌</b>. 문서 안에 base64 로 넣지 않습니다.</div>
+    <div><div class="k"><i>✓</i>GIF 도 만들고</div>움직임이 필요한 자리는 <b>실제 화면 녹화</b>로.</div>
+    <div><div class="k"><i>✓</i>슬라이드도 만들고</div>개념을 설명하는 자리는 <b>슬라이드</b>로. 둘을 나란히 놓습니다.</div>
+    <div class="no"><div class="k"><i>✗</i>PNG 로 그려 넣는 게 아님</div>제가 이 시안들에서 한 것처럼 <b>손으로 그린 그림이 아닙니다.</b></div>
+    <div><div class="k"><i>✓</i>슬라이드는 EVER-SKETCH 로 만든다</div>워크플로우 슬라이드를 <b>EVER-SKETCH 안에서 이북으로</b> 만들고, 그 결과를 매뉴얼에 얹습니다.</div>
+    <div><div class="k"><i>✓</i>실제 화면과 유사하게</div>매뉴얼에 나오는 그림이 <b>진짜 도구가 낸 것</b>이라 화면과 어긋나지 않습니다.</div>
+  </div>
+  <div class="note ok">
+    <b>이게 왜 「가장 베스트」인지도 이해했습니다.</b> 매뉴얼이 <b>도구로 만들어진 증거 그 자체</b>가 됩니다 —
+    「EVER-SKETCH 로 이런 걸 만들 수 있습니다」를 설명하는 대신 <b>보여 주는 것</b>이고,
+    도구가 바뀌면 슬라이드를 <b>다시 그리는 게 아니라 다시 뽑으면</b> 됩니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">계측</span>그런데 「PNG 가 아닌 슬라이드」로 뽑는 길이 <b class="hi">넷이고 전부 다릅니다</b></h2>
+  <p>찍어 붙이기 전에 확인했습니다. <b>내보내기 두 개가 서로 다른 물건을 냅니다.</b></p>
+  <table class="t">
+    <tr><th>길</th><th>실제로 무엇이 나오나</th><th>매뉴얼에 얹기</th><th class="c">글자인가 그림인가</th></tr>
+    <tr><td><span class="b">PDF 다운로드</span></td>
+      <td>장마다 <b>JPEG 로 떠서</b> PDF 로 묶습니다 (<span class="kbd">html-to-image</span>)</td>
+      <td>쉬움</td><td class="c bad">그림</td></tr>
+    <tr><td><span class="b">PPTX 다운로드</span></td>
+      <td>요소를 <b>진짜 도형·글자</b>로 넣습니다 — 파워포인트에서 고칠 수 있습니다</td>
+      <td class="mid">파일을 받아서 열어야 함</td><td class="c good">진짜 슬라이드</td></tr>
+    <tr><td><span class="b">▷ 슬라이드쇼</span></td>
+      <td>화면에서 넘겨 보는 것</td>
+      <td class="good"><b>이걸 녹화하면 GIF</b></td><td class="c good">진짜 화면</td></tr>
+    <tr><td><span class="b pri">발행</span> (EVER-FOLIO)</td>
+      <td><b>HTML 이북</b>이 나옵니다 — <span class="kbd">/ebooks/{id}/index.html</span></td>
+      <td class="good"><b>웹 페이지에 그대로 띄울 수 있음</b></td><td class="c good">진짜 HTML</td></tr>
+  </table>
+  <div class="note bad">
+    <b>PDF 는 쓰면 안 됩니다.</b> 「PNG 로 만드는 게 아니라」고 하셨는데,
+    PDF 내보내기는 <b>장마다 JPEG 를 떠서 묶는 것</b>이라 결국 그림입니다. 글자도 복사가 안 되고 확대하면 흐려집니다.
+  </div>
+  <div class="note">
+    <b>발행에는 두 가지 걸림이 있습니다.</b> ① <b>Lv1 만 누를 수 있습니다.</b>
+    ② EVER-FOLIO 는 <span class="kbd">127.0.0.1:8811</span> 의 <b>형제 앱</b>이라, 매뉴얼을 볼 사람이
+    그 주소에 닿을 수 있어야 합니다. <b>사내에 올려 두셨는지 확인이 필요합니다.</b>
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">모양</span>매뉴얼 한 장이 이렇게 생깁니다 — 5장을 예로</h2>
+  <p class="muted" style="font-size:12.5px">왼쪽이 <b>슬라이드(개념)</b>, 오른쪽이 <b>GIF(동작)</b>. 둘이 짝을 이룹니다.</p>
+
+  <div class="man">
+    <div class="man-top">
+      <div class="logo">EVER-SKETCH 작성자 매뉴얼</div>
+      <div class="nav"><span>Lv2 작성자</span><span>·</span><b>2026-09</b></div>
+    </div>
+    <div class="man-body">
+      <div class="man-side">
+        <div>1 · 처음 들어오기</div>
+        <div>2 · 한 줄 요약</div>
+        <div>3 · 세 등급</div>
+        <div>4 · 자료의 일생</div>
+        <div class="on">5 · 제출하면 생기는 일</div>
+        <div>6 · 승인 · 반려 · 회수</div>
+        <div>7 · 승인 뒤 고치기</div>
+        <div>8 · 공유는 둘</div>
+        <div>9 · 의견 주고받기</div>
+        <div>10 · Lv3 가 보는 화면</div>
+        <div>11 · 자주 막히는 곳</div>
+        <div>12 · 물어볼 곳</div>
+      </div>
+      <div class="man-main">
+        <div class="man-h">5 · 「제출」을 누르는 순간</div>
+        <div class="man-s">가장 많이 놀라는 자리입니다</div>
+        <div class="pair">
+          <div>
+            <div class="plab"><span class="dot" style="background:var(--blue)"></span>
+              개념 — <b>EVER-SKETCH 로 만든 슬라이드</b></div>
+            <div class="slidebox">
+              <div class="t">제출하면 세 가지가 한꺼번에</div>
+              <div class="row3">
+                <div class="bx w">📸 문서가<br><b>그대로 얼어붙음</b></div>
+                <div class="bx w">✏️ 편집<br><b>잠김</b></div>
+                <div class="bx">결재함에<br>뜸</div>
+              </div>
+              <div style="font-size:8px;color:#4a5468;margin-top:9px;line-height:1.5">
+                승인은 <b>「그때 본 것」에 대한 승인</b>입니다. 낸 뒤에 고치면 승인 도장이
+                무엇에 찍힌 건지 알 수 없게 됩니다.</div>
+              <div style="font-size:7.5px;color:#7a4412;margin-top:7px">
+                낼 수 있는 조건 — <b>팀에 속해 있을 것</b> · 장이 한 장이라도 있을 것</div>
+              <div style="position:absolute;right:8px;bottom:6px;font-size:6.5px;color:#aeb5c5">
+                EVER-SKETCH · 작성자 매뉴얼 5/12</div>
+            </div>
+          </div>
+          <div>
+            <div class="plab"><span class="dot" style="background:#1c7a4a"></span>
+              동작 — <b>실제 화면 녹화</b></div>
+            <div class="gifbox">
+              <span class="badge">GIF · 9초</span>
+              <div class="pl">▶</div>
+              <div class="cp"><b>결재 제출</b> 을 누르자 확인창 →
+                배지가 <b>결재 중 · 잠김</b> 으로 바뀌고, 도구를 눌러도 안 먹는 화면까지</div>
+            </div>
+            <div class="man-note">잠긴 뒤에 고치려면 → <b>6장 회수</b> 또는 <b>7장 수정 요청</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="man-foot">
+      <span>이 매뉴얼의 슬라이드는 전부 <b>EVER-SKETCH 로 만들었습니다</b></span>
+      <span>· 원본 이북 열기</span>
+      <span>· PPTX 받기</span>
+    </div>
+  </div>
+
+  <div class="note ok" style="margin-top:14px">
+    <b>짝을 이루는 게 핵심입니다.</b> 슬라이드는 <b>왜</b>를 말하고, GIF 는 <b>어떻게 되는지</b>를 보여 줍니다.
+    글로 「제출하면 잠깁니다」라고 쓰는 것보다, <b>잠긴 뒤 도구를 눌러 보는 9초</b>가 훨씬 빠릅니다.
+  </div>
+  <div class="note">
+    <b>맨 아래 줄을 일부러 넣었습니다.</b> — <i>「이 매뉴얼의 슬라이드는 전부 EVER-SKETCH 로 만들었습니다 ·
+    원본 이북 열기 · PPTX 받기」</i>. 읽는 사람이 <b>그 이북을 직접 열어 볼 수 있으면</b>
+    설명이 반쯤 끝납니다. 말씀하신 「가장 베스트」가 이 줄이라고 이해했습니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">조립</span>그래서 실제 작업은 이렇게 됩니다</h2>
+  <table class="t">
+    <tr><th class="c" style="width:8%">순서</th><th style="width:30%">무엇을</th><th>어디서</th></tr>
+    <tr><td class="c">1</td><td><b>워크플로우 이북 만들기</b> (12장)</td>
+      <td>EVER-SKETCH · <span class="b">＋ 새 이북</span> → 가로 → 카드·표·트리</td></tr>
+    <tr><td class="c">2</td><td>각 장을 <b>슬라이드로 뽑기</b></td>
+      <td><span class="b pri">발행</span>(HTML) 또는 <span class="b">PPTX 다운로드</span> — <b>PDF 는 안 씁니다</b></td></tr>
+    <tr><td class="c">3</td><td><b>GIF 13편 녹화</b></td>
+      <td>실제 화면 · 1600px 이하 · 6~10초</td></tr>
+    <tr><td class="c">4</td><td><b>매뉴얼 페이지 조립</b></td>
+      <td>EVER-SKETCH 밖 · 장마다 슬라이드 + GIF 짝짓기</td></tr>
+    <tr><td class="c">5</td><td>사람들에게 열기</td>
+      <td><b>어디에 올릴지 정해야 합니다</b> — 아래 참조</td></tr>
+  </table>
+  <div class="note bad">
+    <b>5번이 아직 안 정해졌습니다.</b> 매뉴얼을 밖에 두기로 했으니 <b>사람들이 열 주소</b>가 필요합니다.
+    지금 확인한 바로는 세 갈래입니다 —
+    <br>① EVER-SKETCH 서버가 <span class="kbd">/manual</span> 로 같이 서빙 (라우트 하나면 됩니다)
+    <br>② EVER-FOLIO(8811)에 얹기 — 이미 이북을 서빙하는 자리입니다
+    <br>③ 그냥 파일로 배포 — 가장 쉽지만 고칠 때마다 다시 보내야 합니다
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">정리</span>정해 주실 것</h2>
+  <ul>
+    <li><b>슬라이드를 무엇으로 뽑을까요</b> — <span class="b pri">발행</span>(HTML · Lv1 이 눌러야 함) /
+      <span class="b">PPTX</span>(진짜 슬라이드지만 받아서 열어야 함) / <b>둘 다</b></li>
+    <li><b>EVER-FOLIO(8811)가 사내에서 열리나요</b> — 발행을 쓰려면 이게 전제입니다</li>
+    <li><b>매뉴얼을 어디에 올릴까요</b> — ① EVER-SKETCH 서버 ② EVER-FOLIO ③ 파일 배포</li>
+    <li><b>순서</b> — 앞서 말씀드린 대로 <b>한 편만 먼저 찍어 볼지</b>, 아니면 트리·머메이드부터 갈지</li>
+  </ul>
+  <div class="note ok">
+    <b>제 의견</b> — 슬라이드는 <b>발행(HTML) + PPTX 둘 다</b>(보는 건 HTML, 받아 가는 건 PPTX),
+    매뉴얼은 <b>① EVER-SKETCH 서버</b>에 올리는 게 깔끔합니다. 이미 로그인한 사람들이 쓰는 주소이고,
+    라우트 하나면 되며, <b>고치면 바로 반영</b>됩니다.
+  </div>
+</section>
+
+</div>
+</body>
+</html>

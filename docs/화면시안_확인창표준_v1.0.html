@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>확인창 표준 맞추기 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C;--badbg:#FDECEC;--warnbg:#FFF4E3;--okbg:#E9F5EF}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1080px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:34px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)} .box.bad{border-left-color:var(--red)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#f2f4f8;border-radius:4px;padding:1px 5px;font-size:11.5px;color:#38455e}
+
+  table.inv{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin:0 0 14px}
+  table.inv th,table.inv td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.inv th{background:#fbfcfe;color:var(--navy);font-size:11.5px}
+  table.inv tr:last-child td{border-bottom:none}
+  td.y{color:#24724b;font-weight:800;white-space:nowrap}
+  td.n{color:#a12a21;font-weight:800;white-space:nowrap}
+  td.p{color:#a1651a;font-weight:800;white-space:nowrap}
+  td.f{color:var(--dim);font-size:11.5px}
+
+  .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;align-items:center}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;flex-wrap:wrap}
+  .seg button{border:none;background:#fff;padding:7px 12px;font:inherit;font-size:12.5px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:880px){ .cmp{grid-template-columns:1fr} }
+  .side{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .side > .cap{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:11px 14px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .side > .cap .t{font-size:12.5px;font-weight:800;color:var(--navy)}
+  .side > .cap .m{font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px}
+  .m.old{background:var(--badbg);color:#a12a21}
+  .m.new{background:var(--okbg);color:#24724b}
+  .body{padding:14px 16px 16px}
+  .open{border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:8px;
+    padding:8px 14px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+  .open.line{background:#fff;color:var(--navy)}
+  .lst{margin:11px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+  .lst li{font-size:11.5px;color:var(--muted);display:flex;gap:6px;align-items:flex-start}
+  .lst li .i{width:12px;flex:0 0 12px;text-align:center;font-weight:800}
+  .lst li.ok{color:#24724b} .lst li.ok .i{color:var(--green)}
+  .lst li.no{color:#a12a21} .lst li.no .i{color:var(--red)}
+  .log{margin-top:11px;border:1px solid var(--line);border-radius:7px;background:#fbfcfe;
+    padding:7px 9px;font-size:11px;color:var(--muted);min-height:56px;line-height:1.7}
+  .log b{color:var(--navy)}
+  .log .er{color:#a12a21;font-weight:700}
+  .log .go{color:#24724b;font-weight:700}
+  .hintx{font-size:11px;color:var(--dim);margin:8px 0 0}
+
+  /* ── 확인창(공통 겉모습) ── */
+  .scrim{position:fixed;inset:0;background:rgba(12,18,34,.42);display:grid;place-items:center;
+    z-index:50;padding:20px}
+  .scrim[hidden]{display:none}
+  .dlg{background:#fff;border-radius:13px;width:min(430px,100%);box-shadow:0 22px 60px rgba(10,16,30,.3);
+    overflow:hidden;max-height:calc(100vh - 40px);display:flex;flex-direction:column}
+  .dlg .h{padding:14px 18px 0;font-size:15px;font-weight:800;color:var(--navy);
+    display:flex;align-items:center;gap:8px}
+  .dlg .h .x{margin-left:auto;border:none;background:none;font-size:17px;color:var(--dim);
+    cursor:pointer;line-height:1;padding:2px 4px}
+  .dlg .c{padding:10px 18px 4px;font-size:12.5px;color:var(--muted);line-height:1.8;overflow:auto}
+  .dlg .c b{color:var(--navy)}
+  .dlg .c .danger{color:#a12a21;font-weight:800}
+  .dlg .c input{width:100%;margin-top:11px;border:1px solid var(--line);border-radius:7px;
+    padding:7px 10px;font:inherit;font-size:12.5px}
+  .dlg .f{padding:13px 18px 16px;display:flex;gap:7px;justify-content:flex-end}
+  .dlg .f button{border-radius:8px;padding:7px 16px;font:inherit;font-size:12.5px;font-weight:800;
+    cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted)}
+  .dlg .f button.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+  .dlg .f button.dng{background:var(--red);border-color:var(--red);color:#fff}
+  .dlg .f button:disabled{opacity:.55;cursor:default}
+  .dlg .ann{background:#fffaf1;border-top:1px dashed #f0dcbb;padding:7px 18px;
+    font-size:10.5px;color:#8a5a12;line-height:1.6}
+  .dlg .ann.g{background:#f2f9f5;border-top-color:#c9e6d8;color:#24724b}
+
+  ul.pt{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  ul.pt li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;
+    font-size:12.5px;color:var(--muted);border-left:3px solid var(--line)}
+  ul.pt li b{color:var(--navy)}
+  ul.pt li.k{border-left-color:var(--red)}
+  ul.pt li.g{border-left-color:var(--green)}
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+  .tall{height:420px;background:repeating-linear-gradient(180deg,#fff,#fff 26px,#f6f8fc 26px,#f6f8fc 52px);
+    border:1px solid var(--line);border-radius:10px;margin:10px 0 0;padding:12px;
+    font-size:12px;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>확인창 — 있습니다. 안 맞는 건 다른 곳입니다</h1>
+<p class="lead">「승인하시겠습니까 / 반려하시겠습니까」도, 「제출하시겠습니까」도 <b>이미 있습니다.</b>
+표준을 안 지키는 건 창이 없어서가 아니라, <b>창이 저마다 손으로 만들어져</b> 표준이 요구하는
+동작을 빼먹고 있어서입니다. 아래 두 창을 직접 열어 비교해 보세요.</p>
+
+<h2><span class="n">1</span>먼저, 있는지부터</h2>
+<table class="inv">
+  <tr><th style="width:180px">확인창</th><th style="width:80px">있나</th><th>어디</th></tr>
+  <tr><td><b>관리자 · 승인</b></td><td class="y">있음</td>
+      <td class="f">ApprovalsPanel.tsx:358 — 「…를 <b>승인</b>합니다. 승인하면 같은 팀에 바로 공유됩니다.」</td></tr>
+  <tr><td><b>관리자 · 반려</b></td><td class="y">있음</td>
+      <td class="f">ApprovalsPanel.tsx:365 — 「…를 <b>반려</b>합니다. 작성자가 고쳐서 다시 낼 수 있습니다.」</td></tr>
+  <tr><td><b>관리자 · 수정 허락/거절</b></td><td class="y">있음</td>
+      <td class="f">ApprovalsPanel.tsx:342 — 「승인본은 안 바뀝니다」까지 적혀 있음</td></tr>
+  <tr><td><b>작성자 · 제출</b></td><td class="y">있음</td>
+      <td class="f">LibraryScreen.tsx:469 — 「지금 이 문서가 그대로 얼어붙습니다」</td></tr>
+  <tr><td><b>작성자 · 수정 요청</b></td><td class="y">있음</td><td class="f">LibraryScreen.tsx:503</td></tr>
+  <tr><td><b>자료 · 폴더 삭제</b></td><td class="y">있음</td><td class="f">LibraryScreen.tsx:429 · 547</td></tr>
+</table>
+<div class="box ok"><span class="t">브라우저 기본 창은 한 군데도 없습니다</span>
+<code>no_native_dialogs.test.mjs</code> 가 <code>alert</code>·<code>confirm</code>·<code>prompt</code> 를
+소스 전체에서 막고 있고, 지금 통과합니다. 표준의 그 조항은 <b>이미 지켜지고 있습니다.</b></div>
+
+<h2><span class="n">2</span>그럼 무엇이 안 맞나</h2>
+<div class="box bad"><span class="t">표준이 요구하는 「모달 격리」가 빠져 있습니다</span>
+표준은 확인창에 <b>Esc로 닫기 · 포커스 가두기 · 닫을 때 포커스 되돌리기 · 배경 스크롤 잠그기 ·
+중복 제출 막기</b>를 요구합니다. 결재 확인창들은 이걸 하나도 안 합니다 —
+<code>&lt;div className="es-confirm"&gt;</code> 로 직접 그렸기 때문입니다.</div>
+
+<table class="inv">
+  <tr><th style="width:190px">표준 항목</th><th style="width:96px">관리자 결재</th><th style="width:96px">작성자 제출</th><th>지금 상태</th></tr>
+  <tr><td>대상·행동·결과를 적는다</td><td class="y">지킴</td><td class="y">지킴</td>
+      <td class="f">문구는 오히려 표준보다 낫습니다 — 「얼어붙습니다」·「승인본은 안 바뀝니다」</td></tr>
+  <tr><td>확인/취소 라벨</td><td class="y">지킴</td><td class="y">지킴</td><td class="f">「승인/반려」·「제출/취소」</td></tr>
+  <tr><td>위험한 행동은 구분</td><td class="y">지킴</td><td class="p">일부</td>
+      <td class="f">관리자 쪽은 <code>.danger</code> 로 빨강. 삭제 확인창은 색만 다르고 <b>글로는 구분 없음</b></td></tr>
+  <tr><td><b>중복 제출 막기</b></td><td class="y">지킴</td><td class="n">없음</td>
+      <td class="f"><code>LibraryScreen.tsx</code> 에는 <b>진행 중 상태가 아예 없습니다</b>
+      (<code>busy</code> 변수 0개). 확인창 4개 전부 두 번 눌리면 두 번 갑니다.</td></tr>
+  <tr><td>Esc 로 닫기</td><td class="n">없음</td><td class="n">없음</td>
+      <td class="f">바깥을 눌러야만 닫힙니다</td></tr>
+  <tr><td>포커스 가두기 · 되돌리기</td><td class="n">없음</td><td class="n">없음</td>
+      <td class="f">Tab 을 누르면 <b>창 뒤의 버튼으로 빠져나갑니다</b>. 닫아도 포커스가 안 돌아옵니다</td></tr>
+  <tr><td>배경 스크롤 잠그기</td><td class="n">없음</td><td class="n">없음</td>
+      <td class="f">창을 띄운 채로 휠을 굴리면 <b>뒤 목록이 움직입니다</b></td></tr>
+  <tr><td><code>role="dialog"</code></td><td class="n">없음</td><td class="n">없음</td>
+      <td class="f">읽어 주는 도구가 그냥 <code>div</code> 로 봅니다</td></tr>
+</table>
+
+<div class="box warn"><span class="t">그리고 이 전부를 하는 물건이 이미 저장소에 있습니다</span>
+<code>src/ui/Modal.tsx</code> — Esc(캡처로 잡아 캔버스로 새는 것까지 막음), 포커스 가두기,
+닫을 때 되돌리기, 배경 스크롤 잠금, <code>role="dialog"</code>, <code>busy</code> 중 닫기 금지가
+<b>전부 들어 있습니다.</b> 그런데 쓰는 곳은 4개뿐입니다 —
+저장 확인 · 새 자료 · 의견 작성 · 앵커 유실.
+<b>결재·삭제·계정·팀 확인창 8개는 각자 손으로 그렸습니다.</b>
+표준을 안 따른 게 아니라, <b>따르는 물건을 만들어 놓고 안 쓴</b> 것입니다.</div>
+
+<h2><span class="n">3</span>직접 눌러 보기</h2>
+<div class="ctl">
+  <span class="lb">어느 확인창</span>
+  <span class="seg" id="seg"></span>
+</div>
+
+<div class="cmp">
+  <div class="side">
+    <div class="cap"><span class="t">지금</span><span class="m old">손수 만든 창</span></div>
+    <div class="body">
+      <button class="open line" id="oOld">확인창 열기</button>
+      <ul class="lst">
+        <li class="no"><span class="i">✕</span>Esc 안 먹습니다</li>
+        <li class="no"><span class="i">✕</span>Tab 이 창 밖으로 빠집니다</li>
+        <li class="no"><span class="i">✕</span>뒤 화면이 같이 스크롤됩니다</li>
+        <li class="no" id="dupOld"><span class="i">✕</span>확인을 두 번 누르면 두 번 갑니다</li>
+      </ul>
+      <div class="log" id="logOld">— 아직 아무것도 안 보냈습니다</div>
+      <p class="hintx">창을 연 뒤 <b>확인 버튼을 빠르게 두 번</b> 눌러 보세요.</p>
+    </div>
+  </div>
+  <div class="side">
+    <div class="cap"><span class="t">바꾼 뒤</span><span class="m new">ui/Modal 사용</span></div>
+    <div class="body">
+      <button class="open" id="oNew">확인창 열기</button>
+      <ul class="lst">
+        <li class="ok"><span class="i">✓</span>Esc 로 닫힙니다</li>
+        <li class="ok"><span class="i">✓</span>Tab 이 창 안에 갇힙니다</li>
+        <li class="ok"><span class="i">✓</span>뒤 화면이 멈춥니다</li>
+        <li class="ok"><span class="i">✓</span>누르는 순간 잠기고 「보내는 중…」이 됩니다</li>
+      </ul>
+      <div class="log" id="logNew">— 아직 아무것도 안 보냈습니다</div>
+      <p class="hintx">같은 자리에서 <b>똑같이 두 번</b> 눌러 보세요.</p>
+    </div>
+  </div>
+</div>
+
+<div class="tall">↑ 창을 띄운 채로 휠을 굴려 보세요. <b>지금</b> 쪽은 이 줄무늬가 같이 움직이고,
+<b>바꾼 뒤</b> 쪽은 멈춰 있습니다. — 결재 화면에서는 이 자리가 <b>결재함 목록</b>입니다.
+창 뒤의 목록이 밀려 버리면, 닫고 나서 아까 보던 건이 어디 갔는지 다시 찾아야 합니다.</div>
+
+<h2><span class="n">4</span>고칠 목록</h2>
+<ul class="pt">
+  <li class="k"><b>① 작성자 확인창 4개에 진행 중 잠금을 넣습니다.</b>
+  <code>LibraryScreen.tsx</code> 는 <b>진행 중 상태가 아예 없습니다.</b> 지금 「제출」을 두 번 빠르게 누르면
+  요청이 두 번 갑니다. 서버가 두 번째를 「이미 결재 대기 중입니다」로 막아 주긴 하는데 —
+  <b>결과가 「제출됨」이 아니라 빨간 오류로 보입니다.</b> 실제로는 성공했는데 실패한 줄 압니다.
+  표준이 이 항목을 콕 집어 요구하는 이유입니다.</li>
+  <li class="g"><b>② 손수 만든 확인창 8개를 <code>ui/Modal</code> 로 바꿉니다.</b>
+  Esc·포커스·스크롤 잠금·<code>role="dialog"</code>가 한 번에 따라옵니다.
+  <b>새로 만드는 게 아니라 갈아 끼우는 일</b>입니다 — 문구는 지금 것이 더 좋으니 그대로 옮깁니다.</li>
+  <li><b>③ 삭제 확인창은 글로도 구분합니다.</b> 표준은 「시각적으로도 <b>문구로도</b> 구분」을 요구합니다.
+  지금은 버튼만 빨갛습니다. 색을 못 보는 사람에게는 승인 창과 같아 보입니다.</li>
+  <li><b>④ 검사를 하나 더 답니다.</b> 「<code>es-confirm</code>·<code>lib-confirm</code> 을 새로 쓰지 않는다」를
+  <code>no_native_dialogs.test.mjs</code> 옆에 둡니다. 안 그러면 다음에 급할 때 또 손으로 그립니다 —
+  이번 8개가 그렇게 생겼습니다.</li>
+</ul>
+
+<p class="note">시안 v1.0 · 이 문서의 확인창은 실제 <code>ui/Modal.tsx</code> 의 동작을 흉내 낸 것이라
+글꼴·간격은 실제와 다릅니다. <b>「지금」 쪽 동작은 흉내가 아니라 실제 코드와 같습니다</b> —
+포커스·Esc·스크롤·중복 제출 모두 지금 앱에서 그대로 일어납니다.</p>
+
+</div>
+
+<!-- ── 확인창 ── -->
+<div class="scrim" id="sOld" hidden>
+  <div class="dlg" id="dOld">
+    <div class="h" id="hOld"></div>
+    <div class="c" id="cOld"></div>
+    <div class="f">
+      <button id="xOld">취소</button>
+      <button id="yOld" class="pri">확인</button>
+    </div>
+    <div class="ann" id="aOld"></div>
+  </div>
+</div>
+
+<div class="scrim" id="sNew" hidden>
+  <div class="dlg" id="dNew" role="dialog" aria-modal="true">
+    <div class="h" id="hNew"><span></span><button class="x" id="clNew" aria-label="닫기">×</button></div>
+    <div class="c" id="cNew"></div>
+    <div class="f">
+      <button id="xNew">취소</button>
+      <button id="yNew" class="pri">확인</button>
+    </div>
+    <div class="ann g">Esc · 포커스 가둠 · 배경 잠금 · 중복 제출 막음 — <b>ui/Modal.tsx 가 다 합니다</b></div>
+  </div>
+</div>
+
+<script>
+const CASES = {
+  approve: {label:'관리자 · 승인', title:'결재 승인', ok:'승인', kind:'pri',
+    body:'<b>9월 실적 보고 · 김가현 · 2회차</b> 를 <b>승인</b>합니다.<br><br>'+
+         '승인하면 <b>같은 팀에 바로 공유</b>됩니다. 되돌리려면 작성자가 수정 요청을 내야 합니다.',
+    field:'의견 (선택)'},
+  reject: {label:'관리자 · 반려', title:'결재 반려', ok:'반려', kind:'dng',
+    body:'<b>9월 실적 보고 · 김가현 · 2회차</b> 를 <b>반려</b>합니다.<br><br>'+
+         '작성자가 고쳐서 다시 낼 수 있습니다. 의견을 적어 두면 무엇을 고칠지 압니다.',
+    field:'반려 의견 (선택)'},
+  submit: {label:'작성자 · 제출', title:'결재 제출', ok:'제출', kind:'pri',
+    body:'<b>9월 실적 보고</b> 을(를) 관리자에게 제출합니다.<br><br>'+
+         '<b>지금 이 문서가 그대로 얼어붙습니다.</b> 제출한 뒤에 고쳐도 결재본은 바뀌지 않습니다.<br>'+
+         '한 번이라도 제출하면 <b>이 자료는 지울 수 없습니다.</b>',
+    field:'전달할 말 (선택)'},
+  revise: {label:'작성자 · 수정 요청', title:'수정 요청', ok:'요청', kind:'pri',
+    body:'<b>9월 실적 보고</b> 을(를) 고칠 수 있게 해 달라고 요청합니다.<br><br>'+
+         '허락이 나도 <b>팀은 직전 승인본을 계속 봅니다</b> — 고쳐서 다시 승인을 받아야 바뀝니다.',
+    field:'무엇을 고칠지 (선택)'},
+  del: {label:'자료 삭제', title:'자료 삭제', ok:'삭제', kind:'dng',
+    body:'<b>9월 실적 보고</b> 을(를) 지웁니다.<br><br>'+
+         '<span class="danger">되돌릴 수 없습니다.</span> 결재 이력이 있는 자료는 지울 수 없습니다.',
+    field:null},
+};
+let cur = 'approve';
+let nOld = 0, nNew = 0;
+
+const $ = (id) => document.getElementById(id);
+
+/* ── 세그먼트 ── */
+const seg = $('seg');
+seg.innerHTML = Object.entries(CASES).map(([k,v]) =>
+  '<button data-k="'+k+'">'+v.label+'</button>').join('');
+seg.addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  cur = b.dataset.k; paint();
+});
+function paint(){
+  [...seg.querySelectorAll('button')].forEach(b=>b.classList.toggle('on', b.dataset.k===cur));
+  const c = CASES[cur];
+  $('oOld').textContent = '「'+c.title+'」 열기';
+  $('oNew').textContent = '「'+c.title+'」 열기';
+}
+
+function fill(pre, c){
+  const isNew = pre === 'New';
+  const h = $('h'+pre);
+  if(isNew) h.firstElementChild.textContent = c.title;
+  else h.textContent = c.title;
+  $('c'+pre).innerHTML = c.body + (c.field
+    ? '<input placeholder="'+c.field+'" />' : '');
+  const y = $('y'+pre);
+  y.textContent = c.ok;
+  y.className = c.kind;
+  y.disabled = false;
+}
+
+/* ── 지금: 격리 없음 ── */
+$('oOld').onclick = () => {
+  const c = CASES[cur]; fill('Old', c);
+  $('aOld').innerHTML = 'Esc 안 먹음 · Tab 이 밖으로 나감 · 뒤 화면 스크롤됨 · <b>두 번 눌리면 두 번 감</b>';
+  $('sOld').hidden = false;
+  /* 포커스를 옮기지 않는다 — 지금 코드와 같다 */
+};
+$('sOld').onclick = e => { if(e.target === $('sOld')) $('sOld').hidden = true; };
+$('xOld').onclick = () => { $('sOld').hidden = true; };
+$('yOld').onclick = () => {
+  nOld++;
+  const l = $('logOld');
+  const c = CASES[cur];
+  if(nOld === 1){
+    l.innerHTML = '<b>1</b>번째 요청 → <span class="go">'+c.ok+' 됨</span>';
+  } else {
+    l.innerHTML = '<b>'+nOld+'</b>번째 요청 → <span class="er">「이미 결재 대기 중입니다」</span><br>'+
+      '<span style="color:#a12a21">사람 눈에는 <b>실패</b>로 보입니다 — 실은 1번째가 성공했는데도.</span>';
+  }
+  /* 창을 안 닫는다 — 지금 코드도 서버 응답이 와야 닫는다 */
+};
+
+/* ── 바꾼 뒤: ui/Modal 흉내 ── */
+let lastFocus = null;
+$('oNew').onclick = () => {
+  const c = CASES[cur]; fill('New', c);
+  lastFocus = document.activeElement;
+  $('sNew').hidden = false;
+  document.body.style.overflow = 'hidden';                    // 배경 스크롤 잠금
+  const first = $('dNew').querySelector('input, button');
+  (first || $('dNew')).focus();                                // 안으로 포커스
+};
+function closeNew(){
+  if($('yNew').disabled) return;                               // 처리 중엔 안 닫힌다
+  $('sNew').hidden = true;
+  document.body.style.overflow = '';
+  if(lastFocus) lastFocus.focus();                             // 원래 자리로
+}
+$('sNew').onclick = e => { if(e.target === $('sNew')) closeNew(); };
+$('xNew').onclick = closeNew;
+$('clNew').onclick = closeNew;
+window.addEventListener('keydown', e => {
+  if($('sNew').hidden) return;
+  if(e.key === 'Escape'){ e.preventDefault(); closeNew(); return; }
+  if(e.key !== 'Tab') return;
+  const f = [...$('dNew').querySelectorAll('input,button')].filter(x=>!x.disabled);
+  if(!f.length) return;
+  const first = f[0], last = f[f.length-1];
+  if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+}, true);
+$('yNew').onclick = () => {
+  const y = $('yNew'), c = CASES[cur];
+  if(y.disabled) return;                                       // 두 번째 클릭은 여기서 끝
+  y.disabled = true;
+  const was = y.textContent;
+  y.textContent = c.ok.length > 2 ? '보내는 중…' : was + ' 중…';
+  $('xNew').disabled = true;
+  nNew++;
+  $('logNew').innerHTML = '<b>'+nNew+'</b>번째 요청 → 보내는 중…';
+  setTimeout(() => {
+    $('logNew').innerHTML = '<b>'+nNew+'</b>번째 요청 → <span class="go">'+c.ok+' 됨</span><br>'+
+      '<span style="color:#24724b">두 번 눌러도 <b>한 번만</b> 갔습니다.</span>';
+    y.disabled = false; $('xNew').disabled = false;
+    $('sNew').hidden = true;
+    document.body.style.overflow = '';
+    if(lastFocus) lastFocus.focus();
+  }, 900);
+};
+
+paint();
+</script>
+</body>
+</html>

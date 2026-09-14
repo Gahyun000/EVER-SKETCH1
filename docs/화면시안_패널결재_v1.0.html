@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>패널에서 결재 제출 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--bg:#F4F5F7;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C;--badbg:#FDECEC;--warnbg:#FFF4E3;--okbg:#E9F5EF}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:34px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)}
+  .box.bad{border-left-color:var(--red)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+
+  /* 지금의 걸음 */
+  .steps{display:flex;gap:6px;flex-wrap:wrap;align-items:stretch;margin:0 0 14px}
+  .steps .s{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;
+    font-size:11.5px;color:var(--muted);min-width:118px;flex:1}
+  .steps .s b{display:block;color:var(--navy);font-size:12px;margin-bottom:2px}
+  .steps .s.hit{border-color:#f0cdc8;background:#fffaf9}
+  .steps .ar{align-self:center;color:var(--dim);font-size:14px}
+
+  .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;align-items:center}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;flex-wrap:wrap}
+  .seg button{border:none;background:#fff;padding:7px 12px;font:inherit;font-size:12.5px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:900px){ .cmp{grid-template-columns:1fr} }
+  .side{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .side > .cap{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:11px 14px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .side > .cap .t{font-size:12.5px;font-weight:800;color:var(--navy)}
+  .side > .cap .m{font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px}
+  .m.old{background:var(--badbg);color:#a12a21}
+  .m.new{background:var(--okbg);color:#24724b}
+  .body{padding:12px 14px 16px;min-height:352px}
+
+  /* 편집 화면 축소 그림 */
+  .scr{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fbfcfe}
+  .scr .bar{display:flex;align-items:center;gap:5px;padding:6px 8px;border-bottom:1px solid var(--line);background:#fff}
+  .scr .bar .ib{border:1px solid var(--line);background:#fff;border-radius:5px;height:20px;
+    display:inline-grid;place-items:center;font-size:10.5px;color:var(--muted);padding:0 6px}
+  .scr .bar .ro{margin-left:auto;font-size:10.5px;color:#a12a21;font-weight:700}
+  .scr .bar .ro.g{color:var(--dim);font-weight:600}
+  .scr .split{display:grid;grid-template-columns:1fr 210px;min-height:296px}
+  .scr .stage{background:#eef1f6;padding:12px;display:grid;place-items:center}
+  .scr .paper{background:#fff;border:1px solid var(--line);border-radius:3px;width:100%;height:100%;
+    min-height:250px;padding:9px;display:flex;flex-direction:column;gap:5px}
+  .scr .paper .ln{height:6px;border-radius:2px;background:#eef1f6}
+  .scr .paper .ln.w{width:62%} .scr .paper .ln.h{height:22px;background:#e7ecf5}
+  .scr .paper .tbl{border:1px solid #e2e7f0;border-radius:2px;flex:1;display:grid;
+    grid-template-rows:repeat(5,1fr);}
+  .scr .paper .tbl i{border-bottom:1px solid #eef1f6}
+  .scr .paper .tbl i:last-child{border-bottom:none}
+  .scr .paper .tbl i.hd{background:#f2f5fb}
+  .scr .paper .tbl i.emp{background:#fffaf1}
+  .scr .pnl{border-left:1px solid var(--line);background:#fff;padding:8px;overflow:auto}
+
+  .ptabs{display:flex;gap:3px;margin:0 0 8px}
+  .ptabs span{font-size:10.5px;font-weight:800;color:var(--muted);border-radius:5px;padding:2px 8px;background:#f4f6fa}
+  .ptabs span.on{background:var(--navy);color:#fff}
+  .sec{font-size:10px;font-weight:800;letter-spacing:.04em;color:var(--dim);margin:9px 0 4px}
+  .sec:first-child{margin-top:0}
+  .r{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:0 0 3px}
+  .p{border:1px solid var(--line);background:#fff;border-radius:5px;height:20px;
+    display:inline-flex;align-items:center;padding:0 7px;font-size:10.5px;font-weight:700;color:var(--muted)}
+  .ghost{opacity:.45}
+
+  /* 결재 카드 */
+  .card{border:1px solid var(--tint-line);background:var(--tint);border-radius:9px;padding:9px 10px;margin:0 0 10px}
+  .card.pend{background:var(--warnbg);border-color:#f0dcbb}
+  .card.appr{background:var(--okbg);border-color:#c9e6d8}
+  .card.rej{background:var(--badbg);border-color:#f0cdc8}
+  .card.ro{background:#f4f6fa;border-color:var(--line)}
+  .card .hd{display:flex;align-items:center;gap:6px;margin:0 0 5px}
+  .card .hd .st{font-size:10.5px;font-weight:800;border-radius:20px;padding:1px 8px;background:#fff;
+    border:1px solid rgba(0,0,0,.08);color:var(--navy)}
+  .card .hd .rd{font-size:10px;color:var(--muted);margin-left:auto}
+  .card .ms{font-size:11px;color:var(--muted);line-height:1.6;margin:0 0 7px}
+  .card .ms b{color:var(--navy)}
+  .card .ms .frz{color:#a1651a;font-weight:700}
+  .chk{display:flex;flex-direction:column;gap:3px;margin:0 0 8px}
+  .chk div{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);
+    background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:6px;padding:3px 7px}
+  .chk div .i{width:13px;text-align:center;font-size:10px}
+  .chk div.ok{color:#24724b} .chk div.ok .i{color:var(--green)}
+  .chk div.no{color:#8a5a12} .chk div.no .i{color:var(--amber)}
+  .chk div .go{margin-left:auto;font-size:9.5px;color:var(--blue);font-weight:800}
+  .btn{display:block;width:100%;text-align:center;border-radius:7px;padding:7px 0;
+    font-size:11.5px;font-weight:800;border:1px solid var(--navy);background:var(--navy);color:#fff}
+  .btn.line{background:#fff;color:var(--navy)}
+  .btn.mut{background:#fff;color:var(--dim);border-color:var(--line)}
+  .btn + .btn{margin-top:5px}
+  .qt{font-size:10.5px;color:#8a2f27;background:#fff;border:1px solid #f0cdc8;border-radius:6px;
+    padding:5px 7px;margin:0 0 7px;line-height:1.6}
+
+  /* 자리 3안 */
+  .opts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:820px){ .opts{grid-template-columns:1fr} }
+  .opt{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 13px}
+  .opt .t{font-size:13px;font-weight:800;color:var(--navy);margin:0 0 6px}
+  .opt .d{font-size:11.5px;color:var(--muted);line-height:1.75}
+  .opt .d b{color:var(--navy)}
+  .mini{border:1px solid var(--line);border-radius:6px;background:#fbfcfe;padding:5px;margin:0 0 8px;
+    display:flex;flex-direction:column;gap:3px;height:104px}
+  .mini i{border-radius:3px;background:#eef1f6;height:11px;display:block}
+  .mini i.tabs{background:#e3e8f2;height:9px}
+  .mini i.big{flex:1;background:#f4f6fa}
+  .mini i.hot{background:var(--tint);border:1px solid var(--tint-line);height:22px}
+  .opt.pick{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,98,235,.10)}
+  .opt .pk{font-size:10px;font-weight:800;color:var(--blue)}
+
+  ul.pt{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  ul.pt li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;
+    font-size:12.5px;color:var(--muted);border-left:3px solid var(--line)}
+  ul.pt li b{color:var(--navy)}
+  ul.pt li.k{border-left-color:var(--red)}
+  ul.pt li.g{border-left-color:var(--green)}
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+  table.inv{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12px}
+  table.inv th,table.inv td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.inv th{background:#fbfcfe;color:var(--navy);font-size:11.5px}
+  table.inv tr:last-child td{border-bottom:none}
+  table.inv td.y{color:#24724b;font-weight:700;white-space:nowrap}
+  table.inv td.n{color:#a1651a;font-weight:700;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>결재 제출을 편집 화면 안으로 — 「다 썼는데 어디서 내지」를 없앤다</h1>
+<p class="lead">지금은 <b>다 쓴 자리에서 낼 수가 없습니다.</b> 목록으로 나가서, 12건 가운데 내 것을 찾아,
+글자 없는 종이비행기 아이콘을 눌러야 합니다. 아래에서 <b>문서 상태</b>를 바꿔 가며
+지금과 바꾼 뒤를 나란히 보세요.</p>
+
+<h2><span class="n">1</span>지금 내려면 밟는 걸음</h2>
+<div class="steps">
+  <div class="s"><b>① 다 씀</b>편집 화면</div>
+  <div class="ar">›</div>
+  <div class="s hit"><b>② 나감</b>☰ → 라이브러리</div>
+  <div class="ar">›</div>
+  <div class="s hit"><b>③ 찾음</b>목록에서 내 자료</div>
+  <div class="ar">›</div>
+  <div class="s hit"><b>④ 아이콘</b>✈ (글자 없음)</div>
+  <div class="ar">›</div>
+  <div class="s"><b>⑤ 확인창</b>제출</div>
+</div>
+<div class="box bad"><span class="t">그리고 편집 화면은 결재를 아예 모릅니다</span>
+지금 이 자료가 <b>대기 중</b>인지 <b>승인됐는지</b> <b>반려됐는지</b>, 편집 화면에는 한 글자도 없습니다.
+고칠 수 없을 때 나오는 말은 「읽기 전용 — 지금은 고칠 수 없는 상태입니다」 한 줄뿐이라,
+<b>왜</b> 못 고치는지도, <b>언제</b> 풀리는지도 알 수 없습니다.</div>
+
+<h2><span class="n">2</span>바꾼 뒤 — 패널 맨 위 결재 카드</h2>
+<div class="ctl">
+  <span class="lb">문서 상태</span>
+  <span class="seg" id="seg"></span>
+</div>
+
+<div class="cmp">
+  <div class="side">
+    <div class="cap"><span class="t">지금</span><span class="m old">편집 화면</span></div>
+    <div class="body" id="old"></div>
+  </div>
+  <div class="side">
+    <div class="cap"><span class="t">바꾼 뒤</span><span class="m new">편집 화면</span></div>
+    <div class="body" id="new"></div>
+  </div>
+</div>
+
+<h2><span class="n">3</span>제출 전 확인 — <span style="font-size:13px;color:var(--muted);font-weight:600">알리되, 막지 않습니다</span></h2>
+<div class="box warn"><span class="t">경고는 금지가 아닙니다</span>
+빈 칸이 있어도 <b>제출 버튼은 그대로 눌립니다.</b> 임원이 일부러 비워 두는 칸도 있습니다 —
+「이번 달은 해당 없음」이 그렇습니다. 화면이 대신 판단해서 막으면, 그 사람은
+<b>내지 못하는 이유를 화면 탓으로 이해하고 관리자에게 전화합니다.</b>
+확인 항목은 <b>눈에 보이게 하고, 그 자리로 데려다 줄</b> 뿐입니다.</div>
+
+<table class="inv">
+  <tr><th style="width:150px">확인 항목</th><th style="width:96px">이미 있나</th><th>어디서 오나</th></tr>
+  <tr><td><b>저장 상태</b><br><span style="color:var(--dim);font-size:11px">「저장 안 된 변경 3」</span></td>
+      <td class="y">있음</td><td>편집 화면이 이미 저장 상태를 들고 있습니다(<code>useAutosave</code>).
+      <b>결재본은 저장된 것을 얼립니다</b> — 안 저장한 채로 내면 방금 쓴 줄이 빠집니다. 그래서 이 줄이 첫 번째입니다.</td></tr>
+  <tr><td><b>확인 안 한 의견</b><br><span style="color:var(--dim);font-size:11px">「1건」</span></td>
+      <td class="y">있음</td><td>이미 미리보기 위쪽에 「확인할 의견 N건」으로 떠 있습니다. 제출 옆으로 한 번 더 가져올 뿐입니다.</td></tr>
+  <tr><td><b>문서 상태</b><br><span style="color:var(--dim);font-size:11px">대기·승인·반려·수정 중</span></td>
+      <td class="y">있음</td><td>서버가 이미 <code>/api/approvals/status-map</code> 로 한 번에 내려 줍니다.
+      목록 화면만 부르고 있고, <b>편집 화면이 안 부를 뿐</b>입니다. 서버는 손대지 않습니다.</td></tr>
+  <tr><td><b>빈 칸</b><br><span style="color:var(--dim);font-size:11px">「① 로드맵에 2개」</span></td>
+      <td class="n">새로</td><td><b>이것 하나만 새로 만듭니다.</b> 표준 양식 칸을 훑어 빈 셀을 세는 순수 함수 —
+      화면과 떨어져 있어 <code>node</code> 로 시험할 수 있습니다. 자유 이북에는 표시하지 않습니다(셀 이름이 없으니까).</td></tr>
+</table>
+
+<h2><span class="n">4</span>카드를 어디에 둘까</h2>
+<div class="opts">
+  <div class="opt pick">
+    <div class="mini"><i class="hot"></i><i class="tabs"></i><i class="big"></i></div>
+    <div class="t">ㄱ · 패널 맨 위 고정 <span class="pk">권함</span></div>
+    <div class="d">탭보다 위에 붙어 <b>무엇을 골랐든 늘 보입니다.</b> 표를 고치는 중에도
+    「저장 안 됨 · 빈 칸 2」가 눈에 들어옵니다. 대신 도구를 쓸 자리를 <b>50px쯤 늘 먹습니다</b> —
+    그래서 카드는 두 줄로 접히고, 누르면 펴집니다.</div>
+  </div>
+  <div class="opt">
+    <div class="mini"><i class="tabs"></i><i style="height:14px"></i><i class="hot"></i><i class="big"></i></div>
+    <div class="t">ㄴ · 아무것도 안 골랐을 때만</div>
+    <div class="d">지금 「페이지」 설정이 나오는 자리에 넣습니다. <b>자리를 하나도 안 뺏습니다.</b>
+    대신 표를 고르고 있으면 안 보이고, <b>다 쓴 사람은 대개 뭔가를 고른 채로 끝냅니다</b> —
+    빈 데를 한 번 눌러야 나타납니다.</div>
+  </div>
+  <div class="opt">
+    <div class="mini"><i class="tabs"></i><i class="big"></i><i class="hot"></i></div>
+    <div class="t">ㄷ · 패널 맨 아래 고정</div>
+    <div class="d">「다 하면 여기」라는 자리 감각이 자연스럽습니다. 다만 표 탭은 항목이 많아
+    <b>스크롤 끝에서 카드가 내용을 가립니다.</b> 화면이 낮은 노트북에서 특히 그렇습니다.</div>
+  </div>
+</div>
+
+<h2><span class="n">5</span>지키는 것</h2>
+<ul class="pt">
+  <li class="g"><b>제출은 문서를 얼린다 — 그 말을 버튼 옆에 붙입니다.</b>
+  지금은 확인창을 열어야만 보입니다. 카드에 늘 적혀 있으면, 낸 뒤에 고쳐 놓고
+  「왜 안 바뀌었냐」고 묻는 일이 줄어듭니다.</li>
+  <li class="g"><b>상태는 서버가 말한 것만 그립니다.</b> 대기·승인·수정 중을 화면이 다시 계산하면
+  규칙이 두 곳에 생기고, 어긋나는 날 사용자에게는 「승인이라 적혔는데 안 눌린다」로 보입니다.
+  이미 목록 화면이 그렇게 하고 있으니, 같은 것을 부르기만 합니다.</li>
+  <li class="k"><b>제출은 저장부터 하고 냅니다.</b> 결재본은 서버에 저장된 문서를 얼리는 것이라,
+  안 저장한 채로 내면 <b>방금 쓴 줄이 빠진 채로 얼어붙습니다.</b>
+  목록에서 낼 때는 나오면서 저장이 되어 우연히 맞았지만, 편집 화면에서 바로 내면 그 우연이 없습니다.
+  버튼이 <b>저장 → 제출</b> 순서로 묶여야 합니다.</li>
+  <li><b>없애는 것은 없습니다.</b> 목록의 종이비행기도 그대로 둡니다 — 여러 건을 몰아서 내는 길은
+  거기가 낫습니다. 편집 화면은 <b>한 건을 다 쓴 사람</b>을 위한 길입니다.</li>
+  <li><b>열람자에게는 카드가 아예 안 나옵니다.</b> 눌러 보고 403을 받는 버튼은
+  「고장 났다」로 읽힙니다 — 이미 메뉴에서 쓰고 있는 방식과 같습니다.</li>
+</ul>
+
+<p class="note">시안 v1.0 · 화면 그림은 배치를 보기 위한 것이라 실제 글꼴·간격과 다릅니다.
+확인 항목의 <b>순서</b>(저장 → 의견 → 빈 칸)는 제 판단입니다. 무엇이 먼저 걸리는지는 써 보셔야 압니다.</p>
+
+</div>
+
+<script>
+const ST = [
+  ['draft',    '작성 중'],
+  ['unsaved',  '작성 중 · 저장 안 됨'],
+  ['pending',  '결재 대기'],
+  ['approved', '승인됨'],
+  ['rejected', '반려됨'],
+  ['revising', '수정 중'],
+  ['viewer',   '남의 자료(열람자)'],
+];
+let cur = 'draft';
+
+function paper(empty){
+  let rows = '';
+  for(let i=0;i<5;i++){
+    const cls = i===0 ? 'hd' : (empty && i>=3 ? 'emp' : '');
+    rows += '<i class="'+cls+'"></i>';
+  }
+  return '<div class="paper"><div class="ln h"></div><div class="ln w"></div>'+
+         '<div class="tbl">'+rows+'</div></div>';
+}
+
+function screen(opts){
+  return '<div class="scr">'+
+    '<div class="bar">'+
+      '<span class="ib">↺</span><span class="ib">↻</span><span class="ib">저장</span>'+
+      '<span class="ib">▣</span><span class="ib">T</span><span class="ib">▦</span>'+
+      (opts.bar||'')+
+    '</div>'+
+    '<div class="split">'+
+      '<div class="stage">'+paper(opts.empty)+'</div>'+
+      '<div class="pnl">'+opts.panel+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+const TABS = '<div class="ptabs"><span class="on">표</span><span>스타일</span><span>텍스트</span><span>정렬</span></div>';
+const REST = '<div class="sec">행</div><div class="r"><span class="p">＋ 행</span><span class="p">－ 행</span></div>'+
+             '<div class="sec">셀 병합</div><div class="r"><span class="p">⤢ 병합</span><span class="p">⤡ 해제</span></div>'+
+             '<div class="sec ghost">셀 정렬 · 글자 크기 · 테두리…</div>';
+
+function card(s){
+  if(s==='draft' || s==='unsaved'){
+    const saved = s==='draft';
+    return '<div class="card">'+
+      '<div class="hd"><span class="st">작성 중</span><span class="rd">2회차</span></div>'+
+      '<div class="ms"><b>9월 실적 보고 · 김가현</b><br>'+
+        '<span class="frz">내면 지금 문서가 그대로 얼어붙습니다.</span> 뒤에 고쳐도 결재본은 안 바뀝니다.</div>'+
+      '<div class="chk">'+
+        (saved
+          ? '<div class="ok"><span class="i">✓</span>방금 저장됨</div>'
+          : '<div class="no"><span class="i">!</span>저장 안 된 변경 3<span class="go">저장하고 냄</span></div>')+
+        '<div class="no"><span class="i">!</span>확인 안 한 의견 1건<span class="go">보기</span></div>'+
+        '<div class="no"><span class="i">!</span>① 로드맵에 빈 칸 2<span class="go">그 칸으로</span></div>'+
+      '</div>'+
+      '<button class="btn">결재 제출</button>'+
+    '</div>';
+  }
+  if(s==='pending'){
+    return '<div class="card pend">'+
+      '<div class="hd"><span class="st">결재 대기</span><span class="rd">2회차</span></div>'+
+      '<div class="ms"><b>9/3 14:20 제출</b> · 관리자 결정을 기다립니다.<br>'+
+        '<span class="frz">낸 문서는 얼어 있습니다.</span> 여기서 고쳐도 결재본은 그대로입니다.</div>'+
+      '<button class="btn mut">낸 것 보기</button>'+
+    '</div>';
+  }
+  if(s==='approved'){
+    return '<div class="card appr">'+
+      '<div class="hd"><span class="st">승인됨</span><span class="rd">2회차</span></div>'+
+      '<div class="ms"><b>9/1 승인 · 팀 공유 중</b><br>'+
+        '고치려면 먼저 <b>허락을 받아야</b> 합니다. 허락이 나도 팀은 <b>직전 승인본을 계속 봅니다</b> — 다시 내야 바뀝니다.</div>'+
+      '<button class="btn line">수정 요청</button>'+
+      '<button class="btn mut">승인본 보기</button>'+
+    '</div>';
+  }
+  if(s==='rejected'){
+    return '<div class="card rej">'+
+      '<div class="hd"><span class="st">반려됨</span><span class="rd">1회차</span></div>'+
+      '<div class="qt">「로드맵 3분기 칸이 비어 있습니다. 채워서 다시 주세요.」 — 관리자, 9/2</div>'+
+      '<div class="chk"><div class="no"><span class="i">!</span>① 로드맵에 빈 칸 2<span class="go">그 칸으로</span></div></div>'+
+      '<button class="btn">고쳐서 다시 제출</button>'+
+    '</div>';
+  }
+  if(s==='revising'){
+    return '<div class="card">'+
+      '<div class="hd"><span class="st">수정 중</span><span class="rd">3회차 준비</span></div>'+
+      '<div class="ms">고쳐도 됩니다. <b>팀은 아직 직전 승인본을 봅니다</b> — 다시 내서 승인이 나야 바뀝니다.</div>'+
+      '<div class="chk"><div class="ok"><span class="i">✓</span>방금 저장됨</div></div>'+
+      '<button class="btn">고친 것 제출</button>'+
+      '<button class="btn mut">수정 그만두기</button>'+
+    '</div>';
+  }
+  return '<div class="card ro">'+
+    '<div class="hd"><span class="st">읽기 전용</span></div>'+
+    '<div class="ms">남의 자료입니다. 보기만 할 수 있습니다.</div>'+
+  '</div>';
+}
+
+function render(){
+  const s = cur;
+  const ro = (s==='pending' || s==='approved' || s==='viewer');
+  const empty = (s==='draft' || s==='unsaved' || s==='rejected');
+
+  // 지금
+  const oldBar = ro
+    ? '<span class="ro">읽기 전용 — '+(s==='viewer'?'남의 자료입니다.':'지금은 고칠 수 없는 상태입니다.')+'</span>'
+    : '<span class="ro g">미리보기</span>';
+  document.getElementById('old').innerHTML =
+    screen({bar:oldBar, empty:empty, panel:TABS+REST}) +
+    '<p class="note">'+(ro
+      ? '왜 잠겼는지, 언제 풀리는지 없습니다. <b>낸 것도, 반려 사유도 여기서는 못 봅니다.</b>'
+      : '다 썼습니다. <b>여기서 낼 방법이 없습니다</b> — 나가서 목록에서 찾아야 합니다.')+'</p>';
+
+  // 바꾼 뒤
+  const newBar = '<span class="ro g">미리보기</span>';
+  document.getElementById('new').innerHTML =
+    screen({bar:newBar, empty:empty, panel:card(s)+((s==='viewer')?'':TABS+REST)}) +
+    '<p class="note">'+({
+      draft:    '다 쓴 자리에서 그대로 냅니다. <b>얼어붙는다는 말이 버튼 옆에</b> 있습니다.',
+      unsaved:  '저장이 안 됐으면 <b>저장부터 하고 냅니다</b> — 안 그러면 방금 쓴 줄이 빠진 채 얼어붙습니다.',
+      pending:  '<b>언제 냈는지, 무엇을 냈는지</b>가 보입니다. 잠긴 이유가 그 자리에 있습니다.',
+      approved: '고치려면 무엇부터 해야 하는지가 <b>버튼으로</b> 있습니다. 나갔다 올 필요가 없습니다.',
+      rejected: '<b>반려 사유를 고치는 자리에서</b> 읽습니다. 지적받은 칸으로 바로 갑니다.',
+      revising: '팀이 아직 <b>옛 승인본을 본다</b>는 사실을 고치는 내내 알고 있습니다.',
+      viewer:   '카드만 나오고 <b>제출 버튼은 아예 없습니다.</b> 눌러 보고 거절당할 일이 없습니다.',
+    })[s]+'</p>';
+
+  [...document.querySelectorAll('#seg button')].forEach(b=>b.classList.toggle('on', b.dataset.k===s));
+}
+
+const seg = document.getElementById('seg');
+seg.innerHTML = ST.map(([k,l])=>'<button data-k="'+k+'">'+l+'</button>').join('');
+seg.addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; cur=b.dataset.k; render(); });
+render();
+</script>
+</body>
+</html>

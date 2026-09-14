@@ -14,6 +14,7 @@
 
 import type { Page, FreeEl } from '../state/store'
 import { relayoutMindmap } from '../cards/mindmapEls'
+import { relayoutTree } from '../cards/treeEls'
 
 export interface FitResult {
   pages: Page[]
@@ -43,10 +44,14 @@ export function fitPagesToPaper(pages: Page[], W: number, H: number): FitResult 
   const out = pages.map((p) => {
     if (!p || !Array.isArray(p.els) || !p.els.length) return p
 
-    // **마인드맵은 자르지 않고 통째로 다시 앉힌다**(ㄱ · 2026-09-14).
-    // 자르면 오른쪽 절반이 전부 같은 x 로 가서 포개진다 — 가지 8개짜리는 다섯 개가
-    // 한 줄에 쌓였다. 마인드맵이 아니면 null 이 오고, 그때는 평소대로 자른다.
-    const base = relayoutMindmap(p, W, H) || p.els
+    // **그림은 자르지 않고 통째로 다시 앉힌다**(ㄱ · 2026-09-14).
+    // 자르면 오른쪽 절반이 전부 같은 x 로 가서 포개진다 — 마인드맵 가지 8개짜리는
+    // 다섯 개가 한 줄에 쌓였다. 트리는 레벨과 줄이 곧 뜻이라 더 심하다.
+    // 둘 다 아니면 null 이 오고, 그때는 평소대로 자른다.
+    // 트리는 **방향이 바뀔 수 있다** — 세로 종이에 왼→오른 4레벨은 안 들어간다.
+    // 눕히면 같은 그림이 그대로 들어가고, 관계는 하나도 안 잃는다.
+    const tree = relayoutTree(p, W, H)
+    const base = relayoutMindmap(p, W, H) || (tree ? tree.els : null) || p.els
 
     let touched = false
     const els = base.map((e, i) => {
@@ -60,9 +65,11 @@ export function fitPagesToPaper(pages: Page[], W: number, H: number): FitResult 
       if (was && (out.x !== was.x || out.y !== was.y)) { moved++; touched = true }
       return out
     })
-    if (!touched) return p
+    if (!touched) return (tree && tree.dir !== p.treeDir) ? { ...p, treeDir: tree.dir } : p
     overlapping += countOverlapping(els)
-    return { ...p, els }
+    // 눕혔으면 **그 사실을 쪽에 적어 둔다.** 안 적으면 다음에 다시 앉힐 때
+    // 옛 방향으로 자리를 되읽어 레벨이 통째로 밀린다.
+    return tree ? { ...p, els, treeDir: tree.dir } : { ...p, els }
   })
   return { pages: moved ? out : pages, moved, overlapping }
 }

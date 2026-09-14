@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>도구 패널 개선 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--bg:#F4F5F7;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C;--badbg:#FDECEC;--warnbg:#FFF4E3;--okbg:#E9F5EF}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:32px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)}
+  .box.bad{border-left-color:var(--red)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+
+  .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;align-items:center}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;flex-wrap:wrap}
+  .seg button{border:none;background:#fff;padding:7px 12px;font:inherit;font-size:12.5px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:900px){ .cmp{grid-template-columns:1fr} }
+  .side{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .side > .cap{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:11px 14px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .side > .cap .t{font-size:12.5px;font-weight:800;color:var(--navy)}
+  .side > .cap .m{font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px}
+  .m.old{background:var(--badbg);color:#a12a21}
+  .m.new{background:var(--okbg);color:#24724b}
+  .body{padding:12px 14px 16px}
+
+  /* 툴바 */
+  .tb{border:1px solid var(--line);border-radius:9px;background:#fbfcfe;padding:7px 8px;margin:0 0 10px}
+  .tbrow{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+  .tbrow + .tbrow{margin-top:5px;padding-top:5px;border-top:1px dashed #e3e8f0}
+  .ib{border:1px solid var(--line);background:#fff;border-radius:6px;min-width:24px;height:23px;
+    display:inline-grid;place-items:center;font-size:11.5px;color:var(--muted);padding:0 5px}
+  .ib.on{background:var(--tint);border-color:var(--tint-line);color:var(--blue)}
+  .sel{border:1px solid var(--line);background:#fff;border-radius:6px;height:23px;
+    display:inline-flex;align-items:center;padding:0 7px;font-size:11px;color:var(--muted)}
+  .dot{width:13px;height:13px;border-radius:50%;border:1px solid rgba(0,0,0,.12);display:inline-block}
+  .sep{width:1px;height:16px;background:var(--line);margin:0 3px}
+  .tbtn{border:1px solid var(--line);background:#fff;border-radius:6px;height:23px;
+    display:inline-flex;align-items:center;padding:0 8px;font-size:11.5px;font-weight:700;color:var(--muted)}
+  .tbtn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .tbtn.off{opacity:.42}
+  .hint{font-size:10.5px;color:var(--dim);margin-left:4px}
+
+  /* 패널 */
+  .panel{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .ptabs{display:flex;gap:3px;padding:7px 8px;background:#fbfcfe;border-bottom:1px solid var(--line)}
+  .ptabs span{font-size:11.5px;font-weight:800;color:var(--muted);border-radius:6px;padding:3px 10px}
+  .ptabs span.on{background:var(--navy);color:#fff}
+  .phead{padding:9px 11px;border-bottom:1px solid var(--line);background:var(--tint)}
+  .phead .w{font-size:12px;font-weight:800;color:var(--blue)}
+  .phead .s{font-size:10.5px;color:#5f79b5;margin-top:1px}
+  .pbody{padding:9px 11px 12px;max-height:430px;overflow:auto}
+  .sec{font-size:10.5px;font-weight:800;letter-spacing:.05em;color:var(--dim);
+    text-transform:none;margin:11px 0 5px;display:flex;align-items:center;gap:6px}
+  .sec:first-child{margin-top:0}
+  .sec .dup{background:var(--badbg);color:#a12a21;border-radius:20px;padding:1px 7px;
+    font-size:9.5px;letter-spacing:0}
+  .r{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:0 0 3px}
+  .p{border:1px solid var(--line);background:#fff;border-radius:6px;height:22px;
+    display:inline-flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:var(--muted)}
+  .p.dg{color:#a12a21;border-color:#f0cdc8}
+  .num{border:1px solid var(--line);border-radius:6px;height:22px;display:inline-flex;align-items:center;
+    padding:0 6px;font-size:11px;color:var(--muted);gap:5px;background:#fff}
+  .num b{color:var(--text)}
+  .sw{width:17px;height:17px;border-radius:4px;border:1px solid rgba(0,0,0,.12);display:inline-block}
+
+  /* 접이식 */
+  .acc{border:1px solid var(--line);border-radius:8px;margin:0 0 6px;overflow:hidden;background:#fff}
+  .acc > .h{display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:pointer;
+    font-size:12px;font-weight:800;color:var(--text);background:#fff}
+  .acc > .h .ch{color:var(--dim);font-size:10px;width:10px}
+  .acc > .h .sub{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--dim)}
+  .acc.open > .h{background:#f7f9fd;border-bottom:1px solid var(--line)}
+  .acc .c{padding:9px 10px 10px}
+  .acc.shut .c{display:none}
+
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+
+  ul.pt{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  ul.pt li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;
+    font-size:12.5px;color:var(--muted);border-left:3px solid var(--line)}
+  ul.pt li b{color:var(--navy)}
+  ul.pt li.k{border-left-color:var(--red)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>도구 패널 개선 — 「어느 탭에 있더라」를 없앤다</h1>
+<p class="lead">고른 것에 따라 <b>위 툴바</b>와 <b>오른쪽 패널</b>이 어떻게 달라지는지, 지금과 바꾼 뒤를 나란히 놓았습니다.
+아래에서 <b>무엇을 골랐는지</b> 바꿔 보세요.</p>
+
+<div class="ctl">
+  <span class="lb">지금 고른 것</span>
+  <span class="seg" id="seg"></span>
+</div>
+
+<div class="cmp">
+  <div class="side">
+    <div class="cap"><span class="t">지금</span><span class="m old" id="oldcount"></span></div>
+    <div class="body"><div id="oldtb"></div><div class="panel" id="oldpanel"></div>
+      <p class="note" id="oldnote"></p></div>
+  </div>
+  <div class="side">
+    <div class="cap"><span class="t">바꾼 뒤</span><span class="m new" id="newcount"></span></div>
+    <div class="body"><div id="newtb"></div><div class="panel" id="newpanel"></div>
+      <p class="note" id="newnote"></p></div>
+  </div>
+</div>
+
+<h2><span class="n">1</span>무엇을 바꾸는가 — 넷</h2>
+<ul class="pt">
+  <li class="k"><b>탭을 없애고 접이식으로.</b> 지금은 표 · 스타일 · 텍스트 · 정렬 넷이고,
+    <b>「크기」가 정렬 탭</b>에 있습니다. 표 칸의 글자를 키우려면 「셀 글자 크기」(표 탭)인지
+    「글자 크기」(텍스트 탭)인지 먼저 정해야 하고요. 접이식이면 <b>다 한 줄에 보이고</b>
+    자주 쓰는 것만 펼쳐져 있습니다. 접고 편 상태는 기억합니다.</li>
+  <li class="k"><b>중복을 없앤다.</b> 「병합 / 해제」가 <b>위 툴바에도, 오른쪽 패널에도</b> 있습니다.
+    툴바 쪽만 남깁니다 — 칸을 고른 채 바로 누르는 동작이고, 그러라고 툴바에 올린 것입니다.</li>
+  <li><b>툴바가 고른 것을 따라간다.</b> 지금은 펜·형광펜·지우개가 표를 고칠 때도 자리를 차지합니다.
+    표를 고르면 표 도구, 아무것도 안 골랐으면 만들기 도구. 그리기 도구는 <b>「그리기」 하나로 접습니다.</b></li>
+  <li><b>머리에 「무엇을 골랐는지」를 적는다.</b> 지금 패널은 무엇에 대한 설정인지 안 말합니다.
+    표준 양식에서는 <b>「① 로드맵 / 마일스톤」</b>처럼 슬롯 이름을 그대로 씁니다.</li>
+</ul>
+
+<h2><span class="n">2</span>안 바꾸는 것</h2>
+<div class="box"><span class="t">기능은 하나도 안 없앱니다</span>
+  자리를 옮기고 접을 뿐입니다. 지금 되는 것은 바꾼 뒤에도 전부 됩니다 —
+  <b>중복된 병합 단추 하나</b>만 두 개에서 한 개가 됩니다.</div>
+<div class="box warn"><span class="t">이 시안이 정하지 않은 것</span>
+  자주 쓰는 것을 <b>무엇으로 볼지</b>는 실제 사용 기록이 없어서 제가 정했습니다 —
+  표는 <b>칸 · 행 · 진행 표시</b>, 글상자는 <b>글자</b>. 임원진이 실제로 다르게 쓰신다면
+  펼침 기본값만 바꾸면 됩니다.</div>
+
+<script>
+var PICK = 'table1'
+var PICKS = [
+  {k:'none',   t:'아무것도 안 고름'},
+  {k:'table1', t:'로드맵 표 · 칸 1개'},
+  {k:'tableN', t:'로드맵 표 · 칸 여러 개'},
+  {k:'text',   t:'글상자'},
+  {k:'shape',  t:'도형'},
+  {k:'conn',   t:'연결선'},
+]
+var STAGE = ['#FBE5D6','#DEEBF7','#E2F0D9','#FFFF00','#92D050']
+
+function ib(t,on){ return '<span class="ib'+(on?' on':'')+'">'+t+'</span>' }
+function tbtn(t,cls){ return '<span class="tbtn '+(cls||'')+'">'+t+'</span>' }
+function sel(t){ return '<span class="sel">'+t+' ▾</span>' }
+function sep(){ return '<span class="sep"></span>' }
+function dots(arr){ return arr.map(function(c){ return '<span class="dot" style="background:'+c+'"></span>' }).join('') }
+
+/* ── 지금 툴바: 늘 두 줄, 늘 전부 ───────────────── */
+function oldToolbar(){
+  var r1 = ib('↺')+ib('↻')+ib('💾')+sep()
+    + '<span class="sel">구글 슬라이드</span>'
+    + ib('▣',true)+ib('T')+ib('→')+ib('▦')+ib('◨')+ib('⬠')+ib('😀')+sep()
+    + '<span class="hint">노트</span>'+sel('무지')+sep()
+    + ib('✏')+sel('보통')+dots(['#111','#2462EB','#C0362C','#3E9E6E'])+sep()
+    + ib('🖍')+sel('보통')+dots(['#FFE44D','#B6E36B','#FFB4C8','#9AD8F0'])+sep()
+    + ib('◇')+sel('보통')
+  var r2 = ''
+  if (PICK === 'table1' || PICK === 'tableN'){
+    r2 = tbtn('⤢ 병합', PICK==='tableN'?'':'off') + tbtn('⤡ 해제','off')
+      + '<span class="hint">' + (PICK==='tableN' ? '5행 · 1월~4월' : '표의 칸을 고르세요') + '</span>'
+      + sep() + tbtn('TODAY','on') + tbtn('오늘','on') + tbtn('이 칸에 고정') + tbtn('숨기기')
+      + '<span class="hint">10월</span>'
+  } else {
+    r2 = tbtn('⤢ 병합','off') + tbtn('⤡ 해제','off')
+      + '<span class="hint">표의 칸을 고르세요</span>'
+  }
+  r2 += sep() + tbtn('검토') + tbtn('💬 의견 달기','off')
+  return '<div class="tb"><div class="tbrow">'+r1+'</div><div class="tbrow">'+r2+'</div></div>'
+}
+
+/* ── 바꾼 뒤 툴바: 고른 것을 따라간다, 한 줄 ─────── */
+function newToolbar(){
+  var head = ib('↺')+ib('↻')+ib('💾')+sep()
+  var mid = ''
+  if (PICK === 'table1' || PICK === 'tableN'){
+    mid = tbtn('⤢ 병합', PICK==='tableN'?'':'off') + tbtn('⤡ 해제','off')
+      + '<span class="hint">' + (PICK==='tableN' ? '5행 · 1월~4월' : '칸을 끌어 고르세요') + '</span>'
+      + sep() + tbtn('TODAY 오늘','on') + tbtn('고정') + tbtn('숨김')
+  } else if (PICK === 'text' || PICK === 'shape'){
+    mid = ib('B')+ib('I')+ib('U')+'<span class="num">크기 <b>13</b></span>'
+      + '<span class="sw" style="background:#1a1a1a"></span>' + sep()
+      + ib('⇤')+ib('⇔')+ib('⇥')
+  } else if (PICK === 'conn'){
+    mid = tbtn('직선','on')+tbtn('꺾은선')+tbtn('곡선')+sep()+tbtn('→')+tbtn('↔')+tbtn('—')
+  } else {
+    mid = '<span class="hint">만들기</span>' + ib('▣',true)+ib('T')+ib('▦')+ib('◨')+ib('😀')
+  }
+  var tail = sep() + tbtn('✏ 그리기') + tbtn('💬 의견')
+  return '<div class="tb"><div class="tbrow">'+head+mid+tail+'</div></div>'
+}
+
+/* ── 지금 패널 ─────────────────────────────────── */
+function oldPanel(){
+  if (PICK === 'none'){
+    return '<div class="pbody">'
+      + '<div class="sec">페이지</div><div class="r">'+p('＋ 슬라이드')+p('⧉ 복제')+p2('🗑 삭제')+'</div>'
+      + '<div class="sec">배경</div><div class="r">'+p('밝게')+p('어둡게')+'</div>'
+      + '<div class="sec">종이</div><div class="r"><span class="sel">무지</span></div>'
+      + '<div class="sec">전환</div><div class="r">'+p('없음')+p('페이드')+p('밀기')+p('확대')+p('넘기기')+'</div>'
+      + '<div class="sec">방향</div><div class="r">'+p('세로')+p('가로')+'</div>'
+      + '<div class="sec">내용</div><div class="note">이 슬라이드는 캔버스에서 직접 편집합니다…</div>'
+      + '</div>'
+  }
+  if (PICK === 'conn'){
+    return '<div class="pbody">'
+      + '<div class="sec">연결선</div>'
+      + '<div class="sec">종류</div><div class="r">'+p('직선')+p('꺾은선')+p('곡선')+'</div>'
+      + '<div class="sec">화살촉</div><div class="r">'+p('끝')+p('양쪽')+p('없음')+'</div>'
+      + '<div class="sec">두께 · 점선</div><div class="r"><span class="sel">1.5</span>'+p('점선')+'</div>'
+      + '<div class="sec">색</div><div class="r">'+dots(['#8b93a5','#1a1a1a','#2a78d6','#e0553c','#2fa37a','#7a5af8'])+'</div>'
+      + '</div>'
+  }
+  var isT = PICK === 'table1' || PICK === 'tableN'
+  var tabs = '<div class="ptabs">'
+    + (isT ? '<span class="on">표</span>' : '')
+    + '<span'+(isT?'':' class="on"')+'>스타일</span><span>텍스트</span><span>정렬</span></div>'
+  var body = ''
+  if (isT){
+    body = '<div class="sec">활성 셀 ('+(PICK==='tableN'?'5행, 1열 · 4칸':'5행, 1열')+')</div>'
+      + '<div class="note" style="margin:0 0 6px">표준 양식 셀입니다. 칸 내용·행 추가·셀 색만 바꿀 수 있어요.</div>'
+      + '<div class="sec">진행 표시</div><div class="r">'+dots(STAGE)+p('✕')+'</div>'
+      + '<div class="sec">행</div><div class="r">'+p('↑ 위에 추가')+p('↓ 아래 추가')+p2('🗑 행 삭제')+'</div>'
+      + '<div class="sec">셀 병합 <span class="dup">위 툴바에도 있음</span></div>'
+      + '<div class="r">'+p('⤢ 병합')+p('병합 해제')+'</div>'
+      + '<div class="sec">셀 정렬</div><div class="r">'+p('⇤')+p('⇔')+p('⇥')+p('⤒')+p('⇕')+p('⤓')+'</div>'
+      + '<div class="sec">셀 글자 크기</div><div class="r"><span class="num">크기 <b>11</b></span>'+p('표 기본으로')+'</div>'
+      + '<div class="sec">테두리 · 헤더</div><div class="r"><span class="sw" style="background:#cfd5e2"></span><span class="sel">보통</span>'+p('헤더행')+'</div>'
+  } else if (PICK === 'text'){
+    body = '<div class="sec">글자</div><div class="r">'+p('B')+p('I')+p('U')+'<span class="num">크기 <b>19</b></span><span class="sw" style="background:#1a1a1a"></span></div>'
+      + '<div class="sec">정렬</div><div class="r">'+p('⇤')+p('⇔')+p('⇥')+'</div>'
+      + '<div class="note" style="margin-top:10px">크기·위치·회전은 <b>「정렬」 탭</b>에 있습니다.</div>'
+  } else {
+    body = '<div class="sec">프리셋 스타일</div><div class="r">'+p('기본')+p('강조')+p('은은')+'</div>'
+      + '<div class="sec">채우기</div><div class="r">'+dots(['#eaf0ff','#dceeb1','#f4d2c1','#e7e3fb','#fdf3b6'])+'</div>'
+      + '<div class="sec">테두리</div><div class="r"><span class="sw" style="background:#cfd5e2"></span><span class="sel">1</span></div>'
+      + '<div class="sec">불투명도</div><div class="r"><span class="sel">100%</span></div>'
+      + '<div class="sec">효과</div><div class="r">'+p('그림자')+p('반사')+'</div>'
+      + '<div class="note" style="margin-top:10px">글자는 <b>「텍스트」 탭</b>, 크기·위치는 <b>「정렬」 탭</b>.</div>'
+  }
+  return tabs + '<div class="pbody">'+body+'</div>'
+}
+function p(t){ return '<span class="p">'+t+'</span>' }
+function p2(t){ return '<span class="p dg">'+t+'</span>' }
+
+/* ── 바꾼 뒤 패널: 머리 + 접이식 ─────────────────── */
+function acc(title, sub, open, inner){
+  return '<div class="acc '+(open?'open':'shut')+'"><div class="h"><span class="ch">'+(open?'▾':'▸')+'</span>'
+    + title + (sub?'<span class="sub">'+sub+'</span>':'') + '</div>'
+    + '<div class="c">'+inner+'</div></div>'
+}
+function newPanel(){
+  var head = '', body = ''
+  if (PICK === 'none'){
+    head = ['이 페이지', '1 / 2쪽 · 가로 1040×720']
+    body = acc('페이지','',true,'<div class="r">'+p('＋ 슬라이드')+p('⧉ 복제')+p2('🗑 삭제')+'</div>')
+      + acc('배경 · 종이','밝게 · 무지',false,'')
+      + acc('전환','없음',false,'')
+      + acc('방향','가로',false,'')
+  } else if (PICK === 'conn'){
+    head = ['연결선', '중심 → 가지 1']
+    body = acc('모양','직선 · 화살촉 끝',true,
+        '<div class="r">'+p('직선')+p('꺾은선')+p('곡선')+'</div>'
+      + '<div class="r">'+p('→ 끝')+p('↔ 양쪽')+p('— 없음')+'</div>')
+      + acc('선 굵기 · 색','1.5 · 회색',false,'')
+  } else if (PICK === 'table1' || PICK === 'tableN'){
+    head = ['① 로드맵 / 마일스톤',
+            PICK==='tableN' ? '표준 양식 · 5행 1열부터 4칸' : '표준 양식 · 5행 1열']
+    body = acc('칸','글자 11 · 왼쪽',true,
+        '<div class="r"><span class="num">글자 크기 <b>11</b></span>'+p('표 기본으로')+'</div>'
+      + '<div class="r">'+p('⇤')+p('⇔')+p('⇥')+p('⤒')+p('⇕')+p('⤓')+'</div>')
+      + acc('행','5행',true,'<div class="r">'+p('↑ 위에 추가')+p('↓ 아래 추가')+p2('🗑 행 삭제')+'</div>'
+      + '<div class="note" style="margin:6px 0 0">행을 넣으면 <b>줄 높이는 그대로</b> 두고 표가 그만큼 커져요.</div>')
+      + acc('진행 표시','5색',true,'<div class="r">'+dots(STAGE)+p('✕ 지우기')+'</div>'
+      + '<div class="note" style="margin:6px 0 0">칸을 끌어 여러 개를 한 번에 칠합니다. 병합은 <b>위 툴바</b>에.</div>')
+      + acc('크기 · 자리','992 × 280 · (24, 94)',false,'')
+      + acc('테두리 · 머리글','보통 · 머리행 2줄',false,'')
+  } else if (PICK === 'text'){
+    head = ['글상자', '2026년 10월 임원회의 — 김가현']
+    body = acc('글자','19 · 굵게',true,
+        '<div class="r">'+p('B')+p('I')+p('U')+'<span class="num">크기 <b>19</b></span><span class="sw" style="background:#1a1a1a"></span></div>'
+      + '<div class="r">'+p('⇤')+p('⇔')+p('⇥')+'</div>')
+      + acc('크기 · 자리','620 × 32 · (24, 24)',false,'')
+      + acc('상자 모양','테두리 없음',false,'')
+  } else {
+    head = ['도형 (둥근 사각)', '중심 주제']
+    body = acc('모양 · 색','연파랑 · 테두리 없음',true,
+        '<div class="r">'+dots(['#eaf0ff','#dceeb1','#f4d2c1','#e7e3fb','#fdf3b6'])+'</div>'
+      + '<div class="r">'+p('기본')+p('강조')+p('은은')+'</div>')
+      + acc('글자','13 · 가운데',true,
+        '<div class="r">'+p('B')+p('I')+'<span class="num">크기 <b>13</b></span><span class="sw" style="background:#1c2433"></span></div>')
+      + acc('크기 · 자리','132 × 38 · (150, 300)',false,'')
+      + acc('효과 · 순서','없음',false,'')
+  }
+  return '<div class="phead"><div class="w">'+head[0]+'</div><div class="s">'+head[1]+'</div></div>'
+    + '<div class="pbody">'+body+'</div>'
+}
+
+function counts(){
+  var oldN = {none:6, table1:8, tableN:8, text:2, shape:5, conn:4}[PICK]
+  var oldTab = (PICK==='none'||PICK==='conn') ? 0 : (PICK==='table1'||PICK==='tableN' ? 4 : 3)
+  document.getElementById('oldcount').textContent =
+    (oldTab ? '탭 '+oldTab+'개 · ' : '') + '구역 '+oldN+'개 · 툴바 2줄'
+  var newOpen = {none:1, table1:3, tableN:3, text:1, shape:2, conn:1}[PICK]
+  var newAll  = {none:4, table1:5, tableN:5, text:3, shape:4, conn:2}[PICK]
+  document.getElementById('newcount').textContent =
+    '탭 없음 · 펼침 '+newOpen+' / '+newAll+' · 툴바 1줄'
+}
+
+function render(){
+  document.getElementById('seg').innerHTML = PICKS.map(function(x){
+    return '<button class="'+(PICK===x.k?'on':'')+'" data-k="'+x.k+'">'+x.t+'</button>' }).join('')
+  document.getElementById('oldtb').innerHTML = oldToolbar()
+  document.getElementById('newtb').innerHTML = newToolbar()
+  document.getElementById('oldpanel').innerHTML = oldPanel()
+  document.getElementById('newpanel').innerHTML = newPanel()
+  counts()
+
+  var on = '', nn = ''
+  if (PICK === 'table1'){
+    on = '표 칸 하나를 골랐는데도 <b>8개 구역이 다 펼쳐져</b> 있습니다. 병합은 지금 쓸 수 없는데 자리는 차지합니다.'
+    nn = '자주 쓰는 <b>칸 · 행 · 진행 표시</b>만 펼쳐져 있습니다. 나머지는 한 줄로 접혀 있고, 접힌 줄이 <b>지금 값</b>을 말해 줍니다.'
+  } else if (PICK === 'tableN'){
+    on = '칸을 여러 개 골라야 병합이 살아납니다. 그런데 <b>같은 병합이 위에도 아래에도</b> 있습니다.'
+    nn = '병합은 <b>위 툴바 한 곳</b>에만. 칸을 끌어 고른 채 바로 누르는 동작이라 거기가 맞습니다.'
+  } else if (PICK === 'text'){
+    on = '글자 두 줄뿐인데 <b>탭이 셋</b>입니다. 크기·위치를 바꾸려면 「정렬」 탭으로 옮겨 가야 합니다.'
+    nn = '글자는 펼쳐 두고, 크기·자리는 접힌 줄에 <b>지금 값이 보입니다</b> — 눌러야 알던 것이 안 눌러도 보입니다.'
+  } else if (PICK === 'shape'){
+    on = '도형인데 「스타일」 탭이 먼저 열립니다. 글자를 고치려면 탭을 옮기고, 크기는 또 다른 탭입니다.'
+    nn = '도형에서 가장 자주 쓰는 <b>색과 글자</b>가 함께 펼쳐집니다.'
+  } else if (PICK === 'conn'){
+    on = '연결선은 탭이 없습니다 — <b>여긴 이미 접이식과 비슷</b>합니다. 방향이 틀리지 않았다는 증거로 남겨 둡니다.'
+    nn = '모양만 펼치고 굵기·색은 접습니다. 툴바에도 같은 것을 올려 <b>선을 고른 채 바로</b> 바꿉니다.'
+  } else {
+    on = '아무것도 안 골랐을 때의 페이지 설정. <b>전환 효과</b>가 배경·종이와 같은 무게로 놓여 있습니다.'
+    nn = '자주 쓰는 <b>페이지 추가·복제·삭제</b>만 펼치고 나머지는 접습니다.'
+  }
+  document.getElementById('oldnote').innerHTML = on
+  document.getElementById('newnote').innerHTML = nn
+}
+document.getElementById('seg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return; PICK = b.dataset.k; render() })
+render()
+</script>
+</div>
+</body>
+</html>

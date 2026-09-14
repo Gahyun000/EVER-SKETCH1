@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>화면 구조 개선 — 셸 도입 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--bg:#F4F5F7;--panel:#fff;--line:#E6E8EE;
+    --text:#111318;--muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C;
+    --okbg:#E9F5EF;--warnbg:#FFF4E3;--badbg:#FDECEC}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:34px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#eef1f6;border-radius:4px;padding:1px 5px;font-size:11.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* ── 지금: 화면 둘 + 떠다니는 덮개들 ─────────────── */
+  .nowmap{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;
+    background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px 20px;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .nowcol{flex:1 1 250px}
+  .nowcol .h{font-size:11.5px;font-weight:800;color:var(--navy);margin:0 0 8px}
+  .scr{border:1.5px solid #cfd6e2;border-radius:9px;background:#fbfcfe;padding:10px 12px;margin:0 0 8px}
+  .scr .nm{font-size:13px;font-weight:800;color:var(--navy)}
+  .scr .d{font-size:11.5px;color:var(--dim);margin-top:1px}
+  .ovl{border:1.5px dashed #d8b98a;border-radius:9px;background:var(--warnbg);
+    padding:8px 11px;margin:0 0 7px}
+  .ovl .nm{font-size:12.5px;font-weight:800;color:#8a5a10}
+  .ovl .d{font-size:11px;color:#a5793a;margin-top:1px}
+  .arrowdn{text-align:center;color:var(--dim);font-size:15px;margin:-3px 0 4px}
+
+  /* ── 셸 시안 ─────────────────────────────────── */
+  .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;align-items:center}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .seg button{border:none;background:#fff;padding:7px 13px;font:inherit;font-size:12.5px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim);margin-right:2px}
+
+  .shell{border:1px solid #cfd6e2;border-radius:12px;overflow:hidden;background:var(--bg);
+    box-shadow:0 10px 30px rgba(20,25,40,.10);display:grid;grid-template-rows:52px 1fr;height:520px}
+  .sh-head{display:flex;align-items:center;gap:12px;padding:0 14px 0 10px;background:var(--panel);
+    border-bottom:1px solid var(--line)}
+  .burger{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--muted);
+    cursor:pointer;background:transparent;border:none;font-size:15px}
+  .burger:hover{background:var(--bg)}
+  .brand{display:flex;align-items:center;gap:9px}
+  .brand .logo{width:26px;height:26px;border-radius:7px;background:var(--navy);display:grid;
+    place-items:center;color:#dce7ff;font-family:Georgia,serif;font-style:italic;font-size:13px}
+  .brand .nm{font-size:16px;font-weight:900;color:var(--navy);letter-spacing:-.01em}
+  .crumb{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-weight:700;
+    min-width:0;white-space:nowrap;overflow:hidden}
+  .crumb b{color:var(--text)}
+  .crumb .sep{color:#c3cbd8}
+  .sp{flex:1}
+  .userchip{display:flex;align-items:center;gap:7px;border:1.4px solid var(--line);border-radius:999px;
+    padding:2px 9px 2px 2px;background:#fff;font-size:12px;font-weight:700;color:var(--muted)}
+  .userchip .av{width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:10.5px;font-weight:800}
+  .userchip .lv{background:var(--tint);color:var(--blue);border-radius:5px;padding:0 5px;font-size:10.5px}
+
+  .sh-body{display:grid;grid-template-columns:214px 1fr;min-height:0;transition:grid-template-columns .16s}
+  .sh-body.collapsed{grid-template-columns:60px 1fr}
+  .sh-side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;
+    padding:11px 9px;gap:3px;overflow:hidden}
+  .nav{display:flex;align-items:center;gap:10px;width:100%;border:none;background:transparent;
+    border-radius:10px;padding:9px 11px;font:inherit;font-size:13px;font-weight:700;color:var(--muted);
+    cursor:pointer;text-align:left;white-space:nowrap;position:relative}
+  .nav:hover{background:var(--bg);color:var(--text)}
+  .nav.on{background:var(--tint);color:var(--blue)}
+  .nav .ic{flex:0 0 18px;display:grid;place-items:center}
+  .nav .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .nav .badge{margin-left:auto;min-width:19px;height:19px;padding:0 6px;border-radius:999px;
+    background:var(--amber);color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center}
+  .sh-body.collapsed .nav{justify-content:center;padding:9px 0}
+  .sh-body.collapsed .nav .lbl,.sh-body.collapsed .grp{display:none}
+  .sh-body.collapsed .nav .badge{position:absolute;top:2px;right:6px;min-width:15px;height:15px;font-size:9px;padding:0 3px}
+  .grp{font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--dim);
+    text-transform:uppercase;padding:11px 11px 3px}
+  .sh-side .spacer{flex:1}
+  .sh-main{min-width:0;min-height:0;overflow:auto;padding:16px 18px}
+
+  /* 본문 조각 */
+  .mt{font-size:15px;font-weight:800;color:var(--navy);margin:0 0 10px;display:flex;
+    align-items:center;gap:8px;flex-wrap:wrap}
+  .mt .pill{font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px;
+    background:var(--tint);color:var(--blue)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 11px}
+  .card .thumb{height:52px;border-radius:6px;background:linear-gradient(160deg,#f2f5fb,#e6ecf8);
+    border:1px solid #e6ebf4;margin:0 0 8px}
+  .card .nm{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.35}
+  .card .mt2{font-size:10.5px;color:var(--dim);margin-top:3px}
+  .st{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;
+    font-size:10.5px;font-weight:800;border:1.2px solid transparent;margin-top:6px}
+  .st.pending{background:#FBF0E1;border-color:#F2DEBE;color:#9a5d12}
+  .st.approved{background:var(--okbg);border-color:#CDE9DC;color:#24724b}
+  .st.rejected{background:var(--badbg);border-color:#F6C6C1;color:#a12a21}
+  .rows{display:flex;flex-direction:column;gap:7px}
+  .row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+    display:flex;align-items:center;gap:10px}
+  .row .nm{font-size:12.5px;font-weight:700;flex:1;min-width:0}
+  .row .who{font-size:11px;color:var(--dim)}
+  .tabs{display:flex;gap:5px;margin:0 0 10px}
+  .tabs span{font-size:12px;font-weight:800;color:var(--muted);border:1px solid var(--line);
+    background:#fff;border-radius:8px;padding:4px 11px}
+  .tabs span.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .tree{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .tree .t1{font-size:12.5px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:7px}
+  .tree .t1 .rel{font-size:10.5px;font-weight:800;border-radius:20px;padding:1px 8px;
+    background:var(--tint);color:var(--blue)}
+  .tree .t2{font-size:12px;font-weight:700;color:var(--text);margin:8px 0 0 14px}
+  .tree .t3{font-size:11.5px;color:var(--muted);margin:3px 0 0 28px}
+  .edit{display:grid;grid-template-columns:1fr 168px;gap:12px}
+  .paper{background:#fff;border:1px solid #d6dce8;border-radius:6px;height:230px;
+    display:grid;place-items:center;color:var(--dim);font-size:11.5px}
+  .insp{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px}
+  .insp .h{font-size:11px;font-weight:800;color:var(--dim);letter-spacing:.05em;margin:0 0 7px}
+  .insp .r{height:20px;border-radius:5px;background:#f2f5fa;margin:0 0 6px}
+  .tbar{display:flex;gap:5px;margin:0 0 10px;flex-wrap:wrap}
+  .tbar span{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;
+    font-size:11.5px;color:var(--muted)}
+
+  .gain{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:14px 0 0}
+  .g{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  .g .t{font-size:12.5px;font-weight:800;color:var(--navy);margin:0 0 3px}
+  .g .d{font-size:12px;color:var(--muted);line-height:1.7;margin:0}
+  .g .d b{color:var(--navy)}
+
+  ul.next{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  ul.next li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;
+    font-size:12.5px;color:var(--muted)}
+  ul.next li b{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>화면 구조 개선 — 셸(헤더 + 사이드바) 도입</h1>
+<p class="lead"><code>ebook_html1</code> 의 <b>AppShell</b> 을 지금 EVER-SKETCH 에 맞춰 옮긴 시안입니다.
+거기에는 이미 <b>고정 헤더 52px + 접히는 사이드바 224px</b> 구조가 있고, 결재함·스케치·환경설정이
+사이드바 항목입니다. 지금 이쪽에는 그 구조가 없습니다.</p>
+
+<h2><span class="n">1</span>지금 — 화면은 둘, 나머지는 전부 덮개</h2>
+<div class="nowmap">
+  <div class="nowcol">
+    <div class="h">화면 (자기 자리가 있는 것)</div>
+    <div class="scr"><div class="nm">라이브러리</div><div class="d">폴더 · 내 자료 목록</div></div>
+    <div class="arrowdn">↕</div>
+    <div class="scr"><div class="nm">편집 화면</div><div class="d">나가려면 「☰ EVER-SKETCH」 하나뿐</div></div>
+  </div>
+  <div class="nowcol">
+    <div class="h">덮개 (라이브러리 위에만 뜬다)</div>
+    <div class="ovl"><div class="nm">결재함</div><div class="d">머리줄 버튼 · 편집 중에는 못 감</div></div>
+    <div class="ovl"><div class="nm">팀 공유</div><div class="d">머리줄 버튼 · 편집 중에는 못 감</div></div>
+    <div class="ovl"><div class="nm">팀 관리</div><div class="d">이름표 안의 <b>작은 글씨 링크</b></div></div>
+    <div class="ovl"><div class="nm">환경 설정</div><div class="d">같은 자리에 숨어 있다</div></div>
+  </div>
+  <div class="nowcol">
+    <div class="h">그래서 생기는 일</div>
+    <div class="box" style="margin:0;border-left-color:var(--red)">
+      · 편집하다 결재함을 보려면 <b>나갔다 다시 들어와야</b> 합니다.<br />
+      · 지금 어느 폴더에 있었는지 편집 화면에서는 안 보입니다.<br />
+      · 팀 관리·환경 설정은 <b>아는 사람만 찾습니다.</b><br />
+      · 대기 중인 결재가 몇 건인지 <b>열어 봐야</b> 압니다.
+    </div>
+  </div>
+</div>
+
+<h2><span class="n">2</span>바뀐 뒤 — 갈 곳이 늘 왼쪽에</h2>
+<div class="ctl">
+  <span class="lb">역할</span>
+  <span class="seg" id="roleseg"></span>
+  <span class="lb" style="margin-left:8px">화면</span>
+  <span class="seg" id="menuseg"></span>
+  <span class="seg" style="margin-left:8px"><button id="fold">사이드바 접기</button></span>
+</div>
+
+<div class="shell">
+  <header class="sh-head">
+    <button class="burger" id="burger2">☰</button>
+    <div class="brand"><div class="logo">ℓ</div><div class="nm">EVER-SKETCH</div></div>
+    <div class="crumb" id="crumb"></div>
+    <div class="sp"></div>
+    <span class="userchip"><span class="av" id="av">김</span> <span id="uname">김가현</span>
+      <span class="lv" id="ulv">Lv1 관리자</span></span>
+  </header>
+  <div class="sh-body" id="body">
+    <nav class="sh-side" id="side"></nav>
+    <main class="sh-main" id="main"></main>
+  </div>
+</div>
+
+<div class="gain">
+  <div class="g"><p class="t">어디에 있는지 늘 보인다</p>
+    <p class="d">헤더의 자취(<b>내 자료 › 2026 › 10월 › 임원회의</b>)가 편집 중에도 남습니다.
+      지금은 편집에 들어가는 순간 폴더가 사라집니다.</p></div>
+  <div class="g"><p class="t">덮개가 화면이 된다</p>
+    <p class="d">결재함·팀 공유가 <b>자기 자리</b>를 가집니다. 덮개는 뒤로 가기도 새로고침도 안 통합니다.</p></div>
+  <div class="g"><p class="t">편집 중에도 나갈 수 있다</p>
+    <p class="d">사이드바가 계속 있으니 <b>나갔다 들어오는 왕복</b>이 없어집니다.</p></div>
+  <div class="g"><p class="t">역할이 메뉴에 드러난다</p>
+    <p class="d">열람자에게는 결재함이 <b>아예 없습니다.</b> 지금은 버튼이 조용히 사라져서
+      왜 없는지 알 수가 없습니다. 역할을 바꿔 보세요.</p></div>
+  <div class="g"><p class="t">기다리는 일이 숫자로 보인다</p>
+    <p class="d">결재함에 <b>대기 건수</b>가 붙습니다. 관리자가 열어 보지 않아도 압니다.</p></div>
+  <div class="g"><p class="t">좁은 화면에서는 접는다</p>
+    <p class="d">사이드바를 <b>60px 아이콘 줄</b>로 접습니다. 작업 공간이 좁다는 이야기와 같은 자리입니다.</p></div>
+</div>
+
+<h2><span class="n">3</span>이 시안이 정하지 않은 것</h2>
+<div class="box warn"><span class="t">셸은 「갈 곳」만 고칩니다</span>
+  오늘 화면 녹화에서 보인 불편 중에는 <b>셸로는 안 풀리는 것</b>이 있습니다.
+  같이 갈지 따로 갈지 정해 주셔야 합니다.</div>
+<ul class="next">
+  <li><b>오른쪽 패널의 탭</b> — 표 / 스타일 / 텍스트 / 정렬. 무엇이 어느 탭에 있는지 외워야 합니다.
+    골라 둔 것에 따라 <b>필요한 것만 펼치는</b> 방식이 후보입니다.</li>
+  <li><b>도구가 두 군데로 흩어져 있음</b> — 위 툴바와 오른쪽 패널이 같은 일을 나눠 갖고 있습니다.</li>
+  <li><b>새 페이지 고르기</b> — 카드가 14종인데 이름만으로는 무엇인지 알기 어렵습니다.</li>
+  <li><b>결재 상태를 자료 목록에서 보기</b> — 지금도 칩은 있지만 눈에 잘 안 들어옵니다.</li>
+</ul>
+
+<script>
+var ROLE = 'admin', MENU = 'lib', FOLDED = false
+var ROLES = [
+  {k:'admin',  t:'관리자',  lv:'Lv1 관리자', av:'김', nm:'김가현'},
+  {k:'writer', t:'작성자',  lv:'Lv2 작성자', av:'홍', nm:'홍길동'},
+  {k:'viewer', t:'열람자',  lv:'Lv3 열람자', av:'이', nm:'이열람'},
+]
+var IC = {
+  lib:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  inbox:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+  team:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  admin:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+  set:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.36.4.66.73.86.3.18.64.28 1 .28H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  edit:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+}
+
+function menusFor(role){
+  var m = [{k:'lib', ic:'lib', t:(role==='viewer'?'개인 스케치':'내 자료')}]
+  if (role !== 'viewer') m.push({k:'inbox', ic:'inbox', t:'결재함',
+    badge:(role==='admin'?'7':null)})
+  m.push({k:'team', ic:'team', t:'팀 공유'})
+  if (role === 'admin'){
+    m.push({sep:'관리'})
+    m.push({k:'admin', ic:'admin', t:'팀 관리'})
+    m.push({k:'set', ic:'set', t:'환경 설정'})
+  }
+  return m
+}
+
+function crumbFor(){
+  if (MENU === 'lib')   return ['내 자료','2026','10월']
+  if (MENU === 'inbox') return ['결재함','대기 7건']
+  if (MENU === 'team')  return ['팀 공유','SI개발본부']
+  if (MENU === 'admin') return ['팀 관리']
+  if (MENU === 'set')   return ['환경 설정']
+  if (MENU === 'edit')  return ['내 자료','2026','10월','2026년 10월 임원회의 — 김가현']
+  return ['내 자료']
+}
+
+function mainFor(){
+  if (MENU === 'edit'){
+    return '<div class="mt">2026년 10월 임원회의 — 김가현 <span class="pill">1 / 2쪽</span></div>'
+      + '<div class="tbar"><span>파일</span><span>수정</span><span>삽입</span><span>서식</span><span>슬라이드</span><span>도구</span></div>'
+      + '<div class="edit"><div class="paper">종이 (1040 × 720)</div>'
+      + '<div class="insp"><div class="h">표</div><div class="r"></div><div class="r"></div>'
+      + '<div class="h" style="margin-top:10px">행</div><div class="r"></div><div class="r"></div></div></div>'
+  }
+  if (MENU === 'inbox'){
+    var rows = [['2026년 10월 임원회의 — 홍길동','SI개발본부','pending','대기'],
+                ['2026년 10월 임원회의 — 박서준','플랫폼본부','pending','대기'],
+                ['2026년 9월 임원회의 — 김가현','SI개발본부','approved','승인'],
+                ['2026년 9월 임원회의 — 이수민','경영지원','rejected','반려']]
+    return '<div class="mt">결재함</div>'
+      + '<div class="tabs"><span class="on">대기 7</span><span>반려 2</span><span>승인 24</span></div>'
+      + '<div class="rows">' + rows.map(function(r){
+          return '<div class="row"><span class="nm">'+r[0]+'</span>'
+            + '<span class="who">'+r[1]+'</span>'
+            + '<span class="st '+r[2]+'" style="margin:0">'+r[3]+'</span></div>' }).join('') + '</div>'
+  }
+  if (MENU === 'team'){
+    return '<div class="mt">팀 공유</div>'
+      + '<div class="tree"><div class="t1">SI개발본부 <span class="rel">지금 내 팀</span> <span style="color:var(--dim);font-weight:700">12건</span></div>'
+      + '<div class="t2">김가현 (나) · 3건</div><div class="t3">2026-10 · 2026년 10월 임원회의</div>'
+      + '<div class="t3">2026-09 · 2026년 9월 임원회의</div>'
+      + '<div class="t2">홍길동 · 4건</div><div class="t3">2026-10 · 2026년 10월 임원회의</div></div>'
+  }
+  if (MENU === 'admin'){
+    return '<div class="mt">팀 관리 <span class="pill">관리자 전용</span></div>'
+      + '<div class="rows"><div class="row"><span class="nm">SI개발본부</span><span class="who">8명</span></div>'
+      + '<div class="row"><span class="nm">플랫폼본부</span><span class="who">6명</span></div>'
+      + '<div class="row"><span class="nm">경영지원</span><span class="who">4명</span></div></div>'
+  }
+  if (MENU === 'set'){
+    return '<div class="mt">환경 설정 <span class="pill">관리자 전용</span></div>'
+      + '<div class="rows"><div class="row"><span class="nm">LLM 설정</span><span class="who">서버에 저장</span></div>'
+      + '<div class="row"><span class="nm">가입 승인</span><span class="who">대기 1명</span></div></div>'
+  }
+  // 내 자료
+  var viewer = ROLE === 'viewer'
+  var items = viewer
+    ? [['아이디어 스케치','',''],['9월 메모','',''],['자료 초안','','']]
+    : [['2026년 10월 임원회의','어제','pending|결재 중'],
+       ['2026년 9월 임원회의','9월 3일','approved|승인'],
+       ['부서 로드맵 초안','9월 1일','rejected|반려'],
+       ['자유 스케치','8월 28일','']]
+  return '<div class="mt">' + (viewer ? '개인 스케치' : '내 자료')
+      + ' <span class="pill">' + (viewer ? '나만 봅니다' : '2026 › 10월') + '</span></div>'
+    + '<div class="cards">' + items.map(function(it){
+        var st = it[2] ? '<div class="st '+it[2].split('|')[0]+'">'+it[2].split('|')[1]+'</div>' : ''
+        return '<div class="card"><div class="thumb"></div><div class="nm">'+it[0]+'</div>'
+          + '<div class="mt2">'+(it[1]||'방금')+'</div>'+st+'</div>' }).join('') + '</div>'
+}
+
+function render(){
+  document.getElementById('roleseg').innerHTML = ROLES.map(function(r){
+    return '<button class="'+(ROLE===r.k?'on':'')+'" data-r="'+r.k+'">'+r.t+'</button>' }).join('')
+
+  var ms = menusFor(ROLE).filter(function(m){ return !m.sep })
+  if (!ms.some(function(m){ return m.k === MENU }) && MENU !== 'edit') MENU = 'lib'
+  var segs = ms.concat([{k:'edit', t:'편집 화면'}])
+  document.getElementById('menuseg').innerHTML = segs.map(function(m){
+    return '<button class="'+(MENU===m.k?'on':'')+'" data-m="'+m.k+'">'+m.t+'</button>' }).join('')
+
+  var r = ROLES.filter(function(x){ return x.k===ROLE })[0]
+  document.getElementById('av').textContent = r.av
+  document.getElementById('uname').textContent = r.nm
+  document.getElementById('ulv').textContent = r.lv
+
+  document.getElementById('side').innerHTML = menusFor(ROLE).map(function(m){
+    if (m.sep) return '<div class="grp">'+m.sep+'</div>'
+    var on = (MENU === m.k) || (MENU === 'edit' && m.k === 'lib')
+    return '<button class="nav'+(on?' on':'')+'" data-m="'+m.k+'">'
+      + '<span class="ic">'+IC[m.ic]+'</span><span class="lbl">'+m.t+'</span>'
+      + (m.badge ? '<span class="badge">'+m.badge+'</span>' : '') + '</button>'
+  }).join('') + '<div class="spacer"></div>'
+
+  document.getElementById('crumb').innerHTML = crumbFor().map(function(c,i,a){
+    return (i===a.length-1 ? '<b>'+c+'</b>' : c) }).join(' <span class="sep">›</span> ')
+  document.getElementById('main').innerHTML = mainFor()
+  document.getElementById('body').className = 'sh-body' + (FOLDED ? ' collapsed' : '')
+  document.getElementById('fold').textContent = FOLDED ? '사이드바 펴기' : '사이드바 접기'
+}
+document.getElementById('roleseg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return; ROLE = b.dataset.r; render() })
+document.getElementById('menuseg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return; MENU = b.dataset.m; render() })
+document.getElementById('side').addEventListener('click', function(e){
+  var b = e.target.closest('.nav'); if(!b) return; MENU = b.dataset.m; render() })
+document.getElementById('fold').addEventListener('click', function(){ FOLDED = !FOLDED; render() })
+document.getElementById('burger2').addEventListener('click', function(){ FOLDED = !FOLDED; render() })
+render()
+</script>
+</div>
+</body>
+</html>

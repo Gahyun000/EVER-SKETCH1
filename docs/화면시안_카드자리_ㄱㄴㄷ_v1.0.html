@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>결재 카드 자리 세 안</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C;--badbg:#FDECEC;--warnbg:#FFF4E3;--okbg:#E9F5EF}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1220px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:32px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)} .box.bad{border-left-color:var(--red)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+
+  .ctl{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 16px;align-items:center}
+  .ctl .g{display:flex;gap:7px;align-items:center}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;flex-wrap:wrap}
+  .seg button{border:none;background:#fff;padding:6px 11px;font:inherit;font-size:12px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+
+  /* 세 칸 */
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+  @media (max-width:980px){ .three{grid-template-columns:1fr} }
+  .col{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .col.pick{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,98,235,.10),0 8px 26px rgba(20,25,40,.07)}
+  .col > .cap{padding:10px 13px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .col > .cap .t{font-size:13px;font-weight:800;color:var(--navy)}
+  .col > .cap .s{font-size:11px;color:var(--muted);margin-top:1px}
+  .col > .cap .pk{font-size:10px;font-weight:800;color:var(--blue);margin-left:6px}
+  .colb{padding:11px 12px 13px}
+
+  /* 오른쪽 패널 축소 그림 */
+  .pnl{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;
+    display:flex;flex-direction:column;transition:height .18s}
+  .pnl .zone{padding:7px 8px}
+  .pnl .zone.grow{flex:1;overflow:auto;background:#fff}
+  .pnl .zone.pinned{background:#f7f9fd;border-bottom:1px solid var(--line);flex:0 0 auto}
+  .pnl .zone.pinned.bot{border-bottom:none;border-top:1px solid var(--line)}
+  .ptabs{display:flex;gap:3px;padding:6px 8px;background:#fbfcfe;border-bottom:1px solid var(--line);flex:0 0 auto}
+  .ptabs span{font-size:10.5px;font-weight:800;color:var(--muted);border-radius:5px;padding:2px 8px}
+  .ptabs span.on{background:var(--navy);color:#fff}
+  .sec{font-size:10px;font-weight:800;color:var(--dim);margin:8px 0 4px}
+  .sec:first-child{margin-top:0}
+  .r{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:0 0 3px}
+  .p{border:1px solid var(--line);background:#fff;border-radius:5px;height:20px;
+    display:inline-flex;align-items:center;padding:0 7px;font-size:10.5px;font-weight:700;color:var(--muted)}
+
+  /* 카드 */
+  .card{border:1px solid var(--tint-line);background:var(--tint);border-radius:8px;padding:7px 9px}
+  .card .hd{display:flex;align-items:center;gap:6px;margin:0 0 4px}
+  .card .hd .st{font-size:10px;font-weight:800;border-radius:20px;padding:1px 7px;background:#fff;
+    border:1px solid rgba(0,0,0,.08);color:var(--navy)}
+  .card .hd .fold{margin-left:auto;font-size:10px;color:var(--dim)}
+  .card .ms{font-size:10.5px;color:var(--muted);line-height:1.55;margin:0 0 6px}
+  .card .ms b{color:var(--navy)}
+  .chk{display:flex;flex-direction:column;gap:2px;margin:0 0 6px}
+  .chk div{display:flex;align-items:center;gap:5px;font-size:10px;color:#8a5a12;
+    background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:5px;padding:2px 6px}
+  .chk div.ok{color:#24724b}
+  .btn{display:block;width:100%;text-align:center;border-radius:6px;padding:5px 0;
+    font-size:11px;font-weight:800;border:1px solid var(--navy);background:var(--navy);color:#fff}
+  .card.mini{padding:5px 8px}
+  .card.mini .row{display:flex;align-items:center;gap:6px}
+  .card.mini .row .st{font-size:10px;font-weight:800;border-radius:20px;padding:1px 7px;background:#fff;
+    border:1px solid rgba(0,0,0,.08);color:var(--navy)}
+  .card.mini .row .w{font-size:10px;color:#8a5a12;font-weight:700}
+  .card.mini .row .b{margin-left:auto;background:var(--navy);color:#fff;border-radius:5px;
+    padding:2px 9px;font-size:10px;font-weight:800}
+
+  .gone{border:1px dashed #dfe4ee;border-radius:8px;padding:12px 10px;text-align:center;
+    font-size:11px;color:var(--dim);background:#fbfcfe;line-height:1.6}
+  .gone b{color:#a12a21}
+
+  /* 판정 */
+  .verd{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+  .verd div{font-size:11px;display:flex;gap:6px;align-items:flex-start;line-height:1.55}
+  .verd div .i{width:12px;flex:0 0 12px;text-align:center;font-weight:800}
+  .verd .g{color:#24724b} .verd .g .i{color:var(--green)}
+  .verd .b{color:#a12a21} .verd .b .i{color:var(--red)}
+  .verd .n{color:var(--muted)} .verd .n .i{color:var(--dim)}
+
+  table.inv{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin:0 0 14px}
+  table.inv th,table.inv td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.inv th{background:#fbfcfe;color:var(--navy);font-size:11.5px}
+  table.inv tr:last-child td{border-bottom:none}
+  td.y{color:#24724b;font-weight:800;white-space:nowrap}
+  td.n{color:#a12a21;font-weight:800;white-space:nowrap}
+  td.p{color:#a1651a;font-weight:800;white-space:nowrap}
+  ul.pt{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  ul.pt li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;
+    font-size:12.5px;color:var(--muted);border-left:3px solid var(--line)}
+  ul.pt li b{color:var(--navy)}
+  ul.pt li.k{border-left-color:var(--red)}
+  ul.pt li.g{border-left-color:var(--green)}
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+  code{background:#f2f4f8;border-radius:4px;padding:1px 5px;font-size:11.5px;color:#38455e}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>결재 카드를 어디에 둘까 — ㄱ · ㄴ · ㄷ</h1>
+<p class="lead">셋 다 같은 카드입니다. <b>자리만 다릅니다.</b>
+아래 두 손잡이를 움직여 보세요 — 각 안이 <b>언제 무너지는지</b>가 갈립니다.</p>
+
+<div class="ctl">
+  <div class="g"><span class="lb">고른 것</span><span class="seg" id="segSel"></span></div>
+  <div class="g"><span class="lb">화면 높이</span><span class="seg" id="segH"></span></div>
+</div>
+
+<div class="three" id="three"></div>
+
+<h2><span class="n">1</span>한눈에</h2>
+<table class="inv">
+  <tr><th style="width:230px">묻는 것</th><th style="width:150px">ㄱ 맨 위 고정</th>
+      <th style="width:150px">ㄴ 안 골랐을 때</th><th>ㄷ 맨 아래 고정</th></tr>
+  <tr><td><b>표를 고치는 중에도 보이나</b><br><span style="color:var(--dim);font-size:11px">「저장 안 됨」을 그때 알아야 한다</span></td>
+      <td class="y">보인다</td><td class="n">안 보인다</td><td class="p">스크롤 끝까지 내려야</td></tr>
+  <tr><td><b>도구 자리를 뺏나</b></td>
+      <td class="p">접었을 때 32px</td><td class="y">안 뺏는다</td><td class="p">접었을 때 32px</td></tr>
+  <tr><td><b>낮은 화면(13″)에서</b></td>
+      <td class="y">멀쩡하다</td><td class="y">멀쩡하다</td><td class="n">표 탭 내용을 가린다</td></tr>
+  <tr><td><b>C(패널 접이식)와 겹치나</b></td>
+      <td class="y">안 겹친다</td><td class="n">같은 자리를 건드린다</td><td class="p">C를 먼저 해야 쓸 만하다</td></tr>
+  <tr><td><b>일정에 미치는 영향</b></td>
+      <td class="y">B·C 따로</td><td class="n">B·C 한 덩어리</td><td class="p">C → B 순서 강제</td></tr>
+</table>
+
+<h2><span class="n">2</span>각 안이 무너지는 자리</h2>
+<ul class="pt">
+  <li class="g"><b>ㄱ — 잃는 것은 32px뿐입니다.</b> 접힌 줄에 「작성 중 · 빈 칸 2 · [제출]」이 한 줄로 들어갑니다.
+  펼치면 확인 항목이 다 나옵니다. <b>셋 중 유일하게 「고치는 중에도 보인다」와 「낮은 화면에서 멀쩡하다」를 동시에</b> 만족합니다.
+  그리고 <b>일정을 안 묶습니다</b> — 탭보다 위에 얹히므로 C가 바꾸는 본문 구조와 만나지 않습니다.</li>
+
+  <li class="k"><b>ㄴ — 다 쓴 사람은 대개 뭔가를 고른 채로 끝냅니다.</b>
+  마지막 칸에 숫자를 넣고, 그 표가 선택된 채로 손을 뗍니다. 그 상태에서는 카드가 <b>없습니다.</b>
+  「내려면 빈 데를 한 번 누르세요」는 아무 데도 안 적혀 있습니다 — 위 그림에서 「글상자」나 「표」를 골라 보세요.
+  자리를 하나도 안 뺏는 대신, <b>가장 필요한 순간에 사라집니다.</b></li>
+
+  <li><b>ㄷ — 자리 감각은 셋 중 제일 자연스럽습니다.</b> 「다 하면 여기」가 아래쪽인 건 맞습니다.
+  다만 표 탭은 항목이 여덟 묶음이라 <b>스크롤 끝에서 카드가 내용을 덮습니다.</b>
+  위 그림에서 화면 높이를 「낮음(13″)」으로 바꿔 보세요. C(접이식)를 <b>먼저</b> 해서 본문을 줄여 놓으면 나아집니다 —
+  그래서 순서가 <code>C → B</code> 로 묶입니다.</li>
+</ul>
+
+<div class="box warn"><span class="t">셋 다 공통으로 지키는 것</span>
+자리를 어디로 정하든 바뀌지 않습니다 — <b>제출은 저장부터 하고 낸다</b>(결재본은 서버에 저장된 것을 얼린다),
+<b>상태는 서버가 말한 것만 그린다</b>, <b>빈 칸이 있어도 막지 않는다</b>.
+자리는 「어디서 눈에 띄는가」의 문제이고, 이 셋은 「무엇이 참인가」의 문제입니다.</div>
+
+<div class="box"><span class="t">제 의견 — ㄱ</span>
+「고치는 중에도 보인다」가 이 카드의 존재 이유입니다. 저장이 안 됐다는 걸
+<b>낸 뒤에</b> 알면 늦습니다 — 결재본은 이미 얼었으니까요.
+ㄴ은 그 이유를 정면으로 어기고, ㄷ은 조건부로 지킵니다. 그리고 ㄱ만 일정을 안 묶습니다.
+다만 <b>32px은 매일 뺏깁니다</b> — 제출은 한 달에 한 번입니다. 그 교환이 마음에 안 드시면 ㄷ이 차선입니다.</div>
+
+<p class="note">시안 v1.0 · 그림은 배치를 보기 위한 축소도라 글꼴·간격은 실제와 다릅니다.
+<b>「고른 것」과 「화면 높이」에 따라 카드가 사라지거나 내용을 덮는 것은 실제 동작과 같습니다.</b></p>
+
+</div>
+
+<script>
+const SELS = [['none','아무것도 안 고름'],['table','표'],['text','글상자']];
+const HS = [['tall','보통 (15″)'],['short','낮음 (13″)']];
+let sel='none', h='tall';
+
+const CARD_FULL = `<div class="card">
+  <div class="hd"><span class="st">작성 중</span><span class="fold">▾ 접기</span></div>
+  <div class="ms"><b>9월 실적 보고</b> · 내면 지금 문서가 <b>얼어붙습니다</b>.</div>
+  <div class="chk">
+    <div>! 저장 안 된 변경 3</div>
+    <div>! ① 로드맵에 빈 칸 2</div>
+  </div>
+  <button class="btn">결재 제출</button>
+</div>`;
+const CARD_MINI = `<div class="card mini">
+  <div class="row"><span class="st">작성 중</span><span class="w">저장 안 됨 · 빈 칸 2</span><span class="b">제출</span></div>
+</div>`;
+
+const TABS = `<div class="ptabs"><span class="on">표</span><span>스타일</span><span>텍스트</span><span>정렬</span></div>`;
+const TABS_TXT = `<div class="ptabs"><span>표</span><span>스타일</span><span class="on">텍스트</span><span>정렬</span></div>`;
+
+function bodyFor(s){
+  if(s==='none') return `<div class="sec">페이지</div><div class="r"><span class="p">가로</span><span class="p">A4</span></div>
+    <div class="sec">배경</div><div class="r"><span class="p">흰색</span><span class="p">남색</span></div>
+    <div class="sec">넘김 효과</div><div class="r"><span class="p">없음</span><span class="p">페이드</span></div>`;
+  if(s==='text') return `<div class="sec">글자</div><div class="r"><span class="p">12pt</span><span class="p">굵게</span></div>
+    <div class="sec">색</div><div class="r"><span class="p">검정</span><span class="p">파랑</span></div>
+    <div class="sec">정렬</div><div class="r"><span class="p">왼쪽</span><span class="p">가운데</span></div>
+    <div class="sec">여백</div><div class="r"><span class="p">8</span><span class="p">12</span></div>`;
+  // 표 — 여덟 묶음
+  return ['활성 셀','진행 표시','행','열','셀 병합','셀 정렬','셀 글자 크기','테두리·헤더']
+    .map(n=>`<div class="sec">${n}</div><div class="r"><span class="p">…</span><span class="p">…</span></div>`).join('');
+}
+function tabsFor(s){ return s==='none' ? '' : (s==='text' ? TABS_TXT : TABS); }
+
+function panel(kind){
+  const H = (h==='tall') ? 300 : 190;
+  const body = `<div class="zone grow">${bodyFor(sel)}</div>`;
+  const tabs = tabsFor(sel);
+  let inner, verd;
+
+  if(kind==='ㄱ'){
+    inner = `<div class="zone pinned">${CARD_MINI}</div>` + tabs + body;
+    verd = [['g','고치는 중에도 보인다'],['n','접힌 줄이 32px을 늘 먹는다'],['g','낮은 화면에서도 멀쩡하다']];
+  } else if(kind==='ㄴ'){
+    if(sel==='none'){
+      inner = tabs + `<div class="zone grow">${CARD_FULL}<div style="height:9px"></div>${bodyFor(sel)}</div>`;
+      verd = [['g','자리를 하나도 안 뺏는다'],['g','안 골랐을 때는 크게 잘 보인다']];
+    } else {
+      inner = tabs + `<div class="zone grow">${bodyFor(sel)}</div>`;
+      verd = [['b','고른 게 있으면 카드가 아예 없다'],['b','빈 데를 눌러야 나온다 — 어디에도 안 적혀 있다']];
+    }
+  } else {
+    inner = tabs + body + `<div class="zone pinned bot">${CARD_MINI}</div>`;
+    verd = (h==='short' && sel==='table')
+      ? [['b','표 탭 내용을 덮는다 — 스크롤 끝이 안 보인다'],['n','자리 감각은 자연스럽다']]
+      : [['n','스크롤 끝까지 내려야 눈에 든다'],['g','「다 하면 여기」가 자연스럽다']];
+  }
+  const gone = (kind==='ㄴ' && sel!=='none')
+    ? `<div class="gone">이 상태에서는 <b>카드가 없습니다.</b><br>빈 데를 한 번 눌러야 나타납니다.</div>` : '';
+  return `<div class="pnl" style="height:${H}px">${inner}</div>${gone}
+    <div class="verd">${verd.map(([k,t])=>`<div class="${k}"><span class="i">${k==='g'?'✓':k==='b'?'✕':'·'}</span>${t}</div>`).join('')}</div>`;
+}
+
+const META = {
+  'ㄱ': ['ㄱ · 패널 맨 위 고정', '탭보다 위. 늘 보인다.', true],
+  'ㄴ': ['ㄴ · 아무것도 안 골랐을 때', '「페이지」 설정 자리 안.', false],
+  'ㄷ': ['ㄷ · 패널 맨 아래 고정', '스크롤과 상관없이 바닥.', false],
+};
+
+function render(){
+  document.getElementById('three').innerHTML = ['ㄱ','ㄴ','ㄷ'].map(k=>{
+    const [t,s,pick] = META[k];
+    return `<div class="col${pick?' pick':''}">
+      <div class="cap"><div class="t">${t}${pick?'<span class="pk">권함</span>':''}</div><div class="s">${s}</div></div>
+      <div class="colb">${panel(k)}</div>
+    </div>`;
+  }).join('');
+  [...document.querySelectorAll('#segSel button')].forEach(b=>b.classList.toggle('on',b.dataset.k===sel));
+  [...document.querySelectorAll('#segH button')].forEach(b=>b.classList.toggle('on',b.dataset.k===h));
+}
+
+const ss=document.getElementById('segSel'), sh=document.getElementById('segH');
+ss.innerHTML = SELS.map(([k,l])=>`<button data-k="${k}">${l}</button>`).join('');
+sh.innerHTML = HS.map(([k,l])=>`<button data-k="${k}">${l}</button>`).join('');
+ss.onclick = e => { const b=e.target.closest('button'); if(b){ sel=b.dataset.k; render(); } };
+sh.onclick = e => { const b=e.target.closest('button'); if(b){ h=b.dataset.k; render(); } };
+render();
+</script>
+</body>
+</html>

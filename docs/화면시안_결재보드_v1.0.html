@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>결재 보드 v1.0</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--bg:#F4F5F7;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C;--badbg:#FDECEC;--warnbg:#FFF4E3;--okbg:#E9F5EF}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1220px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:32px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)} .box.bad{border-left-color:var(--red)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#f2f4f8;border-radius:4px;padding:1px 5px;font-size:11.5px;color:#38455e}
+
+  .ctl{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 14px;align-items:center}
+  .ctl .g{display:flex;gap:7px;align-items:center}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .seg button{border:none;background:#fff;padding:6px 12px;font:inherit;font-size:12px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+
+  /* 화면 껍데기 */
+  .app{background:#fff;border:1px solid #cfd6e2;border-radius:12px;overflow:hidden;
+    box-shadow:0 10px 30px rgba(20,25,40,.10)}
+  .app .head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .app .head .logo{width:24px;height:24px;border-radius:6px;background:var(--navy);color:#dce7ff;
+    display:grid;place-items:center;font-family:Georgia,serif;font-style:italic;font-size:12px}
+  .app .head .nm{font-size:14px;font-weight:900;color:var(--navy)}
+  .app .head .who{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;
+    color:var(--muted);font-weight:700}
+  .app .head .lv{background:var(--tint);color:var(--blue);border-radius:5px;padding:0 6px;font-size:10.5px;font-weight:800}
+  .app .sub{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line);
+    background:#fbfcfe}
+  .vseg{display:inline-flex;border:1.3px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .vseg button{border:none;background:#fff;padding:4px 12px;font:inherit;font-size:11.5px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .vseg button:last-child{border-right:none}
+  .vseg button.on{background:var(--navy);color:#fff}
+  .app .sub .scope{font-size:11px;color:var(--dim);font-weight:700;margin-left:auto}
+  .app .stage{padding:14px;background:var(--bg);min-height:330px}
+
+  /* 보드 */
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;align-items:start}
+  @media (max-width:900px){ .board{grid-template-columns:repeat(2,1fr)} }
+  .col{background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 9px 11px;min-height:120px}
+  .col > .ch{display:flex;align-items:center;gap:6px;padding:2px 3px 9px}
+  .col > .ch .dt{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+  .col > .ch .t{font-size:12px;font-weight:800;color:var(--navy)}
+  .col > .ch .n{margin-left:auto;font-size:11px;font-weight:800;color:var(--dim)}
+  .col.pre .dt{background:#9aa3b2} .col.sent .dt{background:var(--amber)}
+  .col.rej .dt{background:var(--red)} .col.appr .dt{background:var(--green)}
+  .col.pre{background:#fbfcfe}
+  .col.sent{background:#fffdf8} .col.rej{background:#fffafa} .col.appr{background:#fafdfb}
+  .cards{display:flex;flex-direction:column;gap:7px}
+  .cd{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;
+    transition:box-shadow .25s,transform .25s,border-color .25s}
+  .cd.moved{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,98,235,.14)}
+  .cd .nm{font-size:12px;font-weight:700;color:var(--text);line-height:1.4}
+  .cd .fd{font-size:10.5px;color:var(--dim);margin-top:2px;display:flex;align-items:center;gap:4px}
+  .cd .row2{display:flex;align-items:center;gap:5px;margin-top:6px;flex-wrap:wrap}
+  .chip{font-size:10px;font-weight:800;border-radius:20px;padding:1px 7px;border:1px solid transparent}
+  .chip.rev{background:var(--tint);color:var(--blue);border-color:var(--tint-line)}
+  .chip.rq{background:#FBF0E1;color:#9a5d12;border-color:#F2DEBE}
+  .chip.lock{background:#f2f4f8;color:var(--muted);border-color:var(--line)}
+  .cd .when{font-size:10px;color:var(--dim);margin-left:auto;white-space:nowrap}
+  .cd .why{margin-top:6px;font-size:10.5px;color:#8a2f27;background:#fff6f5;
+    border:1px solid #f6d7d2;border-radius:6px;padding:4px 7px;line-height:1.55}
+  .empty{font-size:11px;color:#c3cbd8;text-align:center;padding:14px 0;font-weight:700}
+
+  /* 목록 보기 */
+  .rows{display:flex;flex-direction:column;gap:7px}
+  .lrow{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;
+    display:flex;align-items:center;gap:9px}
+  .lrow .nm{font-size:12.5px;font-weight:700;flex:1;min-width:0}
+  .lrow .ic{width:26px;height:26px;border-radius:6px;background:var(--tint);color:var(--blue);
+    display:grid;place-items:center;font-size:12px;flex:0 0 26px}
+
+  .demo{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:11px 0 0;
+    background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .demo .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .demo button{border:1.3px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;
+    font:inherit;font-size:11.5px;font-weight:800;color:var(--muted);cursor:pointer}
+  .demo button:hover{background:#f7f9fd;color:var(--navy)}
+  .demo button.g{border-color:#c9e6d8;color:#24724b}
+  .demo button.r{border-color:#f0cdc8;color:#a12a21}
+  .demo .say{font-size:11.5px;color:var(--blue);font-weight:700;margin-left:auto}
+
+  table.inv{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin:0 0 14px}
+  table.inv th,table.inv td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.inv th{background:#fbfcfe;color:var(--navy);font-size:11.5px}
+  table.inv tr:last-child td{border-bottom:none}
+  td.y{color:#24724b;font-weight:800;white-space:nowrap}
+  td.n{color:#a12a21;font-weight:800;white-space:nowrap}
+  td.p{color:#a1651a;font-weight:800;white-space:nowrap}
+  ul.pt{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  ul.pt li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;
+    font-size:12.5px;color:var(--muted);border-left:3px solid var(--line)}
+  ul.pt li b{color:var(--navy)}
+  ul.pt li.k{border-left-color:var(--red)}
+  ul.pt li.g{border-left-color:var(--green)}
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>결재 보드 — 상태가 바뀌면 자료가 그 칸에 가 있다</h1>
+<p class="lead">끌지 않습니다. <b>결재가 나면 저절로 옮겨져 있습니다.</b>
+아래 「관리자가 …」 단추를 눌러 보세요 — 반려된 자료가 승인 칸으로 넘어갑니다.</p>
+
+<div class="ctl">
+  <div class="g"><span class="lb">누구로 볼까</span><span class="seg" id="roleSeg"></span></div>
+  <div class="g"><span class="lb">화면</span><span class="seg" id="scrSeg"></span></div>
+</div>
+
+<div class="app">
+  <div class="head">
+    <div class="logo">ℓ</div><div class="nm">EVER-SKETCH</div>
+    <div class="who"><span id="uname">홍길동</span><span class="lv" id="ulv">Lv2 작성자</span></div>
+  </div>
+  <div class="sub">
+    <span class="vseg" id="viewSeg"></span>
+    <span class="scope" id="scope"></span>
+  </div>
+  <div class="stage" id="stage"></div>
+</div>
+
+<div class="demo" id="demo"></div>
+
+<h2><span class="n">1</span>칸 이름을 바꾸면서 하나를 옮겼습니다</h2>
+<div class="box warn"><span class="t">「수정 중」을 반려 칸에서 뺐습니다</span>
+칸을 <b>제출 전 · 제출 · 반려 · 승인</b>으로 부르기로 하셨습니다.
+그런데 앞 계획에서는 「고칠 것」 칸에 <b>반려</b>와 <b>수정 중</b> 둘을 담고 있었습니다.
+그 칸을 그냥 「반려」로 부르면, <b>반려된 적이 없는 자료가 반려 칸에 앉습니다</b> —
+수정 중은 승인본을 고쳐도 좋다고 <b>허락받은</b> 상태입니다.<br />
+그래서 <b>수정 중을 「제출 전」으로 옮겼습니다.</b> 뜻이 맞습니다 —
+허락받아 고치는 중이고, 다 고치면 다시 냅니다. 아직 안 낸 것입니다.</div>
+
+<table class="inv">
+  <tr><th style="width:110px">칸</th><th style="width:230px">담기는 상태</th><th>왜 그 이름이 맞나</th></tr>
+  <tr><td><b>제출 전</b></td><td><code>draft</code> · <code>revising</code>(수정 중)</td>
+      <td>아직 안 냈다. 지금 고칠 수 있다.</td></tr>
+  <tr><td><b>제출</b></td><td><code>pending</code> · <code>revision_pending</code>(수정 요청 중)</td>
+      <td>냈고 관리자 답을 기다린다. 잠겨 있다.</td></tr>
+  <tr><td><b>반려</b></td><td><code>rejected</code></td>
+      <td>되돌아왔다. <b>이 칸에는 진짜 반려만</b> 있다.</td></tr>
+  <tr><td><b>승인</b></td><td><code>approved</code></td>
+      <td>팀이 보는 중이다.</td></tr>
+</table>
+
+<h2><span class="n">2</span>누구에게 보이나</h2>
+<table class="inv">
+  <tr><th style="width:130px"></th><th style="width:150px">내 자료 보드</th><th>왜</th></tr>
+  <tr><td><b>Lv1 관리자</b></td><td class="y">보인다</td>
+      <td>관리자도 자기 자료를 쓴다. 자기가 쓴 것을 볼 때는 작성자와 묻는 것이 같다.</td></tr>
+  <tr><td><b>Lv2 작성자</b></td><td class="y">보인다</td><td>이 기능을 쓰는 사람.</td></tr>
+  <tr><td><b>Lv3 열람자</b></td><td class="n">안 보인다</td>
+      <td>열람자는 결재를 내지 않는다(D13). 자료가 <b>전부 제출 전</b>이라 한 칸짜리 보드가 된다.
+      팀 공유도 <b>전부 승인본</b>이라 마찬가지다. <b>없는 게 정직하다.</b></td></tr>
+</table>
+<p class="note">위에서 <b>열람자</b>로 바꿔 보세요 — 보기 전환 자체가 안 나옵니다.</p>
+
+<h2><span class="n">3</span>카드는 언제 옮겨지나</h2>
+<div class="box"><span class="t">관리자가 승인해도 내 화면은 모릅니다</span>
+지금 상태는 라이브러리에 <b>들어올 때 한 번</b> 받아 옵니다. 보드를 켜 둔 채로는 그대로입니다.
+<b>창을 다시 볼 때</b> 새로 받아 오게 합니다(<code>visibilitychange</code> 한 줄) —
+결재는 몇 분·몇 시간 단위 일이라 실시간이 필요 없고, 사람은 대개 다른 걸 하다 돌아와서 봅니다.</div>
+<div class="box"><span class="t">그리고 「내가 없는 사이에 바뀐 것」을 알려야 합니다</span>
+노션은 내가 끌어서 옮기니 옮긴 걸 압니다. 여기서는 <b>남이 바꿉니다.</b>
+그래서 카드마다 <b>언제 그렇게 됐는지</b>를 적습니다 — 「어제 반려」·「9/1 승인」.
+서버가 <code>decided_at</code> 을 이미 줍니다. <b>서버는 손대지 않습니다.</b></div>
+
+<h2><span class="n">4</span>아직 못 하는 것 하나</h2>
+<div class="box bad"><span class="t">반려 사유가 그 자리에 없습니다</span>
+「반려」 칸에 카드가 있는데 <b>왜 반려됐는지</b> 없으면 결국 결재함을 열어야 합니다 —
+보드를 만든 이유가 반쯤 사라집니다.<br />
+<code>/api/approvals/status-map</code> 은 상태·회차·잠김만 주고 <b>사유(<code>decision_message</code>)는 안 줍니다.</b>
+사유는 결재 <b>상세</b>에만 있습니다. 반려된 카드에 한해 상세를 한 번 더 부르면 됩니다 —
+반려는 드물어서 늘 싣고 다니는 것보다 낫습니다.
+<b>어제 착수계획의 B-1 과 같은 문제라 한 번에 풉니다.</b><br />
+<span style="color:#a12a21">위 보드에서 반려 카드의 붉은 줄은 <b>그걸 푼 뒤의 모습</b>입니다.</span></div>
+
+<h2><span class="n">5</span>정해진 것 · 안 하는 것</h2>
+<ul class="pt">
+  <li class="g"><b>끌지 않습니다.</b> 카드를 옮기는 것은 사람이 아니라 결재 결과입니다.
+  그래서 실수로 제출될 일도, 화면과 서버가 어긋날 일도 없습니다.</li>
+  <li class="g"><b>목록을 없애지 않습니다.</b> 보기를 하나 더합니다 — 폴더·검색·날짜는 목록 쪽이 낫습니다.</li>
+  <li class="g"><b>보드는 하위 폴더까지 전부 봅니다.</b> 「내 반려 자료가 어디 있든 다 보여줘」가
+  보드를 쓰는 이유입니다. 지금 검색과 같은 범위라 규칙이 늘지 않습니다.
+  대신 카드에 <b>폴더 이름</b>을 적습니다.</li>
+  <li class="g"><b>서버는 한 줄도 안 고칩니다</b> — 반려 사유만 빼고.</li>
+  <li class="k"><b>결재함 보드는 나중에 합니다.</b> 거기는 기준이 뒤집힙니다 —
+  작성자에게 「제출」인 것이 관리자에게는 <b>「결정할 것」</b>입니다.
+  기준이 다른 보드를 같이 만들면 둘이 섞입니다.</li>
+</ul>
+
+<p class="note">시안 v1.0 · 카드 내용은 예시입니다. 「관리자가 …」 단추는 <b>시연용</b>이라
+실제 화면에는 없습니다 — 그 일은 관리자가 결재함에서 합니다.</p>
+
+</div>
+
+<script>
+var ROLE = 'writer', SCREEN = 'lib', VIEW = 'board', MOVED = null
+var ROLES = [
+  {k:'admin',  t:'관리자',  nm:'김가현', lv:'Lv1 관리자'},
+  {k:'writer', t:'작성자',  nm:'홍길동', lv:'Lv2 작성자'},
+  {k:'viewer', t:'열람자',  nm:'이열람', lv:'Lv3 열람자'},
+]
+var SCREENS = [{k:'lib', t:'내 자료'}, {k:'team', t:'팀 공유'}]
+
+/* 상태 → 칸. 이 표가 만들 순수 함수의 내용 그대로다. */
+var COLS = [
+  {k:'pre',  t:'제출 전', states:['draft','revising']},
+  {k:'sent', t:'제출',    states:['pending','revision_pending']},
+  {k:'rej',  t:'반려',    states:['rejected']},
+  {k:'appr', t:'승인',    states:['approved']},
+]
+function columnOf(s){
+  for (var i=0;i<COLS.length;i++) if (COLS[i].states.indexOf(s) >= 0) return COLS[i].k
+  return 'pre'   // 모르는 상태는 제출 전으로 두고 눈에 띄게 표시한다
+}
+
+var DOCS = [
+  {id:1, nm:'2026년 10월 임원회의 — 홍길동', fd:'내 자료 › 2026 › 10월', st:'rejected', rd:1,
+   when:'어제 반려', why:'로드맵 3분기 칸이 비어 있습니다. 채워서 다시 주세요.'},
+  {id:2, nm:'2026년 10월 부서 로드맵',       fd:'내 자료 › 2026 › 10월', st:'pending', rd:2, when:'9/8 11:09 제출'},
+  {id:3, nm:'제목 없음',                     fd:'내 자료',               st:'draft',   rd:0, when:'9/7 09:00 만듦'},
+  {id:4, nm:'2026년 9월 임원회의 — 홍길동',  fd:'내 자료 › 2026 › 9월',  st:'approved',rd:2, when:'9/4 승인'},
+  {id:5, nm:'2026년 9월 실적 요약',          fd:'내 자료 › 2026 › 9월',  st:'revising',rd:3, when:'9/6 수정 허락'},
+  {id:6, nm:'부서 소개 자료',                fd:'내 자료',               st:'approved',rd:1, when:'8/28 승인'},
+]
+var TEAM = [
+  {nm:'2026년 10월 임원회의 — 김가현', who:'김가현 · SI개발본부', when:'9/7 승인'},
+  {nm:'2026년 10월 임원회의 — 박서준', who:'박서준 · 플랫폼본부', when:'9/6 승인'},
+  {nm:'2026년 9월 임원회의 — 이수민',  who:'이수민 · 경영지원',   when:'9/2 승인'},
+]
+
+function chipFor(d){
+  if (d.st === 'revising')          return '<span class="chip rev">수정 중</span>'
+  if (d.st === 'revision_pending')  return '<span class="chip rq">수정 요청 중</span>'
+  if (d.st === 'pending')           return '<span class="chip rq">결재 중</span>'
+  return ''
+}
+function lockFor(d){
+  return (d.st === 'pending' || d.st === 'approved' || d.st === 'revision_pending')
+    ? '<span class="chip lock">🔒 잠김</span>' : ''
+}
+function cardHtml(d){
+  return '<div class="cd'+(MOVED===d.id?' moved':'')+'">'
+    + '<div class="nm">'+d.nm+'</div>'
+    + '<div class="fd">📁 '+d.fd+'</div>'
+    + '<div class="row2">'+chipFor(d)+lockFor(d)
+    + (d.rd>1?'<span class="chip lock">'+d.rd+'회차</span>':'')
+    + '<span class="when">'+d.when+'</span></div>'
+    + (d.st==='rejected' && d.why ? '<div class="why">「'+d.why+'」</div>' : '')
+    + '</div>'
+}
+
+function boardHtml(){
+  return '<div class="board">' + COLS.map(function(c){
+    var mine = DOCS.filter(function(d){ return columnOf(d.st) === c.k })
+    return '<div class="col '+c.k+'">'
+      + '<div class="ch"><span class="dt"></span><span class="t">'+c.t+'</span>'
+      + '<span class="n">'+mine.length+'</span></div>'
+      + '<div class="cards">'
+      + (mine.length ? mine.map(cardHtml).join('') : '<div class="empty">없음</div>')
+      + '</div></div>'
+  }).join('') + '</div>'
+}
+function listHtml(){
+  return '<div class="rows">' + DOCS.map(function(d){
+    return '<div class="lrow"><span class="ic">📖</span><span class="nm">'+d.nm+'</span>'
+      + chipFor(d) + lockFor(d) + '<span class="when" style="color:var(--dim);font-size:10.5px">'+d.when+'</span></div>'
+  }).join('') + '</div>'
+}
+function teamHtml(){
+  return '<div class="box ok" style="margin:0 0 10px"><span class="t">여기는 보드가 없습니다</span>'
+    + '팀 공유는 <b>승인본만</b> 보여 줍니다 — 상태로 나눌 것이 없어 한 칸짜리가 됩니다.</div>'
+    + '<div class="rows">' + TEAM.map(function(t){
+        return '<div class="lrow"><span class="ic">📖</span><span class="nm">'+t.nm+'</span>'
+          + '<span class="when" style="color:var(--dim);font-size:10.5px">'+t.who+' · '+t.when+'</span></div>'
+      }).join('') + '</div>'
+}
+function viewerLibHtml(){
+  return '<div class="box warn" style="margin:0 0 10px"><span class="t">열람자에게는 보드가 없습니다</span>'
+    + '열람자는 결재를 내지 않습니다(D13). 여기 만든 것은 결재에 안 가고 팀에도 안 뜹니다 —'
+    + ' 자료가 <b>전부 「제출 전」</b>이라 칸이 하나뿐인 보드가 됩니다.</div>'
+    + '<div class="rows">'
+    + ['아이디어 스케치','9월 메모','자료 초안'].map(function(n){
+        return '<div class="lrow"><span class="ic">📖</span><span class="nm">'+n+'</span>'
+          + '<span class="when" style="color:var(--dim);font-size:10.5px">나만 봅니다</span></div>'
+      }).join('') + '</div>'
+}
+
+function render(){
+  document.getElementById('roleSeg').innerHTML = ROLES.map(function(r){
+    return '<button class="'+(ROLE===r.k?'on':'')+'" data-r="'+r.k+'">'+r.t+'</button>' }).join('')
+  document.getElementById('scrSeg').innerHTML = SCREENS.map(function(s){
+    return '<button class="'+(SCREEN===s.k?'on':'')+'" data-s="'+s.k+'">'+s.t+'</button>' }).join('')
+
+  var r = ROLES.filter(function(x){ return x.k===ROLE })[0]
+  document.getElementById('uname').textContent = r.nm
+  document.getElementById('ulv').textContent = r.lv
+
+  var hasBoard = (SCREEN === 'lib' && ROLE !== 'viewer')
+  document.getElementById('viewSeg').innerHTML = hasBoard
+    ? [['list','목록'],['board','보드']].map(function(v){
+        return '<button class="'+(VIEW===v[0]?'on':'')+'" data-v="'+v[0]+'">'+v[1]+'</button>' }).join('')
+    : '<button class="on">목록</button>'
+  document.getElementById('scope').textContent = hasBoard && VIEW === 'board'
+    ? '보드는 하위 폴더까지 전부 봅니다' : '내 자료 › 2026 › 10월'
+
+  var stage = document.getElementById('stage')
+  if (SCREEN === 'team') stage.innerHTML = teamHtml()
+  else if (ROLE === 'viewer') stage.innerHTML = viewerLibHtml()
+  else stage.innerHTML = (VIEW === 'board') ? boardHtml() : listHtml()
+
+  // 시연 단추
+  var demo = document.getElementById('demo')
+  if (!hasBoard || VIEW !== 'board'){ demo.style.display = 'none' }
+  else {
+    demo.style.display = 'flex'
+    var rejected = DOCS.filter(function(d){ return d.st==='rejected' })
+    var pending  = DOCS.filter(function(d){ return d.st==='pending' })
+    var draft    = DOCS.filter(function(d){ return d.st==='draft' || d.st==='revising' })
+    demo.innerHTML = '<span class="lb">시연 — 다른 데서 일이 일어나면</span>'
+      + (rejected.length ? '<button data-do="resend">작성자가 <b>다시 제출</b></button>' : '')
+      + (draft.length ? '<button data-do="submit">작성자가 <b>제출</b></button>' : '')
+      + (pending.length ? '<button class="g" data-do="approve">관리자가 <b>승인</b></button>' : '')
+      + (pending.length ? '<button class="r" data-do="reject">관리자가 <b>반려</b></button>' : '')
+      + '<button data-do="reset">처음으로</button>'
+      + '<span class="say" id="say"></span>'
+  }
+}
+
+var SAY = ''
+document.getElementById('roleSeg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return; ROLE = b.dataset.r; MOVED=null; render() })
+document.getElementById('scrSeg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return; SCREEN = b.dataset.s; MOVED=null; render() })
+document.getElementById('viewSeg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b || !b.dataset.v) return; VIEW = b.dataset.v; MOVED=null; render() })
+
+document.getElementById('demo').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return
+  var act = b.dataset.do, d
+  if (act === 'reset'){
+    DOCS[0].st='rejected'; DOCS[0].when='어제 반려'; DOCS[0].rd=1
+    DOCS[1].st='pending';  DOCS[1].when='9/8 11:09 제출'
+    DOCS[2].st='draft';    DOCS[2].when='9/7 09:00 만듦'
+    DOCS[4].st='revising'; DOCS[4].when='9/6 수정 허락'
+    MOVED=null; SAY=''
+  } else if (act === 'resend'){
+    d = DOCS.filter(function(x){ return x.st==='rejected' })[0]
+    if (d){ d.st='pending'; d.rd=d.rd+1; d.when='방금 제출'; d.why=null; MOVED=d.id
+            SAY='「'+d.nm.slice(0,14)+'…」이 반려 → 제출 칸으로 갔습니다' }
+  } else if (act === 'submit'){
+    d = DOCS.filter(function(x){ return x.st==='draft' || x.st==='revising' })[0]
+    if (d){ d.st='pending'; d.when='방금 제출'; MOVED=d.id
+            SAY='「'+d.nm.slice(0,14)+'…」이 제출 전 → 제출 칸으로 갔습니다' }
+  } else if (act === 'approve'){
+    d = DOCS.filter(function(x){ return x.st==='pending' })[0]
+    if (d){ d.st='approved'; d.when='방금 승인'; MOVED=d.id
+            SAY='관리자가 승인 → 카드가 승인 칸에 가 있습니다' }
+  } else if (act === 'reject'){
+    d = DOCS.filter(function(x){ return x.st==='pending' })[0]
+    if (d){ d.st='rejected'; d.when='방금 반려'; d.why='로드맵 3분기 칸이 비어 있습니다. 채워서 다시 주세요.'
+            MOVED=d.id; SAY='관리자가 반려 → 카드가 반려 칸에 가 있습니다' }
+  }
+  render()
+  var s = document.getElementById('say'); if (s) s.textContent = SAY
+})
+render()
+</script>
+</body>
+</html>

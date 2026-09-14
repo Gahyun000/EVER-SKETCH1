@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면시안 — 제가 이해한 계획 · GIF 매뉴얼</title>
+<style>
+  :root{
+    --ink:#16203a; --muted:#6b7590; --line:#dfe3ec; --plane:#f4f6fa; --surf:#fff;
+    --blue:#2a78d6; --blue-d:#1b5bab; --blue-100:#e4effc;
+    --warn:#b9541b; --warn-bg:#fff3e2; --warn-line:#f0d7b4;
+    --bad:#b3261e; --bad-bg:#fdeceb; --bad-line:#f3c9c6;
+    --ok:#1c7a4a; --ok-bg:#e8f6ee; --ok-line:#bfe2ce;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    padding-block:28px;padding-left:20px;padding-right:20px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  section{background:var(--surf);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+  h2{font-size:15.5px;margin:0 0 10px;letter-spacing:-.01em}
+  h2 .tag{display:inline-block;background:var(--blue-100);color:var(--blue-d);
+    border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:800;margin-right:7px;vertical-align:2px}
+  h3{font-size:13.5px;margin:18px 0 8px}
+  p{margin:0 0 10px}
+  .muted{color:var(--muted)}
+  b.hi{color:var(--blue-d)}
+  table.t{border-collapse:collapse;width:100%;font-size:12.5px;margin:8px 0 4px}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  table.t th{color:var(--muted);font-weight:700;font-size:11.5px;border-bottom:1px solid #c9cfdd}
+  table.t td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.bad{color:var(--bad);font-weight:800} td.good{color:var(--ok);font-weight:800}
+  td.mid{color:var(--warn);font-weight:700}
+  .note{background:var(--warn-bg);border:1px solid var(--warn-line);border-left:3px solid var(--warn);
+    border-radius:8px;padding:10px 13px;font-size:12.8px;margin:12px 0}
+  .note.bad{background:var(--bad-bg);border-color:var(--bad-line);border-left-color:var(--bad)}
+  .note.ok{background:var(--ok-bg);border-color:var(--ok-line);border-left-color:var(--ok)}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--plane);
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  ul{margin:6px 0 10px;padding-left:19px} li{margin-bottom:5px}
+
+  /* 이해 확인 — 했다/안 했다 */
+  .chk{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:11px;margin-top:6px}
+  .chk div{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--plane);font-size:12.6px;line-height:1.6}
+  .chk div .k{font-weight:800;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  .chk div .k i{font-style:normal;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
+    font-size:10px;font-weight:800;background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)}
+  .chk div.no .k i{background:var(--bad-bg);color:var(--bad);border-color:var(--bad-line)}
+
+  /* 단계 */
+  .phase{display:flex;gap:11px;flex-wrap:wrap;margin:10px 0 4px}
+  .phase div{flex:1 1 200px;border:1px solid var(--line);border-radius:11px;padding:12px 14px;background:var(--surf)}
+  .phase div .n{font-size:11px;font-weight:800;color:var(--blue-d);margin-bottom:3px}
+  .phase div .t{font-weight:800;font-size:13.5px;margin-bottom:4px}
+  .phase div .d{font-size:12.3px;color:var(--muted);line-height:1.6}
+  .phase div.now{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue) inset;background:var(--blue-100)}
+
+  /* GIF 촬영 카드 */
+  .shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(325px,1fr));gap:15px;margin-top:8px}
+  .shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surf)}
+  .shot .hd{display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--plane);
+    border-bottom:1px solid var(--line);font-size:11.5px;font-weight:800;color:var(--muted)}
+  .shot .hd i{width:19px;height:19px;border-radius:50%;background:var(--blue-100);color:var(--blue-d);
+    display:grid;place-items:center;font-style:normal;font-size:10.5px}
+  .shot .hd .sec{margin-left:auto;background:#16203a;color:#fff;border-radius:5px;padding:1px 6px;font-size:10.5px}
+  .frame{aspect-ratio:3/2;background:#20283d;position:relative;display:grid;place-items:center;
+    border-bottom:1px solid var(--line);overflow:hidden}
+  .frame .play{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.14);
+    border:1.5px solid rgba(255,255,255,.5);display:grid;place-items:center;color:#fff;font-size:12px}
+  .frame .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(15,22,40,.82);color:#cfd8ea;
+    font-size:9.5px;padding:5px 8px;line-height:1.45}
+  .frame .tag{position:absolute;left:7px;top:7px;background:#e4effc;color:#1b5bab;border-radius:4px;
+    padding:1px 6px;font-size:9px;font-weight:800}
+  .shot .must{padding:9px 11px;font-size:12.1px;color:var(--muted);line-height:1.6}
+  .shot .must b{color:var(--ink)}
+  .shot .must .m{color:#7a4412;display:block;margin-top:4px}
+  .newf{background:#e8f6ee;color:#1c7a4a}
+  @media (max-width:700px){ .shots{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>제가 이해한 계획 — 그리고 GIF 가 지금 실제로 되는지</h1>
+<p class="sub">2026-09-14 · 코드는 한 줄도 안 건드렸습니다. 맞는지만 봐 주세요.</p>
+
+<section>
+  <h2><span class="tag">확인</span>제가 이해한 것</h2>
+  <div class="chk">
+    <div><div class="k"><i>✓</i>12장 구성은 그대로</div>뼈대는 살리고, <b>예시 그림 자리를 실제 GIF 로</b> 바꿉니다.</div>
+    <div><div class="k"><i>✓</i>정지 슬라이드가 아니라 GIF</div>「이렇게 생겼습니다」가 아니라 <b>「이렇게 누르면 이렇게 됩니다」</b>를 보여 줍니다.</div>
+    <div class="no"><div class="k"><i>✗</i>구성안 HTML 은 공유물이 아님</div>제가 만든 시안들은 <b>작업용</b>입니다. 남에게 나가는 건 매뉴얼뿐입니다.</div>
+    <div class="no"><div class="k"><i>✗</i>Lv1·Lv3 편은 안 만듦</div>지금 단계는 <b>Lv2 작성자 매뉴얼 하나</b>입니다.</div>
+    <div><div class="k"><i>✓</i>트리·머메이드가 먼저</div>기능을 만든 <b>다음에</b> GIF 를 찍습니다.</div>
+    <div><div class="k"><i>✓</i>이유도 이해했습니다</div>안 만들고 찍으면 <b>곧 갈아엎을 화면</b>을 찍게 됩니다. 12편을 다시 찍는 건 다시 그리는 것보다 비쌉니다.</div>
+  </div>
+  <div class="note ok">
+    <b>덤으로 얻는 게 있습니다.</b> 트리·머메이드를 만들면 4·6·7·8 장의 그림이 <b>그 도구로 만들어지는 장면 자체</b>가 되어,
+    설명과 예시가 한 편의 GIF 로 합쳐집니다. 순서를 그렇게 잡으신 게 맞습니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">순서</span>세 단계</h2>
+  <div class="phase">
+    <div class="now"><div class="n">지금 → 다음</div><div class="t">1 · 트리 · 머메이드</div>
+      <div class="d">머메이드 읽어서 요소로 펼치기 · 레벨 배치 · ＋자식/＋형제 · 접기 · 쪽 나누기.
+      <b>가로/세로 둘 다.</b></div></div>
+    <div><div class="n">그다음</div><div class="t">2 · GIF 12편 촬영</div>
+      <div class="d">완성된 화면으로 12편을 찍습니다. 아래 촬영 목록대로.</div></div>
+    <div><div class="n">마지막</div><div class="t">3 · 매뉴얼 조립</div>
+      <div class="d">12장에 GIF 를 얹어 Lv2 매뉴얼을 만들고, 제출 → 승인 → 팀 공유.</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">계측</span>GIF 가 지금 EVER-SKETCH 에서 <b class="hi">실제로 어떻게 되나</b></h2>
+  <p>찍기 전에 재 봐야 할 것이라 먼저 확인했습니다. <b>반은 되고 반은 안 됩니다.</b></p>
+  <table class="t">
+    <tr><th>확인한 것</th><th>결과</th></tr>
+    <tr><td>편집기·뷰어에서 GIF 가 움직이나</td><td class="good">○ <span class="muted">`&lt;img&gt;` 로 그리므로 그대로 움직입니다</span></td></tr>
+    <tr><td><b>긴 변 1600px 이하</b>면 원본 그대로 들어가나</td><td class="good">○ 애니메이션 유지</td></tr>
+    <tr><td><b>긴 변 1600px 초과</b>면</td><td class="bad">✗ <b>캔버스로 다시 그려서 첫 프레임만 남습니다</b> — 아무 말도 없이</td></tr>
+    <tr><td>이미지를 어디에 저장하나</td><td class="bad">문서 안에 <b>base64 로 통째로</b>. 파일 업로드 엔드포인트가 <b>없습니다</b></td></tr>
+    <tr><td>저장할 때 무엇을 보내나</td><td class="bad"><b>문서 전체</b>를 매번 PUT 합니다</td></tr>
+    <tr><td>PPTX 로 내보내면</td><td class="mid">그림은 들어가지만 <b>정지</b>합니다</td></tr>
+    <tr><td>문서 크기 제한</td><td class="mid">서버에 <b>없습니다</b> — 막아 주는 게 없다는 뜻이기도 합니다</td></tr>
+  </table>
+
+  <h3>그래서 크기가 문제입니다</h3>
+  <table class="t">
+    <tr><th>녹화</th><th class="n">GIF</th><th class="n">문서 안에서(base64)</th><th class="n">12편이면</th></tr>
+    <tr><td>10초 · 1200×800 · 10fps</td><td class="n">3.5MB</td><td class="n">4.8MB</td><td class="n bad">57MB</td></tr>
+    <tr><td>10초 · 1600×1000 · 12fps</td><td class="n">6.0MB</td><td class="n">8.2MB</td><td class="n bad">98MB</td></tr>
+    <tr><td><b>6초 · 900×600 · 8fps</b></td><td class="n">1.2MB</td><td class="n">1.6MB</td><td class="n mid">20MB</td></tr>
+  </table>
+  <div class="note bad">
+    <b>도구가 스스로 남긴 경고가 이미 있습니다.</b> <span class="kbd">imageIntake.ts</span> 첫머리에
+    이렇게 적혀 있습니다 — <i>「3MB 사진 5장이면 base64 로 약 20MB 이고, 도형을 한 번 움직일 때마다 그
+    20MB 를 딥카피 + stringify 해서 통째로 올린다 — 클릭 한 번마다 화면이 수백 ms 멎는다.
+    근본 해결은 서버에 blob 업로드 엔드포인트를 두고 URL 만 저장하는 것이다.」</i>
+    <b>GIF 매뉴얼은 정확히 그 상황을 12배로 만드는 일입니다.</b>
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">고르기</span>GIF 를 어디에 담을까요 — 셋 중 하나</h2>
+  <table class="t">
+    <tr><th>안</th><th>무엇을 하나</th><th>드는 값</th><th>결과</th></tr>
+    <tr><td><b>ㄱ · 파일 업로드를 만든다</b></td>
+        <td>서버에 이미지 저장 엔드포인트를 두고 문서에는 <b>URL 만</b> 저장</td>
+        <td class="mid">중간 — 업로드 라우트 + 저장 자리 + 권한</td>
+        <td class="good">근본 해결. 매뉴얼도 사진 많은 자료도 전부 가벼워집니다</td></tr>
+    <tr><td><b>ㄴ · 매뉴얼만 밖에 둔다</b></td>
+        <td>GIF 붙인 <b>HTML 한 장</b>을 따로 두고, 이북에는 정지컷 + 「영상 보기」</td>
+        <td class="good">거의 없음</td>
+        <td class="mid">빠르지만 <b>매뉴얼이 EVER-SKETCH 밖에</b> 있게 됩니다</td></tr>
+    <tr><td><b>ㄷ · GIF 를 작게 유지</b></td>
+        <td>900×600 · 6초 · 8fps 로 못박고 이북 안에 넣음</td>
+        <td class="good">없음</td>
+        <td class="bad">12편 20MB. <b>편집할 때마다 그게 통째로 올라갑니다</b></td></tr>
+  </table>
+  <div class="note">
+    <b>제 의견은 ㄱ 입니다.</b> 트리·머메이드를 만들고 나면 그다음 할 일이 GIF 인데, 어차피 한 번은
+    부딪힐 벽입니다. 그리고 이건 <b>매뉴얼만의 문제가 아닙니다</b> — 임원들이 실물 PPT 를 변환해 쓰는
+    자료가 이미 사진 덩어리입니다. <b>다만 ㄱ 을 지금 하면 트리·머메이드가 그만큼 밀립니다.</b>
+    <br>급하시면 <b>ㄴ 으로 먼저 내고</b>, ㄱ 을 한 뒤에 매뉴얼을 안으로 들여오는 길도 있습니다.
+  </div>
+  <div class="note ok">
+    <b>어느 쪽을 고르셔도 지금 바로 막아야 할 것이 하나 있습니다.</b>
+    <b>1600px 넘는 GIF 가 아무 말 없이 정지 이미지가 되는 것</b> — 찍어서 넣고 나중에야
+    「왜 안 움직이지」를 알게 됩니다. <b>「움직이는 그림은 줄이지 않습니다. 1600px 이하로 녹화해 주세요」</b>
+    한 줄만 있으면 됩니다. 작은 일입니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">촬영</span>GIF 12편 — 무엇을 찍나</h2>
+  <p class="muted" style="font-size:12.5px">길이는 <b>6~10초</b>, 한 편에 <b>한 가지만</b>. 길면 안 봅니다.
+     <span style="color:#1c7a4a;font-weight:700">초록 표</span>는 트리·머메이드가 있어야 찍을 수 있는 편입니다.</p>
+
+  <div class="shots">
+
+    <div class="shot"><div class="hd"><i>1</i> 표지 <span class="sec">정지</span></div>
+      <div class="frame"><span class="tag">정지컷</span><div class="play">▦</div>
+        <div class="cap">표지는 움직일 게 없습니다 — 완성된 표지 한 장</div></div>
+      <div class="must"><b>GIF 아님.</b> 이 매뉴얼도 같은 절차로 나왔다는 말 한 줄.</div></div>
+
+    <div class="shot"><div class="hd"><i>2</i> 한 줄 요약 <span class="sec">8초</span></div>
+      <div class="frame"><span class="tag newf">트리 필요</span><div class="play">▶</div>
+        <div class="cap">머메이드 세 줄을 쳐서 「내 폴더 → 결재 → 팀」 이 상자로 펼쳐지는 장면</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>글을 치자 그림이 생기는 순간.</b>
+        <span class="m">이 한 편이 트리·머메이드의 첫인상을 다 결정합니다.</span></div></div>
+
+    <div class="shot"><div class="hd"><i>3</i> 세 등급 <span class="sec">정지</span></div>
+      <div class="frame"><span class="tag">정지컷</span><div class="play">▦</div>
+        <div class="cap">표 한 장 — Lv1/Lv2/Lv3 가 무엇을 하나</div></div>
+      <div class="must"><b>GIF 아님.</b> 표는 정지가 낫습니다. <b>Lv3 도 제 스케치는 만든다</b>는 줄을 꼭.</div></div>
+
+    <div class="shot"><div class="hd"><i>4</i> 자료의 일생 <span class="sec">10초</span></div>
+      <div class="frame"><span class="tag newf">트리 필요</span><div class="play">▶</div>
+        <div class="cap">머메이드로 상태 흐름을 치고 → 펼쳐지고 → 잠기는 상태에 색을 입히는 장면</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>잠기는 셋(결재 중·승인됨·수정 요청 중)이 색으로 갈리는 순간.</b></div></div>
+
+    <div class="shot"><div class="hd"><i>5</i> 제출하면 생기는 일 <span class="sec">9초</span></div>
+      <div class="frame"><div class="play">▶</div>
+        <div class="cap">제출을 누르자 배지가 「결재 중」으로 바뀌고 <b>편집이 잠기는</b> 실제 화면</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>눌렀더니 안 고쳐지는 그 순간.</b> 말로는 잘 안 와닿습니다.
+        <span class="m">잠긴 뒤 도구를 눌러 보는 장면까지 넣어 주세요.</span></div></div>
+
+    <div class="shot"><div class="hd"><i>6</i> 세 갈래 <span class="sec">10초</span></div>
+      <div class="frame"><div class="play">▶</div>
+        <div class="cap">승인 → 팀 공유에 뜸 / 반려 → 편집이 다시 열림 / 회수 → 이력에 남음</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>회수한 뒤에도 결재 이력에 줄이 남아 있는 화면.</b>
+        <span class="m">「없었던 일로 안 된다」를 글이 아니라 화면으로.</span></div></div>
+
+    <div class="shot"><div class="hd"><i>7</i> 승인 뒤 고치기 <span class="sec">10초</span></div>
+      <div class="frame"><div class="play">▶</div>
+        <div class="cap">수정 요청 → Lv1 허락 → 「수정 중」으로 바뀌며 편집이 열리는 장면</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>수정 중인데 팀 공유에는 이전 승인본이 그대로 있는 두 화면.</b>
+        <span class="m">창 두 개를 나란히 찍는 게 가장 잘 통합니다.</span></div></div>
+
+    <div class="shot"><div class="hd"><i>8</i> 공유는 둘 <span class="sec">8초</span></div>
+      <div class="frame"><span class="tag newf">트리 필요</span><div class="play">▶</div>
+        <div class="cap">두 갈래 트리 + 실제 팀 공유 화면이 채워지는 장면</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>승인 전에는 팀 공유가 비어 있다가, 승인하자 뜨는 순간.</b></div></div>
+
+    <div class="shot"><div class="hd"><i>9</i> 의견 주고받기 <span class="sec">9초</span></div>
+      <div class="frame"><div class="play">▶</div>
+        <div class="cap">표의 그 칸을 짚어 지적을 달고 → 「고쳤습니다」로 답하는 장면</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>지적이 문서의 그 자리에 붙어 있는 것.</b>
+        <span class="m">Lv3 는 못 단다는 자막을 같이.</span></div></div>
+
+    <div class="shot"><div class="hd"><i>10</i> Lv3 가 보는 화면 <span class="sec">7초</span></div>
+      <div class="frame"><div class="play">▶</div>
+        <div class="cap">Lv3 로 로그인 → 사이드바가 「개인 스케치 · 팀 공유」 둘뿐인 화면</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>팀 배정 전에는 팀 공유가 비어 있는 것.</b>
+        <span class="m">가장 흔한 사고라 이 편은 꼭 필요합니다.</span></div></div>
+
+    <div class="shot"><div class="hd"><i>11</i> 자주 막히는 곳 <span class="sec">6초 × 5</span></div>
+      <div class="frame"><div class="play">▶</div>
+        <div class="cap">막히는 다섯 장면을 <b>짧게 다섯 편</b>으로 — 제출 거절 · 잠김 · 삭제 거절 · 빈 팀 공유 · 표 넘침</div></div>
+      <div class="must">꼭 보여야 할 것 — <b>거절 문구가 뜨는 그 화면.</b> 사람은 그 문구를 보고 찾아옵니다.
+        <span class="m">여기만 편수가 많습니다. 사실상 이 장이 매뉴얼의 본체입니다.</span></div></div>
+
+    <div class="shot"><div class="hd"><i>12</i> 물어볼 곳 <span class="sec">정지</span></div>
+      <div class="frame"><span class="tag">정지컷</span><div class="play">▦</div>
+        <div class="cap">연락처 세 줄</div></div>
+      <div class="must"><b>GIF 아님.</b> Lv3 는 도구 안에서 의견을 못 다니, 나갈 길을 여기서 엽니다.</div></div>
+
+  </div>
+
+  <div class="note" style="margin-top:16px">
+    <b>세어 보면 GIF 는 12편이 아니라 13편입니다</b> — 1·3·12 장은 정지컷이고, 11장이 다섯 편으로 쪼개집니다.
+    총 <b>정지 3 + GIF 13</b>. 6초·900×600 기준으로 <b>약 16MB</b>입니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">정리</span>정해 주시면 트리·머메이드에 착수합니다</h2>
+  <ul>
+    <li><b>GIF 를 어디에 담을까요</b> — ㄱ 업로드 만들기 / ㄴ 매뉴얼만 밖에 / ㄷ 작게 유지해서 안에
+      <span class="muted">(트리·머메이드보다 먼저 정하실 필요는 없습니다. 찍기 전에만 정하면 됩니다)</span></li>
+    <li><b>「1600px 넘으면 조용히 정지 이미지가 된다」를 지금 막을까요</b> — 한 줄이면 됩니다</li>
+    <li><b>촬영 목록이 이대로 맞나요</b> — 빠진 장면이나 뺄 편이 있는지</li>
+  </ul>
+  <div class="note ok">
+    <b>다음 차례는 트리·머메이드입니다.</b> 앞서 보내 드린 시안(방향 둘 · 접기 · 쪽 나누기 · 머메이드 부분집합)
+    그대로 착수하면 되는지만 말씀해 주시면 바로 들어가겠습니다.
+  </div>
+</section>
+
+</div>
+</body>
+</html>

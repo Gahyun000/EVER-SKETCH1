@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>출구 보장 ㄱ vs ㄴ</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--tint-line:#CFE0FB;
+    --green:#3E9E6E;--amber:#D98A2A;--red:#C0362C;--badbg:#FDECEC;--warnbg:#FFF4E3;--okbg:#E9F5EF}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  h2{font-size:16px;margin:32px 0 8px;color:var(--navy);display:flex;align-items:center;gap:8px}
+  h2 .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 24px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.warn{border-left-color:var(--amber)} .box.bad{border-left-color:var(--red)}
+  .box.ok{border-left-color:var(--green)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+  code{background:#f2f4f8;border-radius:4px;padding:1px 5px;font-size:11.5px;color:#38455e}
+
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  @media (max-width:900px){ .cmp{grid-template-columns:1fr} }
+  .side{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(20,25,40,.07)}
+  .side.pick{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,98,235,.10),0 8px 26px rgba(20,25,40,.07)}
+  .side > .cap{padding:10px 14px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .side > .cap .t{font-size:13px;font-weight:800;color:var(--navy)}
+  .side > .cap .s{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .side > .cap .pk{font-size:10px;font-weight:800;color:var(--blue);margin-left:6px}
+  .body{padding:13px 14px 15px}
+
+  pre{margin:0 0 10px;background:#0f1526;color:#dce3f0;border-radius:9px;padding:11px 13px;
+    font:11.5px/1.75 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto}
+  pre .k{color:#7fb2ff} pre .s{color:#a5e6a5} pre .c{color:#7c8aa5;font-style:italic}
+  pre .bad{background:rgba(192,54,44,.28);border-radius:3px;padding:0 3px}
+  pre .good{background:rgba(62,158,110,.26);border-radius:3px;padding:0 3px}
+  .cl{font-size:10.5px;font-weight:800;color:var(--dim);margin:0 0 5px;letter-spacing:.03em}
+
+  .verd{display:flex;flex-direction:column;gap:4px;margin-top:9px}
+  .verd div{font-size:11.5px;display:flex;gap:6px;align-items:flex-start;line-height:1.6}
+  .verd div .i{width:12px;flex:0 0 12px;text-align:center;font-weight:800}
+  .verd .g{color:#24724b} .verd .g .i{color:var(--green)}
+  .verd .b{color:#a12a21} .verd .b .i{color:var(--red)}
+  .verd .n{color:var(--muted)} .verd .n .i{color:var(--dim)}
+
+  /* 「깨뜨려 보기」 */
+  .ctl{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;align-items:center}
+  .ctl .lb{font-size:11.5px;font-weight:800;color:var(--dim)}
+  .seg{display:inline-flex;border:1.4px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;flex-wrap:wrap}
+  .seg button{border:none;background:#fff;padding:6px 12px;font:inherit;font-size:12px;
+    font-weight:800;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--navy);color:#fff}
+  .catch{border-radius:9px;padding:10px 12px;font-size:12px;line-height:1.7;margin-top:8px}
+  .catch.tsc{background:var(--okbg);border:1px solid #c9e6d8;color:#24724b}
+  .catch.test{background:var(--warnbg);border:1px solid #f0dcbb;color:#8a5a12}
+  .catch.none{background:var(--badbg);border:1px solid #f0cdc8;color:#a12a21}
+  .catch b{font-weight:800}
+  .catch .when{display:block;font-size:10.5px;font-weight:800;letter-spacing:.03em;margin-bottom:3px;opacity:.8}
+
+  table.inv{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin:0 0 14px}
+  table.inv th,table.inv td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.inv th{background:#fbfcfe;color:var(--navy);font-size:11.5px}
+  table.inv tr:last-child td{border-bottom:none}
+  td.y{color:#24724b;font-weight:800;white-space:nowrap}
+  td.n{color:#a12a21;font-weight:800;white-space:nowrap}
+  td.p{color:#a1651a;font-weight:800;white-space:nowrap}
+
+  /* 버튼 줄 그림 */
+  .brow{display:flex;gap:6px;justify-content:flex-end;background:#f7f9fd;border:1px solid var(--line);
+    border-radius:8px;padding:9px 11px;margin:6px 0 0}
+  .brow span{border:1.4px solid #e5e7eb;background:#fff;color:#334155;font-weight:800;
+    font-size:11.5px;border-radius:8px;padding:5px 12px}
+  .brow span.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+  .brow span.moved{border-color:var(--amber);background:#fff8ec;color:#8a5a12}
+  .cap2{font-size:10.5px;color:var(--dim);margin:4px 0 0;font-weight:700}
+
+  ul.pt{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  ul.pt li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;
+    font-size:12.5px;color:var(--muted);border-left:3px solid var(--line)}
+  ul.pt li b{color:var(--navy)}
+  ul.pt li.k{border-left-color:var(--red)}
+  ul.pt li.g{border-left-color:var(--green)}
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>출구 보장 — ㄱ과 ㄴ은 화면이 똑같습니다</h1>
+<p class="lead">쓰는 사람 눈에는 <b>차이가 없습니다.</b> 지금 있는 모달 12개는 둘 중 뭘 골라도 똑같이 생겼습니다.
+차이는 <b>내일 누가 무엇을 만들 수 있는가</b>입니다.</p>
+
+<h2><span class="n">1</span>지금 코드가 이렇게 바뀝니다</h2>
+<div class="cmp">
+  <div class="side">
+    <div class="cap"><div class="t">ㄱ · footer 는 그대로, 검사가 본다</div>
+      <div class="s">코드는 지금과 같습니다. 검사 파일만 늘어납니다.</div></div>
+    <div class="body">
+      <div class="cl">src/persistence/LibraryScreen.tsx — 안 바뀜</div>
+<pre><span class="k">&lt;Modal</span> title=<span class="s">"결재 제출"</span> onClose={() =&gt; setSubmitting(<span class="k">null</span>)}
+  footer={&lt;&gt;
+    <span class="good">&lt;button onClick={() =&gt; setSubmitting(null)}&gt;취소&lt;/button&gt;</span>
+    &lt;button onClick={submit}&gt;제출&lt;/button&gt;
+  &lt;/&gt;}&gt;</pre>
+      <div class="cl">modal_shell.test.mjs — 새로 넣는 검사</div>
+<pre><span class="c">// onClose 의 식과 footer 안 onClick 의 식이 같은지 대조한다.</span>
+<span class="k">const</span> close = /onClose=\{([^\n]+)\}/.exec(seg)[<span class="s">1</span>]
+check(foot.includes(<span class="s">`onClick={${close}}`</span>) || foot.includes(<span class="s">'closeX'</span>),
+  <span class="s">'나가는 버튼이 footer 에 있다'</span>)</pre>
+      <div class="verd">
+        <div class="g"><span class="i">✓</span>손대는 파일 0개 — 지금 코드가 그대로 통과합니다</div>
+        <div class="b"><span class="i">✕</span><b>12개 중 1개가 이미 안 맞습니다</b> — CommentComposer 는
+          <code>onClose={() =&gt; { if (!busy) onClose() }}</code> 인데 취소는 <code>onClick={onClose}</code> 라
+          <b>글자가 다릅니다.</b> 예외를 손으로 적어 둬야 합니다.</div>
+        <div class="b"><span class="i">✕</span>내일 <code>onClick={handleCancel}</code> 처럼 한 단계 감싸면 <b>또 안 맞습니다.</b>
+          진짜 출구가 있는데 검사가 없다고 합니다 — 그러면 다음 사람은 검사를 느슨하게 고칩니다.</div>
+        <div class="n"><span class="i">·</span>잡히는 때: <b>검사를 돌릴 때</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side pick">
+    <div class="cap"><div class="t">ㄴ · 출구를 껍데기가 그린다 <span class="pk">권함</span></div>
+      <div class="s">12곳을 고칩니다. 그 대신 타입이 막습니다.</div></div>
+    <div class="body">
+      <div class="cl">src/ui/Modal.tsx</div>
+<pre><span class="c">/** 나가는 길. **없앨 수 없다** — 없는 창을 만들지 못하게 타입이 막는다. */</span>
+cancel: { label: <span class="k">string</span>; onClick: () =&gt; <span class="k">void</span> } | <span class="s">'closeX'</span>
+footer: ReactNode   <span class="c">// 행동 버튼만</span></pre>
+      <div class="cl">src/persistence/LibraryScreen.tsx</div>
+<pre><span class="k">&lt;Modal</span> title=<span class="s">"결재 제출"</span> onClose={() =&gt; setSubmitting(<span class="k">null</span>)}
+  <span class="good">cancel={{ label: '취소', onClick: () =&gt; setSubmitting(null) }}</span>
+  footer={&lt;button onClick={submit}&gt;제출&lt;/button&gt;}&gt;</pre>
+      <div class="verd">
+        <div class="g"><span class="i">✓</span><b>출구 없는 모달을 만들 수가 없습니다.</b> 빼먹으면 <code>tsc</code> 가 거절합니다 —
+          검사를 돌리기 전, <b>타자를 치는 순간</b>입니다.</div>
+        <div class="g"><span class="i">✓</span>라벨이 달라도 됩니다 — 「그대로 두기」·「닫기」가 그대로 들어갑니다.</div>
+        <div class="g"><span class="i">✓</span><code>cancel="closeX"</code> 로 적으면 ✕ 를 답니다. <b>취소가 없는 창은 ✕ 가 있다</b>가 한 줄로 지켜집니다.</div>
+        <div class="b"><span class="i">✕</span>12곳을 고쳐야 합니다. 그중 <b>한 곳은 버튼 순서가 바뀝니다</b> — 아래 3번.</div>
+        <div class="n"><span class="i">·</span>잡히는 때: <b>타입 검사(tsc)</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2><span class="n">2</span>깨뜨려 보기 — 각각 어디서 걸리나</h2>
+<div class="ctl">
+  <span class="lb">누가 이런 걸 만들면</span>
+  <span class="seg" id="seg"></span>
+</div>
+<div class="cmp">
+  <div class="side">
+    <div class="cap"><div class="t">ㄱ</div></div>
+    <div class="body"><pre id="codeA"></pre><div id="catchA"></div></div>
+  </div>
+  <div class="side pick">
+    <div class="cap"><div class="t">ㄴ</div></div>
+    <div class="body"><pre id="codeB"></pre><div id="catchB"></div></div>
+  </div>
+</div>
+
+<h2><span class="n">3</span>ㄴ 을 고르면 실제로 바뀌는 것 하나</h2>
+<div class="box warn"><span class="t">「저장하고 계속할까요?」 창의 버튼 순서</span>
+껍데기가 나가는 길을 <b>맨 앞에</b> 그리므로, 지금 가운데 있던 「취소」가 왼쪽으로 옵니다.
+이 창은 셋 중 하나를 고르는 창이라 순서가 눈에 띕니다.
+<b>순서를 검사하는 테스트는 없습니다</b>(<code>modal_shell_smoke</code> 는 세 글자가 있는지만 봅니다) —
+그래서 조용히 바뀝니다. 미리 말씀드립니다.</div>
+
+<div class="cmp">
+  <div class="side">
+    <div class="cap"><div class="t">지금</div></div>
+    <div class="body">
+      <div class="brow"><span>저장하지 않고 계속</span><span>취소</span><span class="dark">저장하고 계속</span></div>
+      <p class="cap2">「취소」가 가운데. 왼쪽 둘이 「안 저장하고 나가는 두 가지」로 붙어 있습니다.</p>
+    </div>
+  </div>
+  <div class="side">
+    <div class="cap"><div class="t">ㄴ 을 고르면</div></div>
+    <div class="body">
+      <div class="brow"><span class="moved">취소</span><span>저장하지 않고 계속</span><span class="dark">저장하고 계속</span></div>
+      <p class="cap2">「취소」가 맨 왼쪽. 나머지 열한 창과 자리가 같아집니다.</p>
+    </div>
+  </div>
+</div>
+<p class="note">이 창 하나만 그렇습니다. 나머지 열한 개는 이미 「취소」가 맨 앞이라 그림이 안 바뀝니다.
+<b>순서를 지금대로 두고 싶으시면</b> 껍데기가 자리를 고르게 하는 값을 하나 더 받으면 되는데,
+그러면 「출구가 어디 있는지」가 다시 창마다 달라집니다 — 이 교체의 이유를 반쯤 무릅니다.</p>
+
+<h2><span class="n">4</span>한눈에</h2>
+<table class="inv">
+  <tr><th style="width:210px"></th><th style="width:230px">ㄱ · 검사가 본다</th><th>ㄴ · 껍데기가 그린다</th></tr>
+  <tr><td><b>쓰는 사람이 보는 화면</b></td><td class="y">똑같음</td><td class="y">똑같음 (한 창만 버튼 순서)</td></tr>
+  <tr><td><b>언제 잡히나</b></td><td class="p">검사를 돌릴 때</td><td class="y">타자를 치는 순간 (tsc)</td></tr>
+  <tr><td><b>지금 코드 손대는 양</b></td><td class="y">0곳</td><td class="p">12곳</td></tr>
+  <tr><td><b>지금도 안 맞는 곳</b></td><td class="n">1곳 (CommentComposer)</td><td class="y">없음</td></tr>
+  <tr><td><b>비켜 갈 수 있나</b></td><td class="n">한 단계만 감싸면 비켜 감</td><td class="y">비켜 갈 수 없음</td></tr>
+  <tr><td><b>「취소 없으면 ✕」 규칙</b></td><td class="p">검사가 문자열로 확인</td><td class="y"><code>cancel="closeX"</code> 한 줄</td></tr>
+</table>
+
+<div class="box ok"><span class="t">권하는 이유</span>
+이 저장소가 반복해서 데인 것이 <b>「문서에는 보장이라 적혀 있는데 지키는 코드가 없다」</b>였습니다 —
+<code>slot_allows()</code> 가 테스트에서만 불렸던 일, 「1인 1장」이 지켜지지 않던 일.
+ㄱ은 <b>또 그 모양</b>입니다: 규칙은 글자를 맞춰 보는 검사에 있고, 한 단계만 감싸면 비켜 갑니다.
+ㄴ은 규칙이 <b>타입에</b> 있어서 비켜 갈 방법이 없습니다.</div>
+
+<p class="note">시안 v1.0 · 1번의 코드는 <b>지금 저장소에 있는 실제 코드</b>입니다
+(<code>LibraryScreen.tsx</code> · <code>CommentComposer.tsx</code> · <code>ConfirmSaveModal.tsx</code>).
+ㄴ 쪽 코드는 아직 안 쓴 것이라 모양만 보여 드립니다.</p>
+
+</div>
+
+<script>
+const CASES = [
+  { k:'noexit', label:'출구 없는 모달',
+    a:{ code:`<span class="k">&lt;Modal</span> title=<span class="s">"자료 삭제"</span> onClose={() =&gt; setDel(<span class="k">null</span>)}
+  footer={<span class="bad">&lt;button onClick={remove}&gt;삭제&lt;/button&gt;</span>}&gt;`,
+        kind:'test', when:'검사를 돌릴 때',
+        msg:'<b>잡힙니다.</b> footer 에 <code>onClick={() =&gt; setDel(null)}</code> 이 없으니 검사가 실패합니다. 다만 <b>커밋한 뒤에야</b> 압니다.' },
+    b:{ code:`<span class="k">&lt;Modal</span> title=<span class="s">"자료 삭제"</span> onClose={() =&gt; setDel(<span class="k">null</span>)}
+  <span class="bad">// cancel 이 없다</span>
+  footer={&lt;button onClick={remove}&gt;삭제&lt;/button&gt;}&gt;`,
+        kind:'tsc', when:'타자를 치는 순간',
+        msg:"<b>잡힙니다.</b> <code>Property 'cancel' is missing</code> — 편집기가 빨간 줄을 긋습니다. 커밋까지 갈 일이 없습니다." } },
+
+  { k:'wrapped', label:'취소를 한 단계 감싼 모달',
+    a:{ code:`<span class="k">const</span> handleCancel = () =&gt; { track(<span class="s">'취소'</span>); setDel(<span class="k">null</span>) }
+<span class="k">&lt;Modal</span> onClose={() =&gt; setDel(<span class="k">null</span>)}
+  footer={&lt;&gt;
+    <span class="bad">&lt;button onClick={handleCancel}&gt;취소&lt;/button&gt;</span>
+    &lt;button onClick={remove}&gt;삭제&lt;/button&gt;
+  &lt;/&gt;}&gt;`,
+        kind:'none', when:'아무도 안 잡음 — 거꾸로',
+        msg:'<b>거짓 경보입니다.</b> 진짜 취소가 있는데 글자가 달라 검사가 「없다」고 합니다. 그러면 다음 사람은 <b>검사를 느슨하게 고칩니다</b> — 그 순간 이 검사는 아무것도 안 지킵니다. <b>CommentComposer 가 이미 이 모양입니다.</b>' },
+    b:{ code:`<span class="k">&lt;Modal</span> onClose={() =&gt; setDel(<span class="k">null</span>)}
+  <span class="good">cancel={{ label: '취소', onClick: handleCancel }}</span>
+  footer={&lt;button onClick={remove}&gt;삭제&lt;/button&gt;}&gt;`,
+        kind:'tsc', when:'문제가 안 생김',
+        msg:'<b>애초에 이런 모양이 안 나옵니다.</b> 감싸든 말든 <code>cancel</code> 에 넣으므로 껍데기가 그대로 그립니다.' } },
+
+  { k:'nocancel', label:'취소가 없어야 하는 창 (임시 비밀번호)',
+    a:{ code:`<span class="k">&lt;Modal</span> title=<span class="s">"임시 비밀번호"</span> dismissible={<span class="k">false</span>}
+  footer={&lt;&gt;
+    &lt;button onClick={copy}&gt;복사&lt;/button&gt;
+    <span class="good">&lt;button onClick={() =&gt; setIssued(null)}&gt;닫기&lt;/button&gt;</span>
+  &lt;/&gt;}&gt;`,
+        kind:'test', when:'검사를 돌릴 때',
+        msg:'통과합니다 — <code>onClose</code> 와 글자가 같으니까. 다만 검사는 <b>「닫기」가 나가는 버튼인 줄 모릅니다.</b> 글자가 같아서 통과한 것뿐입니다.' },
+    b:{ code:`<span class="k">&lt;Modal</span> title=<span class="s">"임시 비밀번호"</span> dismissible={<span class="k">false</span>}
+  <span class="good">cancel={{ label: '닫기', onClick: () =&gt; setIssued(null) }}</span>
+  footer={&lt;button onClick={copy}&gt;복사&lt;/button&gt;}&gt;`,
+        kind:'tsc', when:'뜻이 코드에 적힘',
+        msg:'<b>「닫기」가 나가는 길이라고 코드가 말합니다.</b> 라벨이 무엇이든 껍데기가 출구 자리에 그립니다 — 사람이 읽어도, 검사가 읽어도 같습니다.' } },
+
+  { k:'x', label:'취소도 닫기도 없는 창',
+    a:{ code:`<span class="k">&lt;Modal</span> title=<span class="s">"처리 결과"</span>
+  footer={<span class="bad">&lt;button onClick={print}&gt;인쇄&lt;/button&gt;</span>}&gt;`,
+        kind:'test', when:'검사를 돌릴 때',
+        msg:'<b>잡히긴 합니다.</b> 그런데 고치는 길이 <b>검사가 아는 글자를 맞춰 주는 것</b>이라, <code>closeX</code> 라고 적어도 되고 취소를 넣어도 됩니다 — 어느 쪽이 옳은지 코드가 안 말합니다.' },
+    b:{ code:`<span class="k">&lt;Modal</span> title=<span class="s">"처리 결과"</span>
+  <span class="good">cancel="closeX"</span>
+  footer={&lt;button onClick={print}&gt;인쇄&lt;/button&gt;}&gt;`,
+        kind:'tsc', when:'타자를 치는 순간',
+        msg:'<b>「취소가 없으면 ✕」가 한 줄로 지켜집니다.</b> 껍데기가 ✕ 를 답니다. 빼먹으면 tsc 가 거절합니다.' } },
+];
+
+let cur = 0;
+const seg = document.getElementById('seg');
+seg.innerHTML = CASES.map((c,i)=>`<button data-i="${i}">${c.label}</button>`).join('');
+seg.onclick = e => { const b = e.target.closest('button'); if (b) { cur = +b.dataset.i; render(); } };
+
+function catchBox(o){
+  const cls = o.kind === 'tsc' ? 'tsc' : o.kind === 'test' ? 'test' : 'none';
+  return `<div class="catch ${cls}"><span class="when">${o.when}</span>${o.msg}</div>`;
+}
+function render(){
+  const c = CASES[cur];
+  document.getElementById('codeA').innerHTML = c.a.code;
+  document.getElementById('codeB').innerHTML = c.b.code;
+  document.getElementById('catchA').innerHTML = catchBox(c.a);
+  document.getElementById('catchB').innerHTML = catchBox(c.b);
+  [...seg.querySelectorAll('button')].forEach((b,i)=>b.classList.toggle('on', i === cur));
+}
+render();
+</script>
+</body>
+</html>

@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { pageSize } from '../cards/sizing'
 import { fitPagesToPaper } from '../canvas/fitPaper'
 import { mindmapParts } from '../cards/mindmapEls'
+import { parseMermaid } from '../cards/mermaid'
+import { treeParts } from '../cards/treeEls'
 import { rememberOrientation } from '../persistence/prefs'
 import { makeContinuation } from '../canvas/tableFlow'
 import { cardByKey } from '../cards/registry'
@@ -32,12 +34,20 @@ export interface Page { id: number; cardKey: string; fields: Record<string, stri
    *  펼치고 나면 그냥 도형과 선이라 「이게 마인드맵이었다」를 알 길이 없다.
    *  그래서 「＋ 가지」를 어디에 붙일지도 모른다. 중심 id 하나만 적어 두면
    *  **표시와 붙일 자리**를 한꺼번에 해결한다. */
-  mindmapCenter?: number }
+  mindmapCenter?: number
+  /** 이 쪽이 **트리에서 펼쳐진 것**이면 뿌리 도형의 id. 마인드맵의 `mindmapCenter` 와 같은 몫이다.
+   *  방향을 바꿀 때 자르지 말고 다시 앉혀야 하는지를 이것으로 안다. */
+  treeRoot?: number
+  /** 그 트리가 왼→오른(LR)인가 위→아래(TD)인가. 다시 앉힐 때 필요하다. */
+  treeDir?: 'LR' | 'TD'
+  /** 트리를 만든 **머메이드 원문.** 그림을 고쳐도 이건 안 고친다 —
+   *  「처음에 무엇을 쳤는가」의 기록이고, 다시 펼치고 싶을 때 되돌아갈 자리다. */
+  treeSrc?: string }
 export interface CanvasData { els: FreeEl[]; conns: Conn[]; strokes: Stroke[]; detached?: string[] }
 export interface BuilderState {
   title: string; orientation: Orientation; font: string; size: SizePreset; theme: ThemeName
   pages: Page[]; selectedPageId: number | null
-  addCard: (cardKey: string, count?: number) => void
+  addCard: (cardKey: string, count?: number, src?: string) => void
   updateField: (pageId: number, key: string, value: string) => void
   removePage: (pageId: number) => void
   movePage: (pageId: number, dir: number) => void
@@ -188,7 +198,7 @@ export function reseedUids(pages: Page[]): void {
 export const useBuilder = create<BuilderState>((set, get) => ({
   title: '유니에버 AX 사업모델', orientation: 'portrait', font: 'auto', size: 'm', theme: 'light',
   pages: [], selectedPageId: null,
-  addCard: (cardKey, count) => set((s) => {
+  addCard: (cardKey, count, src) => set((s) => {
     // 슬라이드 = 빈 캔버스 편집 페이지(구글 슬라이드식). 블록편집기 없이 요소로 직접 편집.
     if (cardKey === 'slide') {
       const sp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true, els: [], conns: [], strokes: [], blocks: [], bg: '' }
@@ -206,6 +216,19 @@ export const useBuilder = create<BuilderState>((set, get) => ({
       const mp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true,
                          els, conns, strokes: [], blocks: [], bg: '', mindmapCenter: center }
       return { pages: [...s.pages, mp], selectedPageId: mp.id }
+    }
+    // 트리도 마인드맵처럼 **그 자리에서 요소로 펼친다.** 카드로 두면 SVG 한 덩어리가 되어
+    // 상자 하나를 못 잡는다 — 마인드맵을 카드에서 뺀 것과 같은 이유다.
+    if (cardKey === 'tree') {
+      const { W, H } = pageSize(s.orientation)
+      const g = parseMermaid(src || '')
+      const dir = g.dir
+      // 원하신 방향이 이 종이에 안 들어가면 treeParts 가 눕힌다 — **쓴 방향을 그대로 적는다.**
+      const { els, conns, rootId, dir: used } = treeParts(g, W, H, nextElId, dir)
+      const tp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true,
+                         els, conns, strokes: [], blocks: [], bg: '',
+                         treeRoot: rootId, treeDir: used, treeSrc: src || '' }
+      return { pages: [...s.pages, tp], selectedPageId: tp.id }
     }
     const p: Page = { id: uid++, cardKey, fields: defaultsFor(cardKey), free: false, els: [], conns: [], strokes: [] }
     if (cardKey === 'note') {

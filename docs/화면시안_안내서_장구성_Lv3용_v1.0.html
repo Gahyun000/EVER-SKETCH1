@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면시안 — PM이 쓰는 EVER-SKETCH 안내서</title>
+<style>
+  :root{
+    --ink:#16203a; --muted:#6b7590; --line:#dfe3ec; --plane:#f4f6fa; --surf:#fff;
+    --blue:#2a78d6; --blue-d:#1b5bab; --blue-100:#e4effc;
+    --warn:#b9541b; --warn-bg:#fff3e2; --warn-line:#f0d7b4;
+    --bad:#b3261e; --bad-bg:#fdeceb; --bad-line:#f3c9c6;
+    --ok:#1c7a4a; --ok-bg:#e8f6ee; --ok-line:#bfe2ce;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    padding-block:28px;padding-left:20px;padding-right:20px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  section{background:var(--surf);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+  h2{font-size:15.5px;margin:0 0 10px;letter-spacing:-.01em}
+  h2 .tag{display:inline-block;background:var(--blue-100);color:var(--blue-d);
+    border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:800;margin-right:7px;vertical-align:2px}
+  h3{font-size:13.5px;margin:18px 0 8px}
+  p{margin:0 0 10px}
+  .muted{color:var(--muted)}
+  b.hi{color:var(--blue-d)}
+  table.t{border-collapse:collapse;width:100%;font-size:12.5px;margin:8px 0 4px}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  table.t th{color:var(--muted);font-weight:700;font-size:11.5px;border-bottom:1px solid #c9cfdd}
+  td.bad{color:var(--bad);font-weight:800} td.good{color:var(--ok);font-weight:800}
+  .note{background:var(--warn-bg);border:1px solid var(--warn-line);border-left:3px solid var(--warn);
+    border-radius:8px;padding:10px 13px;font-size:12.8px;margin:12px 0}
+  .note.bad{background:var(--bad-bg);border-color:var(--bad-line);border-left-color:var(--bad)}
+  .note.ok{background:var(--ok-bg);border-color:var(--ok-line);border-left-color:var(--ok)}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--plane);
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  ul{margin:6px 0 10px;padding-left:19px} li{margin-bottom:5px}
+
+  /* ── 장 카드 ── */
+  .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px;margin-top:6px}
+  .card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surf)}
+  .card .no{display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--plane);
+    border-bottom:1px solid var(--line);font-size:11.5px;font-weight:800;color:var(--muted)}
+  .card .no i{width:19px;height:19px;border-radius:50%;background:var(--blue-100);color:var(--blue-d);
+    display:grid;place-items:center;font-style:normal;font-size:10.5px}
+  .card .no .ct{margin-left:auto;background:#fff;border:1px solid var(--line);border-radius:5px;
+    padding:1px 6px;font-size:10.5px;color:var(--blue-d);font-weight:800}
+  .sheet{aspect-ratio:1040/720;background:#fff;position:relative;overflow:hidden;
+    border-bottom:1px solid var(--line);padding:11px 13px}
+  .sheet .h{font-size:12px;font-weight:800;color:#16203a;margin-bottom:2px}
+  .sheet .s{font-size:8.5px;color:#8a93aa;margin-bottom:7px}
+  .sheet .body{font-size:9px;color:#4a5468;line-height:1.55}
+  .card .why{padding:9px 11px;font-size:12px;color:var(--muted);line-height:1.6}
+  .card .why b{color:var(--ink)}
+
+  /* 장 안에 그리는 작은 부품들 */
+  .row3{display:flex;gap:5px}
+  .box{border:1px solid #8fb3e0;background:#e9f0fb;border-radius:6px;padding:4px 5px;
+    font-size:8px;color:#1c2433;flex:1;text-align:center;line-height:1.3}
+  .box.dark{background:#16203a;border-color:#16203a;color:#fff}
+  .box.warn{background:#fff3e2;border-color:#d8a45e;color:#7a4412}
+  .box.ok{background:#e8f6ee;border-color:#bfe2ce;color:#1c7a4a}
+  .box.bad{background:#fdeceb;border-color:#f3c9c6;color:#8d211b}
+  .arrow{align-self:center;color:#a7b0c4;font-size:9px;flex:0 0 auto}
+  .minitbl{width:100%;border-collapse:collapse;font-size:8px;margin-top:3px}
+  .minitbl td,.minitbl th{border:1px solid #dde2ec;padding:2px 3px;text-align:center}
+  .minitbl th{background:#eef3fb;color:#2b4f86;font-weight:800}
+  .minitbl td.y{color:#1c7a4a;font-weight:800}
+  .minitbl td.n{color:#b3261e;font-weight:800}
+  .tree{position:relative;height:100%}
+  .tnode{position:absolute;border:1px solid #8fb3e0;background:#e9f0fb;border-radius:5px;
+    font-size:7.5px;display:flex;align-items:center;justify-content:center;color:#1c2433;text-align:center;line-height:1.2}
+  .tnode.dark{background:#16203a;border-color:#16203a;color:#fff}
+  .tnode.warn{background:#fff3e2;border-color:#d8a45e;color:#7a4412}
+  svg.tw{position:absolute;inset:0}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:4px 0 12px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  @media (max-width:700px){ .deck{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>PM 이 쓰는 「EVER-SKETCH 안내서」 — 장 구성안</h1>
+<p class="sub">2026-09-14 · Lv2 작성자가 EVER-SKETCH 안에서 만들고, 결재를 태워 Lv3 가 읽는 문서입니다. 코드는 안 건드렸습니다.</p>
+
+<section>
+  <h2><span class="tag">먼저</span>Lv3 에게 닿는 길이 <b class="hi">둘</b>입니다 — 어느 쪽으로 낼지부터</h2>
+  <table class="t">
+    <tr><th>길</th><th>누가 보나</th><th>어떻게</th><th>되돌리기</th></tr>
+    <tr><td><b>① 팀 공유</b> (승인 = 공유)</td><td><b>같은 팀</b> 사람 — 등급 무관, <b>Lv3 포함</b></td>
+        <td>Lv2 제출 → <b>Lv1 승인</b> → 팀 공유에 뜸</td><td class="good">수정 요청으로 고칠 수 있음</td></tr>
+    <tr><td><b>② 발행</b></td><td><b>열람자 전원</b> — 팀과 무관</td>
+        <td><b>Lv1 이 발행</b> (Lv2 는 못 함)</td><td class="bad">이미 본 사람은 본 것 — 되돌리기 어려움</td></tr>
+  </table>
+  <div class="note">
+    <b>안내서라면 ①이 맞습니다.</b> 팀 단위로 나가고, 틀린 게 있으면 수정 요청으로 고쳐서 다시 낼 수 있습니다.
+    ②는 「전사에 한 번 크게 알린다」일 때 쓰는 길이고 <b>Lv1 만 누를 수 있습니다.</b>
+  </div>
+  <div class="note bad">
+    <b>Lv3 가 팀에 없으면 아무것도 못 봅니다.</b> Lv3 는 사이드바에 「개인 스케치」와 「팀 공유」만 있는데,
+    팀이 없으면 팀 공유가 <b>빈 화면</b>입니다. <b>Lv1 이 Lv3 도 팀에 넣어야</b> 이 안내서가 닿습니다 — 놓치기 쉬운 자리입니다.
+  </div>
+  <div class="note">
+    <b>그리고 Lv3 는 의견(지적)을 못 답니다.</b> 읽고 나서 「여기 모르겠다」를 <b>이 도구 안에서는 말할 수 없습니다.</b>
+    안내서 마지막 장에 <b>물어볼 곳</b>(사람·메신저)을 적어 두는 편이 좋겠습니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">구성</span>12장 — 각 장에 무엇을 쓰고, <b class="hi">어느 카드를 쓰나</b></h2>
+  <div class="legend">
+    <span><i style="background:#16203a"></i> 중심·제목</span>
+    <span><i style="background:#e9f0fb;border:1px solid #8fb3e0"></i> 보통</span>
+    <span><i style="background:#fff3e2;border:1px solid #d8a45e"></i> 판단·주의</span>
+    <span><i style="background:#e8f6ee;border:1px solid #bfe2ce"></i> 되는 것</span>
+    <span><i style="background:#fdeceb;border:1px solid #f3c9c6"></i> 안 되는 것</span>
+  </div>
+
+  <div class="deck">
+
+    <div class="card"><div class="no"><i>1</i> 표지 <span class="ct">표지 카드</span></div>
+      <div class="sheet">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 16px">
+          <div style="font-size:15px;font-weight:800">EVER-SKETCH 사용 안내</div>
+          <div style="font-size:9px;color:#8a93aa;margin-top:4px">기획팀 · 2026-09 · 작성 김가현</div>
+          <div style="font-size:8.5px;color:#6b7590;margin-top:9px">이 문서는 EVER-SKETCH 로 만들어 결재를 거쳐 공유되었습니다.</div>
+        </div>
+      </div>
+      <div class="why"><b>이 문서 자체가 예시입니다.</b> 「이 안내서도 그 절차로 나왔다」를 표지에 적어 두면 설명이 반쯤 끝납니다.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>2</i> 한 줄로 <span class="ct">한 줄 요약</span></div>
+      <div class="sheet">
+        <div class="h">EVER-SKETCH 가 하는 일</div>
+        <div class="s">한 문장</div>
+        <div style="margin-top:12px" class="row3">
+          <div class="box">내 폴더에서<br>만들고</div><div class="arrow">▶</div>
+          <div class="box">결재를 받고</div><div class="arrow">▶</div>
+          <div class="box ok">팀이 본다</div>
+        </div>
+        <div class="body" style="margin-top:10px">회의 자료를 <b>같은 틀</b>로 만들고, <b>승인된 것만</b> 팀에 모읍니다.
+          누가 무엇을 언제 승인했는지가 남습니다.</div>
+      </div>
+      <div class="why">세 칸짜리 그림 하나면 충분합니다. <b>프로세스 카드</b>도 되지만, 지금은 SVG 한 덩어리라 손볼 수 없으니 <b>트리/머메이드</b>를 쓰시는 게 낫습니다.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>3</i> 세 등급 <span class="ct">표 (자유 캔버스)</span></div>
+      <div class="sheet">
+        <div class="h">누가 무엇을 하나</div>
+        <div class="s">숫자가 작을수록 권한이 큽니다</div>
+        <table class="minitbl">
+          <tr><th></th><th>Lv1 관리자</th><th>Lv2 작성자</th><th>Lv3 열람자</th></tr>
+          <tr><th>내 자료 만들기</th><td class="y">O</td><td class="y">O</td><td class="y">O</td></tr>
+          <tr><th>결재 제출</th><td class="y">O</td><td class="y">O</td><td class="n">X</td></tr>
+          <tr><th>승인·반려</th><td class="y">O</td><td class="n">X</td><td class="n">X</td></tr>
+          <tr><th>팀 공유 읽기</th><td class="y">O</td><td class="y">O</td><td class="y">O</td></tr>
+          <tr><th>의견 달기</th><td class="y">O</td><td class="y">O</td><td class="n">X</td></tr>
+        </table>
+      </div>
+      <div class="why"><b>Lv3 도 제 스케치는 만듭니다</b> — 아무에게도 안 보이는 개인 공간입니다. 이 줄을 빼면 Lv3 는 「나는 읽기만 하는구나」로 오해합니다.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>4</i> 자료의 일생 <span class="ct">트리 · 머메이드</span></div>
+      <div class="sheet">
+        <div class="h">자료는 이렇게 움직입니다</div>
+        <div class="s">상태는 결재 이력에서 자동으로 정해집니다</div>
+        <div class="tree" style="height:76%;margin-top:4px">
+          <svg class="tw" viewBox="0 0 300 130" preserveAspectRatio="none">
+            <polyline points="52,26 66,26 66,26 80,26" fill="none" stroke="#b9c2d4" stroke-width="1"/>
+            <polyline points="126,26 140,26 140,26 154,26" fill="none" stroke="#b9c2d4" stroke-width="1"/>
+            <polyline points="126,26 140,26 140,70 154,70" fill="none" stroke="#b9c2d4" stroke-width="1"/>
+            <polyline points="126,26 140,26 140,108 154,108" fill="none" stroke="#b9c2d4" stroke-width="1"/>
+            <polyline points="154,70 146,70 146,26 154,26" fill="none" stroke="#d8a45e" stroke-width="1" stroke-dasharray="2 2"/>
+          </svg>
+          <div class="tnode dark" style="left:2%;top:12%;width:16%;height:16%">초안</div>
+          <div class="tnode" style="left:26%;top:12%;width:16%;height:16%">결재 중</div>
+          <div class="tnode ok" style="left:51%;top:12%;width:18%;height:16%;background:#e8f6ee;border-color:#bfe2ce;color:#1c7a4a">승인됨</div>
+          <div class="tnode warn" style="left:51%;top:46%;width:18%;height:16%">반려</div>
+          <div class="tnode" style="left:51%;top:76%;width:18%;height:16%">회수</div>
+          <div class="tnode" style="left:75%;top:12%;width:22%;height:16%">수정 요청 → 수정 중</div>
+        </div>
+      </div>
+      <div class="why"><b>새 트리 도구의 첫 손님이 바로 이 장입니다.</b> 머메이드로 뼈대를 쓰고 손으로 다듬으면 됩니다. 잠기는 상태(결재 중·승인됨·수정 요청 중)를 색으로 구분해 주세요.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>5</i> 제출하면 생기는 일 <span class="ct">빈 페이지 + 그림</span></div>
+      <div class="sheet">
+        <div class="h">「제출」을 누르는 순간</div>
+        <div class="s">가장 많이 놀라는 자리입니다</div>
+        <div class="row3" style="margin-top:10px">
+          <div class="box warn">📸 문서가<br><b>그대로 얼어붙음</b></div>
+          <div class="box warn">✏️ 편집<br><b>잠김</b></div>
+          <div class="box">결재함에<br>뜸</div>
+        </div>
+        <div class="body" style="margin-top:10px">승인은 <b>「그때 본 것」에 대한 승인</b>입니다. 그래서 낸 뒤에 고치면
+          승인 도장이 무엇에 찍힌 건지 알 수 없게 됩니다.</div>
+        <div class="body" style="margin-top:6px;color:#7a4412">낼 수 있는 조건 — <b>팀에 속해 있을 것</b> · 장이 한 장이라도 있을 것</div>
+      </div>
+      <div class="why">여기서 <b>왜</b> 잠기는지를 한 줄로 설명하는 게 핵심입니다. 이유를 알면 「왜 안 고쳐지지」가 안 생깁니다.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>6</i> 세 갈래 <span class="ct">트리 (3갈래)</span></div>
+      <div class="sheet">
+        <div class="h">낸 다음에는</div>
+        <div class="s">승인 · 반려 · 회수</div>
+        <div class="body" style="margin-top:8px">
+          <div style="margin-bottom:5px"><b style="color:#1c7a4a">승인</b> — 그 순간 팀에 보입니다. 대신 편집이 잠깁니다.</div>
+          <div style="margin-bottom:5px"><b style="color:#b9541b">반려</b> — 편집이 <b>다시 열립니다</b>. 사유를 보고 고쳐서 다시 냅니다.</div>
+          <div><b>회수</b> — 내가 도로 가져옵니다. 다만 <b>이력에는 남고</b>, 한 번이라도 결재를 탄 자료는 <b>지울 수 없습니다</b>.</div>
+        </div>
+      </div>
+      <div class="why"><b>「회수해도 못 지운다」를 꼭 넣어 주세요.</b> 「없었던 일로 하고 싶다」가 안 되는 자리라, 모르면 나중에 당황합니다.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>7</i> 승인 뒤에 고치기 <span class="ct">트리</span></div>
+      <div class="sheet">
+        <div class="h">이미 승인된 걸 고치려면</div>
+        <div class="s">바로는 못 고칩니다</div>
+        <div class="row3" style="margin-top:10px">
+          <div class="box">수정 요청</div><div class="arrow">▶</div>
+          <div class="box warn">Lv1 허락</div><div class="arrow">▶</div>
+          <div class="box ok">수정 중<br>(편집 열림)</div><div class="arrow">▶</div>
+          <div class="box">다시 제출</div>
+        </div>
+        <div class="body" style="margin-top:10px;color:#1b5bab"><b>고치는 동안에도 팀이 보는 그림은 직전 승인본 그대로입니다.</b>
+          남의 화면에서 자료가 사라지지 않습니다.</div>
+      </div>
+      <div class="why">Lv3 입장에서 중요한 줄이 마지막 줄입니다 — <b>「보던 게 갑자기 없어지지 않는다」</b>.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>8</i> 공유는 둘 <span class="ct">트리 (2갈래)</span></div>
+      <div class="sheet">
+        <div class="h">어떻게 남에게 닿나</div>
+        <div class="s">길이 둘뿐입니다</div>
+        <div class="body" style="margin-top:8px">
+          <div style="margin-bottom:6px"><b>① 팀 공유</b> — 승인되면 <b>같은 팀</b>이 봅니다. 등급과 무관합니다.<br>
+            <span style="color:#8a93aa">제출할 때의 팀으로 못박힙니다 — 팀을 옮겨도 옛 자료는 옛 팀에 남습니다.</span></div>
+          <div><b>② 발행</b> — <b>Lv1 만</b> 누를 수 있고 <b>열람자 전원</b>에게 갑니다.</div>
+        </div>
+        <div class="body" style="margin-top:8px;color:#8d211b"><b>작성 중인 남의 자료는 아무도 못 봅니다.</b> 팀 공유에는 승인본만 올라옵니다.</div>
+      </div>
+      <div class="why">「왜 내 자료가 팀에 안 보이지」의 답이 이 장입니다. <b>승인 전에는 아무에게도 안 보인다</b>가 핵심입니다.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>9</i> 의견 주고받기 <span class="ct">빈 페이지</span></div>
+      <div class="sheet">
+        <div class="h">지적과 답</div>
+        <div class="s">문서의 그 자리에 붙습니다</div>
+        <div class="body" style="margin-top:8px">
+          <div style="margin-bottom:5px">· 문서의 <b>그 칸·그 상자</b>를 짚어 지적을 답니다.</div>
+          <div style="margin-bottom:5px">· <b>닫는 것은 지적한 사람 몫</b>입니다 — 받은 사람이 임의로 못 닫습니다.</div>
+          <div style="margin-bottom:5px">· 받은 사람은 <b>「고쳤습니다」</b>로 답합니다.</div>
+          <div style="color:#8d211b">· <b>Lv3 는 의견을 달 수 없습니다.</b> 물어볼 곳은 12장에 있습니다.</div>
+        </div>
+      </div>
+      <div class="why">Lv3 가 읽는 문서인데 Lv3 는 이 기능을 못 씁니다. <b>그 사실을 숨기지 말고 적고</b>, 대신 어디로 물어야 하는지 알려 주세요.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>10</i> Lv3 가 하는 일 <span class="ct">표</span></div>
+      <div class="sheet">
+        <div class="h">읽는 분이 할 수 있는 것</div>
+        <div class="s">Lv3 열람자</div>
+        <div class="body" style="margin-top:8px">
+          <div style="color:#1c7a4a;margin-bottom:5px"><b>됩니다</b> — 팀 공유에서 승인본 읽기 · 발행본 읽기 ·
+            <b>개인 스케치 만들기</b>(아무에게도 안 보임)</div>
+          <div style="color:#8d211b"><b>안 됩니다</b> — 결재 제출 · 의견 달기 · 회사 표준 양식 · AI 도구 · 메모</div>
+          <div class="body" style="margin-top:8px;color:#7a4412"><b>팀 공유가 비어 있다면</b> 아직 팀에 안 들어간 것입니다. Lv1 에게 요청하세요.</div>
+        </div>
+      </div>
+      <div class="why">Lv3 가 처음 로그인해서 <b>빈 화면</b>을 보는 일이 가장 흔한 사고입니다. 그 답을 이 장에 박아 두세요.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>11</i> 자주 막히는 곳 <span class="ct">빈 페이지 (토글)</span></div>
+      <div class="sheet">
+        <div class="h">이럴 때는</div>
+        <div class="s">문답 다섯</div>
+        <div class="body" style="margin-top:7px">
+          <div>· 제출이 안 돼요 → <b>팀에 안 들어갔거나</b> 장이 한 장도 없습니다</div>
+          <div>· 안 고쳐져요 → <b>결재 중이거나 승인됨</b>입니다. 회수하거나 수정 요청</div>
+          <div>· 안 지워져요 → <b>결재를 탄 자료</b>입니다. 회수해도 마찬가지</div>
+          <div>· 팀 공유가 비었어요 → 아직 <b>승인된 게 없거나</b> 팀 배정 전입니다</div>
+          <div>· 표가 종이를 넘어요 → <b>「다음 장에 이어 적기」</b>를 누르세요</div>
+        </div>
+      </div>
+      <div class="why">실제로 막히는 지점만 모았습니다. <b>이 장이 사실상 매뉴얼의 본체</b>가 될 겁니다.</div>
+    </div>
+
+    <div class="card"><div class="no"><i>12</i> 물어볼 곳 <span class="ct">마무리</span></div>
+      <div class="sheet">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 16px">
+          <div style="font-size:13px;font-weight:800">막히면 물어보세요</div>
+          <div style="font-size:9px;color:#4a5468;margin-top:8px;line-height:1.7">
+            · 권한·팀 배정 — <b>Lv1 관리자</b> (이름·연락처)<br>
+            · 문서 내용 — <b>작성자</b> (이름·연락처)<br>
+            · 도구가 이상함 — <b>개발 담당</b> (이름·연락처)</div>
+          <div style="font-size:8px;color:#8a93aa;margin-top:12px">Lv3 는 이 도구 안에서 의견을 달 수 없습니다. 위 연락처로 알려 주세요.</div>
+        </div>
+      </div>
+      <div class="why"><b>이 장이 9장의 빈 곳을 메웁니다.</b> Lv3 의 피드백이 도구 밖으로 나갈 길을 반드시 열어 두세요.</div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">쓰는 법</span>이 문서를 실제로 만드는 순서</h2>
+  <ol>
+    <li><b>가로 이북</b>으로 시작합니다 — 트리가 세로에서는 2칸밖에 안 들어갑니다.</li>
+    <li>4·6·7·8 장의 그림을 <b>머메이드로 먼저</b> 씁니다. 뼈대가 몇 분이면 나옵니다.</li>
+    <li>펼쳐진 상자를 손으로 다듬습니다 — 잠기는 상태를 색으로 구분.</li>
+    <li>3·10 장의 표는 <b>자유 캔버스에 표</b>로. 줄이 넘치면 「다음 장에 이어 적기」.</li>
+    <li>다 되면 <b>제출</b> → Lv1 승인 → 팀 공유에 뜹니다.</li>
+    <li>틀린 게 나오면 <b>수정 요청</b> → 고쳐서 다시 제출. <b>그동안에도 팀은 이전 승인본을 봅니다.</b></li>
+  </ol>
+  <div class="note ok">
+    <b>이 문서는 한 번 쓰고 끝이 아닙니다.</b> 기능이 늘 때마다 수정 요청 → 수정 → 재제출을 반복하게 됩니다.
+    그러니 <b>11장(자주 막히는 곳)을 맨 뒤가 아니라 눈에 띄는 자리</b>에 두시는 것도 방법입니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">고르기</span>정해 주시면 다음으로 갑니다</h2>
+  <ul>
+    <li><b>장 수</b> — 12장이 적당한가요, 더 줄일까요(Lv3 는 길면 안 읽습니다)</li>
+    <li><b>①팀 공유로 낼지 ②발행할지</b> — 안내서는 ①을 권하지만, 전사 공지 성격이면 ②입니다</li>
+    <li><b>Lv1·Lv3 편을 따로 만들지</b> — 지금은 Lv3 가 읽는 한 권입니다. Lv1 용(승인·팀 편성·계정)은 별권이 맞을 것 같습니다</li>
+    <li><b>순서</b> — 트리·머메이드를 <b>먼저 만들고</b> 그걸로 이 문서를 쓸지, 지금 있는 도구로 <b>먼저 써 보고</b> 부족한 걸 확인할지</li>
+  </ul>
+  <div class="note">
+    <b>마지막 항목이 제일 중요합니다.</b> 지금 도구로 한 번 써 보시면 <b>트리가 정말 필요한지</b>가 증거로 나옵니다 —
+    4·6·7·8 장을 마인드맵과 도형으로 만들어 보고 얼마나 걸리는지 재 보는 겁니다.
+    이번 세션에서 계속 해 온 방식(<b>추측 대신 재 보기</b>)과 같습니다.
+  </div>
+</section>
+
+</div>
+</body>
+</html>
