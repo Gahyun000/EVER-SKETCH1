@@ -159,6 +159,15 @@
 .ax-resize:hover{background:rgba(36,98,235,.28)}
 .ax-edge{position:absolute;top:50%;transform:translateY(-50%);z-index:6;width:18px;height:46px;border:1px solid var(--ax-line);background:#fff;border-radius:9px;cursor:pointer;font-size:13px;color:var(--ax-muted);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.10);padding:0}
 .ax-edge.l{left:6px}.ax-edge.r{right:6px}
+/* 접혀 있을 때는 **이름이 붙은 탭**이 된다.
+   창이 좁아지면 이 패널들이 저절로 접히므로(⑤), 빈 가장자리에 화살표만 남기면
+   「쪽 목록이 어디 갔지」로 끝난다. 무엇이 접혔는지 말해 주고 누르면 돌아온다. */
+.ax-edge.named{width:22px;height:auto;padding:9px 0;gap:5px;grid-auto-flow:row;
+  border-color:var(--ax-blue);color:var(--ax-blue);background:#fff;
+  box-shadow:0 2px 10px rgba(42,120,214,.22)}
+.ax-edge.named em{writing-mode:vertical-rl;font-style:normal;font-size:11px;
+  font-weight:800;letter-spacing:.06em;line-height:1}
+.ax-edge.named:hover{background:var(--ax-blue-100)}
 .ax-edge:hover{color:var(--ax-blue);border-color:var(--ax-blue)}
 .ax-stage-wrap .stage{flex:1 1 auto;min-height:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:16px}
 .ax-panelcol{display:grid;grid-template-columns:1fr 52px;background:var(--ax-surface);border-left:1px solid var(--ax-line);min-height:0}

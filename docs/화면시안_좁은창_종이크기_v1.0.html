@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면시안 — 좁은 창에서 종이가 안 보이는 것</title>
+<style>
+  :root{
+    --ink:#16203a; --muted:#6b7590; --line:#dfe3ec; --plane:#f4f6fa; --surf:#fff;
+    --blue:#2a78d6; --blue-d:#1b5bab; --blue-100:#e4effc; --gray:#e9eaed;
+    --warn:#b9541b; --warn-bg:#fff3e2; --ok:#1c7a4a; --ok-bg:#e8f6ee;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    padding-block:28px;padding-left:20px;padding-right:20px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  section{background:var(--surf);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+  h2{font-size:15.5px;margin:0 0 10px;letter-spacing:-.01em}
+  h2 .tag{display:inline-block;background:var(--blue-100);color:var(--blue-d);
+    border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:800;margin-right:7px;vertical-align:2px}
+  p{margin:0 0 10px}
+  .muted{color:var(--muted)}
+  b.hi{color:var(--blue-d)}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin:8px 0 4px}
+  th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:right;
+    font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:700;font-size:11.5px;border-bottom:1px solid #c9cfdd}
+  td.bad{color:#b3261e;font-weight:800}
+  td.mid{color:var(--warn);font-weight:700}
+  td.good{color:var(--ok);font-weight:800}
+  .note{background:var(--warn-bg);border:1px solid #f0d7b4;border-left:3px solid var(--warn);
+    border-radius:8px;padding:10px 13px;font-size:12.8px;margin:12px 0}
+  .note.ok{background:var(--ok-bg);border-color:#bfe2ce;border-left-color:var(--ok)}
+
+  /* ── 모형 ── */
+  .lab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .lab label{font-size:12.5px;font-weight:700;color:var(--muted)}
+  input[type=range]{width:260px;accent-color:var(--blue)}
+  .wv{font-weight:800;font-variant-numeric:tabular-nums;min-width:74px;display:inline-block}
+  .opts{display:flex;gap:6px;flex-wrap:wrap}
+  .opts button{border:1px solid var(--line);background:#fff;border-radius:9px;
+    padding:7px 12px;font:inherit;font-size:12.5px;color:var(--ink);cursor:pointer}
+  .opts button:hover{background:var(--plane)}
+  .opts button.on{background:var(--blue-100);border-color:var(--blue);color:var(--blue-d);
+    font-weight:800;box-shadow:0 0 0 1px var(--blue) inset}
+
+  .screen{margin:0 auto;border:1px solid #c9cfdd;border-radius:10px;overflow:hidden;
+    background:#fff;box-shadow:0 8px 26px -14px rgba(16,24,40,.4);transition:width .18s}
+  .s-head{height:26px;background:#111b33;display:flex;align-items:center;padding:0 9px;gap:5px}
+  .s-head i{width:7px;height:7px;border-radius:50%;background:#4a5878;display:block}
+  .s-head span{color:#b9c3dc;font-size:10.5px;margin-left:8px;font-style:normal}
+  .s-chrome{height:44px;border-bottom:1px solid var(--line);background:var(--plane);
+    display:flex;align-items:center;gap:6px;padding:0 8px}
+  .s-chrome u{height:9px;background:#dbe1ec;border-radius:3px;display:block;text-decoration:none}
+  .s-body{display:flex;height:340px;position:relative}
+  .c{position:relative;transition:width .18s,flex-basis .18s}
+  .c-shell{background:#f7f9fc;border-right:1px solid var(--line);flex:0 0 auto;
+    display:flex;flex-direction:column;align-items:center;padding-top:10px;gap:10px}
+  .c-shell i{width:16px;height:16px;border-radius:4px;background:#d7deea;display:block}
+  .c-film{background:var(--surf);border-right:1px solid var(--line);flex:0 0 auto;
+    padding:8px;overflow:hidden}
+  .c-film .th{border:1px solid var(--line);border-radius:5px;background:#fff;
+    height:52px;margin-bottom:7px;position:relative}
+  .c-film .th.on{outline:2px solid var(--blue);border-color:var(--blue)}
+  .c-stage{flex:1 1 auto;min-width:0;background:var(--gray);display:flex;
+    align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .paper{background:#fff;border:1px solid #cfd5e2;box-shadow:0 2px 10px -4px rgba(16,24,40,.35);
+    position:relative;flex:0 0 auto;transition:width .18s,height .18s}
+  .paper .e{position:absolute;background:#dcebfb;border:1px solid #2c6bd6;border-radius:5px}
+  .c-right{background:var(--surf);border-left:1px solid var(--line);flex:0 0 auto;
+    padding:10px;overflow:hidden}
+  .c-right u{display:block;height:9px;background:#e5e9f2;border-radius:3px;margin-bottom:8px;text-decoration:none}
+  .c-right .row{display:flex;gap:5px;margin-bottom:9px}
+  .c-right .row s{flex:1;height:22px;background:#eef1f7;border:1px solid var(--line);
+    border-radius:6px;display:block;text-decoration:none}
+  .pctag{position:absolute;left:8px;bottom:7px;background:rgba(17,27,51,.85);color:#fff;
+    font-size:10.5px;font-weight:800;border-radius:5px;padding:2px 7px;font-variant-numeric:tabular-nums}
+  .pctag.warn{background:#b3261e}
+  .handle{position:absolute;top:50%;transform:translateY(-50%);width:13px;height:34px;
+    border:1px solid var(--line);background:#fff;border-radius:7px;font-size:10px;color:var(--muted);
+    display:grid;place-items:center;z-index:3;box-shadow:0 1px 5px rgba(0,0,0,.12)}
+  .handle.l{left:4px} .handle.r{right:4px}
+  .handle.big{width:20px;height:52px;border-color:var(--blue);color:var(--blue);font-size:12px;
+    box-shadow:0 2px 10px rgba(42,120,214,.3)}
+  .overlay-panel{position:absolute;top:0;right:0;bottom:0;width:300px;background:#fff;
+    border-left:1px solid var(--line);box-shadow:-8px 0 24px -12px rgba(16,24,40,.45);
+    padding:10px;z-index:4}
+  .scrollhint{position:absolute;left:0;right:0;bottom:0;height:7px;background:#d3d8e3}
+  .scrollhint b{position:absolute;top:0;bottom:0;background:#8b95ac;border-radius:4px}
+  .readout{margin-top:12px;font-size:12.5px;color:var(--muted);text-align:center;
+    font-variant-numeric:tabular-nums}
+  .readout b{color:var(--ink)}
+  .verdict{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px;font-size:13px}
+  .verdict .t{font-weight:800;margin-bottom:4px}
+  ul{margin:6px 0 10px;padding-left:19px}
+  li{margin-bottom:5px}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--plane);
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  .pick{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
+  .pick div{flex:1 1 210px;border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--plane)}
+  .pick div .k{font-weight:800;color:var(--blue-d);font-size:13px;margin-bottom:3px}
+  .pick div .d{font-size:12.3px;color:var(--muted);line-height:1.55}
+  @media (max-width:760px){ .lab{gap:9px} input[type=range]{width:100%} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>⑤ 좁은 창에서 종이가 안 보이는 것</h1>
+<p class="sub">2026-09-14 · 실제 화면에서 잰 값으로 만든 모형입니다. 코드는 아직 안 건드렸습니다.</p>
+
+<section>
+  <h2><span class="tag">확인</span>먼저, 실제로 잰 것</h2>
+  <p>「안 보인다」는 <b>사라지는 게 아니라 쪼그라드는 것</b>이었습니다.
+     필름(왼쪽 쪽 목록) <b class="hi">212px</b> 와 오른쪽 패널 <b class="hi">336px</b> 는
+     <b>창이 좁아져도 안 줄어듭니다.</b> 줄어드는 건 가운데 작업 무대뿐이고,
+     맞춤 배율에는 <b>바닥이 없습니다</b> — 얼마든지 작아집니다.</p>
+  <table>
+    <tr><th>창 너비</th><th>필름</th><th>오른쪽</th><th>무대</th><th>종이 폭</th><th>배율</th></tr>
+    <tr><td>1600</td><td>212</td><td>336</td><td>992</td><td>745</td><td class="good">72%</td></tr>
+    <tr><td>1440 <span class="muted">(맥북에어 13")</span></td><td>212</td><td>336</td><td>832</td><td>745</td><td class="good">72%</td></tr>
+    <tr><td>1280</td><td>212</td><td>336</td><td>672</td><td>640</td><td class="mid">62%</td></tr>
+    <tr><td>1100</td><td>212</td><td>336</td><td>492</td><td>460</td><td class="mid">44%</td></tr>
+    <tr><td>1024</td><td>212</td><td>336</td><td>416</td><td>384</td><td class="bad">37%</td></tr>
+    <tr><td>860</td><td>212</td><td>310</td><td>278</td><td>246</td><td class="bad">24%</td></tr>
+    <tr><td>760</td><td>212</td><td>274</td><td>214</td><td>182</td><td class="bad">18%</td></tr>
+  </table>
+  <p class="muted" style="font-size:12.3px">창 너비에서 셸 사이드바(접힘 60px)를 뺀 값 기준입니다.
+     사이드바를 펴면(214px) 모든 줄이 <b>한 단계씩 더 나빠집니다</b> — 1280 이 1100 처럼 됩니다.</p>
+
+  <div class="note">
+    <b>1024에서 종이 폭 384px.</b> 그 옆의 필름 썸네일이 212px 입니다 —
+    <b>작업하는 종이가 미리보기 썸네일의 두 배도 안 됩니다.</b>
+    오른쪽 패널(336px)은 종이보다 <b>가깝습니다</b>.
+  </div>
+  <div class="note ok">
+    <b>고칠 연장은 이미 있습니다.</b> 무대 양 끝의 작은 <span class="kbd">‹</span>
+    <span class="kbd">›</span> 손잡이로 필름과 오른쪽 패널을 접을 수 있고,
+    1024에서 둘 다 접으면 배율이 <b>37% → 72%</b> 로 돌아옵니다(1600일 때와 같습니다).
+    문제는 <b>그 손잡이를 아무도 못 본다</b>는 것과, <b>손으로 해야 한다</b>는 것입니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">모형</span>네 가지 안을 창 너비를 바꿔 가며 비교</h2>
+  <div class="lab">
+    <label>창 너비</label>
+    <input type="range" id="w" min="700" max="1600" step="20" value="1024">
+    <span class="wv" id="wv">1024px</span>
+    <div class="opts" id="opts">
+      <button data-o="now" class="on">지금</button>
+      <button data-o="a">ㄱ 저절로 접기</button>
+      <button data-o="b">ㄴ 배율 바닥</button>
+      <button data-o="c">ㄷ 패널을 덮개로</button>
+      <button data-o="d">ㄹ 손잡이만 키우기</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen">
+    <div class="s-head"><i></i><i></i><i></i><span id="stitle">EVER-SKETCH</span></div>
+    <div class="s-chrome">
+      <u style="width:88px"></u><u style="width:44px"></u><u style="width:44px"></u>
+      <u style="width:44px"></u><u style="width:56px"></u><u style="width:44px"></u>
+    </div>
+    <div class="s-body">
+      <div class="c c-shell" id="shell"><i></i><i></i><i></i></div>
+      <div class="c c-film" id="film">
+        <div class="th on"></div><div class="th"></div><div class="th"></div>
+      </div>
+      <div class="c c-stage" id="stage">
+        <div class="paper" id="paper">
+          <div class="e" id="e1"></div><div class="e" id="e2"></div>
+        </div>
+        <div class="pctag" id="pct">37%</div>
+        <div class="handle l" id="hl">‹</div>
+        <div class="handle r" id="hr">›</div>
+        <div class="scrollhint" id="sh" hidden><b id="shb"></b></div>
+      </div>
+      <div class="c c-right" id="right">
+        <u style="width:40%"></u>
+        <div class="row"><s></s><s></s><s></s></div>
+        <u style="width:30%"></u>
+        <div class="row"><s></s><s></s></div>
+        <u style="width:34%"></u>
+        <div class="row"><s></s><s></s><s></s></div>
+      </div>
+      <div class="overlay-panel" id="ovl" hidden>
+        <u style="width:40%"></u>
+        <div class="row"><s></s><s></s><s></s></div>
+        <u style="width:30%"></u>
+        <div class="row"><s></s><s></s></div>
+      </div>
+    </div>
+  </div>
+  <div class="readout" id="ro"></div>
+
+  <div class="verdict" id="vd"></div>
+</section>
+
+<section>
+  <h2><span class="tag">고르기</span>어느 쪽으로 갈까요</h2>
+  <div class="pick">
+    <div><div class="k">ㄱ · 저절로 접기</div><div class="d">무대가 좁아지면 필름부터, 더 좁아지면 오른쪽 패널까지 스스로 접습니다. 넓히면 다시 펴집니다. 손잡이는 그대로라 언제든 되돌릴 수 있습니다.</div></div>
+    <div><div class="k">ㄴ · 배율에 바닥</div><div class="d">맞춤이 50% 밑으로는 안 내려갑니다. 대신 종이가 무대보다 커져서 가로로 밀어 봐야 합니다.</div></div>
+    <div><div class="k">ㄷ · 패널을 덮개로</div><div class="d">좁아지면 오른쪽 패널이 무대 위에 겹쳐 뜹니다. 쓸 때만 열고 닫습니다.</div></div>
+    <div><div class="k">ㄹ · 손잡이만 키우기</div><div class="d">자동은 안 넣고, 접기 손잡이를 눈에 띄게만 만듭니다. 판단은 사람이 합니다.</div></div>
+  </div>
+  <p class="muted" style="margin-top:12px;font-size:12.6px">
+    섞어도 됩니다 — 예: <b>ㄱ+ㄹ</b>(저절로 접되 손잡이도 키움), <b>ㄷ+ㄹ</b> 등.
+    ㄱ·ㄷ 어느 쪽이든 <b>사람이 손으로 접어 둔 상태는 기억</b>하고, 자동이 그걸 덮지 않게 할 생각입니다.
+  </p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var SHELL = 60, FILM = 212, RIGHT = 336, PAD = 32, PW = 1040, PH = 720
+  var opt = 'now'
+  var el = function (id) { return document.getElementById(id) }
+  var wIn = el('w')
+
+  function layout() {
+    var win = +wIn.value
+    el('wv').textContent = win + 'px'
+    // 화면 모형은 실제 폭의 0.62 로 줄여 그린다(설명용).
+    var K = Math.min(1, 1040 / 1600)
+    el('screen').style.width = Math.round(win * K) + 'px'
+
+    var film = FILM, right = RIGHT, shell = SHELL
+    var ovl = false, bigHandle = false, floor = 0
+    var why = ''
+
+    if (opt === 'a') {
+      // 무대가 660 밑이면 필름을 접고, 480 밑이면 오른쪽도 접는다.
+      var free = win - shell - film - right
+      if (free < 660) { film = 6; why = '무대가 660px 밑이라 필름을 접었습니다.' }
+      free = win - shell - film - right
+      if (free < 480) { right = 6; why = '무대가 480px 밑이라 오른쪽 패널까지 접었습니다.' }
+      if (!why) why = '아직 넉넉해서 아무것도 안 접었습니다.'
+    } else if (opt === 'b') {
+      floor = 0.5
+      why = '맞춤이 50% 밑으로는 안 내려갑니다.'
+    } else if (opt === 'c') {
+      if (win - shell - film - right < 660) { right = 0; ovl = true; why = '오른쪽 패널이 무대 위 덮개로 바뀌었습니다.' }
+      else why = '넓어서 패널이 제자리에 있습니다.'
+    } else if (opt === 'd') {
+      bigHandle = true
+      why = '접기 손잡이만 눈에 띄게 했습니다 — 접는 건 사람이 합니다.'
+    } else {
+      why = '필름·오른쪽 패널이 자리를 그대로 차지합니다.'
+    }
+
+    el('shell').style.width = shell * K + 'px'
+    el('film').style.width = film * K + 'px'
+    el('right').style.width = right * K + 'px'
+    el('ovl').hidden = !ovl
+    el('hl').classList.toggle('big', bigHandle)
+    el('hr').classList.toggle('big', bigHandle)
+
+    var stageW = win - shell - film - right
+    var stageH = 470                       // 세로는 모든 안에서 같다(설명 단순화)
+    var fit = Math.min((stageW - PAD) / PW, (stageH - PAD) / PH)
+    var scale = floor ? Math.max(floor, fit) : fit
+    if (scale < 0.02) scale = 0.02
+
+    var pw = PW * scale, ph = PH * scale
+    var over = pw > stageW - PAD
+    el('paper').style.width = pw * K + 'px'
+    el('paper').style.height = ph * K + 'px'
+    el('e1').style.cssText = 'left:' + 6 * scale * K + '%;'
+    // 요소 두 개는 비율로 놓는다.
+    el('e1').style.cssText = 'left:6%;top:8%;width:23%;height:10%'
+    el('e2').style.cssText = 'left:67%;top:44%;width:23%;height:10%'
+
+    var pc = Math.round(scale * 100)
+    var tag = el('pct')
+    tag.textContent = pc + '%'
+    tag.classList.toggle('warn', pc < 45)
+
+    el('sh').hidden = !over
+    if (over) {
+      var ratio = Math.max(.12, (stageW - PAD) / pw)
+      el('shb').style.width = (ratio * 100) + '%'
+      el('shb').style.left = ((1 - ratio) / 2 * 100) + '%'
+    }
+
+    el('ro').innerHTML = '무대 <b>' + Math.round(stageW) + 'px</b> · 종이 <b>' +
+      Math.round(pw) + '×' + Math.round(ph) + '</b> · 배율 <b>' + pc + '%</b>' +
+      (over ? ' · <b>가로로 밀어야 함</b>' : '')
+
+    var good = pc >= 55 && !over
+    el('vd').innerHTML =
+      '<div class="t">' + (good ? '✓ ' : '· ') + why + '</div>' +
+      '<div class="muted" style="font-size:12.5px">' + verdict() + '</div>'
+  }
+
+  function verdict() {
+    if (opt === 'now') return '창이 1280 밑으로 내려가는 순간부터 종이가 계속 작아집니다. 바닥이 없습니다.'
+    if (opt === 'a') return '접는 기능은 <b>이미 있는 것</b>을 쓰는 것이라 새로 만들 게 적습니다. 1024에서 72%까지 회복되는 것을 실제 화면에서 확인했습니다. 다만 <b>패널이 저 혼자 움직이는</b> 느낌을 줄 수 있어, 접힐 때 무엇을 왜 접었는지 한 줄로 알리고 사람이 접어 둔 상태는 건드리지 않을 생각입니다.'
+    if (opt === 'b') return '종이는 읽을 만한 크기를 지키지만, 무대가 416px 인데 종이가 520px 이면 <b>늘 반쪽만 보이고 계속 밀어야 합니다.</b> 자리를 안 돌려받았기 때문에 근본은 그대로입니다. 혼자 쓰기에는 약합니다.'
+    if (opt === 'c') return '무대를 가장 많이 돌려받습니다. 대신 패널을 열 때마다 종이 위를 <b>덮습니다</b> — 값을 바꾸면서 그 결과를 보는 일이 잦은 화면이라 그게 걸립니다.'
+    return '고치는 게 아니라 <b>보이게만</b> 합니다. 좁은 창에서 처음 여는 사람은 여전히 37% 종이를 먼저 만납니다. 다른 안과 같이 쓰기에는 좋습니다.'
+  }
+
+  wIn.addEventListener('input', layout)
+  document.getElementById('opts').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b) return
+    opt = b.dataset.o
+    ;[].forEach.call(this.querySelectorAll('button'), function (x) { x.classList.toggle('on', x === b) })
+    layout()
+  })
+  layout()
+})()
+</script>
+</body>
+</html>

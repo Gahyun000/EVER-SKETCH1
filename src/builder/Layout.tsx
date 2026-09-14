@@ -12,6 +12,8 @@ import Preview from './Preview'
 import ExportLayer from './ExportLayer'
 import Help from './Help'
 import { useCanvasCommands } from './useCanvasCommands'
+import { autoFold } from './panelFold'
+import { pageSize } from '../cards/sizing'
 import Present from './Present'
 import TutorialCoach from './TutorialCoach'
 import TutorialPlayer from './TutorialPlayer'
@@ -95,10 +97,17 @@ export default function Layout() {
       onContinueWithoutSave: action,
     })
   }
+  const orientation = useBuilder((s) => s.orientation)
   const [leftW, setLeftW] = useState(212)
   const [rightW, setRightW] = useState(336)
   const [leftOpen, setLeftOpen] = useState(true)
   const [rightOpen, setRightOpen] = useState(true)
+  // **손잡이를 한 번이라도 누르면 그 패널은 자동에서 빠진다**(사용자 결정 ㄱ).
+  // 자동이 사람의 선택을 되돌리면 그게 「패널이 저 혼자 움직인다」는 느낌이다.
+  // 되돌릴 길은 남긴다 — 다시 눌러 되접거나 되펴면 그 상태가 그대로 지켜진다.
+  const touched = useRef({ left: false, right: false })
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   function startResize(side: 'left' | 'right') {
     return (e: { clientX: number; preventDefault: () => void }) => {
       e.preventDefault()
@@ -142,6 +151,37 @@ export default function Layout() {
     return () => window.removeEventListener('resize', clamp)
   }, [])
 
+  // ⑤ **창이 좁아지면 곁의 패널을 접어 종이에게 자리를 내준다.**
+  //
+  // 재는 것은 `.ax-body` 의 폭과 무대의 높이다 — 둘 다 **접어도 안 변하는 값**이라
+  // 접었다 폈다 하는 되먹임이 생기지 않는다. 판단은 panelFold.autoFold 가 한다.
+  //
+  // 지금 열림 상태는 **ref 로 읽는다.** 갱신 함수(setState(prev => …)) 안에서
+  // 다른 상태를 건드리면 React 가 그 함수를 두 번 불러도 되는 약속이 깨진다.
+  const openRef = useRef({ left: leftOpen, right: rightOpen })
+  openRef.current = { left: leftOpen, right: rightOpen }
+  useEffect(() => {
+    const body = bodyRef.current, stage = stageRef.current
+    if (!body || !stage) return
+    const decide = () => {
+      const { W, H } = pageSize(orientation)
+      const cur = openRef.current
+      const r = autoFold({
+        bodyW: body.getBoundingClientRect().width,
+        stageH: stage.getBoundingClientRect().height,
+        pageW: W, pageH: H, leftW, rightW,
+        leftOpen: cur.left, rightOpen: cur.right,
+      })
+      // **손댄 쪽은 넘기지 않는다.** 자동은 「자동」인 패널만 움직인다.
+      if (!touched.current.left) setLeftOpen(r.leftOpen)
+      if (!touched.current.right) setRightOpen(r.rightOpen)
+    }
+    decide()
+    const ro = new ResizeObserver(decide)
+    ro.observe(body); ro.observe(stage)
+    return () => ro.disconnect()
+  }, [orientation, leftW, rightW])
+
   return (<div className="ax-app">
     <Hotkeys
       presentOpen={present} helpOpen={help} tutorialOpen={tutorial}
@@ -155,14 +195,24 @@ export default function Layout() {
     <EditToolbar />
     <ClassicBar ref={classicRef} onSettings={() => setSettings(true)} onDemo={() => withSaveGuard(() => setDemo(true), '데모 실행 중 현재 작업 화면이 임시로 바뀔 수 있습니다.')} onAiCleanup={() => setAi(true)} />
 
-    <div className="ax-body" style={{ gridTemplateColumns: `${leftOpen ? leftW : 0}px 1fr ${rightOpen ? rightW : 0}px` }}>
+    <div className="ax-body" ref={bodyRef} style={{ gridTemplateColumns: `${leftOpen ? leftW : 0}px 1fr ${rightOpen ? rightW : 0}px` }}>
       <div className="ax-film" style={{ overflow: 'hidden' }}>
         <CardPicker />
         <Filmstrip />
       </div>
-      <div className="ax-stage-wrap">
-        <button className="ax-edge l" title="슬라이드 패널 접기/펼치기" onClick={() => setLeftOpen((o) => !o)}>{leftOpen ? '‹' : '›'}</button>
-        <button className="ax-edge r" title="속성 패널 접기/펼치기" onClick={() => setRightOpen((o) => !o)}>{rightOpen ? '›' : '‹'}</button>
+      <div className="ax-stage-wrap" ref={stageRef}>
+        {/* 접혀 있을 때는 **무엇이 접혔는지 이름을 보여 준다.** 자동으로 접히는 이상,
+            빈 가장자리에 화살표만 남기면 「쪽 목록이 어디 갔지」로 끝난다. */}
+        <button className={'ax-edge l' + (leftOpen ? '' : ' named')}
+          title={leftOpen ? '쪽 목록 접기' : '쪽 목록 펴기'}
+          onClick={() => { touched.current.left = true; setLeftOpen((o) => !o) }}>
+          {leftOpen ? '‹' : <>›<em>쪽 목록</em></>}
+        </button>
+        <button className={'ax-edge r' + (rightOpen ? '' : ' named')}
+          title={rightOpen ? '속성 패널 접기' : '속성 패널 펴기'}
+          onClick={() => { touched.current.right = true; setRightOpen((o) => !o) }}>
+          {rightOpen ? '›' : <>‹<em>속성</em></>}
+        </button>
         {leftOpen && <div className="ax-resize l" onPointerDown={startResize('left')} title="드래그로 폭 조절" />}
         {rightOpen && <div className="ax-resize r" onPointerDown={startResize('right')} title="드래그로 폭 조절" />}
         <Preview />
