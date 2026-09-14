@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { lastOrientation } from './prefs'
 import { stripSlotConns, unlockLegacySlots } from '../template/legacyUnlock'
 import { useBuilder, reseedUids, type BuilderState } from '../state/store'
-import { snapshotFromState, fullPages, type DraftStateSnapshot } from './draftStorage'
+import { snapshotFromState, fullPages, fullSelected, type DraftStateSnapshot } from './draftStorage'
 import {
   apiListProjects, apiCreateProject, apiCreateFromTemplate, apiGetProject, apiRenameProject,
   apiDeleteProject, apiDuplicateProject, type ProjectMeta, type ProjectFull, type ProjectAccess,
@@ -35,10 +35,14 @@ function newDocSnapshot(): DraftStateSnapshot {
 function fullState(st?: Partial<DraftStateSnapshot> | null): DraftStateSnapshot {
   const base = emptySnapshot()
   const s = st || {}
+  // 쪽 안의 빠진 칸(els·conns·strokes)까지 메운다 — 하나만 없어도 화면이 하얘진다.
+  const pages = fullPages(s.pages)
   return {
     ...base, ...s,
-    // 쪽 안의 빠진 칸(els·conns·strokes)까지 메운다 — 하나만 없어도 화면이 하얘진다.
-    pages: fullPages(s.pages),
+    pages,
+    // 고른 쪽이 없거나 지워진 쪽을 가리키면 첫 쪽으로. 안 메우면 **쪽은 있는데
+    // 무대만 「카드를 추가하세요」로 빈다** — 필름에는 보이는데 가운데만.
+    selectedPageId: fullSelected(pages, s.selectedPageId),
   } as DraftStateSnapshot
 }
 

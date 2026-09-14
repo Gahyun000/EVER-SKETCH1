@@ -69,6 +69,26 @@ export function fullPages(pages?: unknown): Page[] {
   return Array.isArray(pages) ? pages.map((p, i) => fullPage(p as Partial<Page>, i)) : []
 }
 
+/**
+ * **고른 쪽이 진짜 있는 쪽인지 확인한다.**
+ *
+ * 2026-09-14. 쪽은 멀쩡히 있는데 무대만 「카드를 추가하세요」로 비는 자료를 봤다.
+ * 왼쪽 필름에는 쪽이 그려져 있는데 가운데만 빈다 — 미리보기가
+ * `pages.find((p) => p.id === selectedPageId)` 로 고른 쪽을 찾는데,
+ * `selectedPageId` 가 없거나(옛 자료·밖에서 만든 자료) 지워진 쪽을 가리키면
+ * 그 find 가 undefined 를 내놓기 때문이다. **쪽이 있는데 아무것도 안 보인다**는
+ * 점에서, els·conns 가 없을 때 화면이 하얘지던 것과 같은 종류의 구멍이다.
+ *
+ * 지금 서버가 만드는 자료는 모두 이 값을 넣는다. 그래도 경계에서 메워 둔다 —
+ * 들어오는 자료가 성하다고 믿는 것이 그때도 틀렸다.
+ */
+export function fullSelected(pages: Page[], sel?: unknown): number | null {
+  if (!pages.length) return null
+  // 가리키는 쪽이 실제로 있으면 그대로 둔다. 사람이 보던 자리를 옮기지 않는다.
+  if (typeof sel === 'number' && pages.some((p) => p.id === sel)) return sel
+  return pages[0].id
+}
+
 const nowIso = () => new Date().toISOString()
 
 export function snapshotFromState(s: Pick<BuilderState, 'title' | 'orientation' | 'theme' | 'font' | 'size' | 'selectedPageId' | 'pages'>): DraftStateSnapshot {

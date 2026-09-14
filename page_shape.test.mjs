@@ -25,7 +25,7 @@
 // 실행: node --experimental-strip-types --import ./ts_register.mjs page_shape.test.mjs
 
 import { readFileSync } from 'node:fs'
-import { fullPage, fullPages } from './src/persistence/draftStorage.ts'
+import { fullPage, fullPages, fullSelected } from './src/persistence/draftStorage.ts'
 import { tocItems } from './src/builder/util.ts'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url).pathname, 'utf8')
@@ -109,8 +109,10 @@ const check = (cond, label, extra = '') => {
 // 문은 둘이고, 둘은 서로를 안 거친다.
 {
   const proj = readBare('./src/persistence/projects.ts')
-  check(/pages:\s*fullPages\(/.test(proj),
-    '편집 화면 문(`fullState`)이 쪽까지 메운다',
+  // 2026-09-14 에 `fullState` 가 한 줄에서 두 줄로 갈라졌다(고른 쪽도 같이 메우느라).
+  // 글자 모양이 아니라 **메운 결과가 스냅샷에 실려 나가는가**를 본다.
+  check(/const pages = fullPages\(s\.pages\)/.test(proj) && /^\s*pages,$/m.test(proj),
+    '편집 화면 문(`fullState`)이 쪽까지 메우고, 그 결과를 내보낸다',
     '자료를 열 때 여기를 안 거치는 길은 없다')
   check(/import\s*\{[^}]*\bfullPages\b/.test(proj), 'projects.ts 가 그 함수를 실제로 들여온다')
 
@@ -133,6 +135,40 @@ const check = (cond, label, extra = '') => {
   const fl = readBare('./src/canvas/FreeLayer.tsx')
   check(/page\.conns\.map\(/.test(fl) || /page\.strokes\.map\(/.test(fl),
     '이 검사가 무엇을 지키는지 — 무방비로 읽는 자리가 여전히 있다(그래서 문이 중요하다)')
+}
+
+// ── 6. **고른 쪽이 없으면 무대가 빈다** ──────────────────
+//
+// 2026-09-14, ⑤(좁은 창)를 확인하다가 같은 문의 다른 구멍을 봤다.
+// 쪽은 멀쩡히 있는데 **가운데 무대만** 「카드를 추가하세요」로 비었다 —
+// 왼쪽 필름에는 쪽이 그려져 있는데. 미리보기가
+// `pages.find((p) => p.id === selectedPageId)` 로 쪽을 고르는데,
+// `selectedPageId` 가 없거나 지워진 쪽을 가리키면 그 find 가 빈손으로 온다.
+// **쪽이 있는데 아무것도 안 보인다**는 점에서 위 다섯 절과 같은 부류다.
+{
+  const ps = fullPages([{ id: 7, cardKey: 'note' }, { id: 9, cardKey: 'note' }])
+  check(fullSelected(ps, 9) === 9, '가리키는 쪽이 실제로 있으면 **그대로 둔다**',
+    String(fullSelected(ps, 9)))
+  check(fullSelected(ps, undefined) === 7, '값이 없으면 첫 쪽을 고른다',
+    String(fullSelected(ps, undefined)))
+  check(fullSelected(ps, null) === 7, 'null 이어도 첫 쪽', String(fullSelected(ps, null)))
+  check(fullSelected(ps, 999) === 7, '**지워진 쪽을 가리키면** 첫 쪽으로 돌린다',
+    String(fullSelected(ps, 999)))
+  check(fullSelected(ps, '9') === 7, '숫자가 아닌 것도 안 믿는다', String(fullSelected(ps, '9')))
+  check(fullSelected([], 3) === null, '쪽이 하나도 없으면 null — 없는 쪽을 가리키지 않는다',
+    String(fullSelected([], 3)))
+  // 음수 id 는 `fullPage` 가 id 없는 쪽에 붙여 주는 값이라 실제로 나온다.
+  const neg = fullPages([{ cardKey: 'note' }, { cardKey: 'note' }])
+  check(fullSelected(neg, neg[1].id) === neg[1].id, 'id 를 새로 붙인 쪽도 고를 수 있다')
+}
+{
+  // **실제로 불리는가.** 함수만 있고 아무도 안 부르면 아무것도 막지 못한다.
+  const pj = readBare('./src/persistence/projects.ts')
+  check(/selectedPageId: fullSelected\(pages, s\.selectedPageId\)/.test(pj),
+    '`fullState()` 가 자료를 열 때 실제로 메운다')
+  // 쪽을 두 번 메우지 않는다 — `fullPages` 를 두 번 부르면 id 가 달라진다.
+  check((pj.match(/fullPages\(/g) || []).length === 1,
+    '`fullPages` 를 한 번만 부른다 (두 번 부르면 id 없는 쪽의 id 가 갈린다)')
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)
