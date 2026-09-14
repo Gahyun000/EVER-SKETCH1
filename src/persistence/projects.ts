@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { lastOrientation } from './prefs'
 import { stripSlotConns, unlockLegacySlots } from '../template/legacyUnlock'
-import { useBuilder, reseedUids, type BuilderState } from '../state/store'
+import { useBuilder, reseedUids, resetFitUndo, type BuilderState } from '../state/store'
 import { snapshotFromState, fullPages, fullSelected, type DraftStateSnapshot } from './draftStorage'
 import {
   apiListProjects, apiCreateProject, apiCreateFromTemplate, apiGetProject, apiRenameProject,
@@ -49,6 +49,7 @@ function fullState(st?: Partial<DraftStateSnapshot> | null): DraftStateSnapshot 
 function applyProject(p: ProjectFull): void {
   setAutosaveHydrated(false)                 // 로드 중 오저장 방지
   resetHistory()                             // 이전 프로젝트의 되돌리기 스냅샷 폐기(페이지 id 가 겹친다)
+  resetFitUndo()                             // 같은 이유 — 방향 전환·표 이어적기 되돌리기도 앞 자료의 쪽을 들고 있다
   const st = fullState(p.state)
   reseedUids(st.pages || [])
   // 2026-09-07 이전에 만든 표준 양식은 슬롯 요소마다 `locked: true` 가 저장돼 있다.
@@ -127,6 +128,7 @@ export function resetWorkspace(): void {
   setAutosaveReadOnly(false)
   resetHistory()
   setActiveProjectId(null)
+  resetFitUndo()                             // 새 문서에도 앞 자료의 쪽이 남으면 안 된다
   useBuilder.setState(newDocSnapshot() as Partial<BuilderState>)
   useAutosave.setState({ status: 'idle', savedAt: undefined, error: undefined })
   useProjects.setState({

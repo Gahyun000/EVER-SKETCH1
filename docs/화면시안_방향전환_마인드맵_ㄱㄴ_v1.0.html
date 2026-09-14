@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면시안 — 방향을 바꿀 때 마인드맵</title>
+<style>
+  :root{
+    --ink:#16203a; --muted:#6b7590; --line:#dfe3ec; --plane:#f4f6fa; --surf:#fff;
+    --blue:#2a78d6; --blue-d:#1b5bab; --blue-100:#e4effc;
+    --warn:#b9541b; --warn-bg:#fff3e2; --warn-line:#f0d7b4;
+    --bad:#b3261e; --bad-bg:#fdeceb; --bad-line:#f3c9c6;
+    --ok:#1c7a4a; --ok-bg:#e8f6ee; --ok-line:#bfe2ce;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    padding-block:28px;padding-left:20px;padding-right:20px}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  section{background:var(--surf);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+  h2{font-size:15.5px;margin:0 0 10px;letter-spacing:-.01em}
+  h2 .tag{display:inline-block;background:var(--blue-100);color:var(--blue-d);
+    border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:800;margin-right:7px;vertical-align:2px}
+  p{margin:0 0 10px}
+  .muted{color:var(--muted)}
+  b.hi{color:var(--blue-d)}
+  table.t{border-collapse:collapse;width:100%;font-size:12.5px;margin:8px 0 4px}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+  table.t th{color:var(--muted);font-weight:700;font-size:11.5px;border-bottom:1px solid #c9cfdd}
+  table.t td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.bad{color:var(--bad);font-weight:800} td.good{color:var(--ok);font-weight:800}
+  .note{background:var(--warn-bg);border:1px solid var(--warn-line);border-left:3px solid var(--warn);
+    border-radius:8px;padding:10px 13px;font-size:12.8px;margin:12px 0}
+  .note.bad{background:var(--bad-bg);border-color:var(--bad-line);border-left-color:var(--bad)}
+  .note.ok{background:var(--ok-bg);border-color:var(--ok-line);border-left-color:var(--ok)}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--plane);
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  ul{margin:6px 0 10px;padding-left:19px} li{margin-bottom:5px}
+
+  .lab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+  .lab label{font-size:12.5px;font-weight:700;color:var(--muted)}
+  input[type=range]{width:210px;accent-color:var(--blue)}
+  .wv{font-weight:800;font-variant-numeric:tabular-nums;min-width:52px;display:inline-block}
+  .opts{display:flex;gap:6px;flex-wrap:wrap}
+  .opts button{border:1px solid var(--line);background:#fff;border-radius:9px;
+    padding:7px 12px;font:inherit;font-size:12.5px;color:var(--ink);cursor:pointer}
+  .opts button:hover{background:var(--plane)}
+  .opts button.on{background:var(--blue-100);border-color:var(--blue);color:var(--blue-d);
+    font-weight:800;box-shadow:0 0 0 1px var(--blue) inset}
+
+  .sheets{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+  .sh .cap{font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:6px;text-align:center}
+  .sh .cap b{color:var(--ink)}
+  .paper{background:#fff;border:1px solid #cfd5e2;position:relative;overflow:hidden;
+    box-shadow:0 3px 14px -6px rgba(16,24,40,.35)}
+  .nd{position:absolute;border:1.5px solid #7ea6dd;background:#e4effc;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;font-size:9px;color:#2b4f86;
+    font-weight:700;overflow:hidden}
+  .nd.c{background:#16203a;border-color:#16203a;color:#fff;border-radius:13px}
+  .nd.hit{border-color:var(--bad);background:#fadcda;color:#8d211b;z-index:3}
+  svg.wires{position:absolute;inset:0;pointer-events:none}
+  .verdict{margin-top:14px;font-size:12.8px;line-height:1.7}
+  .verdict b{color:var(--ink)}
+  .pill{display:inline-block;border-radius:6px;padding:1px 8px;font-size:11.5px;font-weight:800}
+  .pill.bad{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad-line)}
+  .pill.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)}
+
+  .flow{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+  .flow div{flex:1 1 200px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--plane);font-size:12.4px}
+  .flow div .s{font-weight:800;color:var(--blue-d);font-size:12px;margin-bottom:3px}
+  @media (max-width:760px){ input[type=range]{width:100%} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>방향을 바꿀 때 마인드맵 — 다시 배치하고(ㄱ), 되돌리면 돌아온다(ㄴ)</h1>
+<p class="sub">2026-09-14 · 코드에서 잰 실제 좌표로 만든 모형입니다. 아직 한 줄도 안 고쳤습니다.</p>
+
+<section>
+  <h2><span class="tag">지금</span>무엇이 망가지나</h2>
+  <p><b>④의 끌어들이기는 요소를 따로따로 자릅니다</b>(<span class="kbd">x ≤ W − w</span>).
+     오른쪽에 있던 것은 <b>전부 같은 x</b> 로 갑니다. 마인드맵은 가지들이 중심을 둘러싸고 있으니
+     오른쪽 절반이 통째로 한 줄에 포개집니다.</p>
+  <table class="t">
+    <tr><th>가지 수</th><th class="n">지금 · 가장 깊은 겹침</th><th class="n">같은 x 에 몰린 수</th><th class="n">ㄱ · 다시 배치</th></tr>
+    <tr><td>3개 (기본)</td><td class="n bad">7px</td><td class="n">2개</td><td class="n good">0px</td></tr>
+    <tr><td>5개</td><td class="n bad">38px <span class="muted">(상자 높이가 38)</span></td><td class="n">3개</td><td class="n good">0px</td></tr>
+    <tr><td>8개</td><td class="n bad">38px</td><td class="n bad">5개</td><td class="n good">0px</td></tr>
+  </table>
+  <div class="note bad">
+    8개일 때 <b>다섯 개가 x=300 한 줄에 쌓입니다.</b> 보내 주신 영상은 가지를 손으로 옮겨 둔
+    상태라 중심 주제까지 가지를 덮었습니다. 제가 <span class="kbd">fitPaper.ts</span> 주석에
+    「겹칠 수는 있어도 잃지는 않는다」고 써 두고 넘어갔는데,
+    <b>마인드맵은 「어디에 있느냐」가 곧 내용</b>이라 겹치면 잃은 것과 같습니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">ㄱ</span>다시 배치 — <b class="hi">각도는 지키고, 반지름만 새 종이에 맞춘다</b></h2>
+  <p>가지를 자르는 대신, <b>중심에서 본 각도를 그대로 둔 채</b> 새 종이의 타원 위에 다시 앉힙니다.
+     그래서 <b>왼쪽에 두었던 가지는 왼쪽에</b>, 12시에 두었던 가지는 12시에 남습니다.</p>
+
+  <div class="lab">
+    <label>가지 수</label>
+    <input type="range" id="n" min="3" max="8" step="1" value="5">
+    <span class="wv" id="nv">5개</span>
+    <div class="opts" id="opts">
+      <button data-o="now" class="on">지금 (자르기)</button>
+      <button data-o="a">ㄱ (다시 배치)</button>
+    </div>
+  </div>
+
+  <div class="sheets">
+    <div class="sh"><div class="cap">가로 <b>1040×720</b> — 원래</div><div id="pL"></div></div>
+    <div class="sh"><div class="cap">세로 <b>432×576</b> — 바꾼 뒤</div><div id="pP"></div></div>
+  </div>
+  <div class="verdict" id="vd"></div>
+
+  <div class="note">
+    <b>잃는 것도 말씀드립니다.</b> 손으로 가지를 <b>멀리 끌어 두었다면 그 거리는 잃습니다</b> —
+    가지는 타원 위로 돌아옵니다. <b>각도는 지킵니다.</b>
+    지금은 거리도 각도도 다 잃고 포개지니, 이쪽이 낫다고 봅니다.
+    <br>중심과 선이 끊긴 가지(연결선을 지운 것)는 마인드맵의 일부가 아니므로 <b>지금처럼 자르기만</b> 합니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">ㄴ</span>방향을 되돌리면 자리도 돌아온다</h2>
+  <p>영상에서 <b>가로를 다시 누르셨습니다.</b> 그게 사람의 본능인데 자리는 안 돌아왔습니다.
+     되돌리는 길이 알림 줄의 <b>되돌리기</b> 하나뿐이고 <b>10초 뒤 사라집니다.</b></p>
+
+  <div class="flow">
+    <div><div class="s">1 · 세로로 바꿈</div>바꾸기 <b>전</b>의 쪽을 들고, 옮긴 결과도 함께 적어 둔다</div>
+    <div><div class="s">2 · 가로를 다시 누름</div>지금 쪽이 <b>1에서 만든 그 쪽 그대로</b>인가?</div>
+    <div><div class="s">3-가 · 그대로면</div>자르기 말고 <b>1의 쪽을 그대로 되돌린다</b></div>
+    <div><div class="s">3-나 · 그 사이 고쳤으면</div>손대지 않는다. 사람이 한 일을 덮지 않는다</div>
+  </div>
+  <p class="muted" style="font-size:12.5px">
+    「그대로인가」는 <b>쪽 목록이 우리가 만든 바로 그 객체인지</b>로 봅니다. 한 글자라도 고치면
+    새 객체가 되므로 <b>어림짐작이 아니라 확실합니다.</b>
+  </p>
+  <div class="note ok">
+    <b>ㄱ이 있어도 ㄴ이 필요합니다.</b> ㄱ은 겹침을 없애 주지만, 가로에서 손으로 맞춰 둔
+    배치가 <b>타원 위로 정리되는 것</b>까지 막지는 못합니다. 잘못 눌렀을 때 한 번에
+    되돌릴 길이 있어야 합니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">곁가지</span>같이 손볼 것 — 보고에서 나온 나머지</h2>
+  <ul>
+    <li><b>알림이 겹침을 말하지 않습니다.</b> 「요소 3개를 옮겼습니다」 뒤에
+      <b>겹친 게 있으면 그 수도</b> 적습니다. (ㄱ 뒤에는 마인드맵에서 0이 되지만,
+      다른 요소는 여전히 겹칠 수 있습니다.)</li>
+    <li><b>알림이 방향을 바꾼 뒤에도 남습니다.</b> 영상 마지막 프레임에서 가로로 돌아왔는데
+      「종이 안으로 옮겼습니다」가 그대로 떠 있었습니다. <b>방향이 다시 바뀌면 접습니다.</b></li>
+    <li><b>오래된 되돌리기가 남습니다.</b> 세로 전환 → 편집 → 가로 전환(옮길 것 0개라 갱신 안 됨)
+      → 10초 안에 되돌리기를 누르면 <b>그 사이 편집이 사라집니다.</b> 옮긴 게 0개여도 비웁니다.</li>
+    <li><b>자료를 바꿔 열 때 안 비웁니다.</b> <span class="kbd">history.ts</span> 가 바로 이
+      이유로 <span class="kbd">resetHistory()</span> 를 반드시 부르라고 적어 뒀는데,
+      제가 만든 <span class="kbd">lastFit</span>·<span class="kbd">lastCont</span> 에는 안 붙였습니다.
+      지금은 화면이 다시 그려져 못 누르지만 <b>구멍은 열려 있습니다.</b></li>
+  </ul>
+</section>
+
+<script>
+(function () {
+  // ── 코드에서 가져온 실제 상수 ──
+  var CW=150, CH=46, BW=132, BH=38
+  function ringFor(W,H){
+    var needX=(CW+BW)/2+10, needY=(CH+BH)/2+10
+    var maxX=W/2-BW/2-6, maxY=H/2-BH/2-6
+    return { rx: Math.min(Math.max(W*0.31,needX), Math.max(maxX,1)),
+             ry: Math.min(Math.max(H*0.26,needY), Math.max(maxY,1)) }
+  }
+  // 중심 상자의 자리 (실측에서 뽑은 식: 고리 중심 = H*0.56)
+  function centerEl(W,H){ return { x: Math.round(W/2-CW/2), y: Math.round(H*0.56-CH/2), w:CW, h:CH } }
+  function build(W,H,n){
+    var c=centerEl(W,H), r=ringFor(W,H)
+    var ccx=c.x+CW/2, ccy=c.y+CH/2, out=[]
+    for(var i=0;i<n;i++){
+      var a=(-90 + i*360/n)*Math.PI/180
+      out.push({ t:'가지 '+(i+1), x:Math.round(ccx+r.rx*Math.cos(a)-BW/2),
+                 y:Math.round(ccy+r.ry*Math.sin(a)-BH/2), w:BW, h:BH, a:a })
+    }
+    return { c:c, br:out }
+  }
+  function clampAll(m,W,H){
+    var cl=function(e){ return { ...e, x:Math.max(0,Math.min(W-e.w,e.x)), y:Math.max(0,Math.min(H-e.h,e.y)) } }
+    return { c:cl(m.c), br:m.br.map(cl) }
+  }
+  function relayout(m,W,H){
+    var c=centerEl(W,H), r=ringFor(W,H), ccx=c.x+CW/2, ccy=c.y+CH/2
+    return { c:c, br:m.br.map(function(b){
+      return { ...b, x:Math.round(ccx+r.rx*Math.cos(b.a)-BW/2), y:Math.round(ccy+r.ry*Math.sin(b.a)-BH/2) } }) }
+  }
+  function overlaps(m){
+    var all=[m.c].concat(m.br), hit=new Set(), worst=0
+    for(var i=0;i<all.length;i++) for(var j=i+1;j<all.length;j++){
+      var a=all[i],b=all[j]
+      var ox=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)
+      var oy=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)
+      if(ox>0&&oy>0){ hit.add(i); hit.add(j); worst=Math.max(worst,Math.min(ox,oy)) }
+    }
+    return { hit:hit, worst:worst }
+  }
+  function draw(el,W,H,m,scale){
+    var o=overlaps(m), all=[m.c].concat(m.br)
+    var s=scale, w=Math.round(W*s), h=Math.round(H*s)
+    var wires=''
+    m.br.forEach(function(b){
+      wires+='<line x1="'+((m.c.x+CW/2)*s)+'" y1="'+((m.c.y+CH/2)*s)+'" x2="'+((b.x+BW/2)*s)+'" y2="'+((b.y+BH/2)*s)+'" stroke="#c3cbdb" stroke-width="1.4"/>'
+    })
+    var boxes=all.map(function(e,i){
+      var cls='nd'+(i===0?' c':'')+(o.hit.has(i)?' hit':'')
+      return '<div class="'+cls+'" style="left:'+(e.x*s)+'px;top:'+(e.y*s)+'px;width:'+(e.w*s)+'px;height:'+(e.h*s)+'px">'+(i===0?'중심 주제':e.t)+'</div>'
+    }).join('')
+    el.innerHTML='<div class="paper" style="width:'+w+'px;height:'+h+'px">'
+      +'<svg class="wires" width="'+w+'" height="'+h+'">'+wires+'</svg>'+boxes+'</div>'
+    return o
+  }
+
+  var L=[1040,720], P=[432,576], n=5, opt='now'
+  var el=function(id){return document.getElementById(id)}
+  function render(){
+    el('nv').textContent=n+'개'
+    var mL=build(L[0],L[1],n)
+    draw(el('pL'),L[0],L[1],mL,0.40)
+    var mP = opt==='now' ? clampAll(mL,P[0],P[1]) : relayout(mL,P[0],P[1])
+    var o = draw(el('pP'),P[0],P[1],mP,0.40)
+    var piles={}; [mP.c].concat(mP.br).forEach(function(e){piles[e.x]=(piles[e.x]||0)+1})
+    var pile=Math.max.apply(null,Object.values(piles))
+    el('vd').innerHTML = opt==='now'
+      ? '<span class="pill bad">겹침 '+o.worst+'px</span> &nbsp; 같은 x 에 <b>'+pile+'개</b>가 쌓였습니다. '
+        + '<b>빨간 상자</b>가 서로 겹친 것입니다. 가로에서의 배치가 남아 있지 않습니다.'
+      : '<span class="pill ok">겹침 '+o.worst+'px</span> &nbsp; 가지가 <b>각자 있던 방향</b>에 그대로 남고, '
+        + '반지름만 세로 종이의 타원(<b>rx '+Math.round(ringFor(P[0],P[1]).rx)+' · ry '+Math.round(ringFor(P[0],P[1]).ry)+'</b>)에 맞춰졌습니다.'
+  }
+  el('n').addEventListener('input',function(){n=+this.value;render()})
+  el('opts').addEventListener('click',function(ev){
+    var b=ev.target.closest('button'); if(!b) return
+    opt=b.dataset.o
+    ;[].forEach.call(this.querySelectorAll('button'),function(x){x.classList.toggle('on',x===b)})
+    render()
+  })
+  render()
+})()
+</script>
+</body>
+</html>

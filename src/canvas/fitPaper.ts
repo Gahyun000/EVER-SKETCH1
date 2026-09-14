@@ -12,12 +12,16 @@
 // **조용히 하지 않는다.** 옮겨 놓고 말을 안 하면 「내가 놓은 자리가 아닌데」가 된다.
 // 부르는 쪽이 몇 개를 옮겼는지 받아서 한 줄로 알린다.
 
-import type { Page } from '../state/store'
+import type { Page, FreeEl } from '../state/store'
+import { relayoutMindmap } from '../cards/mindmapEls'
 
 export interface FitResult {
   pages: Page[]
   /** 옮긴 요소 수. 0이면 아무 말도 할 필요가 없다. */
   moved: number
+  /** 옮기고 나서 **다른 것과 겹친** 요소 수. 옮겼다는 말만 하고 겹쳤다는 말을
+   *  안 하면, 사람은 무엇이 어디 갔는지 못 찾는다. */
+  overlapping: number
 }
 
 /** 한 값을 [0, max] 안으로. */
@@ -35,19 +39,45 @@ const clamp = (v: number, max: number) => Math.max(0, Math.min(max, v))
  */
 export function fitPagesToPaper(pages: Page[], W: number, H: number): FitResult {
   let moved = 0
+  let overlapping = 0
   const out = pages.map((p) => {
     if (!p || !Array.isArray(p.els) || !p.els.length) return p
+
+    // **마인드맵은 자르지 않고 통째로 다시 앉힌다**(ㄱ · 2026-09-14).
+    // 자르면 오른쪽 절반이 전부 같은 x 로 가서 포개진다 — 가지 8개짜리는 다섯 개가
+    // 한 줄에 쌓였다. 마인드맵이 아니면 null 이 오고, 그때는 평소대로 자른다.
+    const base = relayoutMindmap(p, W, H) || p.els
+
     let touched = false
-    const els = p.els.map((e) => {
+    const els = base.map((e, i) => {
       if (!e) return e
       const x = clamp(e.x, Math.max(0, W - e.w))
       const y = clamp(e.y, Math.max(0, H - e.h))
-      if (x === e.x && y === e.y) return e
-      touched = true
-      moved++
-      return { ...e, x, y }
+      const out = (x === e.x && y === e.y) ? e : { ...e, x, y }
+      // **원래 자리와 견준다.** 다시 앉히기까지 거친 뒤라, 바로 앞 값과 견주면
+      // 다시 앉히며 옮긴 것을 안 센다.
+      const was = p.els[i]
+      if (was && (out.x !== was.x || out.y !== was.y)) { moved++; touched = true }
+      return out
     })
-    return touched ? { ...p, els } : p
+    if (!touched) return p
+    overlapping += countOverlapping(els)
+    return { ...p, els }
   })
-  return { pages: moved ? out : pages, moved }
+  return { pages: moved ? out : pages, moved, overlapping }
+}
+
+/** 다른 것과 한 군데라도 겹치는 요소의 수. 쪽마다 요소가 몇십 개라 제곱으로 훑어도 된다. */
+function countOverlapping(els: (FreeEl | undefined)[]): number {
+  const hit = new Set<number>()
+  for (let i = 0; i < els.length; i++) {
+    const a = els[i]; if (!a) continue
+    for (let j = i + 1; j < els.length; j++) {
+      const b = els[j]; if (!b) continue
+      const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
+      const oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
+      if (ox > 0 && oy > 0) { hit.add(i); hit.add(j) }
+    }
+  }
+  return hit.size
 }

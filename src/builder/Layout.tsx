@@ -45,26 +45,44 @@ import Modal from '../ui/Modal'
  * **⌘Z 로는 부족하다.** 되돌리기 이력이 쪽별이라 ⌘Z 는 지금 쪽 하나만 되돌린다.
  * 방향은 모든 쪽을 건드리므로 여기 「되돌리기」가 통째로 돌려놓는다.
  */
+interface FitNote { moved: number; overlapping?: number; restored?: boolean }
+
 function FitToast() {
   const undoFit = useBuilder((s) => s.undoFit)
-  const [moved, setMoved] = useState(0)
+  const [note, setNote] = useState<FitNote | null>(null)
   useEffect(() => {
     const on = (e: Event) => {
-      setMoved((e as CustomEvent<{ moved: number }>).detail?.moved || 0)
-      // 10초면 읽고 누르기에 넉넉하다. 더 오래 두면 다음 작업을 가린다.
-      window.setTimeout(() => setMoved(0), 10_000)
+      const d = (e as CustomEvent<FitNote>).detail
+      // **옮긴 게 없으면 접는다.** 방향을 다시 바꾼 뒤에도 「종이 안으로 옮겼습니다」가
+      // 떠 있으면 이제 맞지 않는 문장이다 — 실물 녹화에서 그대로 남아 있었다.
+      if (!d || (!d.moved && !d.restored)) { setNote(null); return }
+      setNote(d)
+      // 옮겼을 때 10초. 되돌렸다는 말은 짧게 4초 — 확인이지 할 일이 아니다.
+      const ms = d.restored ? 4_000 : 10_000
+      window.setTimeout(() => setNote((n) => (n === d ? null : n)), ms)
     }
     window.addEventListener('ebook:fitted', on)
     return () => window.removeEventListener('ebook:fitted', on)
   }, [])
-  if (!moved) return null
+  if (!note) return null
+  if (note.restored) {
+    return (
+      <div className="fit-toast" role="status">
+        <span>자리를 되돌렸습니다.</span>
+        <button className="x" onClick={() => setNote(null)} aria-label="닫기">×</button>
+      </div>
+    )
+  }
   return (
     <div className="fit-toast" role="status">
       {/* 한 문장은 **한 덩어리로 묶는다.** 묶음이 flex(gap:10px)라 글자를 맨몸으로 두면
           「요소 / 3개 / 를 …」 세 조각이 되어 사이가 벌어진다 — 실물에서 그렇게 나왔다. */}
-      <span>요소 <b>{moved}개</b>를 종이 안으로 옮겼습니다.</span>
-      <button onClick={() => { undoFit(); setMoved(0) }}>되돌리기</button>
-      <button className="x" onClick={() => setMoved(0)} aria-label="닫기">×</button>
+      <span>요소 <b>{note.moved}개</b>를 종이 안으로 옮겼습니다.
+        {/* **겹쳤으면 그 말도 한다.** 옮겼다는 말만 하면 사람은 무엇이 어디 갔는지 못 찾는다. */}
+        {note.overlapping ? <> 그중 <b>{note.overlapping}개</b>가 겹칩니다.</> : null}
+      </span>
+      <button onClick={() => { undoFit(); setNote(null) }}>되돌리기</button>
+      <button className="x" onClick={() => setNote(null)} aria-label="닫기">×</button>
     </div>
   )
 }

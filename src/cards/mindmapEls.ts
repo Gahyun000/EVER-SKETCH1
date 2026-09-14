@@ -48,6 +48,17 @@ const BR_W = 132, BR_H = 38
  *
  * 종이 밖으로 나가지 않는 선에서만 키운다. 세로 종이에서 10px 늘어난다.
  */
+/**
+ * 고리의 **한가운데**. 중심 상자가 여기에 앉고, 가지들이 이 점을 둘러싼다.
+ *
+ * 종이 가운데보다 **조금 아래**다 — 제목이 위를 쓰기 때문이다.
+ * `mindmapParts`(새로 만들 때)와 `relayoutMindmap`(방향을 바꿀 때)이 **같은 이 함수**를
+ * 본다. 두 곳에 따로 적어 두면 언젠가 갈라지고, 그러면 방향만 바꿨는데 중심이 움직인다.
+ */
+export function ringCenter(W: number, H: number): { x: number; y: number } {
+  return { x: W / 2, y: H * 0.56 }
+}
+
 export function ringFor(W: number, H: number): { rx: number; ry: number } {
   const needX = (CENTER_W + BR_W) / 2 + 10      // 중심과 가지가 가로로 안 겹치는 최소
   const needY = (CENTER_H + BR_H) / 2 + 10
@@ -87,8 +98,7 @@ export function mindmapParts(fields: Record<string, string>, W: number, H: numbe
     })
   }
 
-  // 중심은 종이 가운데보다 **조금 아래**. 제목이 위를 쓰기 때문이다.
-  const cx = W / 2, cy = H * 0.56
+  const { x: cx, y: cy } = ringCenter(W, H)
   const { rx, ry } = ringFor(W, H)
 
   const centerId = id()
@@ -177,3 +187,58 @@ export function nextBranchSpot(
 
 /** 새 가지 상자 한 칸의 크기 — 부르는 쪽이 요소를 만들 때 쓴다. */
 export const BRANCH_BOX = { w: BR_W, h: BR_H }
+
+/**
+ * **방향을 바꿀 때 마인드맵을 통째로 다시 앉힌다**(사용자 결정 ㄱ · 2026-09-14).
+ *
+ * **왜 자르면 안 되나.** 밖으로 나간 것만 가장자리 안쪽으로 미는 것(`fitPaper`)은
+ * 서로 상관없는 요소들에는 맞다. 그런데 마인드맵은 **가지들이 중심을 둘러싸는 모양
+ * 자체가 내용**이다. 오른쪽 절반을 한꺼번에 자르면 전부 같은 x 로 가서 포개진다 —
+ * 가지 8개짜리는 **다섯 개가 한 줄에 쌓였다.** 실물에서 확인했다.
+ *
+ * **각도는 지키고 반지름만 바꾼다.** 왼쪽에 둔 가지는 왼쪽에, 12시 가지는 12시에
+ * 남는다. 사람이 **멀리 끌어 둔 거리는 잃는다** — 타원 위로 돌아온다. 지금은
+ * 거리도 각도도 다 잃고 포개지므로, 이쪽이 덜 잃는다.
+ *
+ * **마인드맵의 일부만 건드린다.** 중심과 선으로 이어진 가지만 옮긴다. 사람이 따로
+ * 붙인 메모나, 선을 끊어 둔 상자는 마인드맵이 아니므로 부르는 쪽의 자르기에 맡긴다.
+ *
+ * 마인드맵이 아니면 `null`. 부르는 쪽이 「그럼 평소대로」로 읽는다.
+ */
+export function relayoutMindmap(
+  page: { els?: FreeEl[]; conns?: Conn[]; mindmapCenter?: number },
+  W: number, H: number,
+): FreeEl[] | null {
+  const els = page.els
+  const centerId = page.mindmapCenter
+  if (centerId == null || !Array.isArray(els) || !els.length) return null
+  const center = els.find((e) => e && e.id === centerId)
+  if (!center) return null                       // 중심을 지웠다 — 더는 마인드맵이 아니다
+
+  // 중심과 선으로 이어진 것만 가지다. 방향은 안 따진다(선을 거꾸로 그었을 수 있다).
+  const linked = new Set<number>()
+  for (const c of page.conns || []) {
+    if (!c) continue
+    if (c.from === centerId) linked.add(c.to)
+    else if (c.to === centerId) linked.add(c.from)
+  }
+  if (!linked.size) return null
+
+  const ring = ringCenter(W, H)
+  const { rx, ry } = ringFor(W, H)
+  // 중심 상자의 크기는 사람이 바꿨을 수 있다 — 그 크기로 가운데를 맞춘다.
+  const nc = { x: Math.round(ring.x - center.w / 2), y: Math.round(ring.y - center.h / 2) }
+  const ocx = center.x + center.w / 2, ocy = center.y + center.h / 2
+
+  return els.map((e) => {
+    if (!e) return e
+    if (e.id === centerId) {
+      return (e.x === nc.x && e.y === nc.y) ? e : { ...e, x: nc.x, y: nc.y }
+    }
+    if (!linked.has(e.id)) return e
+    const a = Math.atan2((e.y + e.h / 2) - ocy, (e.x + e.w / 2) - ocx)
+    const x = Math.round(Math.max(0, Math.min(W - e.w, ring.x + rx * Math.cos(a) - e.w / 2)))
+    const y = Math.round(Math.max(0, Math.min(H - e.h, ring.y + ry * Math.sin(a) - e.h / 2)))
+    return (e.x === x && e.y === y) ? e : { ...e, x, y }
+  })
+}

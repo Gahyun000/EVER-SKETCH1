@@ -107,11 +107,22 @@ export function nextElId(): number { return elUid++ }
 // 빈칸은 PageView 의 data-ph 자리표시자가 안내하므로 화면이 비어 보이지도 않는다.
 // (AI 경로 buildPlanPage 도 같은 이유로 빈칸을 쓴다 — 정책을 하나로 맞춘 것)
 /** 방금 방향을 바꾸며 끌어들인 것. 「되돌리기」 한 번을 위해서만 들고 있는다 —
- *  다음 번 끌어들임이 덮어쓴다. 쌓아 두면 언제 적 것인지 아무도 모른다. */
-let lastFit: { pages: Page[]; orientation: Orientation } | null = null
+ *  다음 번 끌어들임이 덮어쓴다. 쌓아 두면 언제 적 것인지 아무도 모른다.
+ *
+ *  `after` 는 **그때 우리가 내놓은 쪽 목록 그 자체**다. 방향을 되돌릴 때 지금 쪽이
+ *  아직 그 객체면 「그 사이 아무도 안 고쳤다」는 뜻이라, 자르지 말고 되돌리면 된다(ㄴ).
+ *  한 글자만 고쳐도 새 객체가 되므로 **어림짐작이 아니라 확실하다.** */
+let lastFit: { pages: Page[]; orientation: Orientation; after: Page[] } | null = null
 
 /** 방금 이어 적기로 생긴 쪽. 되돌리기 **한 번**을 위해서만 들고 있는다. */
 let lastCont: { pages: Page[]; selectedPageId: number | null } | null = null
+
+/** **자료를 바꿔 열 때 비운다.**
+ *
+ *  `history.ts` 가 바로 이 이유로 `resetHistory()` 를 반드시 부르라고 적어 두었는데,
+ *  위의 둘에는 그걸 안 붙였었다(2026-09-14에 찾음). 들고 있는 것이 **앞 자료의 쪽**이라,
+ *  남아 있으면 다음 자료에 앞 자료의 쪽을 덮어쓸 수 있다. */
+export function resetFitUndo(): void { lastFit = null; lastCont = null }
 
 function defaultsFor(cardKey: string): Record<string, string> {
   const c = cardByKey(cardKey); const f: Record<string, string> = {}
@@ -247,18 +258,35 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   // (임원진 요청: 「한번 선택을 하면 이후 부터는 그 설정으로 계속 생성」)
   // 지금 문서에는 아무 영향이 없다. 기억은 이 브라우저에만 남는다(persistence/prefs.ts).
   setOrientation: (o) => set((s) => {
+    // **같은 방향을 다시 누른 것은 아무 일도 아니다.** 이 줄이 없으면 마인드맵이
+    // 다시 앉혀지면서(ㄱ) 사람이 맞춰 둔 배치가 까닭 없이 정리된다.
+    if (o === s.orientation) return {}
     rememberOrientation(o)
-    // **종이 밖으로 나가는 것을 안으로 끌어들인다**(사용자 결정 ㄴ).
+
+    // ㄴ · **되돌아가는 길.** 바꾸기 전 방향으로 다시 가는데, 그 사이 아무것도 안
+    // 고쳤으면 자르지 말고 **그때 쪽을 그대로 돌려준다.** 영상에서 본 것이 이것이다 —
+    // 사람은 「가로」를 다시 눌러 되돌리려 했는데 자리가 안 돌아왔다.
+    // 그 사이 고쳤으면(=쪽 객체가 바뀌었으면) 손대지 않는다. 사람이 한 일을 덮지 않는다.
+    if (lastFit && lastFit.orientation === o && lastFit.after === s.pages) {
+      const back = lastFit
+      lastFit = null
+      window.dispatchEvent(new CustomEvent('ebook:fitted', { detail: { moved: 0, restored: true } }))
+      return { orientation: o, pages: back.pages }
+    }
+
+    // **종이 밖으로 나가는 것을 안으로 끌어들인다**(사용자 결정 ㄴ, 2026-09-13).
     // 방향은 종이 크기만 바꾸고 요소 좌표는 그대로라, 가로에서 만든 것을 세로로 바꾸면
     // 오른쪽에 있던 것들이 밖에 남는다 — 화면에서는 잘려서 안 보이고 내보내야 안다.
     // **안 나간 것은 안 건드린다.** 비율대로 전부 옮기면 사람이 맞춰 둔 자리가 통째로 흐트러진다.
+    // 마인드맵만은 통째로 다시 앉힌다(ㄱ) — 자르면 가지들이 한 줄에 포개진다.
     const { W, H } = pageSize(o)
-    const { pages, moved } = fitPagesToPaper(s.pages, W, H)
+    const { pages, moved, overlapping } = fitPagesToPaper(s.pages, W, H)
+    // **옮긴 게 없으면 들고 있던 것도 비운다.** 안 비우면 오래된 되돌리기가 남아,
+    // 그 사이 한 일까지 함께 사라진다.
+    lastFit = moved ? { pages: s.pages, orientation: s.orientation, after: pages } : null
     // 조용히 옮기면 「내가 놓은 자리가 아닌데」가 된다. 화면이 한 줄로 알린다.
-    if (moved) {
-      lastFit = { pages: s.pages, orientation: s.orientation }
-      window.dispatchEvent(new CustomEvent('ebook:fitted', { detail: { moved } }))
-    }
+    // 0개일 때도 쏜다 — 앞서 띄워 둔 알림을 **접으라는 뜻**이다.
+    window.dispatchEvent(new CustomEvent('ebook:fitted', { detail: { moved, overlapping } }))
     return { orientation: o, pages }
   }),
 

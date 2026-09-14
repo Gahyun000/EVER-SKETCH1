@@ -114,9 +114,12 @@ const page = (id, els) => ({ id, cardKey: 'note', fields: {}, free: true, els, c
 {
   const st = bare(read('./src/state/store.ts'))
   check(/fitPagesToPaper\(s\.pages, W, H\)/.test(st), '방향을 바꿀 때 실제로 부른다')
-  check(/lastFit = \{ pages: s\.pages, orientation: s\.orientation \}/.test(st),
+  check(/lastFit = moved \? \{ pages: s\.pages, orientation: s\.orientation, after: pages \} : null/.test(st),
     '옮기기 **전** 쪽을 들고 있는다 — 되돌리기가 볼 것')
-  check(/if \(moved\)/.test(st), '안 옮겼으면 아무것도 안 들고 있는다 (거짓 되돌리기 방지)')
+  // **옮긴 게 0개면 비운다.** 안 비우면 오래된 되돌리기가 남아, 세로 전환 → 편집 →
+  // 가로 전환(0개) 순서에서 되돌리기를 누르면 그 사이 편집까지 사라진다.
+  check(/: null$/m.test(st.split('lastFit = moved')[1].split('\n')[0] + ': null'),
+    '안 옮겼으면 들고 있던 것도 **비운다** (오래된 되돌리기 방지)')
   check(/ebook:fitted/.test(st), '옮겼다고 화면에 알린다')
   check(/undoFit: \(\)/.test(st), '되돌리기가 있다')
   check(/lastFit = null/.test(st), '한 번 되돌리면 비운다 — 두 번 누르면 엉뚱한 것이 돌아온다')
@@ -133,12 +136,18 @@ const page = (id, els) => ({ id, cardKey: 'note', fields: {}, free: true, els, c
   check(/removeEventListener\('ebook:fitted'/.test(ly), '떠날 때 귀를 뗀다')
   check(/<FitToast \/>/.test(ly), '실제로 그려진다 — 만들어만 두면 아무도 못 본다')
   check(/undoFit\(\)/.test(ly), '되돌리기 단추가 창고를 부른다')
-  check(/setTimeout\(\(\) => setMoved\(0\), 10_000\)/.test(ly), '10초 뒤 저절로 사라진다')
+  check(/const ms = d\.restored \? 4_000 : 10_000/.test(ly),
+    '옮겼을 때 10초, 되돌렸다는 말은 4초 뒤 사라진다')
+  check(/if \(!d \|\| \(!d\.moved && !d\.restored\)\) \{ setNote\(null\); return \}/.test(ly),
+    '**옮긴 게 없으면 접는다** — 방향을 다시 바꾼 뒤에도 옛 문장이 떠 있으면 안 된다')
   check(/role="status"/.test(ly), '읽어 주는 화면에도 들린다 (role=status)')
   // 묶음이 flex(gap:10px)다. 문장을 맨몸으로 두면 「요소 / 3개 / 를 …」 로 벌어진다 —
   // 2026-09-14 실물 확인에서 실제로 그렇게 나왔다.
-  check(/<span>요소 <b>\{moved\}개<\/b>를/.test(ly),
+  check(/<span>요소 <b>\{note\.moved\}개<\/b>를/.test(ly),
     '문장이 **한 덩어리**다 — flex 틈이 글자 사이를 벌리지 않는다')
+  check(/note\.overlapping \? <> 그중 <b>\{note\.overlapping\}개<\/b>가 겹칩니다\.<\/> : null/.test(ly),
+    '**겹쳤으면 그 말도 한다** — 옮겼다는 말만 하면 무엇이 어디 갔는지 못 찾는다')
+  check(/자리를 되돌렸습니다/.test(ly), '되돌렸을 때는 그렇다고 말한다')
 
   // **확인창을 가리지 않는다.** modal_shell 검사가 같은 규칙을 넓게 지키지만,
   // 여기서도 한 번 못박는다 — 이 줄을 만든 것이 이 작업이기 때문이다.
