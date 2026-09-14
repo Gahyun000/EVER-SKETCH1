@@ -352,6 +352,24 @@
  * 떨어진 알약 + **고른 것에 파란 테두리**. 이 화면에 이미 있던 규칙이라
  * 새로 외울 것이 없고, 여섯 군데(방향·배경·글자 정렬 둘·연결선 종류·화살촉)가
  * **한꺼번에** 같은 말을 하게 된다. */
+/* 「되돌리기」 — 안내 줄 안에 들어가는 글자 단추.
+   알약 단추로 만들면 「행 추가」 같은 보통 동작과 같은 무게로 보인다.
+   이건 방금 저절로 벌어진 일을 무르는, **한 번 쓰고 사라지는** 자리다. */
+/* 「↳ 앞 장에서 이어짐 — N줄부터」 — 이은 조각의 머리에 붙는 띠.
+   조각은 머리글을 다시 달고 있어서 **그냥 보면 새 표처럼 보인다.** 그러면 2쪽만
+   펼친 사람이 앞 장을 안 찾아보고 같은 내용을 또 적는다. 표 **밖 위쪽**에 붙인다 —
+   안에 넣으면 칸 하나를 잡아먹어 취합이 열 수를 잘못 센다.
+   **요소 밖에 그린다** — `.fel` 은 overflow:hidden 이라(긴 글자가 칸 밖으로 새는 것을
+   막는다) 요소 안에 두면 위로 올린 띠가 통째로 잘린다. 실물에서 그렇게 나왔다. */
+.tbl-cont{position:absolute;z-index:5;height:15px;transform:translateX(-100%);padding-right:6px;
+  background:var(--ax-blue-100);border:1px solid var(--ax-blue);border-bottom:0;
+  border-radius:5px 5px 0 0;font-size:9.5px;font-weight:800;color:var(--ax-blue-d);
+  display:flex;align-items:center;padding-left:5px;pointer-events:none;white-space:nowrap;overflow:hidden}
+
+.insp-undo{border:0;background:none;padding:0;font:inherit;font-weight:800;
+  color:var(--ax-blue-d);text-decoration:underline;cursor:pointer}
+.insp-undo:hover{color:var(--ax-blue)}
+
 .insp-row.seg{display:inline-flex;border:0;border-radius:0;overflow:visible;gap:5px}
 .insp-row.seg button{border:1px solid var(--ax-line);background:#fff;border-radius:8px;
   padding:6px 11px;font-size:12.5px;color:var(--ax-ink);cursor:pointer}

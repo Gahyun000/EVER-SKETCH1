@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면시안 — 표가 넘칠 때 다음 장으로 잇기</title>
+<style>
+  :root{
+    --ink:#16203a; --muted:#6b7590; --line:#dfe3ec; --plane:#f4f6fa; --surf:#fff;
+    --blue:#2a78d6; --blue-d:#1b5bab; --blue-100:#e4effc;
+    --warn:#b9541b; --warn-bg:#fff3e2; --warn-line:#f0d7b4;
+    --bad:#b3261e; --bad-bg:#fdeceb; --bad-line:#f3c9c6;
+    --ok:#1c7a4a; --ok-bg:#e8f6ee; --ok-line:#bfe2ce;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    padding-block:28px;padding-left:20px;padding-right:20px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  section{background:var(--surf);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+  h2{font-size:15.5px;margin:0 0 10px;letter-spacing:-.01em}
+  h2 .tag{display:inline-block;background:var(--blue-100);color:var(--blue-d);
+    border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:800;margin-right:7px;vertical-align:2px}
+  h3{font-size:13.5px;margin:16px 0 7px}
+  p{margin:0 0 10px}
+  .muted{color:var(--muted)}
+  b.hi{color:var(--blue-d)}
+  table.t{border-collapse:collapse;width:100%;font-size:12.5px;margin:8px 0 4px}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;
+    vertical-align:top}
+  table.t th{color:var(--muted);font-weight:700;font-size:11.5px;border-bottom:1px solid #c9cfdd}
+  table.t td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.bad{color:var(--bad);font-weight:800}
+  td.mid{color:var(--warn);font-weight:700}
+  td.good{color:var(--ok);font-weight:800}
+  .note{background:var(--warn-bg);border:1px solid var(--warn-line);border-left:3px solid var(--warn);
+    border-radius:8px;padding:10px 13px;font-size:12.8px;margin:12px 0}
+  .note.bad{background:var(--bad-bg);border-color:var(--bad-line);border-left-color:var(--bad)}
+  .note.ok{background:var(--ok-bg);border-color:var(--ok-line);border-left-color:var(--ok)}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--plane);
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  ul{margin:6px 0 10px;padding-left:19px} li{margin-bottom:5px}
+
+  /* ── 모형 ── */
+  .lab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .lab label{font-size:12.5px;font-weight:700;color:var(--muted)}
+  input[type=range]{width:250px;accent-color:var(--blue)}
+  .wv{font-weight:800;font-variant-numeric:tabular-nums;min-width:64px;display:inline-block}
+  .opts{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
+  .opts button{border:1px solid var(--line);background:#fff;border-radius:9px;
+    padding:7px 12px;font:inherit;font-size:12.5px;color:var(--ink);cursor:pointer}
+  .opts button:hover{background:var(--plane)}
+  .opts button.on{background:var(--blue-100);border-color:var(--blue);color:var(--blue-d);
+    font-weight:800;box-shadow:0 0 0 1px var(--blue) inset}
+
+  .sheets{display:flex;gap:16px;align-items:flex-start;overflow-x:auto;padding-bottom:6px}
+  .sh{flex:0 0 auto}
+  .sh .cap{font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:5px;text-align:center}
+  .paper{width:340px;height:236px;background:#fff;border:1px solid #cfd5e2;position:relative;
+    box-shadow:0 2px 10px -4px rgba(16,24,40,.3);overflow:hidden}
+  .paper .ttl{position:absolute;left:8px;top:9px;font-size:8.5px;font-weight:800;color:#2b3550}
+  .paper .subttl{position:absolute;right:8px;top:10px;font-size:7px;color:#8a93aa}
+  .paper .foot{position:absolute;left:8px;font-size:6.5px;color:#9aa3b8}
+  .paper .footzone{position:absolute;left:0;right:0;border-top:1px dashed #d7ccb4;
+    background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(214,170,90,.10) 4px,rgba(214,170,90,.10) 8px)}
+  .tbl{position:absolute;border:1px solid #b9c2d4;background:#fff;display:flex;flex-direction:column}
+  .tbl .r{border-bottom:1px solid #dde2ec;display:flex;align-items:center;
+    font-size:6.5px;color:#5d6780;padding-left:3px;overflow:hidden;flex:1 1 auto;min-height:0}
+  .tbl .r.hd{background:#eef3fb;color:#2b4f86;font-weight:800}
+  .tbl .r:last-child{border-bottom:0}
+  .tbl.cont{border-color:var(--blue)}
+  .contbar{position:absolute;left:0;right:0;top:-11px;height:10px;background:var(--blue-100);
+    border:1px solid var(--blue);border-bottom:0;font-size:6.5px;color:var(--blue-d);
+    font-weight:800;display:flex;align-items:center;padding-left:3px}
+  .cut{position:absolute;left:0;right:0;border-top:2px solid var(--bad);
+    font-size:6.5px;color:var(--bad);font-weight:800}
+  .cut span{background:var(--bad);color:#fff;padding:0 4px;display:inline-block;line-height:10px}
+  .ghost{position:absolute;left:0;right:0;bottom:0;
+    background:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(179,38,30,.13) 5px,rgba(179,38,30,.13) 10px)}
+  .badge{display:inline-block;border-radius:5px;padding:1px 6px;font-size:10.5px;font-weight:800;margin-left:6px}
+  .badge.new{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)}
+
+  .panel{margin-top:14px;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-width:330px}
+  .panel .ph{background:var(--plane);border-bottom:1px solid var(--line);padding:6px 10px;
+    font-size:11px;font-weight:800;color:var(--muted)}
+  .panel .pb{padding:10px}
+  .hint{border-radius:7px;padding:7px 9px;font-size:11.5px;line-height:1.5;background:var(--plane);color:var(--muted)}
+  .hint.warn{background:var(--warn-bg);color:#7a4412;border:1px solid var(--warn-line)}
+  .pbtn{display:inline-block;margin-top:8px;border:1px solid var(--blue);background:var(--blue-100);
+    color:var(--blue-d);border-radius:8px;padding:6px 11px;font-size:12px;font-weight:800}
+  .pbtn.ghostb{border-color:var(--line);background:#fff;color:#aeb5c5}
+
+  .readout{margin-top:12px;font-size:12.7px;line-height:1.7}
+  .readout b{color:var(--ink)}
+  .verdict{margin-top:12px;border-top:1px dashed var(--line);padding-top:11px;font-size:13px}
+  .pick{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
+  .pick div{flex:1 1 230px;border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--plane)}
+  .pick div .k{font-weight:800;color:var(--blue-d);font-size:13px;margin-bottom:3px}
+  .pick div .d{font-size:12.3px;color:var(--muted);line-height:1.55}
+  @media (max-width:760px){ input[type=range]{width:100%} .paper{width:290px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>ㄴ · 표가 넘치면 다음 장에 이어 적기</h1>
+<p class="sub">2026-09-14 · 코드에서 잰 실제 값으로 만든 모형입니다. 아직 한 줄도 안 고쳤습니다.</p>
+
+<section>
+  <h2><span class="tag">확인</span>절반은 이미 지어져 있습니다 — <b class="hi">부르는 사람이 없을 뿐</b></h2>
+  <p>먼저 확인한 것부터 말씀드립니다. 이 기능의 어려운 부분은 이미 있습니다.</p>
+  <table class="t">
+    <tr><th>있는 것</th><th>자리</th><th>상태</th></tr>
+    <tr><td>이은 조각 만들기 (머리글 다시 붙이기 포함)</td><td><span class="kbd">canvas/tableFlow.ts</span></td><td class="good">있음</td></tr>
+    <tr><td>새 쪽을 만들어 조각을 앉히기</td><td><span class="kbd">store.continueTable()</span></td><td class="good">있음</td></tr>
+    <tr><td>조각을 <b>한 표로</b> 세기 (취합이 안 깨지게)</td><td><span class="kbd">server/template_guard.py</span></td><td class="good">있음</td></tr>
+    <tr><td>넘쳤는지 판정</td><td><span class="kbd">tableFlow.overflows()</span></td><td class="bad">아무도 안 부름</td></tr>
+    <tr><td><b>누르는 자리 / 저절로 되는 길</b></td><td>—</td><td class="bad">없음</td></tr>
+    <tr><td>「앞 장에서 이어짐」 표시</td><td>—</td><td class="bad">없음</td></tr>
+  </table>
+  <p class="muted" style="font-size:12.4px"><span class="kbd">continueTable</span> 은 화면 어디에서도 안 불립니다.
+     <b>지어 놓고 전선을 안 연결한 상태</b>입니다.</p>
+</section>
+
+<section>
+  <h2><span class="tag">지금</span>로드맵 표에 행을 계속 넣으면 실제로 벌어지는 일</h2>
+  <p>표준 양식 로드맵은 <b>세로 720</b> 종이의 <b>y = 94</b> 에서 시작하고, 한 줄이 <b>40</b>,
+     머리글이 <b>2줄</b>, 아래 꼬리말 자리가 <b>50</b> 입니다. 그래서 한 장에 <b class="hi">본문 12줄</b>이 정상입니다.</p>
+  <table class="t">
+    <tr><th class="n">본문 줄</th><th>표 높이 / 윗변 y</th><th>지금 무슨 일이</th><th>화면이 말해 주나</th></tr>
+    <tr><td class="n">~12</td><td class="n">560 / 94</td><td>정상</td><td class="good">—</td></tr>
+    <tr><td class="n">13</td><td class="n">600 / 94</td><td><b>꼬리말 자리를 덮는다</b> — 꼬리말 글자 위로 표가 올라앉는다</td><td class="bad">아무 말 없음</td></tr>
+    <tr><td class="n">14</td><td class="n">640 / <b>80</b></td><td><b>표가 위로 기어 올라가기 시작한다</b> (윗변 94 → 80)</td><td class="bad">아무 말 없음</td></tr>
+    <tr><td class="n">15</td><td class="n">680 / <b>40</b></td><td>더 올라간다. <b>제목 글상자를 파고든다</b></td><td class="bad">아무 말 없음</td></tr>
+    <tr><td class="n">16</td><td class="n">720 / <b>0</b></td><td>종이를 통째로 덮는다. 제목·꼬리말이 둘 다 가려진다</td><td class="mid">이제야 경고</td></tr>
+    <tr><td class="n">17~</td><td class="n">720 / 0</td><td><b>줄 높이가 줄기 시작한다</b> — 17줄 37.9px · 19줄 34.3px · 25줄 26.7px</td><td class="mid">경고 유지</td></tr>
+  </table>
+  <div class="note">
+    <b>경고가 네 줄 늦습니다.</b> 지금 경고는 「표 높이 ≥ 종이 높이」일 때 뜨는데
+    그건 <b>16줄</b>입니다. 그런데 망가지기 시작하는 것은 <b>13줄</b>이고,
+    <b>14줄</b>부터는 표가 위로 기어 올라가 제목을 파고듭니다.
+    <b>13·14·15 — 세 줄 동안 화면은 아무 말도 하지 않습니다.</b>
+    그리고 경고가 뜰 때쯤이면 표는 이미 종이를 통째로 덮고 있습니다.
+  </div>
+  <div class="note bad">
+    <b>그리고 경고가 시키는 대로 하면 저장이 막힙니다.</b>
+    지금 경고문은 「<i>다음 장에 이어 적어 주세요</i>」라고 합니다. 그런데 그럴 단추가 없어서
+    사람이 할 수 있는 것은 <b>새 쪽에 표를 복사하는 것</b>뿐입니다. 그렇게 만든 표에는
+    <span class="kbd">contFrom</span> 이 없으므로 서버는 머리 조각 둘로 보고 이렇게 막습니다 —
+    <br><span style="color:var(--bad);font-weight:700">「표준 양식의 '로드맵' 표가 2개예요 … 복사된 표를 지워 주세요.」</span>
+    <br><b>앱이 시킨 대로 했는데 앱이 거절합니다.</b> 이게 이 항목에서 제일 나쁜 부분입니다.
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">모형</span>줄 수를 늘려 가며 비교</h2>
+  <div class="lab">
+    <label>로드맵 본문 줄 수</label>
+    <input type="range" id="rows" min="8" max="26" step="1" value="16">
+    <span class="wv" id="rv">16줄</span>
+  </div>
+  <div class="opts" id="opts">
+    <button data-o="now" class="on">지금</button>
+    <button data-o="a">ㄱ 단추로</button>
+    <button data-o="b">ㄴ 저절로</button>
+    <button data-o="c">ㄷ 미리 알리고 + 저절로</button>
+  </div>
+
+  <div class="sheets" id="sheets"></div>
+  <div class="panel">
+    <div class="ph">오른쪽 패널 · 표</div>
+    <div class="pb" id="pan"></div>
+  </div>
+  <div class="readout" id="ro"></div>
+  <div class="verdict" id="vd"></div>
+</section>
+
+<section>
+  <h2><span class="tag">한계</span>어느 안을 골라도 <b>안 되는 것</b> — 미리 말씀드립니다</h2>
+  <ul>
+    <li><b>되흐름(reflow)이 없습니다.</b> 표 <b>가운데</b>에 줄을 끼워 넣어도 마지막 줄이 다음 장으로
+      밀려가지 않습니다. 「끝에 계속 적다가 종이가 차면 다음 장에서 이어 적는다」까지입니다.
+      되흐름은 쪽을 「흐름」으로 바꾸는 일이라 훨씬 큰 공사입니다.</li>
+    <li><b>줄을 지워도 앞 장으로 저절로 돌아오지 않습니다.</b> 이것도 되흐름입니다.
+      다만 <b>이은 조각이 텅 비면</b> 그 쪽을 정리할지는 고를 수 있습니다(아래 ㄷ).</li>
+    <li><b>이건 오히려 좋은 쪽입니다</b> — 새 줄만 다음 장으로 가므로, 이미 달아 둔
+      <b>검토 의견(앵커)은 자리를 안 잃습니다.</b> 되흐름을 넣으면 그게 깨집니다.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="tag">고르기</span>어느 쪽으로 갈까요</h2>
+  <div class="pick">
+    <div><div class="k">ㄱ · 단추로</div><div class="d">경고 옆에 「다음 장에 이어 적기」 단추를 놓습니다. 누르면 새 쪽과 이은 조각이 생기고 그리로 옮겨 갑니다. 저절로 되는 것은 없습니다.</div></div>
+    <div><div class="k">ㄴ · 저절로</div><div class="d">종이가 찬 뒤 줄을 더하면 그 줄이 <b>저절로</b> 다음 장 조각에 들어갑니다. 한 줄로 알리고 되돌릴 수 있게 합니다.</div></div>
+    <div><div class="k">ㄷ · 미리 알리고 + 저절로</div><div class="d">ㄴ 에 더해, <b>경고 시점을 12줄로 앞당깁니다</b>(지금은 16줄). 꼬리말을 덮기 전에 말해 줍니다. 이은 조각이 비면 그 쪽도 정리합니다.</div></div>
+  </div>
+  <p class="muted" style="margin-top:12px;font-size:12.6px">
+    제 의견은 <b>ㄷ</b> 입니다. ㄱ 만으로는 「경고가 네 줄 늦다」가 그대로 남고,
+    ㄴ 만으로는 <b>13~15줄 구간에서 표가 꼬리말과 제목을 덮는 것</b>을 아무도 안 말해 줍니다.
+    <br>다만 ㄷ 의 「비면 쪽 정리」는 <b>사람이 만든 쪽을 지우는 일</b>이라 조심스럽습니다 —
+    <b>조각에 아무것도 안 쓰였고 그 쪽에 다른 것이 없을 때만</b> 정리하고, 되돌리기를 붙일 생각입니다.
+    그 부분만 빼고 가도 됩니다.
+  </p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  // ── 코드에서 읽어 온 실제 상수 ──
+  var PAGE_H = 720, Y0 = 94, RH = 40, HEADR = 2, FOOT = 50
+  var FIT = Math.floor((PAGE_H - Y0 - FOOT) / RH) - HEADR      // = 12
+  var TOUCH = Math.floor((PAGE_H - Y0) / RH) - HEADR           // 종이 끝에 닿는 줄 = 15
+  var CEIL = Math.floor((PAGE_H - 1) / RH) - HEADR             // 지금 경고가 뜨는 줄 = 15..(h>=719)
+  // h >= PAGE_H-1 → 총행 >= 719/40 = 17.97 → 18행 = **본문 16줄**. 계산해서 확인했다.
+  CEIL = 16
+
+  var SCALE = 236 / PAGE_H, PW = 340
+  var opt = 'now', rows = 16
+  var el = function (id) { return document.getElementById(id) }
+
+  function tableHtml(nData, top, h, contFrom) {
+    var s = '<div class="tbl' + (contFrom ? ' cont' : '') + '" style="left:6px;right:6px;top:'
+      + top + 'px;height:' + h + 'px">'
+    if (contFrom) s += '<div class="contbar">↳ 앞 장에서 이어짐 — ' + (contFrom + 1) + '줄부터</div>'
+    s += '<div class="r hd">사업 그룹 · 프로젝트 · 2026 · 2027 계획</div>'
+    s += '<div class="r hd">1 2 3 4 5 6 7 8 9 10 11 12</div>'
+    for (var i = 0; i < nData; i++) s += '<div class="r">프로젝트 ' + (contFrom + i + 1) + '</div>'
+    return s + '</div>'
+  }
+
+  function paper(cap, badge, inner, over) {
+    return '<div class="sh"><div class="cap">' + cap
+      + (badge ? '<span class="badge new">' + badge + '</span>' : '') + '</div>'
+      + '<div class="paper">'
+      + '<div class="ttl">2026년 10월 임원회의 — 홍길동</div>'
+      + '<div class="subttl">SI개발본부 · 제출기한 10/08</div>'
+      + '<div class="footzone" style="top:' + ((PAGE_H - FOOT) * SCALE) + 'px;bottom:0"></div>'
+      + '<div class="foot" style="top:' + ((PAGE_H - FOOT + 14) * SCALE) + 'px">EVER-SKETCH · 2026-10 임원회의</div>'
+      + inner
+      + (over || '')
+      + '</div></div>'
+  }
+
+  function render() {
+    el('rv').textContent = rows + '줄'
+    var sheets = '', pan = '', ro = '', vd = ''
+    var total = HEADR + rows
+
+    if (opt === 'now') {
+      // 지금: h 는 PAGE_H 로 잘리고, y 는 위로 밀려 올라간다. 줄 높이가 줄어든다.
+      var wantH = RH * total
+      var h = Math.min(wantH, PAGE_H)
+      var y = Math.min(Y0, Math.max(0, PAGE_H - h))
+      var over = ''
+      if (wantH > PAGE_H) {
+        over = '<div class="ghost" style="top:0;height:100%"></div>'
+      }
+      sheets = paper('1 / 1', '', tableHtml(rows, y * SCALE, h * SCALE, 0), '')
+      var rowPx = h / total
+      ro = '표 높이 <b>' + Math.round(h) + '</b> · 윗변 y <b>' + Math.round(y) + '</b>'
+         + ' · 줄 높이 <b' + (rowPx < RH - 0.5 ? ' style="color:var(--bad)"' : '') + '>'
+         + rowPx.toFixed(1) + 'px</b>' + (rowPx < RH - 0.5 ? ' (원래 40)' : '')
+      var msgs = []
+      if (rows > FIT) msgs.push('꼬리말 자리를 덮는다')
+      if (y < Y0) msgs.push('표가 위로 기어 올라가 제목을 덮는다 (y ' + Y0 + ' → ' + Math.round(y) + ')')
+      if (rowPx < RH - 0.5) msgs.push('줄 높이가 줄었다')
+      ro += msgs.length ? '<br><span style="color:var(--bad);font-weight:700">· ' + msgs.join(' · ') + '</span>' : ''
+      pan = rows >= CEIL
+        ? '<div class="hint warn">이 표가 종이 아래끝까지 찼어요. 여기서 행을 더 넣으면 <b>줄 높이가 줄어듭니다.</b> 표를 위로 옮기거나, 다음 장에 이어 적어 주세요.</div>'
+          + '<div class="pbtn ghostb" title="그럴 단추가 없습니다">…이어 적을 단추가 없음</div>'
+        : '<div class="hint">행을 넣으면 <b>줄 높이는 그대로</b> 두고 표가 그만큼 커져요.</div>'
+      vd = rows > FIT
+        ? '<b style="color:var(--bad)">' + (rows - FIT) + '줄이 갈 곳이 없습니다.</b> ' +
+          (rows < CEIL ? '그런데 화면은 <b>아직 아무 말도 안 합니다.</b>' : '경고는 뜨지만 <b>시키는 일을 할 수단이 없습니다.</b>')
+        : '아직 한 장에 들어갑니다.'
+    } else {
+      // ㄱ/ㄴ/ㄷ — 첫 장은 FIT 까지, 나머지는 이은 조각으로.
+      var first = Math.min(rows, FIT)
+      var rest = Math.max(0, rows - FIT)
+      var h1 = RH * (HEADR + first)
+      sheets = paper('1 / ' + (rest ? 2 : 1), '', tableHtml(first, Y0 * SCALE, h1 * SCALE, 0), '')
+      if (rest) {
+        var h2 = RH * (HEADR + rest)
+        sheets += paper('2 / 2', '새 쪽', tableHtml(rest, Y0 * SCALE, h2 * SCALE, FIT), '')
+      }
+      ro = '첫 장 <b>' + first + '줄</b>' + (rest ? ' · 이은 조각 <b>' + rest + '줄</b>' : '')
+         + ' · 줄 높이 <b style="color:var(--ok)">40px</b> (안 줄어듦)'
+         + '<br>두 조각 모두 <span class="kbd">slot=SLOT-A</span>, 뒤 조각에 <span class="kbd">contFrom=' + FIT + '</span>'
+         + ' — 서버는 <b>한 표로 셉니다.</b>'
+
+      if (opt === 'a') {
+        pan = rows >= FIT
+          ? '<div class="hint warn">이 표가 종이 아래끝까지 찼어요.</div><div class="pbtn">↳ 다음 장에 이어 적기</div>'
+          : '<div class="hint">행을 넣으면 <b>줄 높이는 그대로</b> 두고 표가 그만큼 커져요.</div>'
+        vd = '<b>사람이 누를 때만</b> 이어집니다. 누르기 전까지는 「지금」과 똑같이 망가집니다 — '
+           + '<b style="color:var(--warn)">13~15줄 구간에서 여전히 아무 말이 없습니다.</b>'
+      } else if (opt === 'b') {
+        pan = '<div class="hint">행을 넣으면 <b>줄 높이는 그대로</b> 두고 표가 그만큼 커져요.</div>'
+          + (rest ? '<div class="hint warn" style="margin-top:8px">줄 <b>' + (FIT + 1) + '</b>부터는 다음 장에 이어 적고 있습니다. <u>되돌리기</u></div>' : '')
+        vd = '종이가 찬 뒤부터는 <b>저절로</b> 다음 장에 들어갑니다. 다만 <b style="color:var(--warn)">'
+           + '경고 시점은 그대로 늦어서</b>, 꼬리말을 덮기 시작하는 순간을 짚어 주지는 못합니다.'
+      } else {
+        pan = rows >= FIT - 1
+          ? '<div class="hint warn">이 장은 <b>' + FIT + '줄</b>까지입니다' + (rows >= FIT ? ' — 넘는 줄은 다음 장에 이어 적고 있어요. <u>되돌리기</u>' : '. 더 넣으면 다음 장으로 이어집니다.') + '</div>'
+          : '<div class="hint">이 장은 <b>' + FIT + '줄</b>까지 들어갑니다. (지금 ' + rows + '줄)</div>'
+        vd = '<b style="color:var(--ok)">차기 전에 미리 말하고</b>, 차면 저절로 잇습니다. '
+           + '경고 시점이 <b>16줄 → ' + FIT + '줄</b>로 당겨져서 꼬리말·제목을 덮는 구간이 아예 안 생깁니다.'
+      }
+    }
+    el('sheets').innerHTML = sheets
+    el('pan').innerHTML = pan
+    el('ro').innerHTML = ro
+    el('vd').innerHTML = vd
+  }
+
+  el('rows').addEventListener('input', function () { rows = +this.value; render() })
+  el('opts').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b) return
+    opt = b.dataset.o
+    ;[].forEach.call(this.querySelectorAll('button'), function (x) { x.classList.toggle('on', x === b) })
+    render()
+  })
+  render()
+})()
+</script>
+</body>
+</html>

@@ -51,6 +51,9 @@ export interface BuilderState {
    *  ⌘Z 는 **지금 쪽 하나만** 되돌린다(이력이 쪽별이다) — 방향은 모든 쪽을 건드리므로
    *  그걸로는 부족하다. 그래서 되돌릴 것을 따로 들고 있다가 한 번에 돌려놓는다. */
   undoFit: () => void
+  /** 방금 「다음 장에 이어 적기」로 생긴 쪽을 **통째로 없던 일로.**
+   *  ⌘Z 는 쪽 안의 요소만 되돌린다(이력이 쪽별이다) — 쪽이 생긴 것은 못 지운다. */
+  undoContinue: () => void
   setFont: (f: string) => void
   setSize: (s: SizePreset) => void
   setTheme: (t: ThemeName) => void
@@ -106,6 +109,9 @@ export function nextElId(): number { return elUid++ }
 /** 방금 방향을 바꾸며 끌어들인 것. 「되돌리기」 한 번을 위해서만 들고 있는다 —
  *  다음 번 끌어들임이 덮어쓴다. 쌓아 두면 언제 적 것인지 아무도 모른다. */
 let lastFit: { pages: Page[]; orientation: Orientation } | null = null
+
+/** 방금 이어 적기로 생긴 쪽. 되돌리기 **한 번**을 위해서만 들고 있는다. */
+let lastCont: { pages: Page[]; selectedPageId: number | null } | null = null
 
 function defaultsFor(cardKey: string): Record<string, string> {
   const c = cardByKey(cardKey); const f: Record<string, string> = {}
@@ -256,6 +262,13 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     return { orientation: o, pages }
   }),
 
+  undoContinue: () => set(() => {
+    if (!lastCont) return {}
+    const back = lastCont
+    lastCont = null
+    return { pages: back.pages, selectedPageId: back.selectedPageId }
+  }),
+
   undoFit: () => set(() => {
     if (!lastFit) return {}
     const back = lastFit
@@ -324,6 +337,8 @@ export const useBuilder = create<BuilderState>((set, get) => ({
       const pages = [...s.pages]
       pages.splice(i + 1, 0, np)
       made = { pageId: np.id, elId: cont.id }
+      // 저절로 이어질 수도 있으므로(⑤ ㄷ) **되돌릴 것을 남긴다.**
+      lastCont = { pages: s.pages, selectedPageId: s.selectedPageId }
       return { pages, selectedPageId: np.id }
     })
     return made

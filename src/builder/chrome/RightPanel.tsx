@@ -19,6 +19,7 @@ import AnchorLossDialog from '../../comments/AnchorLossDialog'
 import { anchorLostBy } from '../../comments/anchor'
 import { useComments } from '../../comments/store'
 import { CBG_LABEL, cbgPalette, cellBackground, isSlotEl, lockedRowCount, slotAllows } from '../../template/slots'
+import { bottomLimit, dataCapacity, isFull } from '../../canvas/tableCapacity'
 import { slotLabels } from '../../template/unfilled'
 import '../../template/template.css'
 
@@ -72,6 +73,16 @@ export default function RightPanel() {
   const updateEl = useBuilder((s) => s.updateEl)
   const tableSel = useCanvasUI((s) => s.tableSel)
   const setTableSel = useCanvasUI((s) => s.setTableSel)
+  const setSel = useCanvasUI((s) => s.setSel)
+  const continueTable = useBuilder((s) => s.continueTable)
+  const undoContinue = useBuilder((s) => s.undoContinue)
+  /** 방금 이어 적어 만든 **조각의 id**. 되돌리기 줄은 그 조각을 보고 있을 때만 뜬다.
+   *
+   *  처음에는 참/거짓 하나로 뒀다가 실물에서 걸렸다 — 이어 적으면서 새 조각을
+   *  고르게 되는데, 그 **선택 바뀜**이 「다른 것을 골랐다」로 읽혀 방금 켠 줄을
+   *  그 자리에서 껐다. 켜는 일과 끄는 일이 한 동작 안에서 부딪힌 것이다.
+   *  id 로 들고 있으면 그 다툼 자체가 없다 — 다른 것을 고르면 저절로 안 맞는다. */
+  const [flowedEl, setFlowedEl] = useState<number | null>(null)
   const selElId = useCanvasUI((s) => s.selEl)
   const selEls = useCanvasUI((s) => s.selEls)
   const setCanvas = useBuilder((s) => s.setCanvas)
@@ -155,13 +166,18 @@ export default function RightPanel() {
     return { ...pt, h, y }
   }
 
-  /** 이 표가 **종이 높이를 다 쓴** 상태인가 — 여기서 행을 더 넣으면 줄 높이가 줄어든다.
+  /** 이 표에 **한 줄 더 넣으면 넘치는가** (⑤ ㄷ · 2026-09-14).
    *
-   *  「표 아래끝이 종이 아래끝에 닿았는가」로 재면 안 된다. 아래에 붙어 있어도 위가
-   *  비어 있으면 fitPage 가 표를 위로 밀어 올려 계속 커질 수 있다 — 그때 경고를 띄우면
-   *  아직 자리가 있는데 없다고 말하는 것이 된다. 진짜 천장은 종이 높이 자체다. */
-  const tableAtCeiling = !!el && el.type === 'table' && isSlotEl(el.slot)
-    && el.h >= PAGE_H - 1
+   *  옛 판정은 「표 높이 ≥ 종이 높이」였다. **네 줄 늦었다** — 본문 13줄에서 이미
+   *  꼬리말을 덮고 14줄부터 표가 위로 기어 올라 제목을 파고드는데, 경고는 16줄에서야
+   *  떴다. 그때는 표가 종이를 통째로 덮고 있다.
+   *
+   *  이제 꼬리말 글상자의 윗변까지를 한계로 본다. 그 값은 **문서가 들고 있는 것**이라
+   *  서버 상수를 화면에 또 베껴 적지 않아도 된다 — 베껴 적은 상수는 언젠가 갈라진다.
+   *  표준 양식에서는 12줄이 나오고, 서버 `_max_data_rows()` 와 같은 답이다. */
+  const tableLimit = bottomLimit(PAGE_H)
+  const isTableEl = !!el && el.type === 'table' && isSlotEl(el.slot)
+  const tableFull = isTableEl && isFull(el, tableLimit)
 
   /** 선택이 바뀌면 종류에 맞는 묶음을 **펴 준다.**
    *
@@ -179,6 +195,7 @@ export default function RightPanel() {
     setOpenSec((o) => (o[k] ? o : { ...o, [k]: true }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selElId])
+
 
   function setBg(d: boolean) { if (page) setPageBg(page.id, d ? '#0e1c30' : '') }
   const emit = (n: string) => window.dispatchEvent(new CustomEvent(n))
@@ -260,6 +277,9 @@ export default function RightPanel() {
 
   function patchTable(pt: Partial<FreeEl>) {
     if (!page || !el) return
+    // 이 조각을 고치기 시작했으면 되돌리기 줄을 접는다. 계속 띄워 두면 한참 뒤에
+    // 눌러 **그동안 쓴 것까지** 날아간다 — 되돌리기는 방금 한 일에만 붙어야 한다.
+    setFlowedEl(null)
     pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached }))
     updateEl(page.id, el.id, fitPage(el, pt))
     // 행/열이 줄었으면 활성 셀을 새 범위 안으로 당겨 준다.
@@ -288,6 +308,28 @@ export default function RightPanel() {
   const canCbg = !inTemplate || slotAllows(slot, 'cbg')
   const palette = cbgPalette(slot)
   const headLocked = lockedRowCount(slot)
+  /** 이 장에 들어가는 **본문** 줄 수. 화면에 그대로 적는다. */
+  const tableCap = isTableEl && el ? dataCapacity(el, headLocked, tableLimit) : 0
+  /**
+   * **끝에 줄을 더하는데 이 장이 찼다** — 다음 장에 이어 적는다.
+   *
+   * 새 쪽과 이은 조각(`contFrom`)은 창고가 만든다. 조각에는 머리글을 다시 붙인다 —
+   * 2쪽만 펼친 사람에게 열 이름이 없으면 18칸짜리 표는 숫자 덩어리다.
+   *
+   * **저절로 되는 일이라 되돌릴 길을 같이 준다.** ⌘Z 는 쪽 안의 요소만 되돌리므로
+   * (이력이 쪽별이다) 쪽이 생긴 것은 못 지운다.
+   */
+  function flowToNext() {
+    if (!page || !el) return
+    const made = continueTable(page.id, el.id, headLocked)
+    if (!made) return
+    setSel(made.elId)
+    setFlowedEl(made.elId)
+    // **「행」 묶음을 펴 준다.** 되돌리기 줄이 그 안에 있다 — 접혀 있으면
+    // 저절로 벌어진 일을 알리는 줄이 접힌 묶음 뒤에 숨는다. 기억에는 안 적는다
+    // (사람이 고른 적 없는 값을 저장하면 「내가 편 적도 없는데 늘 열려 있다」가 된다).
+    setOpenSec((o) => (o.row ? o : { ...o, row: true }))
+  }
   // 헤더 행이 선택돼 있으면 행 삭제를 막는다 — 표준 양식이 깨진다.
   const headRowSelected = inTemplate && ts != null && Math.min(ts.r0, ts.r1) < headLocked
   const curBg = (el?.cbg && ts) ? el.cbg[Math.min(ts.r0, ts.r1) + '_' + Math.min(ts.c0, ts.c1)] : undefined
@@ -409,15 +451,28 @@ export default function RightPanel() {
               <div className="insp-sec">행</div>
               <div className="insp-row">
                 <button className="insp-pill" disabled={!canRow} onClick={() => { patchTable(addRow(el, Math.max(ar, headLocked))); void shiftAnchors('row', Math.max(ar, headLocked), 1) }}>↑ 위에 추가</button>
-                <button className="insp-pill" disabled={!canRow} onClick={() => { patchTable(addRow(el, ar + 1)); void shiftAnchors('row', ar + 1, 1) }}>↓ 아래 추가</button>
+                <button className="insp-pill" disabled={!canRow} onClick={() => {
+                  // **끝에 더하는데 이 장이 찼으면 다음 장에 이어 적는다**(⑤ ㄷ).
+                  // 가운데에 끼우는 것은 그대로 둔다 — 그건 되흐름이고, 뒤 줄을
+                  // 다음 장으로 밀어내는 일이라 훨씬 큰 공사다(tableFlow.ts 참조).
+                  if (tableFull && ar + 1 >= (el.rows || 0)) { flowToNext(); return }
+                  patchTable(addRow(el, ar + 1)); void shiftAnchors('row', ar + 1, 1)
+                }}>↓ 아래 추가</button>
                 <button className="insp-pill danger" disabled={!canRow || headRowSelected}
                   title={headRowSelected ? '머리글 행은 삭제할 수 없어요' : undefined}
                   onClick={() => askThenDo('row', ar, () => patchTable(delRow(el, ar)))}>🗑 행 삭제</button>
               </div>
-              {/* 천장에 닿았을 때만 말한다. 늘 띄워 두면 아무도 안 읽는다. */}
-              {tableAtCeiling ? (
-                <div className="insp-hint warn">이 표가 종이 아래끝까지 찼어요. 여기서 행을 더 넣으면
-                  <b> 줄 높이가 줄어듭니다.</b> 표를 위로 옮기거나, 다음 장에 이어 적어 주세요.</div>
+              {/* **숫자를 말해 준다.** 「찼다」만 알면 다 쓰고 나서야 알고,
+                  12를 알면 미리 나눠 쓸 수 있다. 이어 적은 직후에는 되돌릴 길을 함께 준다. */}
+              {flowedEl != null && flowedEl === selElId ? (
+                <div className="insp-hint warn">다음 장에 이어 적고 있어요 — 머리글은 다시 붙였습니다.
+                  {' '}<button className="insp-undo" onClick={() => { undoContinue(); setFlowedEl(null) }}>되돌리기</button></div>
+              ) : tableFull ? (
+                <div className="insp-hint warn">이 장은 <b>{tableCap}줄</b>까지예요. 여기서
+                  <b> ↓ 아래 추가</b>를 누르면 <b>다음 장에 이어 적습니다.</b></div>
+              ) : isTableEl ? (
+                <div className="insp-hint">이 장은 <b>{tableCap}줄</b>까지 들어가요 (지금 {Math.max(0, (el.rows || 0) - headLocked)}줄).
+                  {' '}행을 넣으면 <b>줄 높이는 그대로</b> 두고 표가 그만큼 커져요.</div>
               ) : (
                 <div className="insp-hint">행을 넣으면 <b>줄 높이는 그대로</b> 두고 표가 그만큼 커져요.</div>
               )}

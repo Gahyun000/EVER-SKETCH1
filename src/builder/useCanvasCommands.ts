@@ -39,8 +39,19 @@ export function useCanvasCommands() {
     addConn(page.id, { from: ids[0], to: ids[1] }); addConn(page.id, { from: ids[1], to: ids[2] })
   }
 
-  // 페이지를 넘기면 이전 선택(유령 선택)을 비운다.
-  useEffect(() => { setSel(null) }, [selId, setSel])
+  /** 유령 선택을 비운다 — **지금 쪽에 없는 것**을 고른 채로 두지 않는다.
+   *
+   *  예전에는 「쪽이 바뀌면 무조건 비운다」였다. 그러면 **쪽을 만들면서 그 안의
+   *  요소를 골라 주는 길이 막힌다** — 표를 다음 장에 이어 적을 때(2026-09-14)
+   *  새 조각을 골라 줬는데 이 효과가 그 자리에서 지웠고, 오른쪽 패널이 쪽 모드로
+   *  남아 「되돌리기」 줄이 아예 안 떴다. 실물에서만 보였다.
+   *
+   *  고른 것이 이 쪽에 **실제로 있으면** 그대로 둔다. 「유령」의 뜻 그대로다. */
+  useEffect(() => {
+    if (selEl == null) return
+    if (page && page.els.some((e) => e.id === selEl)) return
+    setSel(null)
+  }, [selId, selEl, page, setSel])
 
   const handlers = { undo, redo, del, dup, zf: () => z(true), zb: () => z(false), ai }
   const hRef = useRef(handlers); hRef.current = handlers

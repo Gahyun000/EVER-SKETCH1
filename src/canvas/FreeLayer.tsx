@@ -12,6 +12,7 @@ import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, dragTrack, mergeCovering, sizeTracks, trackSizes } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount, todayColumn } from '../template/slots'
 import { tableAnchorLabel } from '../comments/anchorLabel'
+import { isContinuation } from './tableFlow'
 import { parseCell } from '../comments/anchor'
 import { pinsOfPage, useComments } from '../comments/store'
 import '../template/template.css'
@@ -1065,6 +1066,23 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
           </div>
         )
       })}
+      {/* **앞 장에서 이어진 조각이라고 말해 준다**(ㄷ · 2026-09-14).
+          조각은 머리글을 다시 달고 있어서 **그냥 보면 새 표처럼 보인다** — 그러면
+          2쪽만 펼친 사람이 앞 장을 안 찾아보고 같은 내용을 여기 또 적는다.
+
+          **요소 밖에 그린다.** `.fel` 은 `overflow:hidden` 이라(긴 글자가 칸 밖으로
+          새는 것을 막는다) 안에 넣으면 표 위로 올린 띠가 통째로 잘린다.
+          실물에서 그렇게 나왔다 — DOM 에는 있는데 화면에는 없었다.
+
+          **오른쪽 끝에 붙인다.** 왼쪽 위는 요소 도구막대(⧉ ▲ ▼ 🗑)가 뜨는 자리다 —
+          거기 두면 표를 고르는 순간 글자가 그 밑으로 들어가 안 읽힌다. 이것도 실물에서 봤다. */}
+      {page.els.map((el) => (el.type === 'table' && isContinuation(el) ? (
+        <div key={'cont' + el.id} className="tbl-cont" aria-hidden="true"
+          style={{ left: el.x + el.w, top: Math.max(0, el.y - 16) }}>
+          ↳ 앞 장에서 이어짐 — {(el.contFrom || 0) + 1}줄부터
+        </div>
+      ) : null))}
+
       {/* 크기 손잡이.
           예전에는 「그 표의 칸이 골라져 있으면」 숨겼다. 그런데 표는 **한 번만 눌러도
           칸이 골라진다**(그게 맞는 동작이다). 그래서 손잡이를 보려면 Esc 를 눌러야 했고,

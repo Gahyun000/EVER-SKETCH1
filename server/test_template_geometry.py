@@ -35,6 +35,25 @@ def test_page_size_matches_frontend():
     assert ts.PAGE_H == _ts_const("DECK_H")
 
 
+def test_foot_zone_matches_frontend():
+    """종이 아래 **꼬리말 자리**도 두 곳이 같아야 한다 (2026-09-14).
+
+    화면이 「이 장은 몇 줄까지인가」를 이 값으로 잰다
+    (`src/canvas/tableCapacity.ts`). 갈라지면 화면이 말하는 줄 수와 서버
+    `_max_data_rows()` 가 어긋나고, 사람은 **화면이 된다고 한 만큼 썼는데**
+    종이 밖으로 나간 자료를 받게 된다.
+
+    꼬리말 글상자의 **지금 y** 로 재는 길도 있었지만 안 쓴다 — 꼬리말은 만들 때
+    표 바로 밑에 놓이므로(5줄 양식이면 y=392), 그걸 한계로 삼으면 갓 만든 양식이
+    이미 「꽉 찼다」가 된다. 한계는 종이가 정하는 것이다.
+    """
+    assert ts.FOOT_ZONE == _ts_const("FOOT_ZONE")
+    # 그 값으로 잰 줄 수가 서버가 쓰는 최대와 같은지까지 본다.
+    cap = (ts.PAGE_H - ts.ROADMAP_Y - ts.FOOT_ZONE) // ts.ROADMAP_ROW_H - ts.ROADMAP_HEADER_ROWS
+    assert cap == ts.MAX_DATA_ROWS, (
+        "화면이 재는 줄 수(%d)와 서버 최대(%d)가 다릅니다" % (cap, ts.MAX_DATA_ROWS))
+
+
 @pytest.mark.parametrize("data_rows", [1, ts.DEFAULT_DATA_ROWS, ts.MAX_DATA_ROWS])
 def test_all_elements_inside_page(data_rows):
     """**모든 쪽의** 모든 요소가 종이 안에 있다.
