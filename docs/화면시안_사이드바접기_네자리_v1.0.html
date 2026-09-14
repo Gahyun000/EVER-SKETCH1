@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>사이드바 접기 자리 네 가지</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--bg:#F4F5F7;--line:#E6E8EE;--text:#111318;
+    --muted:#5B6270;--dim:#9aa3b2;--tint:#EAF1FE;--amber:#D98A2A;--green:#3E9E6E;--red:#C0362C;
+    --okbg:#E9F5EF;--badbg:#FDECEC;--warnbg:#FFF4E3}
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef1f6;color:var(--text);
+    font:14px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:26px 22px 80px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy)}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 18px}
+  .lead b{color:var(--navy)}
+  .box{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.85}
+  .box.ok{border-left-color:var(--green)} .box.warn{border-left-color:var(--amber)}
+  .box.bad{border-left-color:var(--red)}
+  .box b{color:var(--navy)}
+  .box .t{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  .opt{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 8px 24px rgba(20,25,40,.06)}
+  .opt.pick{border-color:var(--blue);box-shadow:0 0 0 3px rgba(36,98,235,.10)}
+  .opt > .cap{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  .opt > .cap .t{font-size:13px;font-weight:800;color:var(--navy)}
+  .opt > .cap .pk{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--blue)}
+  .opt > .cap .rw{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--dim)}
+  .opt .bd{padding:12px 14px 16px}
+  .d{font-size:12px;color:var(--muted);line-height:1.75;margin:10px 0 0}
+  .d b{color:var(--navy)}
+
+  /* 셸 껍데기 */
+  .sh{border:1px solid #cfd6e2;border-radius:10px;overflow:hidden;background:#fff;
+    display:grid;grid-template-rows:40px 1fr;height:230px;position:relative}
+  .sh .hd{display:flex;align-items:center;gap:8px;padding:0 11px;border-bottom:1px solid var(--line)}
+  .sh .hd .lg{width:20px;height:20px;border-radius:6px;background:var(--navy);color:#dce7ff;
+    display:grid;place-items:center;font-family:Georgia,serif;font-style:italic;font-size:10px}
+  .sh .hd .nm{font-size:12.5px;font-weight:900;color:var(--navy)}
+  .sh .hd .cr{font-size:11px;color:var(--muted);font-weight:700}
+  .sh .bdy{display:grid;grid-template-columns:168px 1fr;min-height:0;
+    transition:grid-template-columns .18s;position:relative}
+  .sh .bdy.shut{grid-template-columns:54px 1fr}
+  .sh .sd{border-right:1px solid var(--line);padding:8px 7px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+  .nav{display:flex;align-items:center;gap:8px;border:none;background:transparent;border-radius:8px;
+    padding:7px 9px;font:inherit;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;
+    text-align:left;white-space:nowrap;position:relative}
+  .nav.on{background:var(--tint);color:var(--blue)}
+  .nav .ic{flex:0 0 15px;text-align:center}
+  .nav .b{margin-left:auto;min-width:16px;height:16px;padding:0 5px;border-radius:99px;
+    background:var(--amber);color:#fff;font-size:9.5px;font-weight:800;display:grid;place-items:center}
+  .shut .nav{justify-content:center;padding:7px 0}
+  .shut .nav .lb,.shut .nav .b{display:none}
+  .mn{background:var(--bg);padding:10px;font-size:11px;color:var(--dim)}
+  .spacer{flex:1}
+
+  /* ㄱ 전용 줄 */
+  .rowtop{display:flex;justify-content:flex-end;padding:0 1px 4px}
+  .shut .rowtop{justify-content:center}
+  .icb{width:24px;height:24px;border:none;background:transparent;border-radius:6px;
+    display:grid;place-items:center;font:inherit;font-size:12px;color:var(--dim);cursor:pointer}
+  .icb:hover{background:var(--bg);color:var(--muted)}
+
+  /* ㄴ 경계선 손잡이 */
+  .edge{position:absolute;top:14px;width:20px;height:20px;border-radius:50%;background:#fff;
+    border:1px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--muted);
+    cursor:pointer;box-shadow:0 1px 3px rgba(16,24,40,.14);z-index:3;transition:left .18s}
+  .edge:hover{border-color:var(--blue);color:var(--blue)}
+
+  /* ㄷ 이름표 줄 */
+  .lblrow{display:flex;align-items:center;padding:2px 4px 5px}
+  .lblrow .lb2{font-size:10px;font-weight:800;letter-spacing:.07em;color:var(--dim)}
+  .lblrow .icb{margin-left:auto}
+  .shut .lblrow .lb2{display:none}
+  .shut .lblrow{justify-content:center}
+  .shut .lblrow .icb{margin-left:0}
+
+  /* ㄹ 끌기 */
+  .drag{position:absolute;top:0;bottom:0;width:7px;cursor:col-resize;z-index:2;
+    transition:left .18s}
+  .drag:hover{background:rgba(36,98,235,.18)}
+
+  table.inv{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;font-size:12.5px;margin:14px 0}
+  table.inv th,table.inv td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.inv th{background:#fbfcfe;color:var(--navy);font-size:11.5px}
+  table.inv tr:last-child td{border-bottom:none}
+  td.y{color:#24724b;font-weight:800;white-space:nowrap}
+  td.n{color:#a12a21;font-weight:800;white-space:nowrap}
+  .note{font-size:11.5px;color:var(--dim);margin:9px 0 0;line-height:1.7}
+  .note b{color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>사이드바 접기 — 자리 네 가지</h1>
+<p class="lead">「저게 최선이냐」에 <b>아니요</b>입니다. 앞 시안(ㄱ)은 <b>한 줄을 « 하나가 다 씁니다.</b>
+넷을 나란히 놓았습니다 — <b>전부 눌러 접었다 펴집니다.</b></p>
+
+<div class="grid">
+
+  <div class="opt">
+    <div class="cap"><span class="t">ㄱ · 전용 줄 (앞 시안)</span><span class="rw">세로 자리 31px</span></div>
+    <div class="bd">
+      <div class="sh"><div class="hd"><span class="lg">ℓ</span><span class="nm">EVER-SKETCH</span><span class="cr">내 자료</span></div>
+        <div class="bdy" id="b1">
+          <nav class="sd">
+            <div class="rowtop"><button class="icb" data-t="1">«</button></div>
+            <button class="nav on"><span class="ic">🗂</span><span class="lb">내 자료</span></button>
+            <button class="nav"><span class="ic">📥</span><span class="lb">결재함</span><span class="b">3</span></button>
+            <button class="nav"><span class="ic">👥</span><span class="lb">팀 공유</span></button>
+          </nav><div class="mn">본문</div></div></div>
+      <p class="d"><b>빈 줄 하나가 생깁니다.</b> «는 작고 흐려서 장식처럼 보이고,
+      무엇을 하는지 <b>올려 봐야</b> 압니다. 노션은 저 자리에 작업공간 이름이 같이 있어
+        줄이 비지 않습니다 — 우리는 거기 놓을 것이 없습니다.</p>
+    </div>
+  </div>
+
+  <div class="opt pick">
+    <div class="cap"><span class="t">ㄴ · 경계선 위 손잡이</span><span class="pk">권함 · 세로 자리 0</span></div>
+    <div class="bd">
+      <div class="sh"><div class="hd"><span class="lg">ℓ</span><span class="nm">EVER-SKETCH</span><span class="cr">내 자료</span></div>
+        <div class="bdy" id="b2">
+          <nav class="sd">
+            <button class="nav on"><span class="ic">🗂</span><span class="lb">내 자료</span></button>
+            <button class="nav"><span class="ic">📥</span><span class="lb">결재함</span><span class="b">3</span></button>
+            <button class="nav"><span class="ic">👥</span><span class="lb">팀 공유</span></button>
+          </nav><div class="mn">본문</div>
+          <button class="edge" data-t="2" id="e2" title="접기">«</button>
+        </div></div>
+      <p class="d"><b>자리를 하나도 안 뺏습니다.</b> 그리고 <b>움직이는 그 경계에 붙어</b> 있어
+      「이 선이 왼쪽으로 간다」가 모양으로 읽힙니다. 접히면 손잡이가 같이 따라가
+      <b>편 상태와 접힌 상태가 같은 물건</b>입니다. 컨플루언스·GitLab·리니어가 이 방식입니다.</p>
+    </div>
+  </div>
+
+  <div class="opt">
+    <div class="cap"><span class="t">ㄷ · 「메뉴」 이름표 줄 오른쪽</span><span class="rw">세로 자리 25px</span></div>
+    <div class="bd">
+      <div class="sh"><div class="hd"><span class="lg">ℓ</span><span class="nm">EVER-SKETCH</span><span class="cr">내 자료</span></div>
+        <div class="bdy" id="b3">
+          <nav class="sd">
+            <div class="lblrow"><span class="lb2">메뉴</span><button class="icb" data-t="3">«</button></div>
+            <button class="nav on"><span class="ic">🗂</span><span class="lb">내 자료</span></button>
+            <button class="nav"><span class="ic">📥</span><span class="lb">결재함</span><span class="b">3</span></button>
+            <button class="nav"><span class="ic">👥</span><span class="lb">팀 공유</span></button>
+          </nav><div class="mn">본문</div></div></div>
+      <p class="d">줄은 쓰지만 <b>비어 있지 않습니다</b> — 이름표와 나눠 씁니다.
+      올려 주신 유니에버가 「MENU」 이름표를 쓰는 것과 같은 결입니다.
+      대신 <b>이름표를 새로 만들어야</b> 하고, 항목이 셋뿐이라 <b>없어도 되는 이름표</b>이기도 합니다.</p>
+    </div>
+  </div>
+
+  <div class="opt">
+    <div class="cap"><span class="t">ㄹ · 경계선을 끌어서</span><span class="rw">혼자서는 부족</span></div>
+    <div class="bd">
+      <div class="sh"><div class="hd"><span class="lg">ℓ</span><span class="nm">EVER-SKETCH</span><span class="cr">내 자료</span></div>
+        <div class="bdy" id="b4">
+          <nav class="sd">
+            <button class="nav on"><span class="ic">🗂</span><span class="lb">내 자료</span></button>
+            <button class="nav"><span class="ic">📥</span><span class="lb">결재함</span><span class="b">3</span></button>
+            <button class="nav"><span class="ic">👥</span><span class="lb">팀 공유</span></button>
+          </nav><div class="mn">본문</div>
+          <div class="drag" data-t="4" id="d4" title="끌어서 접기 (여기서는 눌러도 됩니다)"></div>
+        </div></div>
+      <p class="d">폭을 원하는 만큼 맞추고, 끝까지 끌면 접힙니다. <b>눈에 보이는 것이 없어</b>
+      혼자 두면 <b>아무도 못 찾습니다.</b> ㄴ과 <b>같이</b> 두면 좋습니다 —
+      손잡이가 보이고, 그 손잡이를 끌 수도 있습니다.</p>
+    </div>
+  </div>
+
+</div>
+
+<table class="inv">
+  <tr><th style="width:150px"></th><th style="width:95px">세로 자리</th><th style="width:110px">눈에 띄나</th><th>걸리는 것</th></tr>
+  <tr><td><b>ㄱ</b> 전용 줄</td><td class="n">31px</td><td>보통</td><td>줄이 비어 보인다</td></tr>
+  <tr><td><b>ㄴ</b> 경계선 손잡이</td><td class="y">0px</td><td class="y">좋음</td><td>늘 떠 있으면 살짝 거슬릴 수 있다 → <b>올릴 때만</b> 진하게</td></tr>
+  <tr><td><b>ㄷ</b> 이름표 줄</td><td>25px</td><td>보통</td><td>없어도 되는 이름표를 만들게 된다</td></tr>
+  <tr><td><b>ㄹ</b> 끌기만</td><td class="y">0px</td><td class="n">나쁨</td><td>보이는 것이 없다 — 혼자 두면 안 된다</td></tr>
+</table>
+
+<div class="box ok"><span class="t">ㄴ 을 권합니다 — 나중에 ㄹ 을 얹을 수 있습니다</span>
+<b>세로 자리를 안 쓰고</b>, 움직이는 경계에 붙어 있어 뜻이 모양으로 읽힙니다.
+접히면 손잡이가 따라가므로 <b>편 상태와 접힌 상태가 같은 물건</b>이고,
+나중에 폭 조절(ㄹ)을 넣을 때 <b>그 손잡이를 그대로 끌면</b> 됩니다 — 새 장치가 안 늘어납니다.</div>
+<div class="box warn"><span class="t">ㄴ 이 안고 있는 것 하나</span>
+손잡이가 <b>본문 위로 6px쯤 걸칩니다.</b> 본문 맨 왼쪽 위에 무언가 있으면 살짝 가립니다.
+지금은 그 자리가 여백이라 괜찮지만, <b>평소에는 흐리게 두고 셸 위에 마우스가 올 때만</b>
+진해지게 하면 거의 안 보입니다. 키보드만 쓰는 사람을 위해 <b>탭으로도 닿게</b> 둡니다.</div>
+
+<p class="note">시안 v1.0 · 접힌 폭 54px, 편 폭 168px 은 보기 편하라고 줄인 값입니다.
+실제는 60 / 214px 입니다.</p>
+
+<script>
+var shut = {1:false,2:false,3:false,4:false}
+function draw(){
+  [1,2,3,4].forEach(function(k){
+    var b = document.getElementById('b'+k)
+    b.className = 'bdy' + (shut[k] ? ' shut' : '')
+  })
+  var e = document.getElementById('e2')
+  e.textContent = shut[2] ? '»' : '«'
+  e.title = shut[2] ? '펴기' : '접기'
+  e.style.left = (shut[2] ? 54 : 168) - 10 + 'px'
+  document.getElementById('d4').style.left = (shut[4] ? 54 : 168) - 3 + 'px'
+}
+document.addEventListener('click', function(ev){
+  var t = ev.target.closest('[data-t]'); if(!t) return
+  var k = Number(t.dataset.t); shut[k] = !shut[k]; draw()
+})
+draw()
+</script>
+</div>
+</body>
+</html>
