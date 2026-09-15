@@ -10,7 +10,9 @@
 // 어떤 줄이 나오는지는 `sideTree.ts` 가 정한다. 여기는 **그리고 누르는 일**만 한다.
 import { useEffect, useState } from 'react'
 import { useProjects } from '../persistence/projects'
-import { shellTreeOpen, rememberShellTreeOpen } from '../persistence/prefs'
+import {
+  shellTreeOpen, rememberShellTreeOpen, shellTreeCol, rememberShellTreeCol,
+} from '../persistence/prefs'
 import { treeRows, TREE_ROOT } from './sidebarTree'
 
 /** 펴 둔 폴더. **모듈 밖에 둔다** — 사이드바는 화면이 바뀌어도 살아 있어야 하고,
@@ -18,6 +20,13 @@ import { treeRows, TREE_ROOT } from './sidebarTree'
 function firstOpen(): Set<string> {
   const saved = shellTreeOpen()
   return new Set(saved === null ? [TREE_ROOT] : saved)
+}
+
+/** 나무를 제 칸으로 뺐는가(①). 셸이 들고 있다 — 칸을 하나 더 그릴지 정하는 값이다. */
+export function useTreeCol() {
+  const [col, setCol] = useState<boolean>(shellTreeCol)
+  const swap = () => setCol((v) => { rememberShellTreeCol(!v); return !v })
+  return { col, swap }
 }
 
 export function useTreeOpen() {
@@ -36,11 +45,15 @@ export function useTreeOpen() {
 /** **펴 둔 상태는 셸이 들고 내려보낸다.** 여기서 `useTreeOpen()` 을 또 부르면
  *  뿌리(「내 자료」)의 ▾ 와 나무가 **서로 다른 값을 보게 된다** — 나무를 접어도
  *  위 화살표는 펴진 채로 남고, 다음 렌더에 도로 펴진다. */
-export default function SideTree({ open, toggle, onGo }: {
+export default function SideTree({ open, toggle, onGo, col, onSwap }: {
   open: Set<string>
   toggle: (id: string) => void
   /** 폴더나 「더 보기」를 눌렀다 — 셸이 목록 화면으로 옮긴다. */
   onGo: () => void
+  /** 제 칸에 그려지고 있는가(①). 칸 안에서는 **뿌리를 접지 않는다** —
+   *  칸 하나를 통째로 비우는 접기는 뜻이 없고, 다시 펼 자리도 사라진다. */
+  col: boolean
+  onSwap: () => void
 }) {
   const folders = useProjects((s) => s.folders)
   const list = useProjects((s) => s.list)
@@ -56,11 +69,20 @@ export default function SideTree({ open, toggle, onGo }: {
   // 나무가 비는 것과 화면에 빨간 줄이 뜨는 것은 다른 무게다.
   useEffect(() => { void loadFolders().catch(() => { /* 나무는 부가 정보다 */ }) }, [loadFolders])
 
-  const rows = treeRows(folders, list, open)
-  if (!rows.length) return null
+  const rows = treeRows(folders, list, col ? new Set([...open, TREE_ROOT]) : open)
+  // 메뉴 안에 있을 때는 접으면 **통째로 사라진다**(위 「내 자료」의 ▾ 로 다시 편다).
+  // 제 칸일 때는 머리줄이 남아야 한다 — 안 그러면 합칠 자리가 없어진다.
+  if (!col && !rows.length) return null
 
   return (
-    <div className="sh-tree" role="group" aria-label="폴더와 자료">
+    <div className={'sh-tree' + (col ? ' col' : '')} role="group" aria-label="폴더와 자료">
+      <div className="sh-thead">
+        {col ? <span className="t">폴더</span> : null}
+        <button className="sh-tswap" onClick={onSwap}
+          title={col ? '메뉴 안으로 합친다' : '폴더를 제 칸으로 뺀다'}>
+          {col ? '합치기' : '칸 나누기'}
+        </button>
+      </div>
       {rows.map((r) => {
         const isFolder = r.kind === 'folder'
         const on = isFolder

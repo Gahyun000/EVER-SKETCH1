@@ -166,9 +166,14 @@ check(treeRows(folders, projects, open()).length === 0,
   check(!/useTreeOpen\(\)/.test(tsx.split('export default')[1] || ''),
     '나무 안에서 useTreeOpen() 을 다시 부르지 않는다')
 
-  // 나무는 「내 자료」에만, 그리고 펴져 있을 때만.
-  check(/it\.k === 'library' && !shut\s*\n?\s*\? <SideTree/.test(shell),
-    '나무는 「내 자료」 아래에만, 사이드바가 펴져 있을 때만 그린다')
+  // 나무는 「내 자료」에만, 그리고 **메뉴 안에 둔 동안** 거기 달린다.
+  // 제 칸으로 뺐으면(①ㄴ) 「내 자료」 밑은 비어야 한다 — 둘 다 그리면 나무가 두 벌이 된다.
+  check(/const treeInNav = !treeCol && !shut/.test(shell),
+    '메뉴 안에 나무가 달리는 조건이 한 군데에 적혀 있다')
+  check(/it\.k === 'library' && treeInNav\s*\n?\s*\? <SideTree/.test(shell),
+    '나무는 「내 자료」 아래에만, 메뉴 안에 둔 동안에만 그린다')
+  check(/\{it\.k === 'library' && treeInNav \? \(/.test(shell),
+    '뿌리의 ▾ 도 같은 조건을 쓴다 — 나무가 없는데 화살표만 남지 않는다')
   check(/\.sh-body\.shut \.sh-tree, \.sh-body\.shut \.sh-fold \{ display: none/.test(css),
     '접힌 60px 열에는 나무가 없다 — 글자가 없으면 나무가 아니다')
 
@@ -195,6 +200,47 @@ check(treeRows(folders, projects, open()).length === 0,
     '나무도 폴더를 받아 온다 — 편집 중에 펴면 비어 있으면 안 된다')
   check(/catch\(\(\) => \{ \/\* 나무는 부가 정보다 \*\/ \}\)/.test(tsx),
     '못 받아 와도 **조용히** 지나간다 — 목록 화면의 빨간 줄과는 무게가 다르다')
+
+  // ── ① 칸 나누기 ─────────────────────────────────
+  check(/\{treeCol && !shut \? \(/.test(shell) && /<aside className="sh-col"/.test(shell),
+    '제 칸으로 빼면 메뉴와 본문 사이에 칸이 하나 생긴다')
+  check(/gridTemplateColumns: \(shut \? '60px' : width \+ 'px'\)\s*\n\s*\+ \(treeCol && !shut \? ' 220px' : ''\) \+ ' 1fr'/.test(shell),
+    '칸이 늘면 격자도 같이 는다 — 폭 계산이 한 군데에 있다')
+  check(/treeCol && !shut/.test(shell) && !/treeCol \? <aside/.test(shell),
+    '접힌 60px 열 옆에 폴더 칸만 남지 않는다')
+  check(/col \? new Set\(\[\.\.\.open, TREE_ROOT\]\) : open/.test(tsx),
+    '제 칸에서는 뿌리를 접지 않는다 — 칸을 통째로 비우면 다시 펼 자리가 없다')
+  check(/if \(!col && !rows\.length\) return null/.test(tsx),
+    '제 칸에서는 줄이 없어도 머리줄이 남는다 — 안 그러면 합칠 자리가 사라진다')
+  check(/\{col \? '합치기' : '칸 나누기'\}/.test(tsx),
+    '지금 상태에 따라 무엇을 하는 단추인지 글자가 바뀐다')
+  check(/\{col \? <span className="t">폴더<\/span> : null\}/.test(tsx),
+    '메뉴 안에서는 「폴더」라고 또 안 적는다 — 바로 위 「내 자료」가 이미 그 말이다')
+  check(/\.sh-side:hover \.sh-tswap, \.sh-col:hover \.sh-tswap \{ opacity: 1/.test(css),
+    '바꾸는 글자는 평소엔 안 보인다 — 한 번 쓰고 마는 글자가 자리를 계속 차지하지 않는다')
+  check(/\.sh-tswap:focus-visible \{ opacity: 1/.test(css), '키보드로 짚으면 드러난다')
+}
+
+// ── 제 칸으로 뺐는지 기억하는가 (①) ─────────────────
+{
+  const store = new Map()
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => { store.set(k, String(v)) },
+    removeItem: (k) => { store.delete(k) },
+  }
+  const { shellTreeCol, rememberShellTreeCol, rememberShellTreeOpen: remOpen } =
+    await import('./src/persistence/prefs.ts')
+  check(shellTreeCol() === false, '기본은 메뉴 안이다 (①ㄱ) — 처음 보는 사람에게 칸 넷은 많다')
+  rememberShellTreeCol(true)
+  check(shellTreeCol() === true, '제 칸으로 뺀 것을 기억한다')
+  rememberShellTreeCol(false)
+  check(shellTreeCol() === false, '다시 합친 것도 기억한다')
+  // **자리가 겹치면 서로 덮어쓴다.** 폴더를 펴 두었다고 칸이 갈라지면 안 된다.
+  remOpen(['f1'])
+  check(store.get('es_shell_tree_col') === '0' && store.get('es_shell_tree_open') === '["f1"]',
+    '펴 둔 폴더와 칸 나누기는 **다른 자리**에 적힌다', [...store.keys()].join(','))
+  check(shellTreeCol() === false, '폴더를 펴 두어도 칸은 안 갈라진다')
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)

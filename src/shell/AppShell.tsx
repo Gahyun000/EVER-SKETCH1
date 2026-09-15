@@ -24,7 +24,7 @@ import {
   shellFoldedEditor, rememberShellFoldedEditor,
   SIDE_MIN, SIDE_MAX, SIDE_DEFAULT,
 } from '../persistence/prefs'
-import SideTree, { useTreeOpen } from './SideTree'
+import SideTree, { useTreeOpen, useTreeCol } from './SideTree'
 import { TREE_ROOT } from './sidebarTree'
 import type { ShellView } from './shellPath'
 import './shell.css'
@@ -77,6 +77,8 @@ export default function AppShell({ view, onView, crumb, children }: {
   /** 나무에서 펴 둔 폴더. **셸이 들고 있다** — 뿌리(「내 자료」)의 ▾ 와
    *  나무가 같은 값을 봐야 접고 편 것이 어긋나지 않는다. */
   const { open: treeOpen, toggle: treeToggle } = useTreeOpen()
+  /** 나무를 제 칸으로 뺐는가(사용자 결정 ①). 기본은 메뉴 안이다. */
+  const { col: treeCol, swap: treeSwap } = useTreeCol()
 
   const role = me?.role
   const canSubmit = role === 'writer' || role === 'admin'
@@ -93,6 +95,9 @@ export default function AppShell({ view, onView, crumb, children }: {
   // 다만 그건 첫 기본값일 뿐이고, 사람이 편 것은 그대로 남는다.
   const inEditor = view === 'editor'
   const shut = inEditor ? foldedEd : folded
+
+  /** 나무가 메뉴 안에 달려 있는 상태. 제 칸으로 뺐으면 「내 자료」 밑은 비어 있다. */
+  const treeInNav = !treeCol && !shut
 
   // 대기 건수 — 관리자에게는 「내가 결정할 것」, 작성자에게는 「답을 기다리는 것」이다.
   // 둘 다 **열어 보지 않아도 알아야** 하는 숫자라 같은 자리에 붙인다.
@@ -183,7 +188,10 @@ export default function AppShell({ view, onView, crumb, children }: {
       </header>
 
       <div className={'sh-body' + (shut ? ' shut' : '') + (dragging ? ' drag' : '')}
-        style={shut ? undefined : { gridTemplateColumns: width + 'px 1fr' }}>
+        style={{
+          gridTemplateColumns: (shut ? '60px' : width + 'px')
+            + (treeCol && !shut ? ' 220px' : '') + ' 1fr',
+        }}>
         <nav className="sh-side" aria-label="갈 곳">
           {items.map((it, i) => 'sep' in it ? (
             <div className="sh-grp" key={'s' + i}>{it.sep}</div>
@@ -191,7 +199,7 @@ export default function AppShell({ view, onView, crumb, children }: {
             /* 「내 자료」만 아래로 나무가 달린다. **한 줄에 누를 곳이 둘**이라
                단추를 겹쳐 두지 않고 나란히 둔다 — 단추 안에 단추는 없는 것이다. */
             <div key={it.k} className="sh-navwrap">
-            <div className={'sh-navrow' + (it.k === 'library' && !shut ? ' hastree' : '')}>
+            <div className={'sh-navrow' + (it.k === 'library' && treeInNav ? ' hastree' : '')}>
             <button className={'sh-nav' + (view === it.k ? ' on' : '')}
               onClick={() => {
                 // **접혀 있으면 먼저 편다**(사용자 결정 ⑪ㄱ). 글자가 없는 아이콘 열에서
@@ -206,7 +214,7 @@ export default function AppShell({ view, onView, crumb, children }: {
               <span className="lbl">{it.t}</span>
               {it.badge ? <span className="bd" title={`대기 ${it.badge}건`}>{it.badge}</span> : null}
             </button>
-            {it.k === 'library' && !shut ? (
+            {it.k === 'library' && treeInNav ? (
               /* 아이콘 자리를 덮는다 — 평소엔 아래 아이콘이 보이고 마우스를 올리면
                  이 ▾ 가 드러난다(사용자 결정 ⑥). **화면은 안 옮긴다.** */
               <button className={'sh-fold' + (treeOpen.has(TREE_ROOT) ? '' : ' shut')
@@ -217,12 +225,22 @@ export default function AppShell({ view, onView, crumb, children }: {
                 title={treeOpen.has(TREE_ROOT) ? '접기' : '펴기'}>▾</button>
             ) : null}
             </div>
-            {it.k === 'library' && !shut
-              ? <SideTree open={treeOpen} toggle={treeToggle} onGo={() => onView('library')} />
+            {it.k === 'library' && treeInNav
+              ? <SideTree open={treeOpen} toggle={treeToggle} col={false}
+                  onSwap={treeSwap} onGo={() => onView('library')} />
               : null}
             </div>
           ))}
         </nav>
+        {/* **폴더 전용 칸**(①ㄴ). 메뉴와 폴더가 갈라져서, 폴더가 아무리 많아도
+            「결재함·팀 공유」가 스크롤 아래로 안 밀린다. 접힌 사이드바에서는 안 그린다 —
+            글자가 없는 60px 열 옆에 220px 짜리 폴더 칸만 남으면 짝이 안 맞는다. */}
+        {treeCol && !shut ? (
+          <aside className="sh-col" aria-label="폴더">
+            <SideTree open={treeOpen} toggle={treeToggle} col
+              onSwap={treeSwap} onGo={() => onView('library')} />
+          </aside>
+        ) : null}
         <main className="sh-main">{children}</main>
 
         {/* **경계선 위 손잡이**(사용자 결정 ㄴ+ㄹ).

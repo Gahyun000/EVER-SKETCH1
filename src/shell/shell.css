@@ -121,3 +121,25 @@
 
 /* 접힌 사이드바(60px)에는 나무를 아예 안 그린다 — 글자가 없으면 나무가 아니다. */
 .sh-body.shut .sh-tree, .sh-body.shut .sh-fold { display: none !important; }
+
+/* ── 폴더 전용 칸 (①ㄴ · 2026-09-15) ────────────────────────────
+   메뉴와 폴더를 가른다. 폴더가 스무 개가 되어도 「결재함·팀 공유」가
+   스크롤 아래로 안 밀린다. 대신 220px 을 쓴다 — 켜는 것은 사람이 정한다. */
+.sh-col { background: #fff; border-right: 1px solid #E6E8EE; min-width: 0;
+  display: flex; flex-direction: column; overflow: auto; padding: 8px 7px; }
+.sh-col .sh-tree { margin: 0; }
+.sh-tree.col .sh-trow { padding-right: 6px; }
+
+/* 머리줄 — 메뉴 안에서는 **바꾸는 글자만** 있고, 제 칸에서는 이름도 함께 있다.
+   메뉴 안에서는 바로 위 「내 자료」가 이미 이름을 말하고 있어 또 적지 않는다.
+   평소에는 안 보인다 — 늘 떠 있으면 한 번 쓰고 마는 글자가 자리를 계속 차지한다. */
+.sh-thead { display: flex; align-items: center; gap: 6px; padding: 2px 8px 3px;
+  font-size: 10.5px; font-weight: 800; color: #9aa3b2; letter-spacing: .04em; min-height: 18px; }
+.sh-thead .t { flex: 1; min-width: 0; }
+.sh-tswap { margin-left: auto; border: 0; background: transparent; padding: 2px 4px;
+  font: inherit; font-size: 10.5px; font-weight: 800; color: #2462EB; cursor: pointer;
+  border-radius: 4px; opacity: 0; transition: opacity .12s; }
+.sh-tree.col .sh-tswap { opacity: 1; }
+.sh-side:hover .sh-tswap, .sh-col:hover .sh-tswap { opacity: 1; }
+.sh-tswap:hover { background: #EAF1FE; }
+.sh-tswap:focus-visible { opacity: 1; outline: 2px solid #2462EB; outline-offset: 1px; }

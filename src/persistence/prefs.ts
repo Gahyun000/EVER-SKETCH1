@@ -72,6 +72,7 @@ const FOLD_KEY = 'es_shell_folded'
 const WIDTH_KEY = 'es_shell_width'
 const FOLD_EDITOR_KEY = 'es_shell_folded_editor'
 const TREE_KEY = 'es_shell_tree_open'
+const TREE_COL_KEY = 'es_shell_tree_col'
 
 /** 펼친 사이드바 폭. 사람이 경계선을 끌어 맞춘 값이다.
  *  **접힘과 따로 둔다** — 접었다 펴면 맞춰 둔 폭으로 돌아와야 한다.
@@ -147,4 +148,17 @@ export function shellTreeOpen(): string[] | null {
 export function rememberShellTreeOpen(ids: string[]): void {
   // 500개를 넘겨 담지 않는다 — 지운 폴더의 id 가 쌓이기만 하는 자리다.
   try { localStorage.setItem(TREE_KEY, JSON.stringify(ids.slice(0, 500))) } catch { /* 저장이 막힌 브라우저 */ }
+}
+
+/** 폴더 나무를 **제 칸으로 빼 두었는가**(사용자 결정 ①).
+ *
+ *  기본은 거짓 — 메뉴 안에 함께 둔다. 처음 보는 사람에게 칸 넷은 많고, 폴더가
+ *  두세 개뿐이면 220px 이 그냥 빈 칸이 된다. 폴더가 늘어난 사람이 「칸 나누기」를 켠다.
+ *  **사람마다 기억한다** — 폭·접힘과 같은 종류의 손버릇이다. */
+export function shellTreeCol(): boolean {
+  try { return localStorage.getItem(TREE_COL_KEY) === '1' } catch { return false }
+}
+
+export function rememberShellTreeCol(v: boolean): void {
+  try { localStorage.setItem(TREE_COL_KEY, v ? '1' : '0') } catch { /* 저장이 막힌 브라우저 */ }
 }
