@@ -26,8 +26,8 @@ import ApprovalViewer, { viewerIdFromPath } from './teamlib/ApprovalViewer'
  */
 function Body({ view }: { view: string }) {
   if (view === 'editor') return <Layout />
-  if (view === 'inbox') return <ApprovalsPanel embedded />
-  if (view === 'team') return <TeamLibraryPanel embedded />
+  if (view === 'inbox') return <ApprovalsPanel />
+  if (view === 'team') return <TeamLibraryPanel />
   if (view === 'users') return <UsersAdmin embedded />
   if (view === 'admin') return <TeamsAdmin embedded />
   if (view === 'settings') return <div className="sh-page"><SettingsPage /></div>

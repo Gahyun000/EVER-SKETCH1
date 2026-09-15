@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import SearchRow from '../ui/SearchRow'
 import { inRange } from '../ui/searchFilter'
+import { clampMaster, keepOrFirst } from '../ui/masterSplit'
+import { masterWidth, rememberMasterWidth } from '../persistence/prefs'
 import { History, Users, X, ExternalLink } from 'lucide-react'
 import SlideViewer from '../approvals/SlideViewer'
 import { STATUS_LABEL, type Approval } from '../approvals/approvalApi'
@@ -32,10 +34,11 @@ const fmt = (ts?: number | null) =>
  *
  * 「현재」·「이전」은 **글자로 붙는다**(D19) — 색으로만 상태를 구분하지 않는다(표준).
  */
-/** `embedded` — **덮개가 아니라 화면으로** 그린다(셸, 2026-09-10).
- *  덮개일 때는 뒤를 어둡게 하고 가운데 카드를 띄웠다. 셸 안에서는 뒤에 가릴 것이 없다 —
- *  자기가 그 화면이다. 그래서 스크림도, 「닫기」도 없다. 닫을 데가 없으니까. */
-export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
+/** **덮개가 아니라 화면이다**(셸, 2026-09-10 → 2026-09-15).
+ *  결재함과 같은 몸이라 같은 이유로 카드를 걷었다 — 화면이 곧 마스터-디테일이고,
+ *  덮개로 띄우는 길(`embedded` · `onClose`)은 부르는 데가 없어 함께 걷었다.
+ *  자세한 까닭은 ApprovalsPanel 머리글에 한 번만 적어 둔다. */
+export default function TeamLibraryPanel() {
   const [teams, setTeams] = useState<LibTeam[]>([])
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
   const [err, setErr] = useState('')
@@ -51,6 +54,11 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
 
   const [openId, setOpenId] = useState<string | null>(null)
   const [detail, setDetail] = useState<LibItem | null>(null)
+  // 목록 칸 폭 — 결재함과 **따로** 기억한다(④ㄴ). 여기 줄은 작성자로 묶여 있어
+  // 좁아도 읽히는데, 한 값으로 묶으면 결재함에서 넓힌 값이 여기까지 따라온다.
+  const [mw, setMw] = useState(() => masterWidth('tl'))
+  const [dragging, setDragging] = useState(false)
+  const gripRef = useRef(0)
   const [idx, setIdx] = useState(0)
   const [hist, setHist] = useState<Approval[] | null>(null)
 
@@ -74,6 +82,35 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
     () => (from || to) ? flat.filter((f) => inRange(f.item.decided_at, from, to)) : flat,
     [flat, from, to])
   const paged = useMemo(() => pageOf(ranged, q, page), [ranged, q, page])
+
+  /** **첫 줄은 저절로 골라진다**(③ㄴ). 묶음 줄(작성자·월)은 고를 수 있는 것이
+   *  아니므로 건너뛰고 **자료 줄만** 센다 — 안 거르면 작성자 이름을 고른 척하고
+   *  오른쪽이 영원히 빈다. 지금 고른 것이 이 쪽에 남아 있으면 안 건드린다. */
+  const pickable = useMemo(
+    () => paged.rows.flatMap((r) => (r.kind === 'item' ? [r.flat.item.id] : [])),
+    [paged])
+  useEffect(() => { setOpenId((cur) => keepOrFirst(pickable, cur)) }, [pickable])
+
+  /** 경계선을 끌어 목록 칸을 넓힌다. 놓을 때만 기억한다. */
+  const onGrip = (e: React.PointerEvent) => {
+    e.preventDefault()
+    setDragging(true)
+    const startX = e.clientX, startW = mw
+    gripRef.current = startW
+    const move = (ev: PointerEvent) => {
+      const w = clampMaster(startW + (ev.clientX - startX))
+      gripRef.current = w
+      setMw(w)
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      setDragging(false)
+      rememberMasterWidth('tl', gripRef.current)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
 
   useEffect(() => {
     if (!openId) { setDetail(null); setHist(null); return }
@@ -103,18 +140,18 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
   }
 
   return (
-    <div className={embedded ? 'sh-page tl' : 'es-auth tl'} onClick={embedded ? undefined : onClose}>
-      <div className="es-card wide ap-card" onClick={(e) => e.stopPropagation()}>
+    <div className={'sh-page tl md-screen' + (dragging ? ' md-drag' : '')}>
+      <div className="md-top">
         <div className="ap-head">
           {/* 부제목을 뺐다(2026-09-15) — 「승인된 자료만 올라옵니다」는 자료마다 붙는
               「승인」 칩이 이미 하는 말이다. */}
           <div className="es-brand"><b>팀 공유</b></div>
-          {!embedded && <button className="es-mini" onClick={onClose}>닫기</button>}
         </div>
 
         {err && <div className="es-msg err">{err}</div>}
+      </div>
 
-        {phase === 'loading' ? (
+      {phase === 'loading' ? (
           <div className="es-empty">불러오는 중…</div>
         ) : phase === 'error' ? (
           <div className="es-empty">
@@ -135,6 +172,10 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
           </div>
         ) : (
           <>
+            {/* 머리 덩어리가 둘인 것은 **팀이 없을 때 탭도 검색도 뜨면 안 되기**
+                때문이다. 화면 이름은 늘 보이고, 고르개와 검색은 고를 팀이 있을 때만
+                생긴다 — 둘을 한 덩어리로 묶으면 빈 화면에 빈 검색 줄이 남는다. */}
+            <div className="md-top">
             {/* 팀 고르개. 「현재」·「이전」을 **글자로** 붙인다(D19). */}
             <div className="es-tabs tl-tabs">
               {teams.map((t) => (
@@ -157,8 +198,9 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
               onSearch={applySearch} onReset={resetSearch} />
             {/* 건수는 **목록 바로 위**다(④ㄴ) — 쪽 정보와 한자리에 모인다. */}
             <div className="tl-count-row">전체 {paged.total}건</div>
+            </div>
 
-            <div className="ap-body">
+            <div className="ap-body md-body" style={{ gridTemplateColumns: mw + 'px auto 1fr' }}>
               {/* ── 왼쪽: 작성자 / 월로 묶인 목록 ── */}
               <div className="ap-list tl-list">
                 {paged.total === 0 ? (
@@ -216,10 +258,16 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
                 )}
               </div>
 
+              {/* **경계선이 곧 손잡이다** — 결재함과 같은 물건이다. */}
+              <div className="md-grip" onPointerDown={onGrip}
+                title="끌어서 목록 칸 폭을 바꿉니다" aria-hidden="true" />
+
               {/* ── 오른쪽: 얼어붙은 승인본 ── */}
               <div className="ap-detail">
                 {!detail ? (
-                  <div className="es-empty">왼쪽에서 자료를 골라 주세요.</div>
+                  /* 첫 줄이 저절로 골라지므로(③ㄴ) 여기가 비는 경우는 둘뿐이다 —
+                     이 쪽에 자료가 없거나, 고른 것을 아직 받아 오는 중이거나. */
+                  <div className="es-empty">{openId ? '불러오는 중…' : '볼 자료가 없습니다.'}</div>
                 ) : (
                   <>
                     <div className="ap-d-head">
@@ -302,8 +350,7 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
               </div>
             </div>
           </>
-        )}
-      </div>
+      )}
     </div>
   )
 }

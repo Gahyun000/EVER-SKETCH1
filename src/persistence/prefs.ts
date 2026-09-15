@@ -163,3 +163,34 @@ export function shellTreeCol(): boolean {
 export function rememberShellTreeCol(v: boolean): void {
   try { localStorage.setItem(TREE_COL_KEY, v ? '1' : '0') } catch { /* 저장이 막힌 브라우저 */ }
 }
+
+// ── 마스터-디테일의 목록 칸 폭 ─────────────────────
+//
+// 결재함(P5)·팀 공유(P6)는 왼쪽에 줄 목록, 오른쪽에 상세를 놓는다. 그 경계는
+// **사람이 끌어 맞추는 자리**라 사이드바 폭과 같은 부류다 — 손버릇이니 브라우저에 둔다.
+//
+// **두 화면을 따로 기억한다.** 결재함 줄은 자료 이름 + 회차 + 낸 사람 + 폴더까지
+// 네 토막이라 넓게 쓰는 사람이 많고, 팀 공유는 작성자로 묶여 있어 좁아도 읽힌다.
+// 한 값으로 묶으면 한쪽에서 맞춘 폭이 다른 쪽에 조용히 덮인다 — 편집기 접힘을
+// 목록과 갈라 둔 것과 같은 이유다.
+
+const MASTER_KEY = { ap: 'es_ap_master', tl: 'es_tl_master' } as const
+export type MasterKey = keyof typeof MASTER_KEY
+
+/** 목록 칸의 최소·최대·기본 폭.
+ *  240 아래로 내려가면 자료 이름이 두세 글자 만에 잘리고, 560 위로 가면 상세가
+ *  주인공이라는 말(①ㄱ)이 무색해진다. 기본 320 은 시안에서 그대로 가져왔다. */
+export const MASTER_MIN = 240, MASTER_MAX = 560, MASTER_DEFAULT = 320
+
+export function masterWidth(k: MasterKey): number {
+  try {
+    const n = Number(localStorage.getItem(MASTER_KEY[k]))
+    if (Number.isFinite(n) && n >= MASTER_MIN && n <= MASTER_MAX) return Math.round(n)
+  } catch { /* 저장이 막힌 브라우저 */ }
+  return MASTER_DEFAULT
+}
+
+export function rememberMasterWidth(k: MasterKey, px: number): void {
+  const n = Math.round(Math.min(MASTER_MAX, Math.max(MASTER_MIN, px)))
+  try { localStorage.setItem(MASTER_KEY[k], String(n)) } catch { /* 저장이 막힌 브라우저 */ }
+}

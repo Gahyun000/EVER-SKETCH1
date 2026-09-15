@@ -312,15 +312,45 @@
 /* ══════════════════════════════════════════════════════════
    결재함 (P5) — 목록과 상세를 한 창에서
    ══════════════════════════════════════════════════════════ */
-/* **`.ap` 스코프를 뗐다**(2026-09-07). 팀 공유(`.tl`)도 같은 카드를 쓰는데 이 규칙이
-   `.ap` 안에만 걸려 있어서, 팀 공유만 860px·높이 제한 없이 떴다 —
-   같은 `ap-card` 를 쓰면서 크기가 다른 이유가 어디에도 없었다. */
-.es-card.ap-card { max-width: 1180px; display: flex; flex-direction: column; max-height: 92vh; }
+/* **카드를 걷었다**(2026-09-15). 2026-09-07 에는 `.ap` 스코프를 떼서 결재함과 팀
+   공유가 같은 1180px 카드를 쓰게 맞췄었다 — 같은 `ap-card` 를 쓰면서 크기가 다를
+   이유가 없어서였다. 그 판단은 카드가 있다는 전제 위에 있었고, 전제가 뒤집혔다:
+   **카드 자체가 화면 한가운데 뜬 섬**이었다. 1512px 창에서 1180 을 뺀 332px 이
+   놀고, 그 1180 안에서 목록과 상세를 또 나누니 상세는 늘 860 언저리였다 —
+   상세가 주인공인 화면(①ㄱ)에서 주인공이 제일 좁았다.
+   이제 화면이 곧 마스터-디테일이다. 목록은 사람이 끌어 맞춘 폭(기본 320)으로
+   고정되고 **남는 자리는 전부 상세가 쓴다.** 그래서 max-width 도, 92vh 도 없다 —
+   벽에 맞춰 살면 가둘 필요가 없다. */
+/* `.sh-page` 와 클래스 수가 같으면 어느 파일이 먼저 실리느냐로 이기고 지는 것이
+   갈린다. 둘을 겹쳐 적어 **순서와 무관하게** 이기게 한다. */
+.sh-page.md-screen { display: flex; flex-direction: column; overflow: hidden; }
+/* 머리·고르개·검색은 안 구르고 제자리에 있는다. 구르는 것은 두 칸 안쪽뿐이다. */
+.sh-page.md-screen > .md-top { flex: 0 0 auto; }
+/* 팀이 없을 때 뜨는 빈 화면도 남는 자리를 채운다 — 위에 붙어 뜨면 아래가 허전하다. */
+.sh-page.md-screen > .es-empty { flex: 1; min-height: 0; }
+
 .ap-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 
-.ap-body { display: flex; gap: 14px; min-height: 0; flex: 1; }
-.ap-list { flex: 0 0 300px; overflow: auto; border-right: 1px solid var(--line); padding-right: 12px; }
-.ap-detail { flex: 1; min-width: 0; overflow: auto; }
+/* 목록 | 손잡이 | 상세. 첫 칸 폭은 컴포넌트가 인라인으로 준다(사람이 끈 값).
+   가운데 칸이 **경계선이자 손잡이**라 gap 이 필요 없다 — 선이 곧 잡는 자리다. */
+/* **칸이 셋이다** — 손잡이도 제 칸을 차지한다. 둘로 적으면 세 번째 아이가 다음
+   줄로 넘어가 상세가 목록 밑에 깔린다(2026-09-15 에 실제로 그랬다). */
+.ap-body { display: grid; grid-template-columns: 320px auto 1fr; min-height: 0; flex: 1; }
+.ap-list { overflow: auto; min-width: 0; padding-right: 12px; }
+.ap-detail { min-width: 0; overflow: auto; padding-left: 14px; }
+
+/* 손잡이 — 폭 9px 의 띠 한가운데 1px 선이 지난다. 선만 두면 잡을 데가 너무 얇아
+   몇 번씩 헛짚고, 띠를 눈에 보이게 두면 화면에 세로줄이 굵게 남는다. */
+.md-grip { width: 9px; cursor: col-resize; background: transparent; position: relative;
+  touch-action: none; }
+.md-grip::before { content: ''; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px;
+  background: var(--line); transition: background .12s, box-shadow .12s; }
+.md-grip:hover::before { background: #2462EB; box-shadow: 0 0 0 1px #2462EB; }
+/* 끄는 동안에는 손을 따라와야 한다 — 전환이 걸려 있으면 한 박자 늦게 따라온다. */
+.md-drag .md-grip::before { background: #2462EB; box-shadow: 0 0 0 1px #2462EB; transition: none; }
+.md-drag * { user-select: none; }
+/* 손가락으로는 못 끈다(끌 자리가 9px 이다). 좁은 화면에서는 아래 규칙이 칸을
+   위아래로 쌓아 버리므로 손잡이도 함께 사라진다. */
 
 .ap-item {
   display: block; width: 100%; text-align: left; border: 1px solid var(--line);
@@ -402,10 +432,13 @@
   border: 1px solid var(--line); border-radius: 7px; font-size: 12.5px; font-family: inherit; outline: none; }
 .ap-actions input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--tint); }
 
+/* 좁은 화면에서는 나란히 둘 자리가 없다 — 위아래로 쌓고 손잡이는 감춘다.
+   **인라인 폭을 이겨야** 한다(컴포넌트가 `grid-template-columns` 를 직접 준다). */
 @media (max-width: 860px) {
-  .ap-body { flex-direction: column; }
-  .ap-list { flex: 0 0 auto; max-height: 30vh; border-right: 0; border-bottom: 1px solid var(--line);
-    padding-right: 0; padding-bottom: 10px; }
+  .ap-body { grid-template-columns: 1fr !important; grid-template-rows: minmax(0, 30vh) 1fr; }
+  .ap-list { border-bottom: 1px solid var(--line); padding-right: 0; padding-bottom: 10px; }
+  .ap-detail { padding-left: 0; padding-top: 10px; }
+  .md-grip { display: none; }
 }
 
 /* ─────────────────────────────────────────────
@@ -471,9 +504,11 @@
 .tl-locked { font-size: 12px; color: var(--sub); background: var(--card);
   border: 1px dashed var(--line); border-radius: 8px; padding: 8px 11px; }
 
-/* **미리보기 무대는 팀 공유에서 더 크다.** 카드 폭만 넓히면 무대는 안 따라 커진다 —
-   `.ap-stage` 의 min-height(260) 가 실제 크기를 정하고 있어서, 카드가 1180 이 돼도
-   그림은 그대로 317px 였다. 확인용이라 해도 표 머리글은 읽혀야 한다. */
+/* **미리보기 무대는 팀 공유에서 더 크다.** 옆으로 넓히면 무대는 안 따라 커진다 —
+   그림은 가로세로 비가 정해져 있어서 **높이가 크기를 정한다.** 2026-09-07 에는 카드를
+   1180 으로 넓혀 놓고도 그림이 317px 그대로였고, 2026-09-15 에 카드를 걷어 상세가
+   933px 가 된 뒤에도 마찬가지다 — 넓힌 만큼 양옆이 빌 뿐이다. 확인용이라 해도
+   표 머리글은 읽혀야 하므로 여기서 높이를 따로 올린다. */
 .tl .ap-stage { min-height: 380px; max-height: 56vh; }
 
 /* 볼 게 없는 것은 오류가 아니다 — 이유와 다음에 할 일을 함께 적는다. */
