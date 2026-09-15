@@ -62,7 +62,7 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
       { label: '선택 요소 삭제', sc: 'Del', run: () => emit('ebook:del') },
     ] },
     { label: '보기', items: [
-      { label: '▶ 예시영상', run: () => emit('ebook:demo') },
+      { label: '▶ 작성자 매뉴얼', run: () => emit('ebook:demo') },
       { label: '도움말', run: onHelp },
     ] },
     { label: '삽입', items: [

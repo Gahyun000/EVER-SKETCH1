@@ -162,7 +162,7 @@ export default function TopBar({ onHelp, onPresent, onSettings, onDemo, onAiClea
     <input ref={fileRef} type="file" accept=".html,.htm,text/html" style={{ display: 'none' }} onChange={onImportFile} />
     <button className="help-btn" onClick={onAiCleanup} title="가져온 결과를 규칙으로 다듬기(제안→수락)">✨ AI로 정리</button>
     <button className="help-btn" onClick={onSummarize} title="본문을 EVER-PEAK식으로 LLM 요약(⚙ 환경설정 필요)">✨ AI 요약</button>
-    <button className="help-btn" onClick={onDemo} title="예시영상 — 만드는 법 보기">▶ 예시영상</button>
+    <button className="help-btn" onClick={onDemo} title="작성자 매뉴얼 — 열두 편으로 훑어봅니다">▶ 작성자 매뉴얼</button>
     <button className="present-btn" onClick={onPresent} title="구글 슬라이드식 슬라이드쇼">▷ 슬라이드쇼</button>
     <button className="help-btn" onClick={onSettings} title="환경설정(LLM)">⚙ 환경설정</button>
     <button className="help-btn" onClick={onHelp}>도움말</button>
