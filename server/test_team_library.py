@@ -419,9 +419,16 @@ def test_결재_대화는_당사자만_본다():
     감춘 사실 자체는 감추지 않는다 — 몇 마디 오갔는지는 남긴다."""
     app = make_app()
     w = World()
-    p, a = w.approved(w.a)
+    # **대기 중에 지적하고 그 뒤에 승인한다**(2026-09-15에 고침). 전에는 `w.approved` 로
+    # 승인까지 끝낸 뒤에 코멘트를 달았는데, 승인된 회차에는 이제 의견을 못 단다 —
+    # 결정이 끝난 자리에는 그 글을 읽을 사람이 없어서다(`COMMENT_OPEN`).
+    # 이 시험이 보는 것(**결정이 난 뒤에도 그 대화는 당사자만 본다**)은 그대로고,
+    # 오히려 실제 흐름을 그린다: 지적은 대기 중에 오가고 그 뒤에 결정이 난다.
+    p = projects_store.create_project("9월 자료", DOC, owner_id=w.a["id"])
+    a = ap.request(p["id"], w.a["id"])
     ad = cli(app, "admin", "adminpw12345")
     ad.post("/api/approvals/%s/comments" % a["id"], json={"body": "3쪽 수치를 확인해 주세요"})
+    a = ap.decide(a["id"], "approve", w.admin["id"])
 
     mine = cli(app, "writer_a").get("/api/approvals/%s" % a["id"]).json()["approval"]
     assert len(mine["comments"]) == 1 and not mine.get("comments_hidden")

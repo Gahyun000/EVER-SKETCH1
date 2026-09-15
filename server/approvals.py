@@ -51,6 +51,47 @@ STATUSES = ("pending", "approved", "rejected", "withdrawn")
 #               이미 쌓인 이력에 기본값을 채워 넣어야 하고, 그때 무엇이 맞는지 알기 어렵다.
 KINDS = ("approval", "revision")
 
+# ── 의견을 주고받을 수 있는 상태 (2026-09-15, 사용자 결정 ㄴ) ──────────────
+#
+# **읽을 사람이 있는 상태만 열어 둔다.**
+#   · pending   — 결재자가 지적하고 낸 사람이 답한다. 이 자리의 본래 일이다.
+#   · rejected  — 낸 사람이 **고치려고 읽는다.** 「이 표 말씀이신가요?」 되물을
+#                 자리도 필요하다. 아직 살아 있는 대화다.
+#   · approved  — 결정이 끝났다. 자료는 얼었고 이미 팀에 나갔는데 팀은 결재 의견을
+#                 못 본다(당사자만 본다). 낸 사람도 잠긴 자료에 손댈 수 없고, 고치려면
+#                 수정 요청이며 거기엔 제 메시지 칸이 따로 있다.
+#                 **여기 쓴 글은 읽을 사람도 할 일도 없다.**
+#   · withdrawn — 낸 사람이 스스로 뺐고 결재자는 보지도 않았다. 빈 방에 대고 쓰는 글이다.
+#
+# 닫는 것은 **쓰기·고치기·지우기**고 **읽기는 그대로 둔다.** 대기 때 오간 지적은
+# 「무엇을 왜 고쳤는가」가 남은 유일한 기록이라, 결정이 났다고 사라지면 안 된다.
+#
+# **지우기까지 닫는 까닭.** 이 제품은 「회수해도 이력에는 남는다 · 이력 있는 자료는
+# 못 지운다」로 서 있다. 결정된 회차의 지적을 지우는 것은 **이력을 고치는 일**이다.
+#
+# 이 규칙은 **서버가 정하고 화면은 그대로 그린다.** 같은 목록이 화면 쪽
+# `src/approvals/commentGate.ts` 에도 있고, 둘이 어긋나지 않는지 검사가 지킨다.
+COMMENT_OPEN = ("pending", "rejected")
+
+_COMMENT_SHUT = {
+    "approved": "승인된 회차입니다. 고칠 것이 있으면 수정 요청을 내 주세요.",
+    "withdrawn": "회수한 회차입니다. 다시 내면 새 회차에서 이어집니다.",
+}
+
+
+def _require_comment_open(c: sqlite3.Connection, aid: str) -> None:
+    """이 결재 건에 의견을 대고 손댈 수 있는가. 못 하면 **왜인지와 다음 길**을 말한다 —
+    「안 됩니다」로 끝내면 쓰던 사람이 무엇을 해야 하는지 모른다."""
+    r = c.execute("SELECT status FROM Approvals WHERE id=?", (aid,)).fetchone()
+    if not r:
+        raise ApprovalError("결재 건을 찾을 수 없습니다.")
+    status = r[0]
+    if status in COMMENT_OPEN:
+        return
+    raise ApprovalError(
+        _COMMENT_SHUT.get(status, "이 회차에는 의견을 달 수 없습니다.")
+    )
+
 
 class ApprovalError(Exception):
     pass
@@ -464,8 +505,8 @@ def add_comment(aid: str, body: str, author_id: str,
         raise ApprovalError("내용을 입력해 주세요.")
     c = _conn()
     try:
-        if not c.execute("SELECT 1 FROM Approvals WHERE id=?", (aid,)).fetchone():
-            raise ApprovalError("결재 건을 찾을 수 없습니다.")
+        # 「없는 건」과 「닫힌 건」을 한 자리에서 가른다(위 COMMENT_OPEN).
+        _require_comment_open(c, aid)
         cid, ts = _new_id("ac"), _now()
         c.execute(
             "INSERT INTO ApprovalComments(id,approval_id,page_id,page_no,author,body,created_at) "
@@ -497,8 +538,13 @@ def update_comment(cid: str, body: str) -> dict:
         raise ApprovalError("내용을 입력해 주세요.")
     c = _conn()
     try:
-        if not c.execute("SELECT 1 FROM ApprovalComments WHERE id=?", (cid,)).fetchone():
+        r = c.execute(
+            "SELECT approval_id FROM ApprovalComments WHERE id=?", (cid,)).fetchone()
+        if not r:
             raise ApprovalError("코멘트를 찾을 수 없습니다.")
+        # **고쳐 쓰는 것도 쓰는 것이다.** 결정이 난 회차의 지적을 나중에 딴 말로
+        # 바꿔 놓으면, 「무엇을 왜 고쳤는가」의 기록이 그 자리에서 거짓이 된다.
+        _require_comment_open(c, r[0])
         c.execute("UPDATE ApprovalComments SET body=? WHERE id=?", (text, cid))
         c.commit()
     finally:
@@ -509,6 +555,12 @@ def update_comment(cid: str, body: str) -> dict:
 def delete_comment(cid: str) -> None:
     c = _conn()
     try:
+        r = c.execute(
+            "SELECT approval_id FROM ApprovalComments WHERE id=?", (cid,)).fetchone()
+        # 없는 것을 지우라는 말은 조용히 넘긴다 — 이미 없으니 바라는 상태다.
+        if not r:
+            return
+        _require_comment_open(c, r[0])
         c.execute("DELETE FROM ApprovalComments WHERE id=?", (cid,))
         c.commit()
     finally:

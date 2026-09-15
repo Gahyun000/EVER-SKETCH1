@@ -267,6 +267,95 @@ def test_코멘트를_고치고_지운다():
     assert ap.get_approval(a["id"])["comments"] == []
 
 
+# ── 의견은 언제 열려 있나 (2026-09-15 · 사용자 결정 ㄴ) ──────────
+#
+# 「승인이랑 회수는 슬라이드 의견 없어도 되는 거 아님?」 — 맞다. 상태마다 **그 글을
+# 읽을 사람이 있는지**로 갈랐다. 닫는 것은 쓰기·고치기·지우기고 **읽기는 남는다.**
+def test_대기_중에는_의견을_주고받는다():
+    admin, w, t, p = ctx()
+    a = ap.request(p["id"], w["id"])
+    ap.add_comment(a["id"], "3번째 줄 확인", admin["id"], page_id=1, page_no=1)
+    assert len(ap.get_approval(a["id"])["comments"]) == 1
+
+
+def test_반려는_결정이_났어도_열려_있다():
+    """**여기를 닫으면 안 된다.** 낸 사람이 고치려고 읽고 되묻는 자리다 —
+    「결정 났으면 닫는다」로 뭉뚱그리면 반려까지 걸린다."""
+    admin, w, t, p = ctx()
+    a = ap.request(p["id"], w["id"])
+    ap.decide(a["id"], "reject", admin["id"], "수치 근거를 보강해 주세요.")
+    c = ap.add_comment(a["id"], "이 표 말씀이신가요?", w["id"])
+    ap.update_comment(c["id"], "8월 기준 표 말씀이신가요?")
+    ap.delete_comment(c["id"])
+    assert ap.get_approval(a["id"])["comments"] == []
+
+
+def test_승인된_회차에는_의견을_못_단다():
+    admin, w, t, p = ctx()
+    a = ap.request(p["id"], w["id"])
+    ap.decide(a["id"], "approve", admin["id"])
+    with pytest.raises(ap.ApprovalError) as e:
+        ap.add_comment(a["id"], "한마디 더", admin["id"])
+    # **「안 됩니다」로 끝내지 않는다** — 다음 길을 함께 말한다.
+    assert "수정 요청" in str(e.value)
+
+
+def test_회수한_회차에는_의견을_못_단다():
+    admin, w, t, p = ctx()
+    a = ap.request(p["id"], w["id"])
+    ap.withdraw(a["id"])
+    with pytest.raises(ap.ApprovalError) as e:
+        ap.add_comment(a["id"], "한마디 더", w["id"])
+    assert "새 회차" in str(e.value)
+
+
+def test_결정_전에_단_의견은_결정_뒤에도_남는다():
+    """**읽기는 안 닫는다.** 대기 때 오간 지적은 「무엇을 왜 고쳤는가」가 남은
+    유일한 기록이다 — 승인이 났다고 사라지면 그 기록이 없어진다."""
+    admin, w, t, p = ctx()
+    a = ap.request(p["id"], w["id"])
+    ap.add_comment(a["id"], "3번째 줄 확인", admin["id"], page_id=1, page_no=1)
+    ap.decide(a["id"], "approve", admin["id"])
+    cs = ap.get_approval(a["id"])["comments"]
+    assert len(cs) == 1 and cs[0]["body"] == "3번째 줄 확인"
+
+
+def test_결정된_회차의_의견은_못_지운다():
+    """이 제품은 「회수해도 이력에는 남는다」로 서 있다. 결정된 회차의 지적을
+    지우는 것은 **이력을 고치는 일**이다."""
+    admin, w, t, p = ctx()
+    a = ap.request(p["id"], w["id"])
+    c = ap.add_comment(a["id"], "3번째 줄 확인", admin["id"])
+    ap.decide(a["id"], "approve", admin["id"])
+    with pytest.raises(ap.ApprovalError):
+        ap.delete_comment(c["id"])
+    assert len(ap.get_approval(a["id"])["comments"]) == 1
+
+
+def test_결정된_회차의_의견은_못_고친다():
+    """**고쳐 쓰는 것도 쓰는 것이다.** 나중에 딴 말로 바꿔 놓으면 기록이 그 자리에서
+    거짓이 된다."""
+    admin, w, t, p = ctx()
+    a = ap.request(p["id"], w["id"])
+    c = ap.add_comment(a["id"], "3번째 줄 확인", admin["id"])
+    ap.decide(a["id"], "approve", admin["id"])
+    with pytest.raises(ap.ApprovalError):
+        ap.update_comment(c["id"], "아무 문제 없었습니다")
+    assert ap.get_approval(a["id"])["comments"][0]["body"] == "3번째 줄 확인"
+
+
+def test_열린_상태는_둘뿐이다():
+    """새 상태가 생기면 여기서 걸린다 — 어디에 넣을지 정하고 가라는 뜻이다."""
+    assert set(ap.COMMENT_OPEN) == {"pending", "rejected"}
+    assert set(ap.COMMENT_OPEN) <= set(ap.STATUSES)
+
+
+def test_없는_의견을_지우라면_조용히_넘긴다():
+    """이미 없으니 **바라는 상태**다. 여기서 터지면 두 번 눌린 지우기가 오류로 보인다."""
+    ctx()
+    ap.delete_comment("ac_없음")
+
+
 # ── 권한 ─────────────────────────────────────────
 def test_SUBMIT_은_본인_자료만():
     w = perm.Actor(id="u_w", role=perm.WRITER, status="active")

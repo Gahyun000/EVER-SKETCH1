@@ -8,6 +8,7 @@ import {
   type Approval, type ApprovalStatus,
 } from './approvalApi'
 import SearchRow from '../ui/SearchRow'
+import { canWriteComment, commentLockReason } from './commentGate'
 import { hits, inRange } from '../ui/searchFilter'
 import { clampMaster, keepOrFirst } from '../ui/masterSplit'
 import { masterWidth, rememberMasterWidth } from '../persistence/prefs'
@@ -176,6 +177,10 @@ export default function ApprovalsPanel() {
    * 갈래를 여기저기 흩어 두면 어느 한 곳이 반드시 「문서인 척」 그린다.
    */
   const isRevision = detail?.kind === 'revision'
+  /** 의견을 **쓰거나 지울 수** 있는가. 읽기는 이것과 무관하게 늘 열려 있다.
+   *  규칙은 서버(`COMMENT_OPEN`)가 정하고 여기는 그대로 그린다. */
+  const canCmt = !!detail && canWriteComment(detail.status, detail.kind)
+  const cmtLock = detail ? commentLockReason(detail.status) : ''
   const canDecide = admin && detail?.status === 'pending' && !isRevision
   const canDecideRevision = admin && detail?.status === 'pending' && isRevision
   const canWithdraw = mine && detail?.status === 'pending'
@@ -306,19 +311,25 @@ export default function ApprovalsPanel() {
 
               {/* 슬라이드별 코멘트. **수정 요청에는 슬라이드가 없다** —
                   「3번 슬라이드 의견」이라고 적힌 빈 칸을 띄우지 않는다.
-                  허락·거절에 붙일 말은 아래 결정 메시지 칸에 쓴다. */}
-              {!isRevision && (
+                  허락·거절에 붙일 말은 아래 결정 메시지 칸에 쓴다.
+
+                  **결정이 난 회차에는 쓰기가 닫힌다**(2026-09-15 ㄴ). 그때 의견이
+                  하나도 없으면 이 덩어리 **자체가 없다** — 읽을 것도 쓸 것도 없는데
+                  머리글과 빈 칸이 화면 아래를 차지할 이유가 없다. 감추는 것이 아니라
+                  정말 아무것도 없는 것이라, 「숨겼다」고 말할 것도 없다. */}
+              {!isRevision && (canCmt || byPage.here.length > 0 || byPage.whole.length > 0) && (
               <div className="ap-cmts">
                 <div className="ap-cmts-h">
                   {curPage ? `${idx + 1}번 슬라이드 의견` : '의견'}
                   {byPage.here.length ? ` (${byPage.here.length})` : ''}
+                  {!canCmt && <span className="ap-cmt-ro">읽기 전용</span>}
                 </div>
                 {byPage.here.map((c) => (
                   <div key={c.id} className="ap-cmt">
                     <b>{c.author_name || c.author}</b>
                     <span className="t">{fmt(c.created_at)}</span>
                     <p>{c.body}</p>
-                    {c.author === me?.id && (
+                    {canCmt && c.author === me?.id && (
                       <button className="es-mini danger" disabled={busy}
                         onClick={() => void act(() => apiDeleteComment(c.id))}>지우기</button>
                     )}
@@ -332,7 +343,7 @@ export default function ApprovalsPanel() {
                         <b>{c.author_name || c.author}</b>
                         <span className="t">{fmt(c.created_at)}</span>
                         <p>{c.body}</p>
-                        {c.author === me?.id && (
+                        {canCmt && c.author === me?.id && (
                           <button className="es-mini danger" disabled={busy}
                             onClick={() => void act(() => apiDeleteComment(c.id))}>지우기</button>
                         )}
@@ -341,18 +352,25 @@ export default function ApprovalsPanel() {
                   </>
                 )}
                 {/* **양쪽이 주고받는다** — 관리자는 지적하고 낸 사람은 답한다.
-                    한쪽만 열면 대화가 안 된다. */}
-                <div className="ap-cmt-new">
-                  <textarea value={cmt} rows={2} disabled={busy}
-                    placeholder={curPage ? `${idx + 1}번 슬라이드에 의견 쓰기` : '의견 쓰기'}
-                    onChange={(e) => setCmt(e.target.value)} />
-                  <button className="es-mini primary" disabled={busy || !cmt.trim()}
-                    onClick={() => void act(async () => {
-                      await apiAddComment(detail.id, cmt.trim(),
-                        curPage ? curPage.id : null, curPage ? idx + 1 : null)
-                      setCmt('')
-                    })}>등록</button>
-                </div>
+                    한쪽만 열면 대화가 안 된다. 다만 **주고받을 일이 끝나면 닫는다.** */}
+                {canCmt ? (
+                  <div className="ap-cmt-new">
+                    <textarea value={cmt} rows={2} disabled={busy}
+                      placeholder={curPage ? `${idx + 1}번 슬라이드에 의견 쓰기` : '의견 쓰기'}
+                      onChange={(e) => setCmt(e.target.value)} />
+                    <button className="es-mini primary" disabled={busy || !cmt.trim()}
+                      onClick={() => void act(async () => {
+                        await apiAddComment(detail.id, cmt.trim(),
+                          curPage ? curPage.id : null, curPage ? idx + 1 : null)
+                        setCmt('')
+                      })}>등록</button>
+                  </div>
+                ) : (
+                  /* **잠갔으면 이유를 말한다.** 편집기 앵커 메모가 같은 일을 하며 적어
+                     둔 대로 — 입력칸만 잠그고 이유를 말하지 않으면 「왜 안 써지지」로
+                     끝난다. 그리고 그 한 줄이 **다음 길을 가리켜야** 한다. */
+                  <p className="ap-cmt-lock">{cmtLock}</p>
+                )}
               </div>
               )}
 
@@ -399,7 +417,7 @@ export default function ApprovalsPanel() {
           title={confirm === 'end' ? '수정 그만두기'
             : confirm === 'withdraw' ? '결재 회수'
               : isRevision ? (confirm === 'approve' ? '수정 허락' : '수정 거절')
-                : (confirm === 'approve' ? '결재 승인' : '결재 반려')}
+                : (confirm === 'approve' ? '결재 승인' : '반려')}
           onClose={() => setConfirm(null)} size="sm" busy={busy}
           scrimClassName="es-confirm" className="es-confirm-box"
           footClassName="es-confirm-actions"
