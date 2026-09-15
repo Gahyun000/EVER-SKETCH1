@@ -5,6 +5,7 @@ import { CARD_REGISTRY } from '../cards/registry'
 import { BRANCH_MIN, BRANCH_MAX, BRANCH_DEFAULT } from '../cards/mindmapEls'
 import { parseMermaid } from '../cards/mermaid'
 import { treeCapacity, treeSlots } from '../cards/treeEls'
+import { bandsNeeded } from '../cards/treeOps'
 import { pageSize } from '../cards/sizing'
 
 const GROUPS: { key: string; label: string }[] = [
@@ -104,7 +105,9 @@ export default function CardPicker() {
               const { W, H } = pageSize(orientation)
               const cap = treeCapacity(g.dir, W, H)
               const got = treeSlots(g)
-              const over = got.levels > cap.levels || got.rows > cap.slots
+              // 깊이는 띠로 받는다. 남는 문제는 **줄**뿐이다.
+              const bands = bandsNeeded(Math.max(0, got.levels - 1), cap.levels)
+              const over = got.rows > Math.max(1, Math.floor(cap.slots / bands))
               const narrow = orientation === 'portrait'
               return (<>
                 <div className="cpk-grp">트리 · 머메이드로 뼈대 잡기</div>
@@ -119,10 +122,14 @@ export default function CardPicker() {
                     ))}
                   </div>
                 )}
+                {/* **한 띠에 안 들어가도 넘치는 게 아니다**(③ · 2026-09-15).
+                    깊으면 같은 종이 아래 띠로 이어 그린다. 그러니 「넘칩니다」는
+                    **줄이 모자랄 때만** 말한다 — 깊이는 접어 넣기가 받아 준다. */}
                 <div className="cpk-mmcap">
                   {g.dir === 'LR' ? '왼 → 오른' : '위 → 아래'} · 상자 <b>{g.order.length}개</b> ·
-                  {' '}이 종이에 <b>{cap.levels}레벨 × {cap.slots}{g.dir === 'LR' ? '줄' : '칸'}</b>
-                  {over && <span className="warn"> · 지금 글은 {got.levels}레벨 × {got.rows} — <b>넘칩니다</b></span>}
+                  {' '}한 띠에 <b>{cap.levels}레벨 × {cap.slots}{g.dir === 'LR' ? '줄' : '칸'}</b>
+                  {bands > 1 && <span> · <b>{bands}개 띠로 접어</b> 그립니다</span>}
+                  {over && <span className="warn"> · 지금 글은 {got.rows}{g.dir === 'LR' ? '줄' : '칸'} — <b>넘칩니다</b></span>}
                 </div>
                 {/* 세로 종이는 재 보니 위→아래가 2칸뿐이다. 넣고 나서 알면 늦다. */}
                 {narrow && <div className="cpk-mmwarn">세로 종이는 트리가 <b>거의 안 들어갑니다</b>

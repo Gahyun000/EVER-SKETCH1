@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — ① 뿌리 여럿 (ㄱ·ㄴ·ㄷ·ㄹ)</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --ink2:#3d4658; --muted:#6b7280; --line:#e3e6ee; --navy:#0F1B3D;
+    --blue:#2a78d6; --blue-d:#184f95; --blue100:#eaf2fd; --plane:#f6f7f9;
+    --node:#eaf0ff; --node-ink:#1c2433; --conn:#b9c2d4;
+    --warn:#7a4412; --warnbg:#fff3e2; --warnline:#f0d7b4;
+    --ok:#1d6f4f; --okbg:#e8f6ef; --okline:#bfe3d1;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef0f4;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;
+    letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:21px;margin:0 0 6px;color:var(--navy);letter-spacing:-.02em}
+  .lede{color:var(--muted);font-size:13px;margin:0 0 20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;margin:18px 0;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card > h2{font-size:15px;margin:0;padding:15px 20px 13px;border-bottom:1px solid var(--line);
+    color:var(--navy);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .tag{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;
+    background:var(--blue100);color:var(--blue-d)}
+  .body{padding:18px 20px 20px}
+  .lead{font-size:12.5px;color:var(--ink2);background:var(--plane);border-left:3px solid var(--blue);
+    border-radius:0 8px 8px 0;padding:11px 14px;margin:0 0 15px}
+  .lead b{color:var(--navy)}
+
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .trio{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media (max-width:980px){.duo,.trio{grid-template-columns:1fr}}
+  .opt{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff}
+  .opt > .oh{padding:10px 14px;font-size:12.5px;font-weight:800;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:8px}
+  .opt.a > .oh{background:var(--warnbg);color:var(--warn);border-bottom-color:var(--warnline)}
+  .opt.b > .oh{background:var(--okbg);color:var(--ok);border-bottom-color:var(--okline)}
+  .opt.c > .oh{background:#f4f6fa;color:var(--navy)}
+  .letter{width:19px;height:19px;border-radius:6px;display:inline-flex;align-items:center;
+    justify-content:center;font-size:11px;font-weight:900;color:#fff}
+  .opt.a .letter{background:var(--warn)} .opt.b .letter{background:var(--ok)}
+  .opt.c .letter{background:#8a93a5}
+  .ob{padding:12px 14px 14px}
+
+  .row2{display:grid;grid-template-columns:1fr 200px;gap:12px;align-items:start}
+  @media (max-width:640px){.row2{grid-template-columns:1fr}}
+  .stage{position:relative;background:#fff;border:1px solid var(--line);border-radius:9px;
+    height:214px;overflow:hidden;
+    background-image:radial-gradient(#e9ecf3 1px,transparent 1px);background-size:13px 13px}
+  .tn{position:absolute;border-radius:8px;background:var(--node);color:var(--node-ink);
+    border:1px solid #cfd9ee;display:flex;align-items:center;justify-content:center;
+    width:92px;height:27px;font-size:10.5px;font-weight:700;text-align:center;padding:0 4px;
+    cursor:pointer;transition:all .18s}
+  .tn.root{background:#dfe8fb;border-color:#b7c8ea}
+  .tn.dec{background:#fff3e2;color:var(--warn);border-color:var(--warnline)}
+  .tn.sel{outline:2px solid var(--blue);outline-offset:1px;box-shadow:0 0 0 4px rgba(42,120,214,.13)}
+  .tn .fold{position:absolute;left:-13px;top:6px;width:12px;height:12px;border-radius:4px;
+    background:#fff;border:1px solid #c6cfe2;font-size:8px;color:#5b6270;
+    display:flex;align-items:center;justify-content:center;font-weight:800}
+  .tn .qm{position:absolute;right:-16px;top:5px;font-size:11px;font-weight:900;color:#c2a15f}
+  svg.links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  svg.links path{fill:none;stroke:var(--conn);stroke-width:1.4}
+  .tip{position:absolute;left:10px;bottom:9px;font-size:10px;color:#9aa2b1}
+
+  .panel{border:1px solid var(--line);border-radius:9px;background:#fcfcfd;overflow:hidden}
+  .panel .ph{font-size:10px;font-weight:800;color:#8a93a5;padding:7px 10px 6px;
+    border-bottom:1px solid var(--line);background:#fff}
+  .panel .pb{padding:9px 10px 11px}
+  .sec{font-size:9.5px;font-weight:800;color:#9aa2b1;margin:9px 2px 5px}
+  .sec:first-child{margin-top:0}
+  .pill{border:1px solid #d4dae6;background:#fff;border-radius:7px;padding:4px 9px;
+    font:inherit;font-size:11px;font-weight:700;color:#26324a;cursor:pointer;margin:0 4px 4px 0}
+  .pill:disabled{opacity:.4;cursor:not-allowed}
+  .pill.gh{border-style:dashed;color:#9aa2b1}
+  .miss{font-size:10.5px;color:var(--warn);background:var(--warnbg);border:1px solid var(--warnline);
+    border-radius:7px;padding:6px 8px;line-height:1.55}
+  .who{font-size:10.5px;color:var(--muted);margin:0 0 7px}
+  .who b{color:var(--navy);font-size:11.5px}
+
+  .verdict{font-size:11.5px;line-height:1.6;margin:11px 0 0;padding:9px 11px;border-radius:8px}
+  .opt.a .verdict{background:var(--warnbg);color:var(--warn);border:1px solid var(--warnline)}
+  .opt.b .verdict{background:var(--okbg);color:var(--ok);border:1px solid var(--okline)}
+  .verdict b{color:inherit}
+
+  .steps{list-style:none;margin:0 0 10px;padding:0;counter-reset:s}
+  .steps li{counter-increment:s;position:relative;padding:0 0 0 24px;margin:0 0 7px;font-size:11.5px;color:var(--ink2)}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:17px;height:17px;
+    border-radius:50%;background:var(--blue100);color:var(--blue-d);font-size:10px;font-weight:900;
+    display:flex;align-items:center;justify-content:center}
+  .steps b{color:var(--navy)}
+  pre.mm{margin:0 0 10px;background:#f6f7f9;border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;font-family:var(--mono);font-size:10.5px;line-height:1.7;overflow-x:auto;color:#26324a}
+  pre.mm .new{background:#e8f6ef;display:inline-block;border-radius:3px;padding:0 3px}
+  .cost{font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;display:inline-block;
+    background:#f2f4f8;color:#5b6270;margin:0 0 9px}
+  .cost.zero{background:var(--okbg);color:var(--ok)}
+  .cost.one{background:var(--blue100);color:var(--blue-d)}
+  .limit{font-size:10.5px;color:var(--warn);background:var(--warnbg);border:1px solid var(--warnline);
+    border-radius:7px;padding:6px 8px;line-height:1.55;margin:9px 0 0}
+
+  table.sum{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0 0}
+  table.sum th,table.sum td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  table.sum th{background:#f4f6fa;font-size:11.5px;color:var(--navy);font-weight:800}
+  table.sum b{color:var(--navy)}
+  .yes{color:var(--ok);font-weight:800} .no{color:#b9541b;font-weight:800}
+  .cap{font-size:11px;color:#8a8883;line-height:1.6;margin:11px 0 0}
+  .cap b{color:var(--ink)}
+  .foot{color:var(--muted);font-size:11.5px;margin-top:26px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>① 한 장에 뿌리를 여럿 둘까</h1>
+  <p class="lede">결과가 갈리는 건 <b>ㄱ이냐 아니냐</b> 하나뿐입니다. ㄴ·ㄷ·ㄹ은 결과가 같고 <b>만드는 길</b>만 다릅니다.</p>
+
+<!-- ═══ 결과 차이 ═══ -->
+<div class="card">
+  <h2><span class="tag">결과</span> 둘째 줄기를 눌러 보면</h2>
+  <div class="body">
+    <div class="lead">
+      두 화면 다 <b>글에 두 줄기를 써서</b> 만든 것입니다 — <code>A→B→C</code> 와 <code>X→Y→Z</code>.
+      <b>지금도 이렇게 그려집니다.</b> 다른 건 앱이 둘째 줄기(검수·통과·공지)를 <b>뿌리로 아느냐</b>입니다.
+      상자를 눌러 오른쪽 칸을 보세요.
+    </div>
+    <div class="duo">
+      <div class="opt a">
+        <div class="oh"><span class="letter">ㄱ</span> 뿌리는 하나만 안다 <span style="font-weight:600;color:var(--muted)">(지금 그대로)</span></div>
+        <div class="ob">
+          <div class="row2">
+            <div class="stage" id="sa"><svg class="links" id="la"></svg><span class="tip">상자를 눌러 보세요</span></div>
+            <div class="panel">
+              <div class="ph">오른쪽 칸</div>
+              <div class="pb" id="pa"></div>
+            </div>
+          </div>
+          <p class="verdict" id="va"></p>
+        </div>
+      </div>
+      <div class="opt b">
+        <div class="oh"><span class="letter">ㄴㄷㄹ</span> 뿌리를 여럿 안다 <span style="font-weight:600;color:var(--muted)">(셋 다 같은 결과)</span></div>
+        <div class="ob">
+          <div class="row2">
+            <div class="stage" id="sb"><svg class="links" id="lb"></svg><span class="tip">상자를 눌러 보세요</span></div>
+            <div class="panel">
+              <div class="ph">오른쪽 칸</div>
+              <div class="pb" id="pb"></div>
+            </div>
+          </div>
+          <p class="verdict" id="vb"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 만드는 길 ═══ -->
+<div class="card">
+  <h2><span class="tag">만드는 길</span> ㄴ · ㄷ · ㄹ 은 여기만 다릅니다</h2>
+  <div class="body">
+    <div class="lead">
+      결과는 위 오른쪽 화면으로 셋 다 같습니다. <b>둘째 줄기를 어떻게 만들 것인가</b>만 다릅니다.
+    </div>
+    <div class="trio">
+      <div class="opt c">
+        <div class="oh"><span class="letter">ㄴ</span> ＋ 형제 로</div>
+        <div class="ob">
+          <span class="cost zero">새 단추 0개</span>
+          <ol class="steps">
+            <li><b>뿌리</b>(기획)를 고른다</li>
+            <li>오른쪽 칸의 <b>＋ 형제</b>를 누른다</li>
+            <li>부모 없는 상자가 하나 더 생긴다</li>
+          </ol>
+          <div class="panel"><div class="pb">
+            <p class="who">고른 것 · <b>기획</b> <span style="color:#b9541b">(뿌리)</span></p>
+            <div class="sec">트리</div>
+            <button class="pill">＋ 자식</button><button class="pill">＋ 형제</button>
+          </div></div>
+          <div class="limit"><b>말이 안 맞습니다.</b> 뿌리는 부모가 없는데 「형제」를 만든다고 합니다.
+            나중에 읽는 사람이 왜 이게 되는지 모릅니다.</div>
+        </div>
+      </div>
+      <div class="opt c">
+        <div class="oh"><span class="letter">ㄷ</span> ＋ 새 뿌리 로</div>
+        <div class="ob">
+          <span class="cost one">새 단추 1개</span>
+          <ol class="steps">
+            <li><b>빈 데</b>를 눌러 아무것도 안 고른 상태로</li>
+            <li>오른쪽 칸의 <b>＋ 새 뿌리</b>를 누른다</li>
+            <li>빈 자리에 「새 뿌리」 상자가 놓인다</li>
+          </ol>
+          <div class="panel"><div class="pb">
+            <p class="who">고른 것 · <b>—</b> (페이지)</p>
+            <div class="sec">트리</div>
+            <button class="pill">＋ 새 뿌리</button>
+            <div style="font-size:10px;color:#8a8883;margin-top:5px">지금 뿌리 1개</div>
+          </div></div>
+          <div class="limit" style="background:var(--okbg);border-color:var(--okline);color:var(--ok)">
+            <b>말이 맞습니다.</b> 자리도 마인드맵의 「＋ 가지」와 같은 칸이라 익숙합니다.</div>
+        </div>
+      </div>
+      <div class="opt c">
+        <div class="oh"><span class="letter">ㄹ</span> 글로만</div>
+        <div class="ob">
+          <span class="cost zero">새 단추 0개</span>
+          <ol class="steps">
+            <li>만들 때 글에 <b>이름이 다른 줄기</b>를 쓴다</li>
+            <li><b>펼치기</b>를 누른다</li>
+          </ol>
+          <pre class="mm">graph LR
+  A[기획] --&gt; B[설계]
+<span class="new">  X[검수] --&gt; Y[통과]</span></pre>
+          <div class="limit"><b>만들 때뿐입니다.</b> 이미 만들어 둔 트리에 나중에 줄기를 더할 길이 없습니다 —
+            「펼치기」는 <b>늘 새 쪽</b>을 만들어서, 글을 고쳐 다시 펼치면 손으로 옮겨 둔 자리가 날아갑니다.</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">
+      <b>ㄹ은 따로 고를 것이 아닙니다.</b> ㄴ이나 ㄷ을 고르면 「뿌리는 들어오는 선이 없는 상자 전부」가 되므로,
+      <b>글로 쓴 둘째 줄기도 그때 같이 잡힙니다.</b> 즉 ㄹ은 ㄴ·ㄷ에 덤으로 따라옵니다.
+      ㄹ만 고르면 <b>나중에 줄기를 더할 수가 없습니다.</b>
+    </p>
+  </div>
+</div>
+
+<!-- ═══ 정리 ═══ -->
+<div class="card">
+  <h2>한눈에</h2>
+  <div class="body">
+    <table class="sum">
+      <tr><th style="width:150px"></th><th>ㄱ</th><th>ㄴ</th><th>ㄷ</th><th>ㄹ</th></tr>
+      <tr><td><b>글로 둘째 줄기</b></td>
+        <td>그려지지만 <span class="no">앱이 모름</span></td>
+        <td class="yes">잡힘</td><td class="yes">잡힘</td><td class="yes">잡힘</td></tr>
+      <tr><td><b>나중에 줄기 더하기</b></td>
+        <td class="no">✗</td><td class="yes">＋형제</td><td class="yes">＋새 뿌리</td><td class="no">✗</td></tr>
+      <tr><td><b>둘째 줄기에서<br>접기 · 접어 넣기</b></td>
+        <td class="no">✗</td><td class="yes">○</td><td class="yes">○</td><td class="yes">○</td></tr>
+      <tr><td><b>새 단추</b></td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+      <tr><td><b>저장되는 값</b></td><td colspan="4" style="text-align:center">넷 다 <b>안 늘어납니다</b> — 뿌리는 선에서 그때그때 셉니다</td></tr>
+      <tr><td><b>말이 맞나</b></td><td>○</td><td class="no">△ 형제 아닌데 형제</td><td class="yes">○</td><td>○</td></tr>
+    </table>
+    <p class="cap">
+      <b>고르실 건 사실 셋입니다 — ㄱ / ㄴ / ㄷ.</b> ㄹ은 ㄴ·ㄷ 어느 쪽을 골라도 따라오고, 혼자서는 모자랍니다.<br>
+      <b>ㄱ을 고르면</b> 「글로 쓴 둘째 줄기를 앱이 모르는」 지금 상태가 그대로 남습니다.
+      크게 해롭진 않지만 언젠가 「왜 이 상자만 접기가 안 되지」가 됩니다.
+    </p>
+  </div>
+</div>
+
+<p class="foot">EVER-SKETCH · 트리 2단계 ① 뿌리 여럿 v1.0 · 2026-09-15</p>
+</div>
+
+<script>
+(function(){
+  var NW=92, NH=27, COL=110, ROW=40, PX=14, PY=26;
+  var NODES=[
+    {id:'a',t:'기획',p:null,d:0,s:0},
+    {id:'b',t:'설계',p:'a',d:1,s:0},
+    {id:'c',t:'개발',p:'b',d:2,s:0},
+    {id:'x',t:'검수',p:null,d:0,s:2,dec:1},
+    {id:'y',t:'통과',p:'x',d:1,s:2},
+    {id:'z',t:'공지',p:'y',d:2,s:2}
+  ];
+  var SECOND={x:1,y:1,z:1};             // 둘째 줄기
+
+  function draw(stage, svg, sel, knowsAll){
+    Array.prototype.forEach.call(stage.querySelectorAll('.tn'), function(e){ e.remove(); });
+    var pos={};
+    NODES.forEach(function(n){
+      var x=PX+n.d*COL, y=PY+n.s*ROW; pos[n.id]={x:x,y:y};
+      var d=document.createElement('div');
+      var isRoot = n.p===null;
+      var known = knowsAll || !SECOND[n.id];
+      d.className='tn'+(isRoot&&known?' root':'')+(n.dec?' dec':'')+(sel===n.id?' sel':'');
+      d.style.left=x+'px'; d.style.top=y+'px'; d.textContent=n.t;
+      d.addEventListener('click', function(){ pick(stage.id, n.id); });
+      if(known && NODES.some(function(m){return m.p===n.id;})){
+        var f=document.createElement('span'); f.className='fold'; f.textContent='▾'; d.appendChild(f);
+      }
+      if(!known && isRoot){ var q=document.createElement('span'); q.className='qm'; q.textContent='?'; d.appendChild(q); }
+      stage.appendChild(d);
+    });
+    var dd='';
+    NODES.forEach(function(n){
+      if(!n.p) return; var A=pos[n.p], B=pos[n.id];
+      var x1=A.x+NW, y1=A.y+NH/2, x2=B.x, y2=B.y+NH/2, mx=x1+(x2-x1)/2;
+      dd+='M'+x1+' '+y1+' H'+mx+' V'+y2+' H'+(x2-5)+' M'+(x2-5)+' '+(y2-3)+' L'+x2+' '+y2+' L'+(x2-5)+' '+(y2+3)+' ';
+    });
+    svg.innerHTML='<path d="'+dd+'"/>';
+  }
+
+  var selA=null, selB=null;
+  function panel(box, id, knowsAll, verdictEl){
+    var n = NODES.filter(function(m){return m.id===id;})[0];
+    if(!n){ box.innerHTML='<p class="who">고른 것 · <b>—</b></p><div class="sec">페이지</div>'
+      + '<button class="pill">배경</button><button class="pill">종이</button>';
+      verdictEl.innerHTML = knowsAll
+        ? '<b>둘 다 트리입니다.</b> 어느 줄기를 눌러도 같은 단추가 나옵니다.'
+        : '<b>상자를 눌러 보세요.</b> 위 줄기와 아래 줄기에서 오른쪽 칸이 달라집니다.';
+      return; }
+    var known = knowsAll || !SECOND[id];
+    var h = '<p class="who">고른 것 · <b>'+n.t+'</b>'+(n.p===null?' <span style="color:#b9541b">(뿌리)</span>':'')+'</p>';
+    if(known){
+      h += '<div class="sec">트리</div>'
+        + '<button class="pill">＋ 자식</button><button class="pill">＋ 형제</button>'
+        + '<button class="pill">▾ 접기</button>';
+    } else {
+      h += '<div class="miss"><b>「트리」 칸이 없습니다.</b><br>앱이 이 상자를 트리의 일부로 모릅니다.</div>';
+    }
+    h += '<div class="sec">모양 · 색</div><button class="pill gh">채우기</button><button class="pill gh">테두리</button>';
+    box.innerHTML = h;
+    if(knowsAll){
+      verdictEl.innerHTML = SECOND[id]
+        ? '<b>둘째 줄기도 똑같습니다.</b> ＋자식 · 접기 · 접어 넣기가 다 붙습니다.'
+        : '<b>첫째 줄기 — 평소대로입니다.</b> 아래 줄기도 눌러 보세요, 같습니다.';
+    } else {
+      verdictEl.innerHTML = SECOND[id]
+        ? '<b>여기가 다릅니다.</b> 화면에는 멀쩡히 있는데 「트리」 칸이 안 나옵니다 — 접기도 접어 넣기도 안 됩니다.'
+        : '<b>첫째 줄기는 멀쩡합니다.</b> 이제 아래 줄기(검수 · 통과 · 공지)를 눌러 보세요.';
+    }
+  }
+  function pick(which, id){
+    if(which==='sa'){ selA=id; } else { selB=id; }
+    render();
+  }
+  function render(){
+    draw(document.getElementById('sa'), document.getElementById('la'), selA, false);
+    draw(document.getElementById('sb'), document.getElementById('lb'), selB, true);
+    panel(document.getElementById('pa'), selA, false, document.getElementById('va'));
+    panel(document.getElementById('pb'), selB, true, document.getElementById('vb'));
+  }
+  render();
+})();
+</script>
+</body>
+</html>

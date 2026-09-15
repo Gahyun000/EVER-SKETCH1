@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 한 장 안에서 접어 넣기 (선만 / 부모 반복)</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --ink2:#3d4658; --muted:#6b7280; --line:#e3e6ee; --navy:#0F1B3D;
+    --blue:#2a78d6; --blue-d:#184f95; --blue100:#eaf2fd; --plane:#f6f7f9;
+    --node:#eaf0ff; --node-ink:#1c2433; --conn:#b9c2d4;
+    --warn:#7a4412; --warnbg:#fff3e2; --warnline:#f0d7b4;
+    --ok:#1d6f4f; --okbg:#e8f6ef; --okline:#bfe3d1;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef0f4;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;
+    letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:21px;margin:0 0 6px;color:var(--navy);letter-spacing:-.02em}
+  .lede{color:var(--muted);font-size:13px;margin:0 0 20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;margin:18px 0;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card > h2{font-size:15px;margin:0;padding:15px 20px 13px;border-bottom:1px solid var(--line);color:var(--navy)}
+  .body{padding:18px 20px 20px}
+  .lead{font-size:12.5px;color:var(--ink2);background:var(--plane);border-left:3px solid var(--blue);
+    border-radius:0 8px 8px 0;padding:11px 14px;margin:0 0 15px}
+  .lead b{color:var(--navy)}
+
+  .ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 15px}
+  .btn{border:1px solid #d4dae6;background:#fff;border-radius:999px;padding:6px 14px;
+    font:inherit;font-size:12px;font-weight:700;color:#26324a;cursor:pointer}
+  .btn:hover{background:var(--blue100);border-color:var(--blue);color:var(--blue-d)}
+  .btn.on{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:900px){.duo{grid-template-columns:1fr}}
+  .opt{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff}
+  .opt > .oh{padding:10px 14px;font-size:12.5px;font-weight:800;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:8px}
+  .opt.a > .oh{background:var(--okbg);color:var(--ok);border-bottom-color:var(--okline)}
+  .opt.b > .oh{background:var(--warnbg);color:var(--warn);border-bottom-color:var(--warnline)}
+  .letter{width:19px;height:19px;border-radius:6px;display:inline-flex;align-items:center;
+    justify-content:center;font-size:11px;font-weight:900;color:#fff}
+  .opt.a .letter{background:var(--ok)} .opt.b .letter{background:var(--warn)}
+  .ob{padding:12px 14px 14px}
+
+  /* 종이 — 1040×720 을 그대로 그리고 통째로 줄인다 */
+  .sheet{position:relative;overflow:hidden;border:1px solid #d9dde6;border-radius:7px;background:#fff;
+    box-shadow:0 2px 8px rgba(16,24,40,.06)}
+  .inner{position:absolute;left:0;top:0;width:1040px;height:720px;transform-origin:left top}
+  .tn{position:absolute;border-radius:9px;background:var(--node);color:var(--node-ink);
+    border:1px solid #cfd9ee;display:flex;align-items:center;justify-content:center;
+    width:132px;height:38px;font-size:15px;font-weight:700;text-align:center;padding:0 7px}
+  .tn.dec{background:#fff3e2;color:var(--warn);border-color:var(--warnline)}
+  .tn.echo{background:#f4f6fa;color:#8a93a5;border-style:dashed;border-color:#c6cfe2}
+  .tn .ec{position:absolute;left:8px;top:-1px;font-size:14px;color:#a9b3c4}
+  svg.links{position:absolute;inset:0;width:1040px;height:720px;pointer-events:none}
+  svg.links path{fill:none;stroke:var(--conn);stroke-width:2}
+  svg.links path.long{stroke:#9fb4d6;stroke-width:2.4}
+  .gut{position:absolute;left:24px;right:24px;border-top:1px dashed #dfe4ee}
+  .bandlab{position:absolute;left:24px;font-size:13px;font-weight:800;color:#c2c9d6;letter-spacing:.04em}
+
+  .verdict{font-size:11.5px;line-height:1.6;margin:11px 0 0;padding:9px 11px;border-radius:8px}
+  .opt.a .verdict{background:var(--okbg);color:var(--ok);border:1px solid var(--okline)}
+  .opt.b .verdict{background:var(--warnbg);color:var(--warn);border:1px solid var(--warnline)}
+  .num{font-size:11.5px;color:var(--muted);margin:9px 0 0}
+  .num b{color:var(--navy)}
+
+  table.sum{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0 0}
+  table.sum th,table.sum td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  table.sum th{background:#f4f6fa;font-size:11.5px;color:var(--navy);font-weight:800}
+  table.sum b{color:var(--navy)}
+  .cap{font-size:11px;color:#8a8883;line-height:1.6;margin:10px 0 0}
+  .cap b{color:var(--ink)}
+  .foot{color:var(--muted);font-size:11.5px;margin-top:26px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>한 장 안에서 접어 넣기 — 아래 띠와 어떻게 잇나</h1>
+  <p class="lede">쪽을 나누지 않고 같은 종이 아래쪽에 이어 그립니다. 남은 건 <b>위 띠의 부모와 아래 띠의 자식을 잇는 방법</b> 하나입니다.</p>
+
+<div class="card">
+  <h2>가로 종이 1040 × 720 · 두 띠로 접은 모습</h2>
+  <div class="body">
+    <div class="lead">
+      위 띠에 5레벨, 아래 띠에 이어서 5레벨 — <b>한 장에 10레벨</b>이 들어갑니다.
+      아래 단추로 <b>내려가는 가지를 하나에서 셋으로</b> 늘려 보세요. ㄱ이 언제 지저분해지는지가 그때 보입니다.
+    </div>
+    <div class="ctl">
+      <button class="btn on" data-k="1">내려가는 가지 1개</button>
+      <button class="btn" data-k="3">내려가는 가지 3개</button>
+    </div>
+    <div class="duo">
+      <div class="opt a">
+        <div class="oh"><span class="letter">ㄱ</span> 선만 길게 긋는다</div>
+        <div class="ob">
+          <div class="sheet" id="sa"><div class="inner" id="ia"></div></div>
+          <p class="num">한 장에 <b>10레벨</b> × 5줄 — 띠를 온전히 다 씁니다.</p>
+          <p class="verdict" id="va"></p>
+        </div>
+      </div>
+      <div class="opt b">
+        <div class="oh"><span class="letter">ㄴ</span> 부모를 아래 띠 머리에 다시 놓는다</div>
+        <div class="ob">
+          <div class="sheet" id="sb"><div class="inner" id="ib"></div></div>
+          <p class="num">한 장에 <b>9레벨</b> × 5줄 — 띠마다 <b>한 칸을 머리로</b> 씁니다.</p>
+          <p class="verdict" id="vb"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>한눈에</h2>
+  <div class="body">
+    <table class="sum">
+      <tr><th style="width:120px"></th><th>ㄱ — 선만</th><th>ㄴ — 부모 반복</th></tr>
+      <tr><td><b>덧붙는 것</b></td><td>없음. 선 하나</td><td>흐린 상자 하나 (띠마다 가지 수만큼)</td></tr>
+      <tr><td><b>담기는 깊이</b></td><td>2띠 <b>10</b>레벨 · 3띠 <b>15</b>레벨</td><td>2띠 <b>9</b>레벨 · 3띠 <b>13</b>레벨</td></tr>
+      <tr><td><b>가지 1개일 때</b></td><td>깔끔합니다</td><td>상자가 하나 더 보여 군더더기 같습니다</td></tr>
+      <tr><td><b>가지 3개일 때</b></td><td>띠 사이를 <b>긴 선 셋</b>이 가로지릅니다</td><td>선이 안 길어집니다. 어디서 왔는지 그 자리에서 읽힙니다</td></tr>
+      <tr><td><b>내보낼 때</b></td><td>선이 그대로 나갑니다</td><td>흐린 상자도 같이 나갑니다 — 읽는 사람에게는 오히려 친절</td></tr>
+    </table>
+    <p class="cap">
+      <b>섞는 길도 있습니다(ㄷ).</b> 내려가는 가지가 <b>하나면 선만</b>, <b>둘 이상이면 부모를 다시</b> 놓는 것 —
+      두 화면 다 지금 보시는 좋은 쪽만 나옵니다. 대신 「어떨 땐 상자가 생기고 어떨 땐 안 생기네」가 되어
+      규칙이 하나 더 늘어납니다.
+    </p>
+  </div>
+</div>
+
+<p class="foot">EVER-SKETCH · 트리 2단계 ③ 접어 넣기 v1.0 · 2026-09-15</p>
+</div>
+
+<script>
+(function(){
+  var NW=132, NH=38, COL=192, ROW=56, PADX=24, TOP=94, BAND=288;
+  var SHEET_W=520;                     // 화면에 그릴 폭
+  var K=SHEET_W/1040;
+
+  function el(cls, x, y, text, extra){
+    var d=document.createElement('div');
+    d.className='tn'+(cls?' '+cls:'');
+    d.style.left=x+'px'; d.style.top=y+'px'; d.textContent=text;
+    if(extra){ var s=document.createElement('span'); s.className='ec'; s.textContent=extra; d.appendChild(s); }
+    return d;
+  }
+  function lv(i){ return PADX + i*COL; }
+  function rw(band, r){ return TOP + band*BAND + r*ROW; }
+
+  function build(inner, mode, kCount){
+    inner.innerHTML='';
+    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('class','links'); inner.appendChild(svg);
+    var paths='', longs='';
+
+    // 띠 경계선 · 띠 이름
+    var g=document.createElement('div'); g.className='gut'; g.style.top=(TOP+BAND-26)+'px'; inner.appendChild(g);
+    ['위 띠','아래 띠'].forEach(function(t,i){
+      var b=document.createElement('div'); b.className='bandlab';
+      b.style.top=(TOP+i*BAND-26)+'px'; b.textContent=t; inner.appendChild(b);
+    });
+
+    // ── 위 띠: 기획 → 설계 → 개발 → 검수 → (배포 / 공지 / 회고)
+    var tails = kCount===1 ? [['배포',1]] : [['배포',0],['공지',1],['회고',2]];
+    var chainRow = kCount===1 ? 1 : 1;                 // 검수의 줄
+    var chain=[['기획',0],['설계',1],['개발',2]];
+    var pos={};
+    chain.forEach(function(c,i){
+      var x=lv(i), y=rw(0,chainRow);
+      inner.appendChild(el('', x, y, c[0])); pos[c[0]]={x:x,y:y};
+    });
+    var dx=lv(3), dy=rw(0,chainRow);
+    inner.appendChild(el('dec', dx, dy, '검수')); pos['검수']={x:dx,y:dy};
+    tails.forEach(function(t){
+      var x=lv(4), y=rw(0,t[1]);
+      inner.appendChild(el('', x, y, t[0])); pos[t[0]]={x:x,y:y};
+    });
+
+    // 위 띠 선
+    function link(a,b,cls){
+      var A=pos[a], B=pos[b];
+      var x1=A.x+NW, y1=A.y+NH/2, x2=B.x, y2=B.y+NH/2, mx=x1+(x2-x1)/2;
+      var d='M'+x1+' '+y1+' H'+mx+' V'+y2+' H'+(x2-8)+' '
+          + 'M'+(x2-8)+' '+(y2-4.5)+' L'+x2+' '+y2+' L'+(x2-8)+' '+(y2+4.5)+' ';
+      if(cls==='long') longs+=d; else paths+=d;
+    }
+    link('기획','설계'); link('설계','개발'); link('개발','검수');
+    tails.forEach(function(t){ link('검수', t[0]); });
+
+    // ── 아래 띠
+    var kids = kCount===1
+      ? [['배포', ['운영','점검']]]
+      : [['배포', ['운영','점검']], ['공지', ['사내']], ['회고', ['개선']]];
+
+    kids.forEach(function(pair, i){
+      var parent=pair[0], names=pair[1];
+      var row = kCount===1 ? 1 : i;
+      var start = (mode==='echo') ? 1 : 0;            // 부모를 다시 놓으면 한 칸 밀린다
+      if(mode==='echo'){
+        var ex=lv(0), ey=rw(1,row);
+        inner.appendChild(el('echo', ex, ey, parent, '↳'));
+        pos['echo'+i]={x:ex,y:ey};
+      }
+      names.forEach(function(nm, j){
+        var x=lv(start+j), y=rw(1,row);
+        inner.appendChild(el('', x, y, nm)); pos[nm]={x:x,y:y};
+      });
+      if(mode==='echo'){
+        link('echo'+i, names[0]);
+      } else {
+        // **긴 선** — 오른쪽 끝에서 내려와 띠 사이를 가로질러 왼쪽으로
+        var A=pos[parent], B=pos[names[0]];
+        var gy = TOP + BAND - 62 + i*24;              // 가지마다 다른 높이 — 안 그러면 한 줄로 겹쳐 보인다
+        var x1=A.x+NW, y1=A.y+NH/2, x2=B.x, y2=B.y+NH/2;
+        longs += 'M'+x1+' '+y1+' H'+(1040-16)+' V'+gy+' H'+16+' V'+y2+' H'+(x2-8)+' '
+               + 'M'+(x2-8)+' '+(y2-4.5)+' L'+x2+' '+y2+' L'+(x2-8)+' '+(y2+4.5)+' ';
+      }
+      for(var j=1;j<names.length;j++) link(names[j-1], names[j]);
+    });
+
+    svg.innerHTML='<path d="'+paths+'"/><path class="long" d="'+longs+'"/>';
+  }
+
+  function render(k){
+    document.getElementById('sa').style.width=SHEET_W+'px';
+    document.getElementById('sa').style.height=Math.round(720*K)+'px';
+    document.getElementById('sb').style.width=SHEET_W+'px';
+    document.getElementById('sb').style.height=Math.round(720*K)+'px';
+    document.getElementById('ia').style.transform='scale('+K+')';
+    document.getElementById('ib').style.transform='scale('+K+')';
+    build(document.getElementById('ia'), 'line', k);
+    document.getElementById('ia').parentNode.appendChild(document.getElementById('ia'));
+    build(document.getElementById('ib'), 'echo', k);
+    document.getElementById('va').innerHTML = k===1
+      ? '<b>깔끔합니다.</b> 선 하나가 내려갔다 올라올 뿐이라, 말로 덧붙일 게 정말 없습니다.'
+      : '<b>긴 선 셋이 띠 사이를 가로지릅니다.</b> 어느 선이 어느 상자에서 왔는지 눈으로 따라가야 합니다.';
+    document.getElementById('vb').innerHTML = k===1
+      ? '<b>상자가 하나 더 보입니다.</b> 가지가 하나뿐일 땐 없어도 될 것이 생긴 느낌입니다.'
+      : '<b>선이 안 길어집니다.</b> 흐린 상자가 「여기서 이어졌다」를 그 자리에서 말해 줍니다.';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.btn[data-k]'), function(b){
+    b.addEventListener('click', function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.btn[data-k]'), function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); render(Number(b.getAttribute('data-k')));
+    });
+  });
+  render(1);
+})();
+</script>
+</body>
+</html>

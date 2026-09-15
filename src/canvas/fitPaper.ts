@@ -14,7 +14,7 @@
 
 import type { Page, FreeEl } from '../state/store'
 import { relayoutMindmap } from '../cards/mindmapEls'
-import { relayoutTree } from '../cards/treeEls'
+import { layoutTree, knownOf, isTreePage } from '../cards/treeOps'
 
 export interface FitResult {
   pages: Page[]
@@ -50,8 +50,23 @@ export function fitPagesToPaper(pages: Page[], W: number, H: number): FitResult 
     // 둘 다 아니면 null 이 오고, 그때는 평소대로 자른다.
     // 트리는 **방향이 바뀔 수 있다** — 세로 종이에 왼→오른 4레벨은 안 들어간다.
     // 눕히면 같은 그림이 그대로 들어가고, 관계는 하나도 안 잃는다.
-    const tree = relayoutTree(p, W, H)
-    const base = relayoutMindmap(p, W, H) || (tree ? tree.els : null) || p.els
+    // 트리는 **따로 간다**(2단계 · 2026-09-15). 다시 앉히면서 띠 머리의 흐린 부모(echo)를
+    // 지우고 새로 만들기 때문에 **상자 수가 달라진다** — 아래의 「같은 자리끼리 견주기」가
+    // 통하지 않는다. 그래서 여기서 끝내고 돌려준다. 자르기는 layoutTree 가 이미 했다.
+    if (isTreePage(p)) {
+      const laid = layoutTree(p.els, p.conns, W, H, p.treeDir || 'LR', knownOf(p))
+      const was = new Map(p.els.filter(Boolean).map((e) => [e.id, e]))
+      let n = 0
+      for (const e of laid.els) {
+        const b = was.get(e.id)
+        if (b && (b.x !== e.x || b.y !== e.y)) n++
+      }
+      if (!n && laid.dir === p.treeDir && laid.els.length === p.els.length) return p
+      moved += n
+      overlapping += laid.overlapping
+      return { ...p, els: laid.els, conns: laid.conns, treeDir: laid.dir }
+    }
+    const base = relayoutMindmap(p, W, H) || p.els
 
     let touched = false
     const els = base.map((e, i) => {
@@ -65,11 +80,9 @@ export function fitPagesToPaper(pages: Page[], W: number, H: number): FitResult 
       if (was && (out.x !== was.x || out.y !== was.y)) { moved++; touched = true }
       return out
     })
-    if (!touched) return (tree && tree.dir !== p.treeDir) ? { ...p, treeDir: tree.dir } : p
+    if (!touched) return p
     overlapping += countOverlapping(els)
-    // 눕혔으면 **그 사실을 쪽에 적어 둔다.** 안 적으면 다음에 다시 앉힐 때
-    // 옛 방향으로 자리를 되읽어 레벨이 통째로 밀린다.
-    return tree ? { ...p, els, treeDir: tree.dir } : { ...p, els }
+    return { ...p, els }
   })
   return { pages: moved ? out : pages, moved, overlapping }
 }

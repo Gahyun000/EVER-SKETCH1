@@ -4,6 +4,7 @@ import { fitPagesToPaper } from '../canvas/fitPaper'
 import { mindmapParts } from '../cards/mindmapEls'
 import { parseMermaid } from '../cards/mermaid'
 import { treeParts } from '../cards/treeEls'
+import { treeShape, layoutTree, newNode, TREE_CONN } from '../cards/treeOps'
 import { rememberOrientation } from '../persistence/prefs'
 import { makeContinuation } from '../canvas/tableFlow'
 import { cardByKey } from '../cards/registry'
@@ -20,7 +21,15 @@ export interface BookPlan { title?: string; orientation?: Orientation; theme?: T
 // G5 — 부분 수정: 대상 페이지 필드만 덮어쓰기(edits) + 새 장 끝에 추가(adds).
 export interface PageEdit { pageId: number; fields: Record<string, string> }
 export interface PageAdd { cardKey: string; fields?: Record<string, string> }
-export interface FreeEl { id: number; type: string; x: number; y: number; w: number; h: number; text: string; color: string; fs: number; src?: string; bold?: boolean; tcolor?: string; rows?: number; cols?: number; cells?: string[][]; colw?: number[]; rowh?: number[]; merges?: { r: number; c: number; rs: number; cs: number }[]; calign?: Record<string, 'left' | 'center' | 'right'>; cvalign?: Record<string, 'top' | 'middle' | 'bottom'>; cfs?: Record<string, number>; cbg?: Record<string, string>; today?: number; todayMode?: 'auto' | 'fixed' | 'off'; todayYear?: number; slot?: string; headRow?: boolean; /** 이 표가 **앞 장에서 이어진 조각**이면, 앞에 있던 본문 행의 개수.  없으면 이 표가 머리 조각이다. 취합·저장 검사는 조각들을 한 표로 센다 (server/template_guard.py). */ contFrom?: number; wa?: boolean; italic?: boolean; underline?: boolean; rot?: number; align?: 'left' | 'center' | 'right'; gotoSeq?: number; blocks?: Block[]; flipH?: boolean; flipV?: boolean; opacity?: number; shadow?: boolean; reflect?: boolean; locked?: boolean; groupId?: number; borderColor?: string; borderWidth?: number }
+export interface FreeEl { id: number; type: string; x: number; y: number; w: number; h: number; text: string; color: string; fs: number; src?: string; bold?: boolean; tcolor?: string; rows?: number; cols?: number; cells?: string[][]; colw?: number[]; rowh?: number[]; merges?: { r: number; c: number; rs: number; cs: number }[]; calign?: Record<string, 'left' | 'center' | 'right'>; cvalign?: Record<string, 'top' | 'middle' | 'bottom'>; cfs?: Record<string, number>; cbg?: Record<string, string>; today?: number; todayMode?: 'auto' | 'fixed' | 'off'; todayYear?: number; slot?: string; headRow?: boolean; /** 이 표가 **앞 장에서 이어진 조각**이면, 앞에 있던 본문 행의 개수.  없으면 이 표가 머리 조각이다. 취합·저장 검사는 조각들을 한 표로 센다 (server/template_guard.py). */ contFrom?: number; wa?: boolean; italic?: boolean; underline?: boolean; rot?: number; align?: 'left' | 'center' | 'right'; gotoSeq?: number; blocks?: Block[]; flipH?: boolean; flipV?: boolean; opacity?: number; shadow?: boolean; reflect?: boolean; locked?: boolean; groupId?: number; borderColor?: string; borderWidth?: number ;
+  /** **트리 2단계.** 이 상자가 접혀 있다(▸). 아래쪽이 `hidden` 이 된다. */
+  folded?: boolean
+  /** 접힌 윗대 때문에 **편집 화면에서만** 안 보인다.
+   *  결재·팀 공유·내보내기는 이 값을 보지 않는다 — 낸 것과 가진 것이 달라지면 안 된다(사용자 결정 ②ㄴ). */
+  hidden?: boolean
+  /** 아래 띠 머리에 **흐리게 다시 놓은 부모**. 값은 원본 상자 id.
+   *  다시 앉힐 때마다 지우고 새로 만든다 — 남겨 두면 원본 글자를 고쳤을 때 안 따라간다. */
+  echoOf?: number }
 export interface Conn { from: number; to: number; bend?: { x: number; y: number }; kind?: 'straight' | 'ortho' | 'curve'; arrow?: 'end' | 'both' | 'none'; color?: string; width?: number; dash?: boolean }
 export interface Stroke { points: [number, number][]; color: string; w: number; hl?: boolean }
 export type BlockType = 'h1' | 'h2' | 'h3' | 'h4' | 'text' | 'bullet' | 'numbered' | 'todo' | 'divider' | 'toggle' | 'callout'
@@ -38,6 +47,10 @@ export interface Page { id: number; cardKey: string; fields: Record<string, stri
   /** 이 쪽이 **트리에서 펼쳐진 것**이면 뿌리 도형의 id. 마인드맵의 `mindmapCenter` 와 같은 몫이다.
    *  방향을 바꿀 때 자르지 말고 다시 앉혀야 하는지를 이것으로 안다. */
   treeRoot?: number
+  /** **트리에 속한 상자 명단**(뿌리 목록이 아니다). 선이 하나도 없는 외톨이 —
+   *  「＋ 새 뿌리」로 갓 만든 것 — 를 트리 안에 붙들어 두는 몫만 한다.
+   *  누가 뿌리인지는 여기가 아니라 **선**이 정한다(treeOps.treeShape). */
+  treeRoots?: number[]
   /** 그 트리가 왼→오른(LR)인가 위→아래(TD)인가. 다시 앉힐 때 필요하다. */
   treeDir?: 'LR' | 'TD'
   /** 트리를 만든 **머메이드 원문.** 그림을 고쳐도 이건 안 고친다 —
@@ -81,6 +94,12 @@ export interface BuilderState {
   addStroke: (pageId: number, stroke: Stroke) => void
   reorderEl: (pageId: number, elId: number, toFront: boolean) => void
   setCanvas: (pageId: number, data: CanvasData) => void
+  /** 트리에 상자 하나를 붙인다(①).
+   *  `kind`: 자식 · 형제 · 새 뿌리. **뿌리를 골라 「형제」를 부르면 새 뿌리가 된다** —
+   *  단추 글자도 그때 「＋ 새 뿌리」로 바뀐다(RightPanel). 붙인 뒤 트리를 다시 앉힌다. */
+  treeAdd: (pageId: number, elId: number | null, kind: 'child' | 'sibling' | 'root') => void
+  /** 가지를 접거나 편다(②). 접힘은 `folded`, 안 보임은 매번 다시 계산한다. */
+  treeFold: (pageId: number, elId: number) => void
   updateConn: (pageId: number, index: number, bend: { x: number; y: number }) => void
   patchConn: (pageId: number, index: number, patch: Partial<Conn>) => void
   removeConn: (pageId: number, index: number) => void
@@ -225,9 +244,21 @@ export const useBuilder = create<BuilderState>((set, get) => ({
       const dir = g.dir
       // 원하신 방향이 이 종이에 안 들어가면 treeParts 가 눕힌다 — **쓴 방향을 그대로 적는다.**
       const { els, conns, rootId, dir: used } = treeParts(g, W, H, nextElId, dir)
+      // **뿌리를 전부 적는다.** 글에 줄기를 둘 쓰면(ㄹ) 부모 없는 상자가 둘 나온다 —
+      // 하나만 적어 두면 둘째 줄기를 앱이 모른 채로 남는다(사용자 지적 · 2026-09-15).
+      const roots = treeShape(els, conns).roots
+      const rs = roots.length ? roots : [rootId]
+      // **처음 펼칠 때부터 접어 넣는다**(③). treeParts 는 한 띠만 알아서, 깊은 그림을
+      // 넣으면 눕히거나 간격을 줄여 버틴다 — 8레벨짜리를 넣어 보니 위→아래로 누워
+      // 여덟 줄이 됐다. 같은 종이 아래 띠로 이어 그리는 편이 읽기 쉽다.
+      // **쓴 방향을 준다**(`used` 가 아니라 `dir`). treeParts 는 한 띠만 알아서
+      // 깊으면 눕혀 버리는데, 이제는 눕히기 전에 **접어 넣을** 수 있다 —
+      // 8레벨을 넣어 보니 위→아래로 누워 여덟 줄이 됐다. 사람이 쓴 방향이 우선이다.
+      const laid = layoutTree(els, conns, W, H, dir, rs)
       const tp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true,
-                         els, conns, strokes: [], blocks: [], bg: '',
-                         treeRoot: rootId, treeDir: used, treeSrc: src || '' }
+                         els: laid.els, conns: laid.conns, strokes: [], blocks: [], bg: '',
+                         treeRoot: rootId, treeRoots: rs,
+                         treeDir: laid.dir, treeSrc: src || '' }
       return { pages: [...s.pages, tp], selectedPageId: tp.id }
     }
     const p: Page = { id: uid++, cardKey, fields: defaultsFor(cardKey), free: false, els: [], conns: [], strokes: [] }
@@ -400,6 +431,44 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   addStroke: (pageId, stroke) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, strokes: [...p.strokes, stroke] })) })),
   reorderEl: (pageId, elId, toFront) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => { const i = p.els.findIndex((e) => e.id === elId); if (i < 0) return p; const els = [...p.els]; const e = els.splice(i, 1)[0]; if (toFront) els.push(e); else els.unshift(e); return { ...p, els } }) })),
   setCanvas: (pageId, data) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, els: data.els, conns: data.conns, strokes: data.strokes, ...(data.detached !== undefined ? { detached: data.detached } : {}) })) })),
+  treeAdd: (pageId, elId, kind) => set((s) => {
+    const { W, H } = pageSize(s.orientation)
+    return { pages: mapPage(s.pages, pageId, (p) => {
+      const known = p.treeRoots || (p.treeRoot != null ? [p.treeRoot] : [])
+      const shape = treeShape(p.els, p.conns, known)
+      const id = nextElId()
+      const roots = known.slice()
+      const els = [...p.els, newNode(id, kind === 'root' ? '새 뿌리' : '새 상자')]
+      const conns = p.conns.slice()
+      // 뿌리의 「형제」는 **또 하나의 뿌리**다. 부모가 없으니 이을 데가 없다.
+      const parent = kind === 'root' ? null
+        : kind === 'child' ? elId
+        : (elId != null ? (shape.parent.get(elId) ?? null) : null)
+      if (parent == null) {
+        roots.push(id)
+      } else if (kind === 'sibling' && elId != null) {
+        // 고른 상자 **바로 뒤**에 끼운다 — 줄 순서는 선 순서를 따르므로 맨 뒤에 붙이면
+        // 새 상자가 형제들 맨 아래로 간다. 사람이 기대하는 자리는 고른 것 바로 밑이다.
+        const at = conns.findIndex((c) => c && c.to === elId)
+        const nc = { from: parent, to: id, ...TREE_CONN }
+        if (at >= 0) conns.splice(at + 1, 0, nc); else conns.push(nc)
+      } else {
+        conns.push({ from: parent, to: id, ...TREE_CONN })
+      }
+      const laid = layoutTree(els, conns, W, H, p.treeDir || 'LR', roots)
+      return { ...p, els: laid.els, conns: laid.conns, treeDir: laid.dir,
+               treeRoots: roots, treeRoot: roots[0] ?? p.treeRoot }
+    }) }
+  }),
+  treeFold: (pageId, elId) => set((s) => {
+    const { W, H } = pageSize(s.orientation)
+    return { pages: mapPage(s.pages, pageId, (p) => {
+      const known = p.treeRoots || (p.treeRoot != null ? [p.treeRoot] : [])
+      const els = p.els.map((e) => (e.id === elId ? { ...e, folded: !e.folded } : e))
+      const laid = layoutTree(els, p.conns, W, H, p.treeDir || 'LR', known)
+      return { ...p, els: laid.els, conns: laid.conns, treeDir: laid.dir }
+    }) }
+  }),
   updateConn: (pageId, index, bend) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, conns: p.conns.map((c, i) => (i === index ? { ...c, bend } : c)) })) })),
   patchConn: (pageId, index, patch) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, conns: p.conns.map((c, i) => (i === index ? { ...c, ...patch } : c)) })) })),
   removeConn: (pageId, index) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, conns: p.conns.filter((_, i) => i !== index) })) })),

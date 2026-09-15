@@ -249,15 +249,25 @@ const SAMPLE = `graph LR
 {
   const st = bare(read('./src/state/store.ts'))
   check(/if \(cardKey === 'tree'\)/.test(st), '창고가 트리를 가로챈다 — 카드가 아니라 **펼침**이다')
-  check(/treeRoot: rootId, treeDir: used, treeSrc: src/.test(st),
-    '뿌리·**실제로 쓴 방향**·머메이드 원문을 쪽에 적어 둔다 (원하신 방향이 아니라 쓴 방향)')
+  // 2026-09-15: 여기 있던 「한 줄 그대로」 검사가 `treeRoots` 를 끼우면서 깨졌다.
+  // 지키려던 규칙은 「무엇을 적어 두는가」이지 「어떤 순서로 적는가」가 아니다 —
+  // 지우지 말고 **규칙 쪽으로** 다시 쓴다. 뿌리 목록이 는 것도 여기서 같이 지킨다.
+  check(/treeRoot: rootId/.test(st) && /treeDir: laid\.dir/.test(st) && /treeSrc: src/.test(st),
+    '뿌리·**실제로 앉힌 방향**·머메이드 원문을 쪽에 적어 둔다 (원하신 방향이 아니라 앉힌 방향)')
+  check(/const rs = roots\.length \? roots : \[rootId\]/.test(st) && /treeRoots: rs/.test(st),
+    '**뿌리를 전부** 적어 둔다 — 글에 줄기를 둘 쓰면 부모 없는 상자가 둘이다(①ㄹ)')
+  check(/const laid = layoutTree\(els, conns, W, H, dir, rs\)/.test(st),
+    '**처음 펼칠 때부터 접어 넣는다**(③) — 깊은 그림은 아래 띠로 이어 그린다')
   check(/free: true/.test(st.slice(st.indexOf("cardKey === 'tree'"), st.indexOf("cardKey === 'tree'") + 700)),
     '자유 캔버스로 만든다 — 상자를 하나씩 잡을 수 있어야 한다')
 
   const fp = bare(read('./src/canvas/fitPaper.ts'))
-  check(/const tree = relayoutTree\(p, W, H\)/.test(fp), '방향을 바꿀 때 트리도 다시 앉힌다')
-  check(/treeDir: tree\.dir/.test(fp),
+  // 2026-09-15: 2단계에서 `relayoutTree` → `layoutTree` 로 갈아탔다. 접어 넣기 때문에
+  // **상자 수가 달라져서** 옛 길(같은 자리끼리 견주기)로는 셈이 안 맞는다.
+  check(/layoutTree\(p\.els, p\.conns, W, H/.test(fp), '방향을 바꿀 때 트리도 다시 앉힌다')
+  check(/treeDir: laid\.dir/.test(fp),
     '눕혔으면 **그 사실을 쪽에 적는다** — 안 적으면 다음에 옛 방향으로 되읽어 레벨이 밀린다')
+  check(/isTreePage\(p\)/.test(fp), '트리인지는 **쪽에 적힌 명단**으로 가른다 — 마인드맵과 섞이지 않게')
 
   const cp = bare(read('./src/builder/CardPicker.tsx'))
   check(/setAskTree\(true\); return/.test(cp), '트리를 고르면 **넣기 전에 머메이드를 받는다**')
@@ -265,7 +275,8 @@ const SAMPLE = `graph LR
   check(/g\.errors\.length > 0/.test(cp), '못 읽은 줄을 화면이 보여 준다')
   check(/cpk-mmwarn/.test(cp) && /세로 종이는 트리가/.test(cp),
     '**세로 종이에서 말린다** — 넣고 나서 알면 늦다(위→아래 2칸)')
-  check(/이 종이에/.test(cp) && /레벨/.test(cp), '몇 레벨까지 들어가는지 숫자로 말한다')
+  check(/한 띠에/.test(cp) && /레벨/.test(cp), '한 띠에 몇 레벨까지 들어가는지 숫자로 말한다')
+  check(/개 띠로 접어/.test(cp), '깊으면 **몇 개 띠로 접는지** 미리 말한다(③)')
   check(/넘칩니다/.test(cp), '넘치면 넘친다고 말한다')
 
   const reg = bare(read('./src/cards/registry.ts'))

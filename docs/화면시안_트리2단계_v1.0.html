@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 트리 2단계 (＋자식·＋형제 / 가지 접기 / 쪽 나누기)</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --ink2:#3d4658; --muted:#6b7280; --line:#e3e6ee; --navy:#0F1B3D;
+    --blue:#2a78d6; --blue-d:#184f95; --blue100:#eaf2fd; --plane:#f6f7f9;
+    --node:#eaf0ff; --node-ink:#1c2433; --conn:#b9c2d4; --warn:#7a4412; --warnbg:#fff3e2;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef0f4;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;
+    letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+  header{margin:8px 0 22px}
+  h1{font-size:21px;margin:0 0 6px;color:var(--navy);letter-spacing:-.02em}
+  .lede{color:var(--muted);font-size:13px;margin:0}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;margin:18px 0;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card > h2{font-size:15px;margin:0;padding:15px 20px 13px;border-bottom:1px solid var(--line);
+    color:var(--navy);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .tag{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;
+    background:var(--blue100);color:var(--blue-d);letter-spacing:.02em}
+  .tag.q{background:var(--warnbg);color:var(--warn)}
+  .body{padding:18px 20px 20px}
+  p{margin:0 0 11px}
+  .why{background:var(--plane);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;
+    padding:11px 14px;font-size:12.5px;color:var(--ink2);margin:0 0 15px}
+  .why b{color:var(--navy)}
+  .split{display:grid;grid-template-columns:1fr 268px;gap:18px;align-items:start}
+  @media (max-width:820px){.split{grid-template-columns:1fr}}
+
+  /* ── 가짜 캔버스 ───────────────────────── */
+  .stage{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;
+    height:250px;overflow:hidden;
+    background-image:radial-gradient(#e9ecf3 1px,transparent 1px);background-size:14px 14px}
+  .n{position:absolute;border-radius:9px;background:var(--node);color:var(--node-ink);
+    border:1px solid #cfd9ee;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;cursor:pointer;transition:all .22s cubic-bezier(.4,0,.2,1);
+    height:32px;width:112px;text-align:center;padding:0 6px}
+  .n.sel{outline:2px solid var(--blue);outline-offset:1px;box-shadow:0 0 0 4px rgba(42,120,214,.13)}
+  .n.root{background:#111318;color:#fff;border-color:#111318}
+  .n.dec{background:#fff3e2;color:var(--warn);border-color:#f0d7b4}
+  .n.ghost{opacity:0;pointer-events:none;transform:scale(.9)}
+  .n.fresh{animation:pop .3s ease}
+  @keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+  .n .fold{position:absolute;left:-15px;top:8px;width:14px;height:14px;border-radius:4px;
+    background:#fff;border:1px solid #c6cfe2;font-size:9px;line-height:12px;color:#5b6270;
+    display:flex;align-items:center;justify-content:center;font-weight:800}
+  .n .plusN{position:absolute;right:-30px;top:8px;font-size:10.5px;font-weight:800;
+    color:var(--blue-d);background:var(--blue100);border-radius:999px;padding:1px 7px}
+  svg.links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  svg.links path{fill:none;stroke:var(--conn);stroke-width:1.5;transition:opacity .2s}
+  svg.links path.off{opacity:0}
+  #s2{height:300px} #s3{height:300px}
+  .contband{position:absolute;font-size:10px;font-weight:800;color:var(--blue-d);
+    background:var(--blue100);border-radius:5px;padding:1px 7px;border:1px solid #cddcf5}
+
+  /* ── 가짜 오른쪽 패널 ──────────────────── */
+  .panel{border:1px solid var(--line);border-radius:10px;background:#fcfcfd;overflow:hidden}
+  .panel .ph{font-size:11px;font-weight:800;color:#8a93a5;padding:9px 12px 7px;
+    border-bottom:1px solid var(--line);background:#fff}
+  .panel .pb{padding:11px 12px 13px}
+  .sec{font-size:10.5px;font-weight:800;color:#9aa2b1;margin:11px 2px 6px}
+  .sec:first-child{margin-top:0}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .pill{border:1px solid #d4dae6;background:#fff;border-radius:8px;padding:6px 11px;
+    font:inherit;font-size:12px;font-weight:700;color:#26324a;cursor:pointer}
+  .pill:hover{background:var(--blue100);border-color:var(--blue);color:var(--blue-d)}
+  .pill.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .pill:disabled{opacity:.45;cursor:default;background:#fff;border-color:#d4dae6;color:#26324a}
+  .hint{font-size:11px;color:#8a8883;line-height:1.6;margin:7px 2px 0;display:block}
+  .hint b{color:var(--ink)}
+  .who{font-size:11.5px;color:var(--muted);margin:0 0 9px}
+  .who b{color:var(--navy);font-size:12.5px}
+  .sel-sel{border:1px solid #d4dae6;border-radius:8px;padding:6px 9px;font:inherit;font-size:12px;
+    background:#fff;color:#26324a;width:100%}
+
+  .steps{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 13px}
+  .steps button{border:1px solid #d4dae6;background:#fff;border-radius:999px;padding:5px 13px;
+    font:inherit;font-size:11.5px;font-weight:700;color:#26324a;cursor:pointer}
+  .steps button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0 0}
+  table.cmp th,table.cmp td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:#f4f6fa;font-size:11.5px;color:var(--navy);font-weight:800}
+  table.cmp td b{color:var(--navy)}
+  code{font-family:var(--mono);font-size:11.5px;background:#f2f4f8;border-radius:4px;padding:1px 5px}
+  .ask{background:var(--warnbg);border:1px solid #f0d7b4;border-radius:10px;padding:13px 16px;
+    font-size:12.5px;color:var(--warn);margin:14px 0 0}
+  .ask b{color:#5c3208}
+  .ask ul{margin:8px 0 0;padding-left:19px}
+  .ask li{margin:4px 0}
+  .foot{color:var(--muted);font-size:11.5px;margin-top:26px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>트리 2단계 — 시안</h1>
+  <p class="lede">＋자식 · ＋형제 / 가지 접기 / 레벨에서 쪽 나누기. 착수 전에 보시라고 만든 것이고, 아래 상자와 단추는 실제로 눌러집니다.</p>
+</header>
+
+<!-- ───────────────── ① ＋자식 · ＋형제 ───────────────── -->
+<div class="card">
+  <h2><span class="tag">①</span> ＋ 자식 · ＋ 형제 <span style="color:var(--muted);font-weight:600;font-size:12px">— 고른 상자에 붙인다</span></h2>
+  <div class="body">
+    <div class="why">
+      <b>마인드맵의 「＋ 가지」와 다릅니다.</b> 가지는 중심 하나에 붙이면 끝이라 <b>어디에 붙일지 물을 필요가 없었습니다.</b>
+      트리는 <b>어느 상자</b>에 붙이느냐가 곧 구조라서, <b>고른 상자가 있어야</b> 단추가 나옵니다.
+      그래서 자리도 페이지 칸이 아니라 <b>요소를 골랐을 때 뜨는 칸</b>입니다.
+    </div>
+    <div class="split">
+      <div>
+        <div class="stage" id="s1">
+          <svg class="links" id="l1"></svg>
+        </div>
+        <span class="hint">상자를 눌러 고른 뒤 오른쪽 단추를 눌러 보세요. <b>되돌리기는 ⌘Z</b> 로 한 번에 돌아갑니다.</span>
+      </div>
+      <div class="panel">
+        <div class="ph">오른쪽 칸 — 요소를 골랐을 때</div>
+        <div class="pb">
+          <p class="who">고른 것 · <b id="who1">설계</b></p>
+          <div class="sec">트리</div>
+          <div class="row">
+            <button class="pill" id="addChild">＋ 자식</button>
+            <button class="pill" id="addSib">＋ 형제</button>
+          </div>
+          <span class="hint">지금 <b id="depth1">2</b>번째 레벨 · 자식 <b id="kidn">1</b>개</span>
+          <span class="hint" style="margin-top:9px">붙이면 <b>트리 전체가 다시 앉습니다.</b>
+            자리가 곧 구조라서, 그러지 않으면 새 상자가 남의 자리에 겹칩니다.</span>
+          <div class="sec">되돌리기</div>
+          <div class="row"><button class="pill" id="undo1">⌘Z 되돌리기</button></div>
+        </div>
+      </div>
+    </div>
+
+    <table class="cmp">
+      <tr><th style="width:118px">누를 때</th><th>어디에 생기나</th><th>있던 상자는</th></tr>
+      <tr><td><b>＋ 자식</b></td><td>고른 상자 <b>오른쪽 한 칸</b>, 이미 있는 자식들 <b>맨 아래</b></td><td rowspan="2">글자·크기·색 그대로. <b>자리만</b> 다시 잡힙니다</td></tr>
+      <tr><td><b>＋ 형제</b></td><td>고른 상자 <b>바로 아래</b>, 같은 부모 밑</td></tr>
+    </table>
+
+    <div class="ask">
+      <b>여쭐 것 — 뿌리를 골랐을 때 「＋ 형제」</b><br>
+      뿌리는 부모가 없어서 형제를 만들면 <b>뿌리가 둘</b>이 됩니다. 머메이드로는 표현되지만 트리로는 어색합니다.
+      <ul>
+        <li><b>ㄱ.</b> 뿌리에서는 「＋ 형제」를 <b>흐리게</b>(못 누르게) 한다 — 뿌리는 하나</li>
+        <li><b>ㄴ.</b> 누르면 <b>뿌리를 둘</b>로 둔다 — 나란한 흐름 두 줄을 한 장에 그릴 수 있다</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────────── ② 가지 접기 ───────────────── -->
+<div class="card">
+  <h2><span class="tag">②</span> 가지 접기 <span style="color:var(--muted);font-weight:600;font-size:12px">— ▸ 를 누르면 아래가 숨고 「+N」이 남는다</span></h2>
+  <div class="body">
+    <div class="why">
+      <b>지우는 게 아니라 숨기는 것입니다.</b> 접힌 상자는 <code>hidden</code> 표시만 달고 문서에 그대로 남습니다 —
+      되돌리기·내보내기·저장 어디서도 잃지 않습니다. 「+N」은 <b>접어서 안 보이는 상자가 몇 개인지</b>입니다.
+    </div>
+    <div class="split">
+      <div>
+        <div class="stage" id="s2">
+          <svg class="links" id="l2"></svg>
+        </div>
+        <span class="hint">상자 왼쪽의 <b>▾ / ▸</b> 를 눌러 보세요. 종이가 좁을 때 큰 트리를 보는 방법입니다.</span>
+      </div>
+      <div class="panel">
+        <div class="ph">오른쪽 칸</div>
+        <div class="pb">
+          <p class="who">고른 것 · <b id="who2">—</b></p>
+          <div class="sec">트리</div>
+          <div class="row">
+            <button class="pill" id="foldBtn" disabled>▾ 접기</button>
+          </div>
+          <span class="hint" id="foldHint">상자를 고르면 접을 수 있어요.</span>
+          <div class="sec">한 번에</div>
+          <div class="row">
+            <button class="pill" id="foldAll">모두 접기</button>
+            <button class="pill" id="openAll">모두 펴기</button>
+          </div>
+          <span class="hint">접힌 상자 <b id="hidn">0</b>개 · 보이는 상자 <b id="shown">7</b>개</span>
+        </div>
+      </div>
+    </div>
+    <div class="ask">
+      <b>여쭐 것 — 접은 채로 내보내면</b>
+      <ul>
+        <li><b>ㄱ.</b> <b>보이는 대로</b> 나간다 — 화면과 PDF·PPTX가 같다 (접기가 「요약해서 보여 주기」가 된다)</li>
+        <li><b>ㄴ.</b> <b>다 펴서</b> 나간다 — 접기는 편집할 때만 쓰는 편의다</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────────── ③ 쪽 나누기 ───────────────── -->
+<div class="card">
+  <h2><span class="tag">③</span> 레벨에서 쪽 나누기 <span style="color:var(--muted);font-weight:600;font-size:12px">— 깊어져서 안 들어갈 때</span></h2>
+  <div class="body">
+    <div class="why">
+      가로 종이에 들어가는 건 <b>5레벨 × 10줄</b>입니다. 그보다 깊어지면 지금은 글자가 작아지다가 결국 겹칩니다.
+      표가 넘칠 때 쓰는 <b>「↳ 앞 장에서 이어짐」</b>과 <b>같은 방식</b>으로 나눕니다 — 새 말을 하나 더 만들지 않으려는 것입니다.
+    </div>
+    <div class="steps">
+      <button class="on" data-step="0">나누기 전</button>
+      <button data-step="1">3레벨에서 나눔 — 앞 장</button>
+      <button data-step="2">3레벨에서 나눔 — 뒷 장</button>
+    </div>
+    <div class="split">
+      <div>
+        <div class="stage" id="s3">
+          <svg class="links" id="l3"></svg>
+        </div>
+        <span class="hint" id="s3hint">4레벨짜리 트리입니다. 세로가 아니라 <b>가로로</b> 밀려서 글자가 작아집니다.</span>
+      </div>
+      <div class="panel">
+        <div class="ph">오른쪽 칸 — 페이지</div>
+        <div class="pb">
+          <div class="sec">트리</div>
+          <span class="hint" style="margin-top:0">지금 <b>4레벨 × 4줄</b> · 이 종이는 5레벨 × 10줄</span>
+          <div class="sec">쪽 나누기</div>
+          <div class="row">
+            <select class="sel-sel" id="lvSel">
+              <option value="2">2레벨부터 다음 장으로</option>
+              <option value="3" selected>3레벨부터 다음 장으로</option>
+              <option value="4">4레벨부터 다음 장으로</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:7px"><button class="pill" id="doSplit">쪽 나누기</button></div>
+          <span class="hint">고른 레벨부터 <b>다음 장</b>으로 옮깁니다. 앞 장에는 <b>「▸ 다음 장」</b> 표시가,
+            뒷 장 머리에는 <b>「↳ 앞 장에서 이어짐」</b> 띠가 붙습니다.</span>
+        </div>
+      </div>
+    </div>
+    <div class="ask">
+      <b>여쭐 것 — 나눈 뒤에 고치면</b><br>
+      앞 장에서 상자 이름을 고쳤을 때 뒷 장의 이어진 조각도 같이 따라가게 할지입니다.
+      <ul>
+        <li><b>ㄱ.</b> <b>두 장을 한 트리로</b> 묶어 둔다 — 고치면 같이 따라가고, 다시 합칠 수도 있다 (표의 <code>contFrom</code> 과 같은 방식)</li>
+        <li><b>ㄴ.</b> 나누는 순간 <b>남남</b>이 된다 — 뒷 장은 그냥 보통 트리다. 단순하지만 다시 못 합친다</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────────── 정리 ───────────────── -->
+<div class="card">
+  <h2>정리 — 지금 정해 주실 것 셋</h2>
+  <div class="body">
+    <table class="cmp">
+      <tr><th style="width:130px">무엇</th><th>ㄱ</th><th>ㄴ</th></tr>
+      <tr><td><b>뿌리에서 ＋형제</b></td><td>못 누르게 — 뿌리는 하나</td><td>뿌리를 둘로 — 나란한 흐름</td></tr>
+      <tr><td><b>접은 채 내보내기</b></td><td>보이는 대로 나간다</td><td>다 펴서 나간다</td></tr>
+      <tr><td><b>나눈 뒤 두 장</b></td><td>한 트리로 묶어 둔다</td><td>나누면 남남</td></tr>
+    </table>
+    <p style="margin:13px 0 0;font-size:12.5px;color:var(--ink2)">
+      ㄱㄱㄱ / ㄴㄱㄴ 처럼 세 글자로 주시면 그대로 착수하겠습니다.
+      셋 다 <b>나중에 바꾸기 어려운 쪽</b>이라 먼저 여쭙습니다 — 특히 ③은 저장되는 값의 모양이 달라집니다.
+    </p>
+  </div>
+</div>
+
+<p class="foot">EVER-SKETCH · 트리 2단계 화면시안 v1.0 · 2026-09-14</p>
+</div>
+
+<script>
+(function(){
+  var NW=112, NH=32;
+
+  /* 공통: 트리 그리기 -------------------------------------------------- */
+  function layout(nodes, dirCols, dirRows, padX, padY){
+    // depth/slot → x,y
+    nodes.forEach(function(n){
+      n.x = padX + n.d * dirCols;
+      n.y = padY + n.s * dirRows;
+    });
+  }
+  function draw(stage, svg, nodes, opts){
+    opts = opts || {};
+    // 상자
+    var keep = {};
+    nodes.forEach(function(n){
+      var el = stage.querySelector('[data-id="'+n.id+'"]');
+      if(!el){
+        el = document.createElement('div');
+        el.className = 'n fresh';
+        el.setAttribute('data-id', n.id);
+        el.addEventListener('click', function(){ opts.onPick && opts.onPick(n.id); });
+        stage.appendChild(el);
+      }
+      keep[n.id] = 1;
+      el.className = 'n' + (n.root?' root':'') + (n.dec?' dec':'')
+        + (opts.sel===n.id?' sel':'') + (n.hidden?' ghost':'');
+      el.style.left = n.x+'px'; el.style.top = n.y+'px';
+      el.textContent = n.t;
+      if(opts.fold && !n.hidden && n.kids && n.kids.length){
+        var f = document.createElement('span');
+        f.className='fold'; f.textContent = n.folded ? '▸' : '▾';
+        f.addEventListener('click', function(e){ e.stopPropagation(); opts.onFold(n.id); });
+        el.appendChild(f);
+        if(n.folded){
+          var p = document.createElement('span');
+          p.className='plusN'; p.textContent='+'+n.hiddenCount;
+          el.appendChild(p);
+        }
+      }
+      if(n.band){
+        var b = document.createElement('span');
+        b.className='contband'; b.textContent=n.band;
+        b.style.left='0'; b.style.top='-17px'; b.style.position='absolute';
+        el.appendChild(b);
+      }
+    });
+    Array.prototype.forEach.call(stage.querySelectorAll('.n'), function(el){
+      if(!keep[el.getAttribute('data-id')]) el.remove();
+    });
+    // 선
+    var byId={}; nodes.forEach(function(n){ byId[n.id]=n; });
+    var d='';
+    nodes.forEach(function(n){
+      if(n.p==null) return;
+      var a=byId[n.p], b=n;
+      if(!a||a.hidden||b.hidden) return;
+      var x1=a.x+NW, y1=a.y+NH/2, x2=b.x, y2=b.y+NH/2, mx=x1+(x2-x1)/2;
+      d += 'M'+x1+' '+y1+' H'+mx+' V'+y2+' H'+(x2-6)+' ';
+      d += 'M'+(x2-6)+' '+(y2-3.2)+' L'+x2+' '+y2+' L'+(x2-6)+' '+(y2+3.2)+' ';
+    });
+    svg.innerHTML = '<path d="'+d+'"/>';
+  }
+  function reslot(nodes){
+    // 잎부터 번호를 매기고 부모는 자식들의 가운데 — treeSlots 와 같은 규칙
+    var byId={}, kids={};
+    nodes.forEach(function(n){ byId[n.id]=n; n.kids=[]; });
+    nodes.forEach(function(n){ if(n.p!=null && byId[n.p]) byId[n.p].kids.push(n.id); });
+    var next=0;
+    function walk(id,d){
+      var n=byId[id]; n.d=d;
+      var ch=n.kids.filter(function(k){ return !byId[k].hidden; });
+      if(!ch.length){ n.s=next++; return n.s; }
+      var first=-1,last=-1;
+      ch.forEach(function(k){ var v=walk(k,d+1); if(first<0)first=v; last=v; });
+      n.s=(first+last)/2; return n.s;
+    }
+    nodes.filter(function(n){ return n.p==null; }).forEach(function(r){ walk(r.id,0); });
+    // 숨은 것은 자리 계산에서 뺀다(부모 자리에 겹쳐 둔다)
+    nodes.forEach(function(n){ if(n.hidden && byId[n.p]){ n.d=byId[n.p].d; n.s=byId[n.p].s; } });
+    return nodes;
+  }
+
+  /* ── ① ＋자식 · ＋형제 ─────────────────────────────── */
+  var s1=document.getElementById('s1'), l1=document.getElementById('l1');
+  var base1=[
+    {id:'a',t:'기획',p:null,root:1},
+    {id:'b',t:'설계',p:'a'},
+    {id:'c',t:'개발',p:'b'},
+    {id:'d',t:'검수',p:'a',dec:1},
+  ];
+  var n1=JSON.parse(JSON.stringify(base1)), sel1='b', seq=0, hist=[];
+  function render1(){
+    reslot(n1); layout(n1,150,52,14,22);
+    draw(s1,l1,n1,{sel:sel1,onPick:function(id){ sel1=id; render1(); }});
+    var s=n1.filter(function(n){return n.id===sel1;})[0];
+    document.getElementById('who1').textContent = s? s.t : '—';
+    document.getElementById('depth1').textContent = s? (s.d+1) : '—';
+    document.getElementById('kidn').textContent = s? n1.filter(function(n){return n.p===sel1;}).length : 0;
+    document.getElementById('addSib').disabled = !s || s.p==null;
+    document.getElementById('addSib').title = (s && s.p==null)
+      ? '뿌리에는 형제를 못 붙입니다 (선택지 ㄱ 을 그려 둔 것)' : '';
+  }
+  function snap1(){ hist.push(JSON.stringify({n:n1,s:sel1})); if(hist.length>30) hist.shift(); }
+  document.getElementById('addChild').addEventListener('click', function(){
+    var s=n1.filter(function(n){return n.id===sel1;})[0]; if(!s) return;
+    snap1(); var id='x'+(++seq);
+    n1.push({id:id,t:'새 상자',p:sel1}); sel1=id; render1();
+  });
+  document.getElementById('addSib').addEventListener('click', function(){
+    var s=n1.filter(function(n){return n.id===sel1;})[0]; if(!s||s.p==null) return;
+    snap1(); var id='x'+(++seq);
+    n1.push({id:id,t:'새 상자',p:s.p}); sel1=id; render1();
+  });
+  document.getElementById('undo1').addEventListener('click', function(){
+    if(!hist.length) return; var v=JSON.parse(hist.pop()); n1=v.n; sel1=v.s; render1();
+  });
+  render1();
+
+  /* ── ② 가지 접기 ──────────────────────────────────── */
+  var s2=document.getElementById('s2'), l2=document.getElementById('l2');
+  var n2=[
+    {id:'a',t:'EVER-SKETCH',p:null,root:1},
+    {id:'b',t:'작성',p:'a'},
+    {id:'b1',t:'표준 양식',p:'b'},
+    {id:'b2',t:'자유 캔버스',p:'b'},
+    {id:'c',t:'결재',p:'a'},
+    {id:'c1',t:'제출 · 회수',p:'c'},
+    {id:'c2',t:'승인 · 반려',p:'c'},
+  ];
+  var sel2=null, folded={};
+  function applyFold(){
+    var byId={}; n2.forEach(function(n){ byId[n.id]=n; n.hidden=false; n.folded=!!folded[n.id]; });
+    n2.forEach(function(n){
+      var p=n.p, guard=0;
+      while(p && guard++<50){ if(folded[p]){ n.hidden=true; break; } p=byId[p]?byId[p].p:null; }
+    });
+    n2.forEach(function(n){
+      n.hiddenCount = n2.filter(function(m){
+        var p=m.p,g=0; while(p&&g++<50){ if(p===n.id) return true; p=byId[p]?byId[p].p:null; } return false;
+      }).length;
+    });
+  }
+  function render2(){
+    applyFold(); reslot(n2); layout(n2,168,50,24,28);
+    draw(s2,l2,n2,{sel:sel2,fold:true,
+      onPick:function(id){ sel2=id; render2(); },
+      onFold:function(id){ folded[id]=!folded[id]; render2(); }});
+    var s=n2.filter(function(n){return n.id===sel2;})[0];
+    document.getElementById('who2').textContent = s? s.t : '—';
+    var fb=document.getElementById('foldBtn');
+    var has = s && n2.some(function(n){ return n.p===sel2; });
+    fb.disabled = !has;
+    fb.textContent = (s && folded[s.id]) ? '▸ 펴기' : '▾ 접기';
+    document.getElementById('foldHint').innerHTML = !s ? '상자를 고르면 접을 수 있어요.'
+      : (has ? '아래 <b>'+s.hiddenCount+'개</b>가 숨습니다.' : '자식이 없어 접을 게 없어요.');
+    var hid=n2.filter(function(n){return n.hidden;}).length;
+    document.getElementById('hidn').textContent=hid;
+    document.getElementById('shown').textContent=n2.length-hid;
+  }
+  document.getElementById('foldBtn').addEventListener('click', function(){
+    if(!sel2) return; folded[sel2]=!folded[sel2]; render2();
+  });
+  document.getElementById('foldAll').addEventListener('click', function(){
+    n2.forEach(function(n){ if(n2.some(function(m){return m.p===n.id;}) && n.p!=null) folded[n.id]=true; });
+    render2();
+  });
+  document.getElementById('openAll').addEventListener('click', function(){ folded={}; render2(); });
+  render2();
+
+  /* ── ③ 쪽 나누기 ──────────────────────────────────── */
+  var s3=document.getElementById('s3'), l3=document.getElementById('l3');
+  var full=[
+    {id:'a',t:'기획',p:null,root:1},
+    {id:'b',t:'설계',p:'a'},
+    {id:'c',t:'개발',p:'b'},
+    {id:'c1',t:'프런트',p:'c'},
+    {id:'c2',t:'서버',p:'c'},
+    {id:'d',t:'검수',p:'b',dec:1},
+    {id:'d1',t:'통과',p:'d'},
+    {id:'d2',t:'반려',p:'d'},
+  ];
+  function set3(step){
+    var ns, hint;
+    if(step===0){
+      ns=JSON.parse(JSON.stringify(full));
+      hint='4레벨짜리 트리입니다. 세로가 아니라 <b>가로로</b> 밀려서 글자가 작아집니다.';
+    } else if(step===1){
+      ns=JSON.parse(JSON.stringify(full)).filter(function(n){
+        return ['a','b','c','d'].indexOf(n.id)>=0;
+      });
+      ns.forEach(function(n){ if(n.id==='c'||n.id==='d') n.t=n.t+'  ▸'; });
+      hint='앞 장 — 3레벨까지만 남습니다. 자식이 다음 장으로 간 상자에는 <b>▸ 다음 장</b> 표시가 붙습니다.';
+    } else {
+      ns=JSON.parse(JSON.stringify(full)).filter(function(n){
+        return ['c','c1','c2','d','d1','d2'].indexOf(n.id)>=0;
+      });
+      ns.forEach(function(n){
+        if(n.id==='c'){ n.p=null; n.band='↳ 앞 장에서 이어짐 — 설계 밑'; }
+        if(n.id==='d'){ n.p=null; n.band='↳ 앞 장에서 이어짐 — 설계 밑'; }
+      });
+      hint='뒷 장 — 옮겨 온 상자들이 <b>새 뿌리</b>가 되고, 머리에 <b>↳ 앞 장에서 이어짐</b> 띠가 붙습니다.';
+    }
+    reslot(ns); layout(ns, step===0?128:150, step===0?44:52, 14, step===2?34:22);
+    draw(s3,l3,ns,{});
+    document.getElementById('s3hint').innerHTML = hint;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.steps button'), function(b){
+    b.addEventListener('click', function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.steps button'), function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); set3(Number(b.getAttribute('data-step')));
+    });
+  });
+  document.getElementById('doSplit').addEventListener('click', function(){
+    var btns=document.querySelectorAll('.steps button');
+    Array.prototype.forEach.call(btns,function(x){x.classList.remove('on');});
+    btns[1].classList.add('on'); set3(1);
+  });
+  set3(0);
+})();
+</script>
+</body>
+</html>
