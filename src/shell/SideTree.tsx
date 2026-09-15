@@ -78,13 +78,17 @@ export default function SideTree({ open, toggle, onGo, col, onSwap }: {
 
   return (
     <div className={'sh-tree' + (col ? ' col' : '')} role="group" aria-label="폴더와 자료">
-      <div className="sh-thead">
-        {col ? <span className="t">폴더</span> : null}
-        <button className="sh-tswap" onClick={onSwap}
-          title={col ? '메뉴 안으로 합친다' : '폴더를 제 칸으로 뺀다'}>
-          {col ? '합치기' : '칸 나누기'}
-        </button>
-      </div>
+      {/* **머리줄은 제 칸일 때만 여기 있다**(2026-09-15).
+          메뉴 안에 있을 때는 이 자리가 「내 자료」 바로 아래라, 줄이 하나 더 생기면서
+          바꾸는 글자가 어중간하게 떠 있었다. 그건 나무의 머리가 아니라 **「내 자료」의
+          머리**여야 하므로, 그 줄 오른쪽 끝으로 옮겼다(`AppShell`) — 제 칸의
+          「합치기」가 칸 머리줄에 있는 것과 같은 자리다. */}
+      {col && (
+        <div className="sh-thead">
+          <span className="t">폴더</span>
+          <button className="sh-tswap" onClick={onSwap} title="메뉴 안으로 합친다">합치기</button>
+        </div>
+      )}
       {rows.map((r) => {
         const isFolder = r.kind === 'folder'
         const on = isFolder

@@ -145,6 +145,13 @@
   border-radius: 4px; opacity: 0; transition: opacity .12s; }
 .sh-tree.col .sh-tswap { opacity: 1; }
 .sh-side:hover .sh-tswap, .sh-col:hover .sh-tswap { opacity: 1; }
+
+/* 「내 자료」 줄 오른쪽 끝에 얹는다 — 제 칸의 「합치기」와 **같은 자리**다.
+   단추 안에 단추는 없으므로 형제로 두고 겹친다(왼쪽 ▾ 와 같은 방식). */
+.sh-tswap.onrow { position: absolute; right: 7px; top: 50%; transform: translateY(-50%);
+  opacity: 0; background: #fff; }
+.sh-navrow.hastree:hover > .sh-tswap.onrow { opacity: 1; }
+.sh-tswap.onrow:focus-visible { opacity: 1; }
 .sh-tswap:hover { background: #EAF1FE; }
 .sh-tswap:focus-visible { opacity: 1; outline: 2px solid #2462EB; outline-offset: 1px; }
 

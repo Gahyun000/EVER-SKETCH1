@@ -244,6 +244,15 @@ export default function AppShell({ view, onView, crumb, children }: {
                 aria-label={treeOpen.has(TREE_ROOT) ? '폴더 접기' : '폴더 펴기'}
                 title={treeOpen.has(TREE_ROOT) ? '접기' : '펴기'}>▾</button>
             ) : null}
+            {it.k === 'library' && treeInNav ? (
+              /* **「내 자료」의 머리줄 오른쪽 끝**(2026-09-15). 제 칸일 때 「합치기」가
+                 칸 머리줄에 있는 것과 같은 자리다 — 전에는 나무 위에 줄을 하나 더
+                 만들어 어중간하게 떠 있었다.
+                 나무를 접어 둔 사람에게도 보인다는 이득이 하나 더 있다: 전에는
+                 나무를 펴야만 이 글자가 나왔는데, 처음에는 나무가 접힌 채로 시작한다(⑧ㄴ). */
+              <button className="sh-tswap onrow" onClick={treeSwap}
+                title="폴더를 제 칸으로 뺀다">칸 나누기</button>
+            ) : null}
             </div>
             {it.k === 'library' && treeInNav
               ? <SideTree open={treeOpen} toggle={treeToggle} col={false}

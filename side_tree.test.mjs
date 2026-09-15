@@ -224,10 +224,24 @@ check(treeRows(folders, projects, open()).length === 0,
     '제 칸에서는 뿌리를 접지 않는다 — 칸을 통째로 비우면 다시 펼 자리가 없다')
   check(/if \(!col && !rows\.length\) return null/.test(tsx),
     '제 칸에서는 줄이 없어도 머리줄이 남는다 — 안 그러면 합칠 자리가 사라진다')
-  check(/\{col \? '합치기' : '칸 나누기'\}/.test(tsx),
-    '지금 상태에 따라 무엇을 하는 단추인지 글자가 바뀐다')
-  check(/\{col \? <span className="t">폴더<\/span> : null\}/.test(tsx),
-    '메뉴 안에서는 「폴더」라고 또 안 적는다 — 바로 위 「내 자료」가 이미 그 말이다')
+  // **바꾸는 글자는 「그 칸의 머리줄」에 있다.**
+  // 제 칸일 때는 칸 머리줄에 「폴더 … 합치기」, 메뉴 안일 때는 「내 자료」 줄
+  // 오른쪽 끝에 「칸 나누기」. 전에는 메뉴 안에서 나무 위에 줄을 하나 더 만들어
+  // 어중간하게 떠 있었다(2026-09-15, 사용자가 화면으로 잡아 줬다).
+  check(/\{col && \(/.test(tsx) && />합치기<\/button>/.test(tsx),
+    '제 칸일 때는 칸 머리줄에 「합치기」가 있다')
+  check(!/'칸 나누기'/.test(tsx) && !/칸 나누기/.test(tsx),
+    '메뉴 안일 때의 글자는 나무가 아니라 셸이 놓는다')
+  check(/className="sh-tswap onrow"/.test(shell) && />칸 나누기<\/button>/.test(shell),
+    '「칸 나누기」는 **「내 자료」 줄 오른쪽 끝**에 있다 — 「합치기」와 같은 자리다')
+  check(/\.sh-tswap\.onrow \{ position: absolute; right: 7px/.test(css)
+     && /\.sh-navrow\.hastree:hover > \.sh-tswap\.onrow \{ opacity: 1/.test(css),
+    '그 줄에 마우스가 올 때 드러난다')
+  // 나무를 접어 두어도 보인다 — 처음에는 접힌 채로 시작하므로(⑧ㄴ) 이게 중요하다.
+  check(/it\.k === 'library' && treeInNav \? \(\s*\n\s*\/\* \*\*「내 자료」의 머리줄/.test(shell),
+    '나무를 펴지 않아도 보인다 — 조건이 「메뉴 안이냐」뿐이다')
+  check(/<span className="t">폴더<\/span>/.test(tsx) && !/col \? <span/.test(tsx),
+    '「폴더」라는 이름표는 제 칸에만 있다 — 메뉴 안에서는 바로 위 「내 자료」가 그 말이다')
   check(/\.sh-side:hover \.sh-tswap, \.sh-col:hover \.sh-tswap \{ opacity: 1/.test(css),
     '바꾸는 글자는 평소엔 안 보인다 — 한 번 쓰고 마는 글자가 자리를 계속 차지하지 않는다')
   check(/\.sh-tswap:focus-visible \{ opacity: 1/.test(css), '키보드로 짚으면 드러난다')
