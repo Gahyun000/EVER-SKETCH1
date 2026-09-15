@@ -137,11 +137,16 @@ const C = (state, created_at, approver_name) => ({
     '줄마다 880px 를 박아 두지 않는다 (남은 하나는 데모 덮개)')
 
   // ── ㄷ · 검색이 머리줄로 ──
-  const head = lib.slice(lib.indexOf('className="lib-head"'), lib.indexOf('className="lib-head-right"'))
-  check(/className="lib-search"/.test(head),
+  //
+  // **줄 자체가 공통 부품이 됐다**(2026-09-15). 전에는 화면마다 제 손으로 그렸고
+  // 크기도 말도 달랐다 — 그래서 `.lib-search` 라는 이름은 더 없다.
+  const head = lib.slice(lib.indexOf('className="lib-head"'), lib.indexOf('</SearchRow>'))
+  check(/<SearchRow/.test(head),
     '검색이 **머리줄 안**에 있다 — 목록 위가 한 줄 가벼워진다')
-  check((lib.match(/className="lib-search"/g) || []).length === 1,
+  check((lib.match(/<SearchRow/g) || []).length === 1,
     '검색 줄이 두 군데에 있지 않다')
+  check(!/className="lib-search"/.test(lib),
+    '제 손으로 그리던 옛 줄이 남아 있지 않다')
 
   // ── ⑤ · 표 ──
   check(/const asTable = listW === 0 \|\| wantsTable\(listW\)/.test(lib),

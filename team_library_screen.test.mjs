@@ -237,7 +237,9 @@ check(/나만 봅니다/.test(lib),
   '**빈 화면에서도** 말한다 — 처음 온 사람이 여기가 무슨 곳인지 알아야 한다')
 
 // 두 줄 깨짐 방지 (표준 공통 UI 기준)
-for (const k of ['tl-author b', 'tl-me', 'tl-dept', 'tl-count', 'tl-rel']) {
+// `tl-count` 는 2026-09-15 에 `tl-count-row` 가 됐다 — 검색 줄 오른쪽에서
+// 목록 바로 위로 내려오면서 이름도 바뀌었다. 지키는 것은 그대로다.
+for (const k of ['tl-author b', 'tl-me', 'tl-dept', 'tl-count-row', 'tl-rel']) {
   const sel = '\\.' + k.replace(' ', '\\s+')
   check(new RegExp(`${sel}\\s*\\{[^}]*white-space:\\s*nowrap`).test(css),
     `.${k} 는 낱말이 안 끊긴다`)

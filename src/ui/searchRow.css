@@ -1,0 +1,22 @@
+/* 검색 줄 — 세 화면이 함께 쓴다. 크기를 한 군데서 정한다:
+   칸도 단추도 **높이 34 · 둥글기 9 · 글자 12.5**. 전에는 화면마다 달랐다
+   (14px/1.4테두리/둥글기10 과 12.5px/1테두리/둥글기8). */
+.srow { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; flex: 0 0 auto; }
+.srow-date { height: 34px; padding: 0 9px; border: 1.4px solid #e5e7eb; border-radius: 9px;
+  font: inherit; font-size: 12.5px; color: #0f172a; background: #fff; }
+.srow-date:focus { outline: none; border-color: #2462EB; box-shadow: 0 0 0 3px #E8F0FE; }
+.srow-tilde { color: #94a3b8; font-size: 12.5px; }
+.srow-q { display: flex; align-items: center; gap: 6px; flex: 1 1 220px; min-width: 160px;
+  height: 34px; padding: 0 11px; border: 1.4px solid #e5e7eb; border-radius: 9px;
+  background: #fff; color: #64748b; }
+.srow-q:focus-within { border-color: #2462EB; box-shadow: 0 0 0 3px #E8F0FE; }
+.srow-q input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent;
+  font: inherit; font-size: 13px; color: #0f172a; }
+.srow-btn { height: 34px; padding: 0 13px; border: 1px solid #e5e7eb; background: #fff;
+  border-radius: 9px; font: inherit; font-size: 12.5px; font-weight: 800; color: #5b6270;
+  cursor: pointer; white-space: nowrap; }
+.srow-btn:hover { background: #f4f5f7; color: #111318; }
+.srow-btn.dark { background: #2462EB; border-color: #2462EB; color: #fff; }
+.srow-btn.dark:hover { background: #1b52cf; color: #fff; }
+/* 그 화면에서만 하는 일은 **오른쪽 끝**으로 밀어 둔다 — 찾는 일과 만드는 일을 안 섞는다. */
+.srow-end { margin-left: auto; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }

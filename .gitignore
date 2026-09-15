@@ -40,3 +40,9 @@ server/_db_backup/
 # 원격이 없어 만든 통째 백업(git bundle). 저장소에 넣지 않는다.
 _backup/
 *.bundle
+
+# 화면 갈무리를 떨궈 두는 임시 폴더 — 저장소에 들어갈 것이 아니다
+Claude outputs/
+
+# 마운트가 지우다 만 찌꺼기(.fuse_hidden…) — 지울 권한이 없어 계속 뜬다
+.fuse_hidden*

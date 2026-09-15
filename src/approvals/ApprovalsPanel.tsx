@@ -7,6 +7,8 @@ import {
   apiGetApproval, apiListApprovals, apiWithdraw,
   type Approval, type ApprovalStatus,
 } from './approvalApi'
+import SearchRow from '../ui/SearchRow'
+import { hits, inRange } from '../ui/searchFilter'
 import { useAuth } from '../auth/useAuth'
 import { isAdmin } from '../auth/authApi'
 import Modal from '../ui/Modal'
@@ -43,6 +45,13 @@ export default function ApprovalsPanel({ onClose, embedded }: { onClose?: () => 
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // **검색이 여기에도 생겼다**(2026-09-15 ③ㄱ). 전에는 상태 칩뿐이라, 회차가 쌓이면
+  // 「그 자료」를 찾으려고 눈으로 훑어야 했다. 기간의 뜻은 **낸 날**이다.
+  // 목록은 이미 통째로 받아 두므로(`apiListApprovals`) 거르는 일은 화면이 한다 —
+  // 서버에 되묻지 않는다.
+  const [qIn, setQIn] = useState(''); const [fromIn, setFromIn] = useState(''); const [toIn, setToIn] = useState('')
+  const [q, setQ] = useState(''); const [from, setFrom] = useState(''); const [to, setTo] = useState('')
+
   const [openId, setOpenId] = useState<string | null>(null)
   const [detail, setDetail] = useState<Approval | null>(null)
   const [idx, setIdx] = useState(0)
@@ -50,6 +59,16 @@ export default function ApprovalsPanel({ onClose, embedded }: { onClose?: () => 
   const [cmt, setCmt] = useState('')          // 코멘트 입력
   const [confirm, setConfirm] =
     useState<'approve' | 'reject' | 'withdraw' | 'end' | null>(null)
+
+  const shown = useMemo(
+    () => list.filter((a) => inRange(a.created_at, from, to)
+      && hits(q, a.project_name, a.requester_name, a.requester, a.folder_path)),
+    [list, q, from, to])
+
+  const applySearch = () => { setQ(qIn); setFrom(fromIn); setTo(toIn); setOpenId(null) }
+  const resetSearch = () => {
+    setQIn(''); setFromIn(''); setToIn(''); setQ(''); setFrom(''); setTo(''); setOpenId(null)
+  }
 
   const load = async () => {
     setErr('')
@@ -126,10 +145,9 @@ export default function ApprovalsPanel({ onClose, embedded }: { onClose?: () => 
     <div className={embedded ? 'sh-page ap' : 'es-auth ap'} onClick={embedded ? undefined : onClose}>
       <div className="es-card wide ap-card" onClick={(e) => e.stopPropagation()}>
         <div className="ap-head">
-          <div className="es-brand">
-            <b>결재함</b>
-            <span>{admin ? '전체 결재 건' : '내가 낸 결재'}</span>
-          </div>
+          {/* **부제목을 뺐다**(2026-09-15). 「내가 낸 결재」·「전체 결재 건」은 매일 보는
+              사람에게는 읽히지 않는 글줄이고, 무엇이 보이는지는 상태 칩과 목록이 말한다. */}
+          <div className="es-brand"><b>결재함</b></div>
           {!embedded && <button className="es-mini" onClick={onClose}>닫기</button>}
         </div>
 
@@ -142,6 +160,13 @@ export default function ApprovalsPanel({ onClose, embedded }: { onClose?: () => 
             </button>
           ))}
         </div>
+
+        {/* 세 화면이 같은 줄을 쓴다(2026-09-15). 여기는 아예 없던 자리다. */}
+        <SearchRow q={qIn} onQ={setQIn} from={fromIn} to={toIn} onFrom={setFromIn} onTo={setToIn}
+          placeholder="자료 이름 · 낸 사람 · 폴더" dateLabel="낸 날"
+          onSearch={applySearch} onReset={resetSearch} />
+        {/* 건수는 목록 바로 위다(④ㄴ). */}
+        <div className="ap-count-row">전체 {shown.length}건</div>
 
         {err && <div className="es-msg err">{err}</div>}
 
@@ -156,13 +181,19 @@ export default function ApprovalsPanel({ onClose, embedded }: { onClose?: () => 
                 <button className="es-mini" style={{ marginTop: 8 }}
                   onClick={() => { setPhase('loading'); void load() }}>다시 시도</button>
               </div>
-            ) : list.length === 0 ? (
+            ) : shown.length === 0 ? (
+              /* **「없다」와 「못 찾았다」를 갈라 말한다.** 검색 조건 때문에 빈 것을
+                 「결재를 기다리는 건이 없습니다」로 적으면, 조건을 걸어 둔 줄 모르고
+                 정말 없는 줄 안다. */
               <div className="es-empty">
-                {tab === 'pending'
-                  ? (admin ? '결재를 기다리는 건이 없습니다.' : '낸 결재가 없습니다.')
-                  : '해당하는 결재 건이 없습니다.'}
+                {(q || from || to)
+                  ? <>조건에 맞는 결재 건이 없습니다.<br />
+                      <button className="es-mini" style={{ marginTop: 8 }} onClick={resetSearch}>초기화</button></>
+                  : tab === 'pending'
+                    ? (admin ? '결재를 기다리는 건이 없습니다.' : '낸 결재가 없습니다.')
+                    : '해당하는 결재 건이 없습니다.'}
               </div>
-            ) : list.map((a) => (
+            ) : shown.map((a) => (
               <button key={a.id} className={'ap-item' + (openId === a.id ? ' on' : '')}
                 onClick={() => setOpenId(a.id)}>
                 <div className="ap-item-top">

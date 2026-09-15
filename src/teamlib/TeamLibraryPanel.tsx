@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, History, Users, X, ExternalLink } from 'lucide-react'
+import SearchRow from '../ui/SearchRow'
+import { inRange } from '../ui/searchFilter'
+import { History, Users, X, ExternalLink } from 'lucide-react'
 import SlideViewer from '../approvals/SlideViewer'
 import { STATUS_LABEL, type Approval } from '../approvals/approvalApi'
 import {
@@ -40,7 +42,11 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
 
   const [teamId, setTeamId] = useState<string | null>(null)
   const [qIn, setQIn] = useState('')     // 입력칸
-  const [q, setQ] = useState('')         // **조회를 눌러야** 걸린다(표준: 조회 버튼)
+  // **기간이 여기에도 생겼다**(2026-09-15 ③ㄱ). 뜻은 **승인일**이다 —
+  // 이 화면에 올라온 시점이 곧 승인 시점이라, 「언제 올라온 것들인가」가 곧 승인일이다.
+  const [fromIn, setFromIn] = useState(''); const [toIn, setToIn] = useState('')
+  const [from, setFrom] = useState(''); const [to, setTo] = useState('')
+  const [q, setQ] = useState('')         // **단추를 눌러야** 걸린다 — 치는 대로 걸리지 않는다
   const [page, setPage] = useState(1)
 
   const [openId, setOpenId] = useState<string | null>(null)
@@ -62,7 +68,12 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
 
   const team = useMemo(() => pickTeam(teams, teamId), [teams, teamId])
   const flat = useMemo(() => flatten(team), [team])
-  const paged = useMemo(() => pageOf(flat, q, page), [flat, q, page])
+  // 기간은 **묶기 전에** 거른다 — 거른 뒤에 묶어야 작성자 옆 숫자가 실제로 보이는
+  // 건수와 맞는다. 거꾸로 하면 「2」라고 적혀 있는데 한 건만 보인다.
+  const ranged = useMemo(
+    () => (from || to) ? flat.filter((f) => inRange(f.item.decided_at, from, to)) : flat,
+    [flat, from, to])
+  const paged = useMemo(() => pageOf(ranged, q, page), [ranged, q, page])
 
   useEffect(() => {
     if (!openId) { setDetail(null); setHist(null); return }
@@ -78,8 +89,10 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
     return () => { alive = false }
   }, [openId])
 
-  const applySearch = () => { setQ(qIn); setPage(1); setOpenId(null) }
-  const resetSearch = () => { setQIn(''); setQ(''); setPage(1); setOpenId(null) }
+  const applySearch = () => { setQ(qIn); setFrom(fromIn); setTo(toIn); setPage(1); setOpenId(null) }
+  const resetSearch = () => {
+    setQIn(''); setFromIn(''); setToIn(''); setQ(''); setFrom(''); setTo(''); setPage(1); setOpenId(null)
+  }
 
   /** 읽기 전용 뷰어를 **새 탭**으로 연다. 앞 창은 그대로 남아 고르던 자리를 잃지 않는다. */
   const openBig = (aid: string) => { window.open(`/view/${aid}`, '_blank', 'noopener') }
@@ -93,10 +106,9 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
     <div className={embedded ? 'sh-page tl' : 'es-auth tl'} onClick={embedded ? undefined : onClose}>
       <div className="es-card wide ap-card" onClick={(e) => e.stopPropagation()}>
         <div className="ap-head">
-          <div className="es-brand">
-            <b>팀 공유</b>
-            <span>승인된 자료만 올라옵니다</span>
-          </div>
+          {/* 부제목을 뺐다(2026-09-15) — 「승인된 자료만 올라옵니다」는 자료마다 붙는
+              「승인」 칩이 이미 하는 말이다. */}
+          <div className="es-brand"><b>팀 공유</b></div>
           {!embedded && <button className="es-mini" onClick={onClose}>닫기</button>}
         </div>
 
@@ -138,23 +150,13 @@ export default function TeamLibraryPanel({ onClose, embedded }: { onClose?: () =
               <div className="tl-hint">{RELATION_HINT[team.relation]}</div>
             )}
 
-            {/* 조회 조건 — **필요한 것만.** 여기서 찾는 것은 「그 자료」 아니면
-                「그 사람이 낸 것」이고, 둘 다 한 칸으로 걸린다.
-                날짜 범위는 두지 않는다 — 목록이 이미 승인 월로 묶여 있다. */}
-            <div className="tl-search">
-              <div className="tl-field">
-                <Search className="h-4 w-4" />
-                <input value={qIn} placeholder="자료 이름 · 작성자 · 부서 · 폴더"
-                  aria-label="검색어"
-                  onChange={(e) => setQIn(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') applySearch() }} />
-              </div>
-              <button className="es-mini primary" onClick={applySearch}>조회</button>
-              {q && <button className="es-mini" onClick={resetSearch}>
-                <X className="h-3 w-3" /> 초기화
-              </button>}
-              <span className="tl-count">{paged.total}건</span>
-            </div>
+            {/* 세 화면이 같은 줄을 쓴다(2026-09-15). 여기는 단추가 하나뿐이었고
+                **초기화가 없어서** 조건을 한 번 걸면 지울 방법이 없었다. */}
+            <SearchRow q={qIn} onQ={setQIn} from={fromIn} to={toIn} onFrom={setFromIn} onTo={setToIn}
+              placeholder="자료 이름 · 작성자 · 부서 · 폴더" dateLabel="승인일"
+              onSearch={applySearch} onReset={resetSearch} />
+            {/* 건수는 **목록 바로 위**다(④ㄴ) — 쪽 정보와 한자리에 모인다. */}
+            <div className="tl-count-row">전체 {paged.total}건</div>
 
             <div className="ap-body">
               {/* ── 왼쪽: 작성자 / 월로 묶인 목록 ── */}

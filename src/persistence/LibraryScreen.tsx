@@ -9,6 +9,7 @@ import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronR
 import { useProjects } from './projects'
 import NewProjectDialog from './NewProjectDialog'
 import Modal from '../ui/Modal'
+import SearchRow from '../ui/SearchRow'
 import type { ProjectMeta } from './projectApi'
 import {
   apiCreateFolder, apiDeleteFolder, apiRenameFolder, FolderApiError,
@@ -354,28 +355,22 @@ export default function LibraryScreen() {
             여기 남는 것은 **이 화면에서 하는 일**뿐이다: 새 폴더 · 새 이북.
             (「팀 공유」·「결재함」으로 가는 길은 왼쪽 메뉴에 있다 —
              `go()` 는 남겨 둔다: 뷰어에서 `?shared=1` 로 돌아오는 길이 쓴다.) */}
-        {/* **검색이 머리줄로 올라왔다**(2026-09-15). 예전에는 목록 바로 위에 제 줄을
-            차지하고 있었다. 목록이 폭을 다 쓰게 되면서 머리줄에 빈자리가 생겼고,
-            검색을 그리 올리면 **목록 위가 한 줄 가벼워진다** — 자료가 한 줄 더 올라온다. */}
-        <div className="lib-search">
-          <div className="lib-q"><Search className="h-4 w-4" /><input value={qIn} onChange={(e) => setQIn(e.target.value)} placeholder="이북 제목 또는 ID" onKeyDown={(e) => { if (e.key === 'Enter') applySearch() }} aria-label="검색어" /></div>
-          <input className="lib-date" type="date" value={fromIn} onChange={(e) => setFromIn(e.target.value)} aria-label="시작일" />
-          <span className="lib-tilde">~</span>
-          <input className="lib-date" type="date" value={toIn} onChange={(e) => setToIn(e.target.value)} aria-label="종료일" />
-          <button className="lib-btn dark" onClick={applySearch}>검색</button>
-          <button className="lib-btn" onClick={resetSearch}>초기화</button>
-          {/* 범위를 **글자로** 말한다(D27). 「전체에서 / 이 폴더에서」 토글을 두지 않는다 —
-              서 있는 자리가 곧 범위라 고를 것이 없고, 고르는 장치를 없애면 틀리게 고를 일도 없다. */}
-          <span className="lib-scope">{scopeLabel(path)}</span>
-        </div>
-        <div className="lib-head-right">
+        {/* **세 화면이 같은 줄을 쓴다**(2026-09-15). 전에는 화면마다 크기도 말도 달랐다 —
+            여기는 글자 14px·「검색」, 팀 공유는 12.5px·「조회」, 결재함은 아예 없었다.
+            차례는 기간이 먼저(①ㄴ), 말은 「검색」·「초기화」(②ㄱ).
+            **범위 표시(「내 자료 전체에서」)는 뺐다**(⑤ㄱ) — 경로 줄과 사이드바에 켜진
+            폴더가 「어디에 있는지」를 이미 말한다. */}
+        <SearchRow q={qIn} onQ={setQIn} from={fromIn} to={toIn} onFrom={setFromIn} onTo={setToIn}
+          placeholder="이북 제목 또는 ID" dateLabel="수정일"
+          onSearch={applySearch} onReset={resetSearch}>
+          {/* **이 화면에서만 하는 일**이다. 팀 공유·결재함은 보는 화면이라 만들 것이 없다. */}
           <button className="lib-btn" disabled={!canCreateHere(path.length, maxDepth)}
             title={canCreateHere(path.length, maxDepth) ? '' : `폴더는 ${maxDepth}단까지만 만들 수 있어요`}
             onClick={() => { setMkOpen(true); setMkName('') }}>
             <FolderPlus className="h-4 w-4" /> 새 폴더
           </button>
           <button className="lib-new" onClick={() => setPicking(true)}><Plus className="h-4 w-4" /> 새 이북</button>
-        </div>
+        </SearchRow>
       </div>
 
       {/* 경로 — 4칸까지 다 보이고, 넘치면 앞을 접되 「…」은 **눌리는 버튼**이다(D26).
