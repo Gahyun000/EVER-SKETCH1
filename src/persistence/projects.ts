@@ -7,6 +7,7 @@ import {
   apiListProjects, apiCreateProject, apiCreateFromTemplate, apiGetProject, apiRenameProject,
   apiDeleteProject, apiDuplicateProject, type ProjectMeta, type ProjectFull, type ProjectAccess,
 } from './projectApi'
+import { apiListFolders, type Folder as FolderRow } from './folderApi'
 import { setActiveProjectId } from './session'
 import { setAutosaveHydrated, setAutosaveReadOnly, markAutosaveHydrated, useAutosave, flushSave, cancelPendingSave } from './autosave'
 import { migrateLegacyDraftOnce } from './legacyMigration'
@@ -87,6 +88,26 @@ interface ProjectsState {
   listError: string | null
   /** 어느 계정으로 목록을 받아 뒀는가. 계정이 바뀌면 다시 받는다. */
   bootedFor: string | null
+
+  // ── 폴더 (2026-09-15) ────────────────────────────────
+  //
+  // **여기로 올라왔다.** 지금까지 폴더와 「지금 어느 폴더에 있는가」는 `LibraryScreen`
+  // 안의 `useState` 였다. 그래서 편집에 들어갔다 나오면 그 화면이 통째로 내려갔다
+  // 다시 태어나고, `here` 가 `null` 로 돌아가 **늘 「전체」에 떨어졌다.**
+  // 깊은 폴더에서 일하던 사람은 자료 하나 고칠 때마다 폴더를 다시 찾아 들어가야 했다.
+  //
+  // 화면에 두었던 이유는 **계정이 바뀌면 지워지게** 하려는 것이었다(`key={uid}`).
+  // 그 일은 `boot()` 이 대신한다 — 아래에서 계정이 바뀌면 여기 셋을 비운다.
+  // 스토어에 두면 셸의 사이드바에서도 같은 값을 본다(편집 중에도 왼쪽에 폴더가 보인다).
+  folders: FolderRow[]
+  /** 지금 서 있는 폴더. `null` 이면 뿌리(전체). */
+  here: string | null
+  /** 폴더를 몇 단까지 만들 수 있는지(서버가 정한다). */
+  maxDepth: number
+  setHere: (id: string | null) => void
+  /** 폴더 나무를 통째로 받아 온다. **실패하면 던진다** — 부르는 쪽이 사람에게
+   *  무슨 말을 할지 정한다(목록 화면은 빨간 줄, 사이드바는 조용히 지나간다). */
+  loadFolders: () => Promise<void>
   /** 화면을 옮긴다. **자료를 여는 것과 다르다** — 여는 것은 `open()` 이 하고,
    *  이건 셸의 왼쪽 메뉴와 주소가 쓴다. 편집으로는 여기로 못 간다:
    *  편집은 「어느 자료냐」가 있어야 뜻이 생기므로 반드시 `open()` 을 거친다. */
@@ -175,7 +196,25 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   listError: null,
   bootedFor: null,
 
+  folders: [],
+  here: null,
+  maxDepth: 3,
+
   setView: (v) => set({ view: v }),
+  setHere: (id) => set({ here: id }),
+
+  loadFolders: async () => {
+    // 나무를 **한 번에** 받는다 — 검색 범위(D27)를 셈하려면 하위가 필요하고,
+    // 한 단씩 물으면 폴더를 오갈 때마다 요청이 줄줄이 나간다.
+    const all = await apiListFolders(null)
+    const every = await fetch('/api/folders?all=true', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    // **배열이 아니면 안 넣는다.** `undefined` 가 들어가면 다음 렌더에서 `folders.filter`
+    // 가 터지고 **자료 목록이 통째로 하얗게 뜬다** — 폴더 하나 못 읽었다고 화면 전체를
+    // 잃는 것은 값이 안 맞는 교환이다.
+    const rows = Array.isArray(every?.folders) ? (every.folders as FolderRow[]) : all.folders
+    set({ folders: Array.isArray(rows) ? rows : [], maxDepth: all.max_depth ?? 3 })
+  },
 
   boot: async (uid) => {
     // 계정이 같으면 이미 받아 둔 목록을 그대로 쓴다.
@@ -183,7 +222,9 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     // 계정이 바뀌었다(또는 처음이다). **앞사람 것을 먼저 비운다.**
     // 스토어가 모듈 단위라 화면을 다시 그려도 저절로 사라지지 않는다.
     resetWorkspace()
-    set({ bootedFor: uid, loading: true })
+    // **폴더도 같이 비운다.** 화면이 들고 있던 때에는 `key={uid}` 가 해 주던 일이다.
+    // 안 비우면 앞사람의 폴더 이름이 사이드바에 남고, `here` 가 남의 폴더를 가리킨다.
+    set({ bootedFor: uid, loading: true, folders: [], here: null, maxDepth: 3 })
     // **이 두 줄이 같은 보호 안에 있어야 한다.** 예전에는 이관이 try/finally 바깥에 있었고,
     // 그래서 이관이 *던지지 않고 그냥 안 끝나면*(응답 없는 요청, 막힌 IndexedDB 등)
     // 로딩 화면에 영원히 갇혔다 — `bootedFor` 가 이미 찍혀 있어 다시 시도되지도 않았다.

@@ -29,7 +29,11 @@ check(/PATH_VISIBLE = 4/.test(nav), 'D26 — 경로는 4칸까지 다 보인다'
 check(/const PAGE_SIZE = 12/.test(lib), 'D28 — 자료 한 쪽 12건')
 check(/grid-template-columns:repeat\(5,1fr\)/.test(css), '폴더 한 줄 5개')
 check(/MAX_DEPTH = 3/.test(read('./server/folders.py')), 'D24 — 폴더 최대 깊이 3')
-check(/max_depth/.test(lib), '깊이는 **서버가 정한 값**을 받아 쓴다 — 화면이 숫자를 따로 들지 않는다')
+// 받아 오는 자리가 화면에서 스토어로 옮겨 갔다(2026-09-15). **지키려던 것은 그대로다** —
+// 깊이 한도를 화면이 제 손으로 정하지 않는다.
+check(/max_depth/.test(read('./src/persistence/projects.ts')),
+  '깊이는 **서버가 정한 값**을 받아 쓴다 — 화면이 숫자를 따로 들지 않는다')
+check(!/maxDepth = [0-9]/.test(lib), '화면이 깊이 숫자를 제 손으로 박아 두지 않는다')
 
 // ── 「…」을 다루는 두 가지 답 ──
 // **쪽 번호 막대 안만 본다.** 예전에는 `lib-pagebar` 뒤 **전부**를 봤는데,
@@ -74,9 +78,20 @@ for (const k of ['lib-folder-name', 'lib-folder-sub', 'lib-crumb-i', 'lib-scope'
   check(new RegExp(`\\.${k}\\{[^}]*white-space:nowrap`).test(css), `.${k} 는 낱말이 안 끊긴다`)
 }
 
-// ── 폴더 상태는 화면이 들고 있다 (P1.5 의 교훈) ──
-check(/useState<FolderRow\[\]>/.test(lib),
-  '폴더는 모듈 스토어가 아니라 화면 상태다 — 스토어에 두면 계정이 바뀌어도 안 지워진다')
+// ── 폴더 상태는 어디에 있나 (P1.5 → 2026-09-15) ──
+//
+// **뒤집힌 결정이다.** 원래는 화면(`useState`)이 들고 있었고, 이유는 「스토어에 두면
+// 계정이 바뀌어도 안 지워진다」였다. 그 걱정은 옳았다 — 다만 값이 안 맞았다.
+// 화면에 두니 **편집에 들어갔다 나올 때도** 같이 지워져서, 깊은 폴더에서 일하던
+// 사람이 자료 하나 고칠 때마다 「전체」로 떨어졌다(사용자가 화면 기록으로 잡아 줬다).
+//
+// 그래서 폴더는 스토어로 올리고, **계정이 바뀌면 비우는 일은 `boot()` 이** 맡았다.
+// 원래 걱정을 여기서 계속 지킨다 — 그 두 줄이 사라지면 P1.5 의 유출이 되살아난다.
+check(/folders: FolderRow\[\]/.test(read('./src/persistence/projects.ts')),
+  '폴더는 스토어가 들고 있다 — 편집을 다녀와도 서 있던 폴더가 남는다')
+check(/folders: \[\], here: null/.test(read('./src/persistence/projects.ts')),
+  '**계정이 바뀌면 `boot()` 이 비운다** — 화면에 두던 때 `key={uid}` 가 하던 일이다')
+check(!/useState<FolderRow\[\]>/.test(lib), '화면이 폴더를 다시 들고 있지 않다')
 
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

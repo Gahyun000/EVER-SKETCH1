@@ -12,8 +12,7 @@ import NewProjectDialog from './NewProjectDialog'
 import Modal from '../ui/Modal'
 import type { ProjectMeta } from './projectApi'
 import {
-  apiCreateFolder, apiDeleteFolder, apiListFolders, apiRenameFolder, FolderApiError,
-  type Folder as FolderRow,
+  apiCreateFolder, apiDeleteFolder, apiRenameFolder, FolderApiError,
 } from './folderApi'
 import {
   canCreateHere, childrenOf, collapsePath, countInSubtree, pageWindow, scopeLabel,
@@ -49,13 +48,19 @@ export default function LibraryScreen() {
   const [pendingDel, setPendingDel] = useState<ProjectMeta | null>(null)
   const [picking, setPicking] = useState(false)
 
-  // ── 폴더 (P4) ──────────────────────────────
-  // **화면이 들고 있는다.** 모듈 스토어에 두면 계정이 바뀌어도 안 지워진다(P1.5 의 교훈).
-  // `App.tsx` 의 key={uid} 가 이 화면을 다시 마운트하므로 여기 있으면 함께 비워진다.
-  const [folders, setFolders] = useState<FolderRow[]>([])
-  const [here, setHere] = useState<string | null>(null)
+  // ── 폴더 (P4 · 2026-09-15 스토어로 옮김) ──────────────
+  //
+  // 예전에는 여기 `useState` 였다. 계정이 바뀌면 지워지게 하려는 것이었고
+  // (`App.tsx` 의 `key={uid}` 가 이 화면을 다시 마운트한다), 그 목적 자체는 옳았다.
+  // 그런데 **편집에 들어갔다 나올 때도 같이 지워졌다** — 이 화면이 통째로 내려갔다
+  // 다시 태어나면서 `here` 가 `null` 이 되어 늘 「전체」에 떨어졌다.
+  // 계정이 바뀔 때 비우는 일은 이제 `boot()` 이 한다(사용자 결정 ⑦ㄱ).
+  const folders = useProjects((s) => s.folders)
+  const here = useProjects((s) => s.here)
+  const maxDepth = useProjects((s) => s.maxDepth)
+  const setHere = useProjects((s) => s.setHere)
+  const loadFoldersInto = useProjects((s) => s.loadFolders)
   const [path, setPath] = useState<Crumb[]>([])
-  const [maxDepth, setMaxDepth] = useState(3)
   const [pathOpen, setPathOpen] = useState(false)
   const [fErr, setFErr] = useState('')
   const [mkOpen, setMkOpen] = useState(false)
@@ -132,21 +137,11 @@ export default function LibraryScreen() {
   // 정하므로(`can_see_approval`) 화면이 미리 거르면 규칙이 두 벌이 된다.
   // 볼 게 없는 사람에게는 오류가 아니라 **이유가 적힌 빈 화면**이 뜬다.
 
+  /** 받아 오는 일은 스토어가 하고, **무슨 말을 할지는 화면이 정한다.**
+   *  같은 실패라도 목록 화면에서는 빨간 줄이지만 사이드바에서는 조용히 지나간다. */
   const loadFolders = async () => {
     setFErr('')
-    try {
-      // 트리 전체를 한 번에 받는다 — 검색 범위(D27)를 셈하려면 하위가 필요하고,
-      // 한 단씩 물으면 검색할 때마다 요청이 줄줄이 나간다.
-      const all = await apiListFolders(null)
-      const every = await fetch('/api/folders?all=true', { credentials: 'same-origin' })
-        .then((r) => (r.ok ? r.json() : null)).catch(() => null)
-      // **배열이 아니면 안 넣는다.** `undefined` 가 들어가면 다음 렌더에서
-      // `folders.filter` 가 터지고 **자료 목록이 통째로 하얗게 뜬다** —
-      // 폴더 하나 못 읽었다고 화면 전체를 잃는 것은 값이 안 맞는 교환이다.
-      const rows = Array.isArray(every?.folders) ? (every.folders as FolderRow[]) : all.folders
-      setFolders(Array.isArray(rows) ? rows : [])
-      setMaxDepth(all.max_depth ?? 3)
-    } catch (e) {
+    try { await loadFoldersInto() } catch (e) {
       setFErr(e instanceof FolderApiError ? e.message : '폴더를 불러오지 못했어요.')
     }
   }

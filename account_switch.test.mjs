@@ -39,6 +39,12 @@ function asAdminAtWork() {
     bootedFor: 'u_admin',
   })
   useBuilder.setState({ title: '관리자 문서', pages: [{ id: 1, cardKey: 'slide', els: [], fields: {} }], selectedPageId: 1 })
+  // 폴더도 앞사람 것이 스토어에 들어 있다(2026-09-15 에 화면에서 스토어로 올라왔다).
+  useProjects.setState({
+    folders: [{ id: 'f_admin', name: '관리자 기획', parent_id: null }],
+    here: 'f_admin',
+    maxDepth: 5,
+  })
   setActiveProjectId('p_admin')
   setAutosaveReadOnly(true)
   useAutosave.setState({ status: 'saved', savedAt: '2026-09-04T00:00:00Z' })
@@ -66,6 +72,12 @@ await useProjects.getState().boot('u_writer')
 check(useProjects.getState().list.length === 0, '다른 계정으로 들어오면 앞사람 목록이 사라진다')
 check(useBuilder.getState().pages.length === 0, '다른 계정으로 들어오면 앞사람 문서도 사라진다')
 check(useProjects.getState().bootedFor === 'u_writer', '새 계정으로 표시가 바뀐다')
+// **폴더도 같이 비워야 한다.** 화면이 들고 있던 때에는 `key={uid}` 가 해 주던 일인데,
+// 스토어로 올리면서 그 보호가 사라졌다. 안 비우면 앞사람의 폴더 이름이 사이드바에
+// 그대로 남고, `here` 가 남의 폴더를 가리킨 채로 목록을 거른다.
+check(useProjects.getState().folders.length === 0, '다른 계정으로 들어오면 앞사람 폴더 이름이 사라진다')
+check(useProjects.getState().here === null, '앞사람이 서 있던 폴더를 가리키고 있지 않다')
+check(useProjects.getState().maxDepth === 3, '폴더 깊이 한도도 기본값으로 돌아간다')
 
 // ══════════ 같은 계정이면 다시 부르지 않는다 ══════════
 useProjects.setState({ list: [{ id: 'p1', name: '내 자료', created_at: 1, updated_at: 1, published_id: null, page_count: 1 }] })
