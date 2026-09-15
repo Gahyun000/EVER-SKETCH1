@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
 import UserBar from '../auth/UserBar'
 import { apiListApprovals } from '../approvals/approvalApi'
+import { apiListUsers } from '../auth/authApi'
 import {
   shellFolded, rememberShellFolded, shellWidth, rememberShellWidth,
   shellFoldedEditor, rememberShellFoldedEditor,
@@ -74,6 +75,10 @@ export default function AppShell({ view, onView, crumb, children }: {
    *  이걸 안 막으면 **폭을 넓히자마자 접힌다**(2026-09-14, 실제로 그랬다). */
   const dragged = useRef(false)
   const [pending, setPending] = useState(0)
+  /** 가입 승인을 기다리는 사람 수. **UserBar 에서 옮겨 온 신호다** — 「사용자 관리」
+   *  링크를 머리줄에서 빼면서 이 배지까지 같이 사라질 뻔했다. 관리자가 승인을
+   *  놓치면 그게 곧 병목이라, 배지는 링크가 아니라 **그 일을 하는 자리**를 따라간다. */
+  const [signups, setSignups] = useState(0)
   /** 나무에서 펴 둔 폴더. **셸이 들고 있다** — 뿌리(「내 자료」)의 ▾ 와
    *  나무가 같은 값을 봐야 접고 편 것이 어긋나지 않는다. */
   const { open: treeOpen, toggle: treeToggle } = useTreeOpen()
@@ -117,12 +122,23 @@ export default function AppShell({ view, onView, crumb, children }: {
     return () => { live = false; document.removeEventListener('visibilitychange', onVis) }
   }, [canSubmit, view])
 
+  // 가입 승인 대기 — 관리자에게만 뜻이 있다. **화면이 바뀔 때 다시 센다**:
+  // 사용자 관리 화면에서 승인하고 나오면 그 자리에서 숫자가 맞아야 한다.
+  useEffect(() => {
+    if (!admin) { setSignups(0); return }
+    let live = true
+    void apiListUsers('pending')
+      .then((us) => { if (live) setSignups(us.length) })
+      .catch(() => { /* 배지는 부가 정보다 — 조용히 넘어간다 */ })
+    return () => { live = false }
+  }, [admin, view])
+
   const items: (Item | { sep: string })[] = [
     { k: 'library', t: canSubmit ? '내 자료' : '개인 스케치', ic: 'lib' },
     ...(canSubmit ? [{ k: 'inbox' as const, t: '결재함', ic: 'inbox', badge: pending }] : []),
     { k: 'team', t: '팀 공유', ic: 'team' },
     ...(admin ? [{ sep: '관리' },
-      { k: 'users' as const, t: '사용자 관리', ic: 'team' },
+      { k: 'users' as const, t: '사용자 관리', ic: 'team', badge: signups },
       { k: 'admin' as const, t: '팀 관리', ic: 'admin' },
       { k: 'settings' as const, t: '환경 설정', ic: 'set' }] : []),
   ]
@@ -180,11 +196,11 @@ export default function AppShell({ view, onView, crumb, children }: {
           {crumb ? <><span className="sp">›</span><b>{crumb}</b></> : null}
         </nav>
         <div className="sh-sp" />
-        {/* **신원은 앱에 한 곳뿐이어야 한다.** 셸이 들어오기 전에는 자료 목록 머리줄과
-            편집 화면 제목줄에 각각 있었고, 셸이 생기면서 **셋이 됐다.**
-            여기로 모으고 두 곳에서 뺐다 — 로그아웃 버튼이 화면마다 다른 자리에 있으면
-            「방금 그거 어디 있었지」가 된다. */}
-        <UserBar />
+        {/* **오른쪽 끝은 비워 둔다**(2026-09-15). 여기 이름 + 사용자 관리 + 팀 관리 +
+            비밀번호 변경 + 로그아웃 다섯이 늘어서 있었다. 앞의 둘은 왼쪽 메뉴 「관리」에
+            이미 있어 같은 길이 두 벌이었고, 나머지는 하루에 한 번 쓸까 말까 한 것이
+            늘 자리를 차지했다. 계정은 **사이드바 맨 아래**로 내려갔다 —
+            신원은 여전히 앱에 한 곳뿐이다. */}
       </header>
 
       <div className={'sh-body' + (shut ? ' shut' : '') + (dragging ? ' drag' : '')}
@@ -192,7 +208,11 @@ export default function AppShell({ view, onView, crumb, children }: {
           gridTemplateColumns: (shut ? '60px' : width + 'px')
             + (treeCol && !shut ? ' 220px' : '') + ' 1fr',
         }}>
-        <nav className="sh-side" aria-label="갈 곳">
+        {/* **사이드바는 두 켜다.** 갈 곳 목록은 길어지면 스스로 구르고, 계정 줄은
+            맨 아래에 붙어 안 밀린다. 예전에는 `.sh-side` 자체가 `<nav>` 라서
+            계정 줄을 그 뒤에 두면 **사이드바 밖 격자 칸으로 빠졌다**(2026-09-15). */}
+        <aside className="sh-side">
+        <nav className="sh-navs" aria-label="갈 곳">
           {items.map((it, i) => 'sep' in it ? (
             <div className="sh-grp" key={'s' + i}>{it.sep}</div>
           ) : (
@@ -232,6 +252,10 @@ export default function AppShell({ view, onView, crumb, children }: {
             </div>
           ))}
         </nav>
+        {/* 계정은 **갈 곳 목록이 아니다.** `nav` 밖에 두고 맨 아래에 붙인다 —
+            매일 누르는 메뉴와 하루에 한 번 누르는 것이 같은 줄에 서면 안 된다. */}
+        <UserBar />
+        </aside>
         {/* **폴더 전용 칸**(①ㄴ). 메뉴와 폴더가 갈라져서, 폴더가 아무리 많아도
             「결재함·팀 공유」가 스크롤 아래로 안 밀린다. 접힌 사이드바에서는 안 그린다 —
             글자가 없는 60px 열 옆에 220px 짜리 폴더 칸만 남으면 짝이 안 맞는다. */}

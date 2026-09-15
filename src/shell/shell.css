@@ -43,8 +43,12 @@
 .sh-body.drag .sh-edge { opacity: 1; color: #2462EB; border-color: #2462EB; transition: none; }
 /* 끄는 것은 마우스 이야기다. 키보드·손가락으로는 **누르면 접힌다**(그게 본래 일이다). */
 @media (hover: none) { .sh-edge { opacity: 1; cursor: pointer; } }
+/* **두 켜다.** 바깥(.sh-side)은 칸이고, 안(.sh-navs)이 갈 곳 목록이다.
+   목록이 길어지면 **그 안에서만** 구르고 계정 줄은 맨 아래에 붙어 안 밀린다. */
 .sh-side { background: #fff; border-right: 1px solid #E6E8EE; display: flex; flex-direction: column;
-  padding: 11px 9px; gap: 3px; overflow: hidden; }
+  overflow: hidden; min-height: 0; }
+.sh-navs { display: flex; flex-direction: column; gap: 3px; padding: 11px 9px;
+  flex: 1; min-height: 0; overflow: auto; }
 .sh-nav { display: flex; align-items: center; gap: 10px; width: 100%; border: none;
   background: transparent; border-radius: 10px; padding: 9px 11px; font: inherit; font-size: 13px;
   font-weight: 700; color: #5B6270; cursor: pointer; text-align: left; white-space: nowrap;
@@ -143,3 +147,32 @@
 .sh-side:hover .sh-tswap, .sh-col:hover .sh-tswap { opacity: 1; }
 .sh-tswap:hover { background: #EAF1FE; }
 .sh-tswap:focus-visible { opacity: 1; outline: 2px solid #2462EB; outline-offset: 1px; }
+
+/* ── 계정 줄 (사용자 결정 ①ㄱ · 2026-09-15) ───────────────────────
+   머리줄 오른쪽에 다섯이 늘어서 있던 것을 여기 한 줄로 내렸다.
+   **갈 곳 목록이 아니므로 `nav` 밖**에 있고, 맨 아래에 붙는다 —
+   매일 누르는 메뉴와 하루에 한 번 누르는 것이 같은 줄에 서면 안 된다. */
+.sh-acct { position: relative; flex: 0 0 auto; border-top: 1px solid #E6E8EE; padding: 7px 9px; }
+.sh-acct-btn { display: flex; align-items: center; gap: 8px; width: 100%; border: none;
+  background: transparent; border-radius: 10px; padding: 7px 9px; font: inherit; font-size: 13px;
+  font-weight: 700; color: #5B6270; cursor: pointer; text-align: left; white-space: nowrap; }
+.sh-acct-btn:hover, .sh-acct-btn.on { background: #F4F5F7; color: #111318; }
+.sh-acct-btn .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sh-acct-btn .cx { color: #9aa3b2; font-size: 11px; }
+/* 접힌 60px 열에서는 이니셜만 남는다 — 글자 자리가 없다. */
+.sh-body.shut .sh-acct-btn { justify-content: center; padding: 7px 0; }
+.sh-body.shut .sh-acct-btn .nm, .sh-body.shut .sh-acct-btn .cx { display: none; }
+
+/* **위로 열린다** — 맨 아래 줄이라 아래로 열면 화면 밖으로 나간다. */
+.sh-acct-pop { position: absolute; left: 9px; right: 9px; bottom: calc(100% - 4px);
+  background: #fff; border: 1px solid #E6E8EE; border-radius: 12px; padding: 6px;
+  box-shadow: 0 10px 30px rgba(15, 27, 61, .14); z-index: 40; min-width: 176px; }
+.sh-body.shut .sh-acct-pop { right: auto; width: 196px; }
+.sh-acct-who { display: flex; align-items: center; gap: 7px; padding: 7px 9px 9px;
+  border-bottom: 1px solid #f1f3f6; margin-bottom: 5px; font-size: 13px; }
+.sh-acct-who b { color: #0F1B3D; font-weight: 800; }
+.sh-acct-it { display: block; width: 100%; border: none; background: transparent;
+  border-radius: 8px; padding: 8px 9px; font: inherit; font-size: 12.8px; font-weight: 700;
+  color: #5B6270; cursor: pointer; text-align: left; }
+.sh-acct-it:hover { background: #F4F5F7; color: #111318; }
+.sh-acct-it.danger:hover { background: #fee2e2; color: #b91c1c; }

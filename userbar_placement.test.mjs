@@ -38,23 +38,62 @@ const gate = read('./src/auth/AuthGate.tsx')
 check(!/<UserBar/.test(gate),
   'AuthGate 는 UserBar 를 직접 띄우지 않는다 — 화면 밖에서 띄우면 화면은 그게 있는 줄 모른다')
 
-// ── **한 곳뿐이다 — 셸 머리줄** ──
+// ── **한 곳뿐이다 — 셸이 놓는다** ──
 //
 // 2026-09-10 · 셸(머리줄 + 사이드바)이 생겼다. 그 전에는 화면마다 자기 머리줄이 있어서
 // **화면마다 하나씩** 두는 것이 맞았다. 셸이 생기자 그 규칙이 정확히 반대로 뒤집혔다 —
 // 셸 머리줄에도 신원이 있으니 자료 목록에서는 **이름표가 위아래로 두 번** 나왔다.
 // 겹침이 아니라 중복이고, 로그아웃 버튼이 화면마다 다른 자리에 있으면
-// 「방금 그거 어디 있었지」가 된다.
+// 「방금 그거 어디 있었지」가 된다. 그래서 셸로 모았다.
 //
-// 그래서 셸로 모았다. 규칙은 이제 이렇다: **UserBar 는 앱에 한 번, 셸 머리줄에.**
-// (위의 「오버레이로 안 띄운다」는 그대로다 — 그건 자리 다툼 이야기고 여전히 참이다.)
+// **2026-09-15 · 자리가 한 번 더 바뀌었다.** 머리줄 오른쪽 끝에 이름 + 사용자 관리 +
+// 팀 관리 + 비밀번호 변경 + 로그아웃 다섯이 늘어서 있었다. 앞의 둘은 왼쪽 메뉴
+// 「관리」에 이미 있어 **같은 길이 두 벌**이었고, 나머지는 하루에 한 번 쓸까 말까 한
+// 것이 늘 자리를 차지했다. 이제 **사이드바 맨 아래**에 이름 한 줄이다.
+//
+// 안 바뀐 것 둘: **오버레이로 안 띄운다**(자리 다툼 이야기고 여전히 참이다),
+// **앱에 한 번뿐이다**(중복 이야기고 역시 참이다). 바뀐 것은 어느 칸이냐뿐이다.
 const shell = read('./src/shell/AppShell.tsx')
 check((shell.match(/<UserBar\b/g) || []).length === 1,
-  '셸 머리줄이 UserBar 를 **정확히 한 번** 놓는다')
+  '셸이 UserBar 를 **정확히 한 번** 놓는다')
 check(/import UserBar from/.test(shell), '셸이 UserBar 를 직접 들여온다')
-check(shell.indexOf('<UserBar') > shell.indexOf('sh-head') &&
-      shell.indexOf('<UserBar') < shell.indexOf('sh-body'),
-  '머리줄 안에 둔다 — 본문에 두면 화면 내용과 자리를 다툰다')
+// **안에 있는지를 본다.** 처음 이 검사는 「</nav> 뒤」만 봤는데, `.sh-side` 자체가
+// `<nav>` 이던 시절에는 그게 곧 **사이드바 밖**이었다 — 계정 줄이 격자 칸으로 빠져
+// 화면 맨 위에 붙었고 검사는 통과했다(2026-09-15, 진짜 서버에서 잡았다).
+const aside = shell.indexOf('<aside className="sh-side">')
+const asideEnd = shell.indexOf('</aside>', aside)
+const ub = shell.indexOf('<UserBar')
+check(aside > 0 && ub > aside && ub < asideEnd,
+  '사이드바 **안**에 둔다 — 밖에 두면 격자 칸으로 빠져 엉뚱한 자리에 붙는다')
+check(ub > shell.indexOf('</nav>', aside),
+  '갈 곳 목록(nav) **밖**에 둔다 — 매일 누르는 메뉴와 같은 줄에 서면 안 된다')
+check(/\.sh-navs \{[^}]*overflow: auto/.test(read('./src/shell/shell.css')),
+  '메뉴가 길어지면 **그 안에서만** 구른다 — 계정 줄이 아래로 밀려나지 않는다')
+check(shell.indexOf('<UserBar') > shell.indexOf('sh-head'),
+  '머리줄에는 없다 — 하루에 한 번 쓰는 것이 늘 자리를 차지하지 않는다')
+
+// ── **신호는 링크를 따라가지 않는다** ──
+//
+// 머리줄의 「사용자 관리」 링크에는 **승인 대기 N명** 배지가 붙어 있었다. 링크를 빼면서
+// 그 배지까지 같이 사라질 뻔했다 — 관리자가 가입 승인을 놓치면 그게 곧 병목이다.
+// 배지는 링크가 아니라 **그 일을 하는 자리**를 따라간다: 사이드바의 「사용자 관리」 메뉴.
+const bar2 = read('./src/auth/UserBar.tsx')
+check(!/사용자 관리/.test(bar2.split('*/').pop()) && !/팀 관리/.test(bar2.split('*/').pop()),
+  '계정 줄에 「사용자 관리·팀 관리」가 없다 — 왼쪽 메뉴 「관리」와 같은 길이 두 벌이었다')
+check(/apiListUsers\('pending'\)/.test(shell) && /setSignups/.test(shell),
+  '승인 대기 인원을 셸이 센다')
+check(/t: '사용자 관리', ic: 'team', badge: signups/.test(shell),
+  '그 숫자가 사이드바 「사용자 관리」에 배지로 붙는다 — **신호가 사라지지 않았다**')
+check(/if \(!admin\) \{ setSignups\(0\); return \}/.test(shell),
+  '관리자가 아니면 세지 않는다 — 볼 수 없는 숫자를 묻지 않는다')
+
+// 계정 줄이 여는 것.
+check(/ChangePasswordDialog/.test(bar2) && /logout\(\)/.test(bar2),
+  '비밀번호 변경과 로그아웃은 그 줄 안에 있다')
+check(/bottom: calc\(100% - 4px\)/.test(read('./src/shell/shell.css')),
+  '**위로 열린다** — 맨 아래 줄이라 아래로 열면 화면 밖으로 나간다')
+check(/mousedown/.test(bar2) && /e\.key === 'Escape'/.test(bar2),
+  '바깥을 누르거나 Esc 로 닫힌다 — 사이드바 맨 아래라 열어 둔 채로 두면 화면을 가린다')
 
 // 그리고 **다른 어디에도 없다.** 하나라도 남으면 그 화면에서만 두 번 나온다.
 for (const [name, path] of [

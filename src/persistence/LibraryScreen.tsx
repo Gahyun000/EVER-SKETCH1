@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import UserBar from '../auth/UserBar'
 import { useAuth } from '../auth/useAuth'
 import { wantsSharedFromSearch } from '../teamlib/teamLibraryModel'
 import {
