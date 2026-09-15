@@ -3,8 +3,8 @@ import UserBar from '../auth/UserBar'
 import { useAuth } from '../auth/useAuth'
 import { wantsSharedFromSearch } from '../teamlib/teamLibraryModel'
 import {
-  ApprovalApiError, DOC_STATE_LABEL, apiRequestApproval, apiRequestRevision, apiStatusMap,
-  type StatusChip,
+  ApprovalApiError, DOC_STATE_LABEL, apiListApprovals, apiRequestApproval, apiRequestRevision,
+  apiStatusMap, type Approval, type StatusChip,
 } from '../approvals/approvalApi'
 import { Plus, Search, Copy, Trash2, Pencil, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Folder, FolderPlus, ChevronRight as Sep, Home, Send, Inbox, Users, Lock, PenLine } from 'lucide-react'
 import { useProjects } from './projects'
@@ -51,6 +51,15 @@ export default function LibraryScreen() {
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null)
   const [pendingDel, setPendingDel] = useState<ProjectMeta | null>(null)
   const [picking, setPicking] = useState(false)
+
+  // ── 상세 칸 (②③④) ────────────────────────
+  //
+  // **안 골랐으면 칸이 아예 없다**(사용자 결정 ②, 노션식). 늘 붙어 있는 칸으로 두면
+  // 들어올 때마다 빈 칸을 한 번 보고, 넓게 훑고 싶을 때 되찾을 방법이 없다.
+  // 고르면 오른쪽에서 밀고 나오고 닫으면 목록이 폭을 되찾는다.
+  const [sel, setSel] = useState<ProjectMeta | null>(null)
+  /** 고른 자료의 결재 이력. 회차가 여럿이면 여럿이다. */
+  const [selRows, setSelRows] = useState<Approval[]>([])
 
   // ── 표 (⑤) ────────────────────────────────
   const [sort, setSort] = useState<LibSort>(LIB_SORT_DEFAULT)
@@ -145,6 +154,26 @@ export default function LibraryScreen() {
     if (!wantsSharedFromSearch(window.location.search)) return
     window.history.replaceState(null, '', window.location.pathname)
   }, [])
+
+  // 고른 자료가 바뀌면 그 자료의 이력만 받아 온다. **미리 다 받아 두지 않는다** —
+  // 12건짜리 목록에 12번 요청이 나가고, 그중 열어 보는 것은 대개 하나다.
+  useEffect(() => {
+    if (!sel) { setSelRows([]); return }
+    let live = true
+    apiListApprovals('', sel.id)
+      .then((r) => { if (live) setSelRows(r.approvals || []) })
+      .catch(() => { if (live) setSelRows([]) })   // 이력은 부가 정보다 — 조용히 넘어간다
+    return () => { live = false }
+  }, [sel])
+
+  // **목록이 바뀌면 고른 것도 따라간다.** 지우거나 폴더를 옮기면 없는 자료의 상세가
+  // 남아서, 「열기」를 눌러 404 를 받는다.
+  useEffect(() => {
+    if (!sel) return
+    const now = list.find((p) => p.id === sel.id)
+    if (!now) setSel(null)
+    else if (now !== sel) setSel(now)
+  }, [list])   // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadChips = async () => {
     try { setChips(await apiStatusMap()) } catch { /* 칩은 부가 정보다 — 조용히 넘어간다 */ }
@@ -268,7 +297,47 @@ export default function LibraryScreen() {
     try { await deleteProject(pendingDel.id); setPendingDel(null) } finally { setBusy(false) }
   }
 
+  const selChip = sel ? chips[sel.id] : undefined
+
+  /** **그 자료가 든 폴더**의 경로. 지금 서 있는 자리가 아니다 — 검색은 하위까지 훑으므로
+   *  (D27) 「전체에서」 찾은 결과 안에는 다른 폴더의 자료가 섞여 있다. */
+  const folderPathOf = (fid?: string | null): string => {
+    if (!fid) return '전체'
+    const names: string[] = []
+    const seen = new Set<string>()
+    let cur: string | null = fid
+    while (cur && !seen.has(cur)) {
+      seen.add(cur)
+      const f = folders.find((x) => x.id === cur)
+      if (!f) break
+      names.unshift(f.name)
+      cur = f.parent_id
+    }
+    return names.length ? names.join(' › ') : '전체'
+  }
+
+  /** 결재 이력을 **일어난 일 단위**로 편다. 한 회차에 제출과 결정이 둘 다 들어 있어서,
+   *  줄 단위로 그리면 「제출」이 사라지고 결정만 남는다 — 누가 냈는지가 안 보인다. */
+  const histEvents = selRows.flatMap((a2) => {
+    const rev = a2.kind === 'revision'
+    const ev: { t: number; who: string; what: string; round: number }[] = [{
+      t: a2.created_at, who: a2.requester_name || '작성자',
+      what: rev ? '수정 요청' : '제출', round: a2.round,
+    }]
+    if (a2.decided_at) {
+      ev.push({
+        t: a2.decided_at, who: a2.approver_name || '관리자',
+        what: a2.status === 'approved' ? (rev ? '허락' : '승인')
+          : a2.status === 'rejected' ? (rev ? '거절' : '반려')
+          : a2.status === 'withdrawn' ? '회수' : '처리',
+        round: a2.round,
+      })
+    }
+    return ev
+  }).sort((x, y) => y.t - x.t)
+
   return (
+    <div className="lib-wrap">
     <div className="lib-screen">
       <div className="lib-head">
         {/* 2026-09-07: 화면 이름을 **제품 이름 하나로** 통일했다(사용자 결정).
@@ -459,9 +528,13 @@ export default function LibraryScreen() {
               {shown.map((p) => {
                 const c = chips[p.id]
                 return (
-                  <tr key={p.id}>
+                  <tr key={p.id} className={sel?.id === p.id ? 'on' : undefined}>
                     <td>
-                      <button className="lib-tname" title="이 이북 열기" onClick={() => void openProject(p.id)}>
+                      {/* **한 번 누르면 고른다**(②④). 편집기로는 상세의 「열기」가 간다 —
+                          한 번 누르기는 이제 상세를 여는 데 쓰인다. 사이드바 나무에서
+                          이름을 누르면 여전히 바로 열린다: 거기는 「가는 길」이고 여기는
+                          「살펴보는 곳」이다. */}
+                      <button className="lib-tname" title="이 자료 살펴보기" onClick={() => setSel(p)}>
                         <span className="lib-tico"><BookOpen className="h-4 w-4" /></span>
                         <span className="t">{nameCell(p)}</span>
                         {/* 잠긴 자료는 **왜 안 고쳐지는지** 목록에서 바로 보인다. */}
@@ -498,8 +571,8 @@ export default function LibraryScreen() {
         ) : (
           /* 칸이 좁으면 줄 목록으로 내려간다 — 여섯 열을 우겨 넣으면 제목이 두 글자만 남는다. */
           shown.map((p) => (
-            <div key={p.id} className="lib-card">
-              <button className="lib-open-hit" title="이 이북 열기" onClick={() => void openProject(p.id)}>
+            <div key={p.id} className={'lib-card' + (sel?.id === p.id ? ' on' : '')}>
+              <button className="lib-open-hit" title="이 자료 살펴보기" onClick={() => setSel(p)}>
                 <div className="lib-ico"><BookOpen className="h-5 w-5" /></div>
                 <div className="lib-meta">
                   <div className="lib-name">{nameCell(p)}</div>
@@ -676,6 +749,83 @@ export default function LibraryScreen() {
           ‘{pendingDel.name || '제목 없음'}’ 이북을 삭제할까요?<br />
           이 이북의 모든 슬라이드와 버전 기록이 함께 삭제되며 <b>되돌릴 수 없어요.</b>
         </Modal>
+      )}
+    </div>
+
+      {/* ── 상세 칸 (②③④) ─────────────────────────────────────────
+          고른 자료를 **읽는** 자리다. 고치는 자리가 아니다 — 결재 때문에 제출 시점에
+          얼어붙은 사본이 따로 있어서, 보는 것과 고치는 것이 같은 칸이면 안 된다.
+          첫 장 미리보기는 뺐고(③), 그래서 편집기로 가는 길은 **「열기」 단추**다(④). */}
+      {sel && (
+        <aside className="lib-detail" aria-label="고른 자료">
+          <div className="lib-d-head">
+            <span className="nm" title={sel.name || '제목 없음'}>{sel.name || '제목 없음'}</span>
+            <button className="lib-d-x" onClick={() => setSel(null)} aria-label="닫기" title="닫기">✕</button>
+          </div>
+          <div className="lib-d-body">
+            <div className="lib-d-sec">
+              <div className="lib-d-h">속성</div>
+              <dl className="lib-d-props">
+                <dt>상태</dt>
+                <dd><span className={'lib-chip ' + (selChip?.state || 'draft')} style={{ marginLeft: 0 }}>
+                  {LIB_STATE_LABEL[selChip?.state || 'draft']}
+                  {selChip && selChip.round > 1 ? ` ${selChip.round}회차` : ''}
+                </span></dd>
+                <dt>폴더</dt><dd title={folderPathOf(sel.folder_id)}>{folderPathOf(sel.folder_id)}</dd>
+                <dt>결재자</dt><dd>{selChip?.approver_name || dim}</dd>
+                <dt>낸 날</dt><dd>{selChip?.created_at ? fmtKst(selChip.created_at) : dim}</dd>
+                <dt>수정</dt><dd>{fmtKst(sel.updated_at)}</dd>
+                <dt>쪽수</dt><dd>{sel.page_count}쪽</dd>
+                <dt>발행</dt><dd>{sel.published_id
+                  ? <a href={`${FOLIO_URL}/ebooks/${sel.published_id}/index.html`} target="_blank" rel="noreferrer">발행본 보기 ↗</a>
+                  : dim}</dd>
+              </dl>
+            </div>
+
+            {/* **최근 3줄만**(③). 회차가 쌓이면 이력만으로 칸이 찬다 —
+                전부 보는 곳은 결재함이고, 그 길은 아래 한 줄이 맡는다. */}
+            {histEvents.length > 0 && (
+              <div className="lib-d-sec">
+                <div className="lib-d-h">결재 이력</div>
+                <div className="lib-d-hist">
+                  {histEvents.slice(0, 3).map((e, i) => (
+                    <div key={i}>
+                      <span className="w">{fmtKst(e.t)}</span>
+                      <span>{e.who} {e.what}{e.round > 1 ? ` (${e.round}회차)` : ''}</span>
+                    </div>
+                  ))}
+                </div>
+                {histEvents.length > 3 && (
+                  <div className="lib-d-more">그 앞으로 {histEvents.length - 3}건 더 있어요</div>
+                )}
+              </div>
+            )}
+
+            {/* **의견은 숫자 한 줄이다**(③). 결재함에는 쪽별 의견까지 갈려 있고
+                「관리자와 낸 사람만 본다」는 규칙이 붙어 있다. 여기 입력칸을 또 두면
+                같은 대화가 두 곳에 생기고 규칙도 두 벌이 된다. */}
+            {selRows.length > 0 && (
+              <button className="lib-d-cmt" onClick={() => go('inbox')}>
+                <span>의견 {selRows.reduce((n, a2) => n + (a2.comment_count || 0), 0)}</span>
+                <span className="go">결재함에서 보기 →</span>
+              </button>
+            )}
+
+            <div className="lib-d-acts">
+              {/* 잠긴 자료는 **왜 안 열리는지** 그 자리에서 말한다. 「열기」가 유일한
+                  길이므로, 눌러 보고 알게 두면 고장으로 읽힌다. */}
+              <button className="lib-btn dark" disabled={!!selChip?.locked}
+                onClick={() => { if (!selChip?.locked) void openProject(sel.id) }}>열기</button>
+              {actionsFor(sel)}
+              {selChip?.locked && (
+                <div className="lib-d-lock">
+                  🔒 {selChip.state === 'pending' ? '결재 중이라' : '승인된 자료라'} 잠겨 있어요 —
+                  고치려면 「수정 요청」을 내세요.
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
       )}
     </div>
   )

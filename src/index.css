@@ -741,3 +741,45 @@ button{font-family:inherit;cursor:pointer}
 .lib-tbl td.acts{padding:4px 10px 4px 0}
 .lib-tbl .lib-actions{justify-content:flex-end}
 .lib-tbl .lib-act{width:28px;height:28px}
+
+/* ── 고른 자료 상세 (사용자 결정 ②③④ · 2026-09-15) ────────────────
+   **안 골랐으면 칸이 아예 없다**(노션식). 늘 붙어 있는 칸으로 두면 들어올 때마다
+   빈 칸을 한 번 보고, 넓게 훑고 싶을 때 되찾을 방법이 없다.
+   고르면 밀고 나오고 닫으면 목록이 폭을 되찾는다 — 그때 표도 저절로 돌아온다. */
+.lib-wrap{flex:1;min-height:0;display:flex}
+.lib-wrap>.lib-screen{flex:1;min-width:0}
+.lib-detail{flex:0 0 340px;min-width:0;background:#fff;border-left:1px solid #E6E8EE;
+  display:flex;flex-direction:column;overflow:hidden;box-shadow:-10px 0 24px rgba(15,27,61,.06)}
+.lib-d-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #eef0f4}
+.lib-d-head .nm{flex:1;min-width:0;font-size:14px;font-weight:900;color:#0F1B3D;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-d-x{border:none;background:transparent;color:#94a3b8;font-size:14px;cursor:pointer;
+  border-radius:6px;padding:2px 6px}
+.lib-d-x:hover{background:#eef1f6;color:#0f172a}
+.lib-d-body{flex:1;overflow:auto;padding:13px 14px 20px}
+.lib-d-sec{margin-bottom:15px}
+.lib-d-h{font-size:11px;font-weight:900;color:#94a3b8;letter-spacing:.03em;margin-bottom:7px}
+.lib-d-props{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12.5px;margin:0}
+.lib-d-props dt{color:#94a3b8}
+.lib-d-props dd{margin:0;font-weight:700;color:#334155;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-d-props dd a{color:#2462EB;text-decoration:none}
+.lib-d-props dd a:hover{text-decoration:underline}
+.lib-d-hist{font-size:12px;color:#5b6270}
+.lib-d-hist>div{display:flex;gap:9px;padding:5px 0;border-bottom:1px dashed #eef0f4}
+.lib-d-hist>div:last-child{border-bottom:none}
+.lib-d-hist .w{flex:0 0 96px;color:#94a3b8;font-variant-numeric:tabular-nums}
+.lib-d-more{font-size:11.5px;color:#94a3b8;margin-top:6px}
+/* 의견은 **숫자 한 줄**이다 — 대화는 결재함에서 한다(규칙이 두 벌이 되면 안 된다). */
+.lib-d-cmt{display:flex;align-items:center;gap:8px;width:100%;border:1.4px solid #e9ebf0;
+  background:#fff;border-radius:10px;padding:9px 12px;font:inherit;font-size:12.5px;
+  font-weight:700;color:#5b6270;cursor:pointer;margin-bottom:15px}
+.lib-d-cmt:hover{border-color:#c6d5ff;background:#f8fafc}
+.lib-d-cmt .go{margin-left:auto;color:#2462EB;font-size:11.5px;font-weight:800}
+.lib-d-acts{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  border-top:1px solid #eef0f4;padding-top:12px}
+.lib-d-acts .lib-btn.dark:disabled{opacity:.45;cursor:not-allowed}
+.lib-d-lock{flex:1 0 100%;font-size:11.5px;color:#8a5a10;line-height:1.6;margin-top:2px}
+/* 고른 줄 */
+.lib-tbl tbody tr.on td{background:#EAF1FE}
+.lib-card.on{border-color:#2462EB;background:#EAF1FE}

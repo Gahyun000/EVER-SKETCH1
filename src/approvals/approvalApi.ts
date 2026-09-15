@@ -115,9 +115,16 @@ export interface ApprovalListing {
   counts: Record<ApprovalStatus, number>
 }
 
-export async function apiListApprovals(status?: ApprovalStatus | ''): Promise<ApprovalListing> {
-  const q = status ? `?status=${status}` : ''
-  return req<ApprovalListing>(q)
+/** `projectId` 를 주면 **그 자료의 결재 이력만** 온다(회차가 여럿이면 여럿).
+ *  서버는 처음부터 받던 값인데 화면 쪽에서만 안 쓰고 있었다. */
+export async function apiListApprovals(
+  status?: ApprovalStatus | '', projectId?: string,
+): Promise<ApprovalListing> {
+  const qs = new URLSearchParams()
+  if (status) qs.set('status', status)
+  if (projectId) qs.set('project_id', projectId)
+  const q = qs.toString()
+  return req<ApprovalListing>(q ? `?${q}` : '')
 }
 
 export async function apiGetApproval(aid: string): Promise<Approval> {
