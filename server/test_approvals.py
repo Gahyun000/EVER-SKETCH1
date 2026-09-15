@@ -456,6 +456,42 @@ def test_라우트_상태표는_본인_자료만():
     assert len(ad.get("/api/approvals/status-map").json()["status_map"]) == 2
 
 
+def test_라우트_상태표의_결재자는_결정_뒤에만_있다():
+    """자료 목록의 「결재자」 열이 여기서 온다.
+
+    **결재자는 미리 정해지지 않는다.** 이 도구는 결재선을 세우지 않고 Lv1 이면 누구나
+    결재한다. 그래서 「결재 중」인 자료의 결재자 칸은 비어 있는 게 맞다 —
+    없는 이름을 지어내 채우면 목록이 거짓말을 한다."""
+    app = make_app()
+    admin, w = two_writers(app)
+    c = w["writer1"]["client"]
+    pid = w["writer1"]["pid"]
+
+    m = c.get("/api/approvals/status-map").json()["status_map"]
+    assert m[pid]["approver"] == "", "결재 중에는 결재자가 없다"
+    assert m[pid]["approver_name"] == "", "이름 칸도 비어 있다"
+
+    ad = cli(app, "admin", "adminpw12345")
+    aid = m[pid]["approval_id"]
+    assert ad.post("/api/approvals/%s/decide" % aid, json={"action": "approve"}).status_code == 200
+
+    m2 = c.get("/api/approvals/status-map").json()["status_map"]
+    assert m2[pid]["approver"], "결정이 나면 결재자 id 가 들어온다"
+    assert m2[pid]["approver_name"] == "시스템 관리자", \
+        "**이름은 서버가 붙인다** — 화면이 id 로 이름을 되묻지 않는다"
+    # 저장은 여전히 id 다. 개명 한 번에 「누가 승인했는가」가 흐려지면 안 된다.
+    assert m2[pid]["approver"] != m2[pid]["approver_name"]
+
+
+def test_라우트_남의_결재자_이름은_안_샌다():
+    """이름은 **거른 뒤에** 붙인다. 순서가 뒤집히면 남의 자료의 결재자가 새어 나간다."""
+    app = make_app()
+    admin, w = two_writers(app)
+    m = w["writer1"]["client"].get("/api/approvals/status-map").json()["status_map"]
+    assert list(m) == [w["writer1"]["pid"]]
+    assert all("approver_name" in v for v in m.values()), "본인 것에는 이름 칸이 붙어 있다"
+
+
 def test_라우트_비로그인은_401():
     app = make_app()
     assert TestClient(app).get("/api/approvals").status_code == 401

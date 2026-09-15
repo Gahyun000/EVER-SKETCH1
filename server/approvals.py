@@ -189,17 +189,22 @@ def status_map() -> dict:
     c = _conn()
     try:
         rows = c.execute(
-            "SELECT project_id,id,status,round,kind,decided_at,created_at FROM Approvals "
+            "SELECT project_id,id,status,round,kind,decided_at,created_at,approver FROM Approvals "
             # 동점은 rowid 로 깬다 — `latest_for_project` 와 **같은 답**이 나와야 한다.
             # 어긋나면 목록의 배지와 상세 화면의 상태가 서로 다른 말을 한다.
             "ORDER BY created_at DESC, rowid DESC").fetchall()
     finally:
         c.close()
-    for pid, aid, st, rnd, kind, decided, created in rows:
+    for pid, aid, st, rnd, kind, decided, created, approver in rows:
         if pid in out:
             continue        # 최신순이므로 처음 만난 것이 최신이다
+        # **결재자는 결정이 난 뒤에만 있다.** 이 도구는 결재자를 미리 지정하지 않는다 —
+        # Lv1 이면 누구나 결재하고, `decide()` 가 그때 이 칸을 채운다. 그래서 「결재 중」인
+        # 자료의 결재자 칸은 비어 있는 게 맞다. 자리를 비워 두는 것과 「아직 없다」를
+        # 가려 말하려고, 화면이 짐작하지 않게 **id 를 그대로** 준다(이름은 라우터가 붙인다).
         row = {"approval_id": aid, "status": st, "round": rnd or 1,
-               "kind": kind or "approval", "decided_at": decided, "created_at": created}
+               "kind": kind or "approval", "decided_at": decided, "created_at": created,
+               "approver": approver or ""}
         # **파생 상태를 여기서 같이 준다**(P7). 화면이 `kind` 와 `status` 를 보고 스스로
         # 짜맞추게 두면 서버와 화면이 서로 다른 상태를 말하는 날이 온다.
         row["state"] = doc_state.derive(row)

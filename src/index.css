@@ -464,15 +464,25 @@ button{font-family:inherit;cursor:pointer}
 /* **셸 안에 들어왔다**(2026-09-10). 예전에는 `position:fixed; inset:0` 이라
    화면 전체를 덮었다 — 셸의 머리줄·사이드바까지 가려서 왼쪽 메뉴가 안 눌렸다.
    이제 자리는 `.sh-main` 이 정하고, 이 화면은 그 안을 채운다. */
-.lib-screen{flex:1;min-height:0;background:#f5f6f8;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:28px 20px 60px}
-.lib-head{width:min(880px,94vw);display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+/* **폭은 한 군데서 정한다**(2026-09-15). 예전에는 줄마다 880px 가 박혀 있었다.
+   사이드바·폴더 칸이 생기면서 남는 자리가 그때그때 달라지는데 목록만 그 값에서 멈춰 서,
+   1910 창에서는 작업 영역의 48% 가 빈 자리였다. 이제 남는 자리를 다 쓰되 1400px 에서
+   멈춘다 — 그보다 길어지면 한 줄을 눈으로 따라가기 어렵다. */
+.lib-screen{flex:1;min-height:0;background:#f5f6f8;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:22px 20px 60px;--lib-w:min(1400px,100%)}
+.lib-head{width:var(--lib-w);display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+/* **머리줄 안에서는 제 폭을 안 우긴다.** 검색은 원래 제 줄을 차지하던 것이라
+   `width:var(--lib-w)` 를 들고 있었다 — 그대로 올리면 머리줄 한 줄을 통째로 먹고
+   「새 폴더·새 이북」이 아래로 밀린다. 여기서는 남는 자리를 나눠 쓴다. */
+.lib-head .lib-search{width:auto;flex:1 1 420px;min-width:0;margin-bottom:0}
+.lib-head .lib-date{flex:0 0 auto}
+.lib-head .lib-q{flex:1 1 200px}
 /* 신원 표시 + 「새 이북」. 좁아지면 줄바꿈해서 밀릴 뿐, 서로 포개지지 않는다. */
 .lib-head-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .lib-brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:900;color:#0F1B3D}
 .lib-brand .logo{width:30px;height:30px;border-radius:7px;background:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwNCIgZmlsbD0iIzBGMUIzRCIvPjxwYXRoIGQ9Ik0gMTUwLDM3MiBRIDIwMiwzMjYgMjUyLDM3MiBUIDM1NiwzNjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RDRTdGRiIgc3Ryb2tlLXdpZHRoPSIyMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoMzAgMjU2IDI1NikiPjxyZWN0IHg9IjIyNCIgeT0iOTYiIHdpZHRoPSI2NCIgaGVpZ2h0PSIzMCIgcng9IjExIiBmaWxsPSIjRDk4QTJBIi8+PHJlY3QgeD0iMjI0IiB5PSIxMjYiIHdpZHRoPSI2NCIgaGVpZ2h0PSIyNCIgZmlsbD0iI0FFQjZDMiIvPjxyZWN0IHg9IjIyNCIgeT0iMTMyIiB3aWR0aD0iNjQiIGhlaWdodD0iNCIgZmlsbD0iIzg4OSIvPjxyZWN0IHg9IjIyNCIgeT0iMTQyIiB3aWR0aD0iNjQiIGhlaWdodD0iNCIgZmlsbD0iIzg4OSIvPjxyZWN0IHg9IjIyNCIgeT0iMTUwIiB3aWR0aD0iNjQiIGhlaWdodD0iMTgwIiBmaWxsPSIjMjQ2MkVCIi8+PHJlY3QgeD0iMjMxIiB5PSIxNTAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxODAiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuMjgiLz48cGF0aCBkPSJNIDIyNCwzMzAgTCAyODgsMzMwIEwgMjU2LDM5MiBaIiBmaWxsPSIjRUJDOTlBIi8+PHBhdGggZD0iTSAyNDEsMzYyIEwgMjcxLDM2MiBMIDI1NiwzOTIgWiIgZmlsbD0iIzIyMzE0RiIvPjwvZz48L3N2Zz4=") center/cover no-repeat}
 .lib-new{display:inline-flex;align-items:center;gap:6px;border:none;background:#2462EB;color:#fff;font-weight:800;font-size:14px;border-radius:10px;padding:9px 16px;cursor:pointer}
 .lib-new:hover{background:#1b52cf}
-.lib-search{width:min(880px,94vw);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.lib-search{width:var(--lib-w);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .lib-q{display:flex;align-items:center;gap:6px;flex:1 1 240px;min-width:200px;background:#fff;border:1.4px solid #e5e7eb;border-radius:10px;padding:7px 11px;color:#64748b}
 .lib-q input{border:none;outline:none;flex:1;font-size:14px;color:#0f172a;background:transparent}
 .lib-date{background:#fff;border:1.4px solid #e5e7eb;border-radius:10px;padding:7px 10px;font-size:13px;color:#0f172a}
@@ -480,10 +490,10 @@ button{font-family:inherit;cursor:pointer}
 .lib-btn{border:1.4px solid #e5e7eb;background:#fff;color:#334155;font-weight:800;font-size:13px;border-radius:10px;padding:7px 14px;cursor:pointer}
 .lib-btn.dark{background:#0F1B3D;border-color:#0F1B3D;color:#fff}
 .lib-btn:hover{filter:brightness(.97)}
-.lib-pager{width:min(880px,94vw);display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px;color:#64748b;font-size:12.5px;font-weight:700}
+.lib-pager{width:var(--lib-w);display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px;color:#64748b;font-size:12.5px;font-weight:700}
 .lib-nav button{border:1.4px solid #e5e7eb;background:#fff;border-radius:8px;padding:4px 8px;margin-left:6px;cursor:pointer;color:#334155}
 .lib-nav button:disabled{opacity:.4;cursor:default}
-.lib-list{width:min(880px,94vw);display:flex;flex-direction:column;gap:10px}
+.lib-list{width:var(--lib-w);display:flex;flex-direction:column;gap:10px}
 .lib-empty{white-space:pre-line;text-align:center;color:#94a3b8;font-size:14px;line-height:1.7;padding:56px 20px;background:#fff;border:1.4px dashed #e5e7eb;border-radius:14px}
 .lib-card{display:flex;align-items:center;gap:8px;background:#fff;border:1.4px solid #e9ebf0;border-radius:14px;padding:12px 14px;transition:box-shadow .12s,border-color .12s}
 .lib-card:hover{border-color:#c9d6f5;box-shadow:0 4px 16px rgba(36,98,235,.08)}
@@ -619,7 +629,7 @@ button{font-family:inherit;cursor:pointer}
    ══════════════════════════════════════════════════════════ */
 
 /* 경로 — 4칸까지 다 보이고, 넘치면 앞을 접되 「…」은 **눌리는 버튼**이다(D26). */
-.lib-crumb{width:min(880px,94vw);display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:10px}
+.lib-crumb{width:var(--lib-w);display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:10px}
 .lib-crumb-g{display:inline-flex;align-items:center;gap:2px}
 .lib-crumb-sep{color:#c3cad6;flex:0 0 auto}
 .lib-crumb-i{display:inline-flex;align-items:center;gap:5px;border:none;background:none;
@@ -630,16 +640,16 @@ button{font-family:inherit;cursor:pointer}
 /* 「…」은 글자가 아니라 버튼이다 — 접힌 자리에 무엇이 있었는지 물어볼 수 있어야 한다. */
 .lib-crumb-i.dots{font-weight:800;letter-spacing:1px;border:1px dashed #cfd6e4;padding:2px 9px}
 
-.lib-ferr{width:min(880px,94vw);background:#fdf0f0;border:1px solid #f0d6d6;color:#7d2027;
+.lib-ferr{width:var(--lib-w);background:#fdf0f0;border:1px solid #f0d6d6;color:#7d2027;
   border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:10px}
 
-.lib-mk{width:min(880px,94vw);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.lib-mk{width:var(--lib-w);display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .lib-mk input{flex:0 1 260px;min-width:0;height:36px;padding:0 11px;border:1.4px solid #e5e7eb;
   border-radius:10px;font-size:13.5px;font-family:inherit;color:#0f172a;outline:none}
 .lib-mk input:focus{border-color:#2462EB;box-shadow:0 0 0 3px #EAF1FE}
 
 /* 폴더 — **한 줄 5개**(확정값). 좁아지면 자동으로 줄어든다. */
-.lib-folders{width:min(880px,94vw);display:grid;gap:10px;margin-bottom:14px;
+.lib-folders{width:var(--lib-w);display:grid;gap:10px;margin-bottom:14px;
   grid-template-columns:repeat(auto-fill,minmax(155px,1fr))}
 @media (min-width:900px){.lib-folders{grid-template-columns:repeat(5,1fr)}}
 .lib-folder{position:relative;border:1.4px solid #e5e7eb;background:#fff;border-radius:12px;
@@ -661,7 +671,7 @@ button{font-family:inherit;cursor:pointer}
 .lib-scope{font-size:12px;color:#94a3b8;white-space:nowrap}
 
 /* 쪽 번호 — **이어진 다섯 칸**(D25). 목록 아래에 둔다. */
-.lib-pagebar{width:min(880px,94vw);display:flex;justify-content:center;align-items:center;
+.lib-pagebar{width:var(--lib-w);display:flex;justify-content:center;align-items:center;
   gap:4px;margin:14px 0 4px}
 .lib-pg{min-width:32px;height:32px;padding:0 8px;border:1.4px solid #e5e7eb;background:#fff;
   border-radius:9px;font-size:13px;font-weight:700;color:#64748b;cursor:pointer;font-family:inherit;
@@ -680,6 +690,9 @@ button{font-family:inherit;cursor:pointer}
 .lib-chip.approved{background:#E9F5EF;color:#215c46}
 .lib-chip.rejected{background:#fdf0f0;color:#7d2027}
 .lib-chip.withdrawn{background:#eef0f3;color:#6b7480}
+/* **표에서만 쓰인다.** 줄 목록은 초안에 배지를 안 단다(모든 줄에 붙으면 배경이 된다).
+   표의 「상태」 칸은 비면 안 되므로 여기서만 이 칩이 뜬다 — 그래서 가장 조용한 색이다. */
+.lib-chip.draft{background:#f1f3f6;color:#7b8494}
 /* 수정 요청 흐름(P7). 「수정 중」이 눈에 띄어야 하는 이유 — 팀은 이 자료를
    지금도 보고 있고, 그림이 곧 바뀐다는 사실이 목록에서 보여야 한다. */
 .lib-chip.revision_pending{background:#FFF4E3;color:#8a5a10}
@@ -698,3 +711,33 @@ button{font-family:inherit;cursor:pointer}
 .np-solo b{font-size:14px;font-weight:800;color:#0f172a}
 .np-solo span{grid-column:2;font-size:12.5px;color:#64748b;line-height:1.7}
 .np-solo>svg{grid-row:span 2;color:#2462EB}
+
+/* ── 자료 목록 표 (사용자 결정 ⑤ · 2026-09-15) ────────────────────
+   줄 목록은 「9월 3일 14:20 · 12페이지 · 결재 중 · 잠김」을 한 줄에 이어 붙였다.
+   같은 종류가 세로로 서야 눈이 매번 글을 안 읽고, 열 머리를 눌러 줄을 세울 수 있다.
+   좁으면 표를 포기하고 줄 목록으로 내려간다 — `libTable.wantsTable` 이 정한다. */
+.lib-tbl{width:100%;border-collapse:separate;border-spacing:0;background:#fff;
+  border:1.4px solid #e9ebf0;border-radius:14px;overflow:hidden;table-layout:fixed}
+.lib-tbl th{font-size:11.5px;font-weight:800;color:#94a3b8;text-align:left;padding:9px 12px;
+  background:#f8fafc;border-bottom:1.4px solid #e9ebf0;white-space:nowrap}
+.lib-tbl th button{border:none;background:transparent;font:inherit;color:inherit;cursor:pointer;
+  padding:2px 4px;margin:-2px -4px;border-radius:5px;display:inline-flex;align-items:center;gap:3px}
+.lib-tbl th button:hover{color:#2462EB;background:#eef2f9}
+/* 지금 줄 세운 열은 **색으로도** 말한다 — 화살표 하나는 눈에 잘 안 띈다. */
+.lib-tbl th.sorted{color:#2462EB}
+.lib-tbl th .dir{font-size:9px}
+.lib-tbl td{padding:10px 12px;border-bottom:1px solid #f1f3f6;font-size:13px;color:#334155;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-tbl tbody tr:last-child td{border-bottom:none}
+.lib-tbl tbody tr:hover td{background:#f8fafc}
+.lib-tname{display:flex;align-items:center;gap:9px;min-width:0;width:100%;border:none;
+  background:transparent;padding:0;cursor:pointer;text-align:left;font:inherit}
+.lib-tname .t{font-size:14px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;min-width:0}
+.lib-tico{width:28px;height:28px;flex:0 0 auto;display:grid;place-items:center;border-radius:8px;
+  background:rgba(36,98,235,.10);color:#2462EB}
+/* 값이 없는 칸은 **빈 칸이 아니라 「—」**다. 비워 두면 못 받아 온 것처럼 보인다. */
+.lib-tdim{color:#cbd5e1}
+.lib-tbl td.acts{padding:4px 10px 4px 0}
+.lib-tbl .lib-actions{justify-content:flex-end}
+.lib-tbl .lib-act{width:28px;height:28px}

@@ -96,11 +96,23 @@ def status_map(user: dict = Depends(require_active)):
     작성자에게는 본인 자료의 것만 남긴다 — 남의 자료 id 가 여기서 새면 안 된다."""
     require_action(user, perm.COMMENT_READ, perm.Resource(owner_id=user["id"]))
     m = approvals_store.status_map()
-    if _is_admin(user):
-        return {"status_map": m}
-    vis = perm.visible_project_filter(auth_store.actor_of(user))
-    mine = {p["id"] for p in projects_store.list_projects(vis, user["id"])}
-    return {"status_map": {k: v for k, v in m.items() if k in mine}}
+    if not _is_admin(user):
+        vis = perm.visible_project_filter(auth_store.actor_of(user))
+        mine = {p["id"] for p in projects_store.list_projects(vis, user["id"])}
+        m = {k: v for k, v in m.items() if k in mine}
+    # **이름은 여기서 붙인다.** 저장에는 `Users.id` 를 두는 이유가 그대로 있다 —
+    # 이름이 바뀌어도 「누가 승인했는가」가 흐려지면 안 된다. 거를 것을 먼저 거르고
+    # 붙이므로, 남의 자료의 결재자 이름이 새어 나가지 않는다.
+    _fill_approver_names(m)
+    return {"status_map": m}
+
+
+def _fill_approver_names(m: dict) -> None:
+    """한 번에 모아 붙인다 — 건마다 되물으면 자료 20건에 요청이 21번 나간다."""
+    ids = {v.get("approver") for v in m.values() if v.get("approver")}
+    names = {i: (auth_store.get_user(i) or {}).get("name", "") for i in ids}
+    for v in m.values():
+        v["approver_name"] = names.get(v.get("approver"), "")
 
 
 @router.get("/{aid}")

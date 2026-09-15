@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import UserBar from '../auth/UserBar'
 import { useAuth } from '../auth/useAuth'
 import { wantsSharedFromSearch } from '../teamlib/teamLibraryModel'
@@ -18,6 +18,10 @@ import {
   canCreateHere, childrenOf, collapsePath, countInSubtree, pageWindow, scopeLabel,
   scopedProjects, type Crumb,
 } from './folderNav'
+import {
+  LIB_COLS, LIB_SORT_DEFAULT, LIB_STATE_LABEL, nextSort, sortRows, wantsTable,
+  type LibSort,
+} from './libTable'
 
 const PAGE_SIZE = 12
 const FOLIO_URL = 'http://127.0.0.1:8811'
@@ -47,6 +51,24 @@ export default function LibraryScreen() {
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null)
   const [pendingDel, setPendingDel] = useState<ProjectMeta | null>(null)
   const [picking, setPicking] = useState(false)
+
+  // ── 표 (⑤) ────────────────────────────────
+  const [sort, setSort] = useState<LibSort>(LIB_SORT_DEFAULT)
+  /** 목록 칸의 **실제** 폭. 창 크기만으로는 못 센다 — 사이드바를 접었는지, 폴더 칸을
+   *  뺐는지에 따라 남는 자리가 달라진다. 그래서 그리는 자리를 직접 잰다. */
+  const listRef = useRef<HTMLDivElement | null>(null)
+  const [listW, setListW] = useState(0)
+  useLayoutEffect(() => {
+    const el = listRef.current
+    if (!el) return
+    // **그리기 전에 한 번 잰다.** 0 에서 시작해 관찰자가 알려 주길 기다리면
+    // 들어올 때마다 줄 목록이 한 번 깜빡였다가 표로 바뀐다.
+    setListW(el.getBoundingClientRect().width)
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver((es) => { for (const e of es) setListW(e.contentRect.width) })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // ── 폴더 (P4 · 2026-09-15 스토어로 옮김) ──────────────
   //
@@ -187,9 +209,53 @@ export default function LibraryScreen() {
   const total = filtered.length
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const cur = Math.min(page, pages)
-  const shown = filtered.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE)
+  // **줄 세운 뒤에 쪽을 나눈다.** 거꾸로 하면 1쪽 안에서만 줄이 서서,
+  // 「제목순」으로 세워도 2쪽 첫 줄이 1쪽 마지막 줄보다 앞에 온다.
+  const ordered = useMemo(() => sortRows(filtered, chips, sort), [filtered, chips, sort])
+  const shown = ordered.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE)
+  /** 표를 그릴 만한가. 아직 안 쟀으면(0) 표로 본다 — 깜빡임을 피하려고 낙관한다. */
+  const asTable = listW === 0 || wantsTable(listW)
 
   if (view !== 'library') return null
+
+  /** 줄 오른쪽 도구. **표와 줄 목록이 같은 것을 쓴다** — 두 벌로 두면 한쪽만 고쳐진다. */
+  const actionsFor = (p: ProjectMeta) => (
+    <div className="lib-actions">
+      {p.published_id ? (
+        <a className="lib-act" title="발행본 보기(EVER-FOLIO)" href={`${FOLIO_URL}/ebooks/${p.published_id}/index.html`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></a>
+      ) : null}
+      {/* **한 자리에 한 가지 일만 놓는다.** 승인된 자료에 「제출」을 띄워 두면
+          눌러 보고 400 을 받는다 — 그 자리에 오는 것은 「수정 요청」이다. */}
+      {canSubmit && chips[p.id]?.state === 'approved' && (
+        <button className="lib-act" title="수정 요청"
+          onClick={() => { setRevising(p); setReviseMsg(''); setAErr('') }}>
+          <PenLine className="h-4 w-4" />
+        </button>
+      )}
+      {canSubmit && !chips[p.id]?.locked && chips[p.id]?.state !== 'approved' && (
+        <button className="lib-act" title="결재 제출"
+          onClick={() => { setSubmitting(p); setSubmitMsg(''); setAErr('') }}>
+          <Send className="h-4 w-4" />
+        </button>
+      )}
+      <button className="lib-act" title="이름 바꾸기" onClick={() => setEditing({ id: p.id, value: p.name || '' })}><Pencil className="h-4 w-4" /></button>
+      <button className="lib-act" title="복제" onClick={() => void duplicateProject(p.id)}><Copy className="h-4 w-4" /></button>
+      <button className="lib-act danger" title="삭제" onClick={() => setPendingDel(p)}><Trash2 className="h-4 w-4" /></button>
+    </div>
+  )
+
+  /** 이름 칸 — 고치는 중이면 입력칸이 된다. 표와 줄 목록이 같이 쓴다. */
+  const nameCell = (p: ProjectMeta) =>
+    editing && editing.id === p.id ? (
+      <input className="lib-rename" autoFocus value={editing.value}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => setEditing({ id: p.id, value: e.target.value })}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void commitRename() } if (e.key === 'Escape') setEditing(null) }}
+        onBlur={() => void commitRename()} />
+    ) : (p.name || '제목 없음')
+
+  /** 값이 없는 칸은 **빈 칸이 아니라 「—」**다. 비워 두면 못 받아 온 것처럼 보인다. */
+  const dim = <span className="lib-tdim">—</span>
 
   const applySearch = () => { setQ(qIn); setFrom(fromIn); setTo(toIn); setPage(1) }
   const resetSearch = () => { setQIn(''); setFromIn(''); setToIn(''); setQ(''); setFrom(''); setTo(''); setPage(1) }
@@ -220,6 +286,20 @@ export default function LibraryScreen() {
             여기 남는 것은 **이 화면에서 하는 일**뿐이다: 새 폴더 · 새 이북.
             (「팀 공유」·「결재함」으로 가는 길은 왼쪽 메뉴에 있다 —
              `go()` 는 남겨 둔다: 뷰어에서 `?shared=1` 로 돌아오는 길이 쓴다.) */}
+        {/* **검색이 머리줄로 올라왔다**(2026-09-15). 예전에는 목록 바로 위에 제 줄을
+            차지하고 있었다. 목록이 폭을 다 쓰게 되면서 머리줄에 빈자리가 생겼고,
+            검색을 그리 올리면 **목록 위가 한 줄 가벼워진다** — 자료가 한 줄 더 올라온다. */}
+        <div className="lib-search">
+          <div className="lib-q"><Search className="h-4 w-4" /><input value={qIn} onChange={(e) => setQIn(e.target.value)} placeholder="이북 제목 또는 ID" onKeyDown={(e) => { if (e.key === 'Enter') applySearch() }} aria-label="검색어" /></div>
+          <input className="lib-date" type="date" value={fromIn} onChange={(e) => setFromIn(e.target.value)} aria-label="시작일" />
+          <span className="lib-tilde">~</span>
+          <input className="lib-date" type="date" value={toIn} onChange={(e) => setToIn(e.target.value)} aria-label="종료일" />
+          <button className="lib-btn dark" onClick={applySearch}>검색</button>
+          <button className="lib-btn" onClick={resetSearch}>초기화</button>
+          {/* 범위를 **글자로** 말한다(D27). 「전체에서 / 이 폴더에서」 토글을 두지 않는다 —
+              서 있는 자리가 곧 범위라 고를 것이 없고, 고르는 장치를 없애면 틀리게 고를 일도 없다. */}
+          <span className="lib-scope">{scopeLabel(path)}</span>
+        </div>
         <div className="lib-head-right">
           <button className="lib-btn" disabled={!canCreateHere(path.length, maxDepth)}
             title={canCreateHere(path.length, maxDepth) ? '' : `폴더는 ${maxDepth}단까지만 만들 수 있어요`}
@@ -326,19 +406,6 @@ export default function LibraryScreen() {
         </div>
       )}
 
-      {/* 검색/조회 (표준: 검색어·시작일·종료일·검색·초기화) */}
-      <div className="lib-search">
-        <input className="lib-date" type="date" value={fromIn} onChange={(e) => setFromIn(e.target.value)} aria-label="시작일" />
-        <span className="lib-tilde">~</span>
-        <input className="lib-date" type="date" value={toIn} onChange={(e) => setToIn(e.target.value)} aria-label="종료일" />
-        <div className="lib-q"><Search className="h-4 w-4" /><input value={qIn} onChange={(e) => setQIn(e.target.value)} placeholder="이북 제목 또는 ID" onKeyDown={(e) => { if (e.key === 'Enter') applySearch() }} aria-label="검색어" /></div>
-        <button className="lib-btn dark" onClick={applySearch}>검색</button>
-        <button className="lib-btn" onClick={resetSearch}>초기화</button>
-        {/* 범위를 **글자로** 말한다(D27). 「전체에서 / 이 폴더에서」 토글을 두지 않는다 —
-            서 있는 자리가 곧 범위라 고를 것이 없고, 고르는 장치를 없애면 틀리게 고를 일도 없다. */}
-        <span className="lib-scope">{scopeLabel(path)}</span>
-      </div>
-
       {/* 개수 (표준: 전체개수·현재/총 페이지·페이지크기). 쪽 이동은 **목록 아래**에 둔다 —
           목록을 다 보고 나서 넘기는 것이 순서다. */}
       <div className="lib-pager">
@@ -347,7 +414,7 @@ export default function LibraryScreen() {
         </span>
       </div>
 
-      <div className="lib-list">
+      <div className="lib-list" ref={listRef}>
         {loading ? (
           <div className="lib-empty">불러오는 중…</div>
         ) : listError ? (
@@ -368,34 +435,82 @@ export default function LibraryScreen() {
               : canSubmit
                 ? '아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'
                 : '아직 만든 것이 없어요.\n여기에 만든 것은 나만 봅니다.\n팀에 올라온 자료는 「팀 공유」에서 봅니다.'}</div>
+        ) : asTable ? (
+          /* ── 표 (⑤) ── 열 머리를 눌러 줄을 세운다. 서버는 안 건드린다 —
+             목록은 이미 통째로 내려와 있고 쪽 나누기도 화면이 한다. */
+          <table className="lib-tbl">
+            <thead>
+              <tr>
+                {LIB_COLS.map((c) => (
+                  <th key={c.key} className={sort.key === c.key ? 'sorted' : undefined}
+                    style={c.key === 'name' ? undefined : { width: c.w }}
+                    aria-sort={sort.key !== c.key ? 'none' : sort.dir === 'asc' ? 'ascending' : 'descending'}>
+                    <button onClick={() => setSort(nextSort(sort, c.key))}
+                      title={`${c.label}로 줄 세우기`}>
+                      {c.label}
+                      {sort.key === c.key ? <span className="dir">{sort.dir === 'asc' ? '▲' : '▼'}</span> : null}
+                    </button>
+                  </th>
+                ))}
+                <th style={{ width: 132 }} aria-label="도구" />
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((p) => {
+                const c = chips[p.id]
+                return (
+                  <tr key={p.id}>
+                    <td>
+                      <button className="lib-tname" title="이 이북 열기" onClick={() => void openProject(p.id)}>
+                        <span className="lib-tico"><BookOpen className="h-4 w-4" /></span>
+                        <span className="t">{nameCell(p)}</span>
+                        {/* 잠긴 자료는 **왜 안 고쳐지는지** 목록에서 바로 보인다. */}
+                        {c?.locked ? (
+                          <span className="lib-lock" title="결재 중이거나 승인된 자료라 잠겨 있어요">
+                            <Lock className="h-3 w-3" />
+                          </span>
+                        ) : null}
+                      </button>
+                    </td>
+                    {/* **파생 상태를 그린다**(P7). 상태를 짜맞추는 일은 서버가 한다.
+                        칩이 아예 없으면 **결재 이력이 하나도 없다**는 뜻이고, 그건
+                        「자료가 없다(—)」가 아니라 **초안**이다. 여기서만 「—」로 두면
+                        새로 만든 자료가 전부 「모름」처럼 보인다. */}
+                    <td>{c ? (
+                      <span className={'lib-chip ' + c.state} style={{ marginLeft: 0 }}>
+                        {LIB_STATE_LABEL[c.state]}{c.round > 1 ? ` ${c.round}회차` : ''}
+                      </span>
+                    ) : (
+                      <span className="lib-chip draft" style={{ marginLeft: 0 }}>{LIB_STATE_LABEL.draft}</span>
+                    )}</td>
+                    <td title={c?.approver_name || ''}>{c?.approver_name || dim}</td>
+                    <td>{c?.created_at ? fmtKst(c.created_at) : dim}</td>
+                    <td>{fmtKst(p.updated_at)}</td>
+                    <td>{p.published_id
+                      ? <span className="lib-chip approved" style={{ marginLeft: 0 }}>발행됨</span>
+                      : dim}</td>
+                    <td className="acts">{actionsFor(p)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         ) : (
+          /* 칸이 좁으면 줄 목록으로 내려간다 — 여섯 열을 우겨 넣으면 제목이 두 글자만 남는다. */
           shown.map((p) => (
             <div key={p.id} className="lib-card">
               <button className="lib-open-hit" title="이 이북 열기" onClick={() => void openProject(p.id)}>
                 <div className="lib-ico"><BookOpen className="h-5 w-5" /></div>
                 <div className="lib-meta">
-                  {editing && editing.id === p.id ? (
-                    <input className="lib-rename" autoFocus value={editing.value}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => setEditing({ id: p.id, value: e.target.value })}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void commitRename() } if (e.key === 'Escape') setEditing(null) }}
-                      onBlur={() => void commitRename()} />
-                  ) : (
-                    <div className="lib-name">{p.name || '제목 없음'}</div>
-                  )}
+                  <div className="lib-name">{nameCell(p)}</div>
                   <div className="lib-sub">
                     {fmtKst(p.updated_at)} · {p.page_count}페이지{p.published_id ? ' · 발행됨' : ''}
-                    {/* **파생 상태를 그린다**(P7). `status` 는 결재 행 하나의 상태일 뿐이라,
-                        수정 요청이 걸려 있으면 「승인」이라고 적히면서 실제로는 「수정 중」이다.
-                        상태를 짜맞추는 일은 서버가 한다 — 화면이 또 하면 두 곳이 어긋난다. */}
                     {chips[p.id] && DOC_STATE_LABEL[chips[p.id].state] && (
                       <span className={'lib-chip ' + chips[p.id].state}>
                         {DOC_STATE_LABEL[chips[p.id].state]}
                         {chips[p.id].round > 1 ? ` ${chips[p.id].round}회차` : ''}
                       </span>
                     )}
-                    {/* 잠긴 자료는 **왜 안 고쳐지는지** 목록에서 바로 보인다.
-                        배지가 없는 상태(승인됨)일수록 이 자물쇠가 유일한 설명이다. */}
                     {chips[p.id]?.locked && (
                       <span className="lib-lock" title="결재 중이거나 승인된 자료라 잠겨 있어요">
                         <Lock className="h-3 w-3" /> 잠김
@@ -404,28 +519,7 @@ export default function LibraryScreen() {
                   </div>
                 </div>
               </button>
-              <div className="lib-actions">
-                {p.published_id ? (
-                  <a className="lib-act" title="발행본 보기(EVER-FOLIO)" href={`${FOLIO_URL}/ebooks/${p.published_id}/index.html`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></a>
-                ) : null}
-                {/* **한 자리에 한 가지 일만 놓는다.** 승인된 자료에 「제출」을 띄워 두면
-                    눌러 보고 400 을 받는다 — 그 자리에 오는 것은 「수정 요청」이다. */}
-                {canSubmit && chips[p.id]?.state === 'approved' && (
-                  <button className="lib-act" title="수정 요청"
-                    onClick={() => { setRevising(p); setReviseMsg(''); setAErr('') }}>
-                    <PenLine className="h-4 w-4" />
-                  </button>
-                )}
-                {canSubmit && !chips[p.id]?.locked && chips[p.id]?.state !== 'approved' && (
-                  <button className="lib-act" title="결재 제출"
-                    onClick={() => { setSubmitting(p); setSubmitMsg(''); setAErr('') }}>
-                    <Send className="h-4 w-4" />
-                  </button>
-                )}
-                <button className="lib-act" title="이름 바꾸기" onClick={() => setEditing({ id: p.id, value: p.name || '' })}><Pencil className="h-4 w-4" /></button>
-                <button className="lib-act" title="복제" onClick={() => void duplicateProject(p.id)}><Copy className="h-4 w-4" /></button>
-                <button className="lib-act danger" title="삭제" onClick={() => setPendingDel(p)}><Trash2 className="h-4 w-4" /></button>
-              </div>
+              {actionsFor(p)}
             </div>
           ))
         )}

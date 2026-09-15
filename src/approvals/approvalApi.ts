@@ -80,6 +80,11 @@ export interface StatusChip {
   state: DocState
   /** 지금 편집이 막혀 있는가. 서버 판정을 그대로 받는다. */
   locked: boolean
+  /** 결재한 사람(`Users.id`). **결정이 난 뒤에만 있다** — 이 도구는 결재자를 미리
+   *  지정하지 않고 Lv1 이면 누구나 결재한다. 「결재 중」이면 빈 글자가 맞다. */
+  approver?: string
+  /** 그 사람의 이름. 서버가 붙여 준다 — 화면이 id 로 이름을 되묻지 않는다. */
+  approver_name?: string
 }
 
 export class ApprovalApiError extends Error {
