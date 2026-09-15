@@ -21,7 +21,7 @@ const check = (cond, label, extra = '') => {
 
 const {
   LIB_COLS, LIB_TABLE_MIN, LIB_ACTS_W, wantsTable, nextSort, sortRows,
-  LIB_SORT_DEFAULT, LIB_STATE_LABEL,
+  LIB_SORT_DEFAULT, LIB_STATE_LABEL, folderRowsOf,
 } = await import('./src/persistence/libTable.ts')
 const { DOC_STATE_LABEL } = await import('./src/approvals/approvalApi.ts')
 
@@ -130,8 +130,13 @@ const C = (state, created_at, approver_name) => ({
 
   // ── 가 · 폭은 한 군데서 정한다 ──
   check(/--lib-w:min\(1400px,100%\)/.test(css), '폭을 한 군데서 정한다')
-  check((css.match(/width:var\(--lib-w\)/g) || []).length >= 9,
-    '목록 화면의 모든 줄이 그 한 값을 쓴다')
+  // **숫자로 세던 것을 이름으로 바꿨다**(2026-09-15). 전에는 「9개 이상」으로 셌는데,
+  // 안 쓰는 `.lib-search{width:var(--lib-w)}` 가 그 숫자를 채워 주고 있었다 —
+  // 죽은 줄 하나가 지킴이를 통과시키고 있었던 셈이다. 이제 **어느 줄인지**를 적는다.
+  for (const k of ['lib-head', 'lib-crumb', 'lib-ferr', 'lib-mk', 'lib-pager', 'lib-list', 'lib-pagebar']) {
+    check(new RegExp(`\\.${k}\\{[^}]*width:var\\(--lib-w\\)`).test(css),
+      `.${k} 가 그 한 폭을 쓴다`)
+  }
   // 데모 덮개 하나만 남는다 — 목록과 무관한 자리다.
   check((css.match(/width:min\(880px,94vw\)/g) || []).length === 1,
     '줄마다 880px 를 박아 두지 않는다 (남은 하나는 데모 덮개)')
@@ -190,6 +195,70 @@ const C = (state, created_at, approver_name) => ({
   check(/\.lib-chip\.draft\{background:#f1f3f6/.test(css),
     '그 칩에 색이 있다 — 표에서만 쓰이므로 가장 조용한 색이다')
   check(/\{c\?\.created_at \? fmtKst\(c\.created_at\) : dim\}/.test(lib), '안 낸 자료의 「낸 날」도 「—」')
+}
+
+// ── 폴더가 목록 첫 줄로 (①ㄴ · 2026-09-15) ────────────
+//
+// 5열 카드를 걷고 폴더를 목록 안으로 들였다. 카드가 하던 일(폴더로 들어가기)을
+// 사이드바 나무가 똑같이 하고 있어서, 같은 것이 한 화면에 두 번 있었다.
+{
+  const F = [{ id: 'f1' }, { id: 'f2' }, { id: 'f3' }]
+  check(folderRowsOf(F, false, 1).length === 3, '첫 쪽에서는 폴더가 다 보인다')
+  check(folderRowsOf(F, false, 1).map((f) => f.id).join(',') === 'f1,f2,f3',
+    '받은 차례 그대로 — 줄 세우기는 자료에만 건다')
+
+  // **검색 중에는 감춘다.** 검색은 자료를 찾는 일이라, 결과 위에 폴더가 얹히면
+  // 무엇이 걸린 것인지 헷갈린다 — 카드 시절부터의 규칙을 그대로 옮겨 왔다.
+  check(folderRowsOf(F, true, 1).length === 0, '검색 중에는 폴더가 안 보인다')
+
+  // **첫 쪽에서만.** 폴더는 목록의 일부지 목록 위에 붙은 머리글이 아니다.
+  // 쪽마다 되풀이되면 「쪽을 넘겼는데 안 넘어갔나」가 된다.
+  check(folderRowsOf(F, false, 2).length === 0, '둘째 쪽에는 폴더가 안 따라온다')
+  check(folderRowsOf(F, false, 9).length === 0, '먼 쪽에도 안 따라온다')
+  check(folderRowsOf(F, true, 3).length === 0, '검색 + 뒷쪽 — 둘 다 걸려도 안 보인다')
+
+  check(folderRowsOf([], false, 1).length === 0, '폴더가 없으면 빈 채로')
+
+  // **원본을 안 건드린다.** 스토어가 들고 있는 배열이라, 화면이 뒤집으면
+  // 다음에 그리는 곳이 뒤집힌 것을 본다(`sortRows` 와 같은 약속이다).
+  const src = [{ id: 'a' }, { id: 'b' }]
+  const out = folderRowsOf(src, false, 1)
+  out.reverse()
+  check(src.map((f) => f.id).join(',') === 'a,b', '받은 배열을 그 자리에서 안 뒤집는다')
+  check(out !== src, '새 배열을 준다')
+}
+
+// ── 화면이 정말 그 답을 쓰는가 ──────────────────────
+{
+  const { readFileSync } = await import('node:fs')
+  const lib = readFileSync('./src/persistence/LibraryScreen.tsx', 'utf8')
+  const css = readFileSync('./src/index.css', 'utf8')
+  check(/folderRowsOf\(subFolders, searching, cur\)/.test(lib),
+    '폴더 줄을 화면이 제 손으로 고르지 않는다 — libTable 의 답을 쓴다')
+  // 건수는 **자료 기준**이다. 폴더를 더해 「전체 5개 · 1/1 페이지」라고 적으면
+  // 12개씩 나누는 셈과 안 맞는다 — 쪽에 실린 것은 3개인데 5개라고 적힌다.
+  check(/\{searching \? '조회 결과' : '전체'\} \{total\}개/.test(lib),
+    '「전체 N개」는 자료 수 그대로다 (폴더를 더하지 않는다)')
+  check(/폴더 \$\{fRows\.length\}개 · /.test(lib),
+    '폴더 수는 그 앞에 따로 적는다')
+  // 폴더만 있고 자료가 없을 때 목록이 통째로 비면 폴더까지 사라진다.
+  check(/total === 0 && fRows\.length === 0/.test(lib),
+    '폴더가 있으면 빈 화면으로 덮지 않는다')
+  check(/colSpan=\{LIB_COLS\.length \+ 1\}/.test(lib),
+    '그때 빈 말은 표 안에 **줄 하나**로 들어간다 (칸 수를 손으로 안 센다)')
+
+  // ── ②ㄴ 검색 줄이 표와 같은 폭 ──
+  //
+  // `.lib-head` 는 로고·이름표·「팀 공유」·「결재함」을 함께 담던 시절의 가로 flex 였다.
+  // 자식이 검색 줄 하나만 남은 뒤로 그 규칙은 **줄을 제 내용만큼(846px)만 늘리는** 일을
+  // 했다 — 표는 1258 인데 줄은 846 이라 「새 이북」이 표 오른쪽 끝에서 412px 떨어진
+  // 허공에 섰고, 창이 좁아지면 단추만 아랫줄로 밀렸다.
+  check(/\.lib-head\{width:var\(--lib-w\)[^}]*\}/.test(css),
+    '머리줄이 표와 같은 폭이다')
+  check(!/\.lib-head\{[^}]*display:flex/.test(css),
+    '머리줄이 다시 가로 flex 가 되지 않았다 (되면 검색 줄이 제 내용만큼만 늘어난다)')
+  check(/\.srow-end\{[^}]*margin-left:auto/.test(readFileSync('./src/ui/searchRow.css', 'utf8').replace(/\s+/g, '')),
+    '단추는 그 줄의 **맨 오른쪽 끝**에 붙는다')
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)

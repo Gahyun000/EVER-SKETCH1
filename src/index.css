@@ -469,30 +469,27 @@ button{font-family:inherit;cursor:pointer}
    1910 창에서는 작업 영역의 48% 가 빈 자리였다. 이제 남는 자리를 다 쓰되 1400px 에서
    멈춘다 — 그보다 길어지면 한 줄을 눈으로 따라가기 어렵다. */
 .lib-screen{flex:1;min-height:0;background:#f5f6f8;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:22px 20px 60px;--lib-w:min(1400px,100%)}
-.lib-head{width:var(--lib-w);display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
-/* **머리줄 안에서는 제 폭을 안 우긴다.** 검색은 원래 제 줄을 차지하던 것이라
-   `width:var(--lib-w)` 를 들고 있었다 — 그대로 올리면 머리줄 한 줄을 통째로 먹고
-   「새 폴더·새 이북」이 아래로 밀린다. 여기서는 남는 자리를 나눠 쓴다. */
-.lib-head .lib-search{width:auto;flex:1 1 420px;min-width:0;margin-bottom:0}
-.lib-head .lib-date{flex:0 0 auto}
-.lib-head .lib-q{flex:1 1 200px}
-/* 신원 표시 + 「새 이북」. 좁아지면 줄바꿈해서 밀릴 뿐, 서로 포개지지 않는다. */
-.lib-head-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.lib-brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:900;color:#0F1B3D}
-.lib-brand .logo{width:30px;height:30px;border-radius:7px;background:url("data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwNCIgZmlsbD0iIzBGMUIzRCIvPjxwYXRoIGQ9Ik0gMTUwLDM3MiBRIDIwMiwzMjYgMjUyLDM3MiBUIDM1NiwzNjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RDRTdGRiIgc3Ryb2tlLXdpZHRoPSIyMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoMzAgMjU2IDI1NikiPjxyZWN0IHg9IjIyNCIgeT0iOTYiIHdpZHRoPSI2NCIgaGVpZ2h0PSIzMCIgcng9IjExIiBmaWxsPSIjRDk4QTJBIi8+PHJlY3QgeD0iMjI0IiB5PSIxMjYiIHdpZHRoPSI2NCIgaGVpZ2h0PSIyNCIgZmlsbD0iI0FFQjZDMiIvPjxyZWN0IHg9IjIyNCIgeT0iMTMyIiB3aWR0aD0iNjQiIGhlaWdodD0iNCIgZmlsbD0iIzg4OSIvPjxyZWN0IHg9IjIyNCIgeT0iMTQyIiB3aWR0aD0iNjQiIGhlaWdodD0iNCIgZmlsbD0iIzg4OSIvPjxyZWN0IHg9IjIyNCIgeT0iMTUwIiB3aWR0aD0iNjQiIGhlaWdodD0iMTgwIiBmaWxsPSIjMjQ2MkVCIi8+PHJlY3QgeD0iMjMxIiB5PSIxNTAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxODAiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuMjgiLz48cGF0aCBkPSJNIDIyNCwzMzAgTCAyODgsMzMwIEwgMjU2LDM5MiBaIiBmaWxsPSIjRUJDOTlBIi8+PHBhdGggZD0iTSAyNDEsMzYyIEwgMjcxLDM2MiBMIDI1NiwzOTIgWiIgZmlsbD0iIzIyMzE0RiIvPjwvZz48L3N2Zz4=") center/cover no-repeat}
+/* **머리줄은 이제 검색 줄 하나를 담는 그릇일 뿐이다**(2026-09-15 ②ㄴ).
+   여기에 로고·이름표·「팀 공유」·「결재함」이 함께 있던 시절의 `display:flex` +
+   `justify-content:space-between` 이 남아 있었다. 자식이 하나만 남은 뒤로 그 규칙은
+   **검색 줄을 제 내용만큼(846px)만 늘리는** 일을 했다 — 표는 1258 인데 줄은 846 이라
+   「새 폴더·새 이북」이 표 오른쪽 끝에서 412px 떨어진 허공에 섰고, 창이 좁아지면
+   그 846 안에 못 들어가 단추만 아랫줄로 밀렸다. 그냥 블록으로 두면 검색 줄이
+   제 폭을 다 쓰고, 단추는 `.srow-end` 의 `margin-left:auto` 로 맨 오른쪽에 붙는다. */
+.lib-head{width:var(--lib-w);margin-bottom:14px}
+/* `.lib-brand`·`.lib-nav` 도 함께 걷었다(2026-09-15) — 로고·이름표·쪽 이동 단추가
+   셸과 `.lib-pagebar` 로 옮겨 간 2026-09-10 이후로 부르는 데가 없었다. */
 .lib-new{display:inline-flex;align-items:center;gap:6px;border:none;background:#2462EB;color:#fff;font-weight:800;font-size:14px;border-radius:10px;padding:9px 16px;cursor:pointer}
 .lib-new:hover{background:#1b52cf}
-.lib-search{width:var(--lib-w);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.lib-q{display:flex;align-items:center;gap:6px;flex:1 1 240px;min-width:200px;background:#fff;border:1.4px solid #e5e7eb;border-radius:10px;padding:7px 11px;color:#64748b}
-.lib-q input{border:none;outline:none;flex:1;font-size:14px;color:#0f172a;background:transparent}
-.lib-date{background:#fff;border:1.4px solid #e5e7eb;border-radius:10px;padding:7px 10px;font-size:13px;color:#0f172a}
-.lib-tilde{color:#94a3b8}
+/* **검색 줄은 `.srow` 한 벌이다**(2026-09-15). 여기 있던 `.lib-search`·`.lib-q`·
+   `.lib-date`·`.lib-tilde` 는 세 화면이 제각각이던 시절의 자기 몫이었다.
+   `src/ui/searchRow.css` 로 합친 뒤로 부르는 데가 한 곳도 없는데 남아 있었고,
+   그중 `.lib-search{width:var(--lib-w)}` 는 「목록의 모든 줄이 한 폭을 쓴다」를
+   세는 지킴이까지 속이고 있었다 — 안 쓰는 줄이 숫자를 채워 주고 있었던 셈이다. */
 .lib-btn{border:1.4px solid #e5e7eb;background:#fff;color:#334155;font-weight:800;font-size:13px;border-radius:10px;padding:7px 14px;cursor:pointer}
 .lib-btn.dark{background:#0F1B3D;border-color:#0F1B3D;color:#fff}
 .lib-btn:hover{filter:brightness(.97)}
 .lib-pager{width:var(--lib-w);display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px;color:#64748b;font-size:12.5px;font-weight:700}
-.lib-nav button{border:1.4px solid #e5e7eb;background:#fff;border-radius:8px;padding:4px 8px;margin-left:6px;cursor:pointer;color:#334155}
-.lib-nav button:disabled{opacity:.4;cursor:default}
 .lib-list{width:var(--lib-w);display:flex;flex-direction:column;gap:10px}
 .lib-empty{white-space:pre-line;text-align:center;color:#94a3b8;font-size:14px;line-height:1.7;padding:56px 20px;background:#fff;border:1.4px dashed #e5e7eb;border-radius:14px}
 .lib-card{display:flex;align-items:center;gap:8px;background:#fff;border:1.4px solid #e9ebf0;border-radius:14px;padding:12px 14px;transition:box-shadow .12s,border-color .12s}
@@ -648,27 +645,35 @@ button{font-family:inherit;cursor:pointer}
   border-radius:10px;font-size:13.5px;font-family:inherit;color:#0f172a;outline:none}
 .lib-mk input:focus{border-color:#2462EB;box-shadow:0 0 0 3px #EAF1FE}
 
-/* 폴더 — **한 줄 5개**(확정값). 좁아지면 자동으로 줄어든다. */
-.lib-folders{width:var(--lib-w);display:grid;gap:10px;margin-bottom:14px;
-  grid-template-columns:repeat(auto-fill,minmax(155px,1fr))}
-@media (min-width:900px){.lib-folders{grid-template-columns:repeat(5,1fr)}}
-.lib-folder{position:relative;border:1.4px solid #e5e7eb;background:#fff;border-radius:12px;
-  transition:border-color .12s,box-shadow .12s}
-.lib-folder:hover{border-color:#c6d5ff;box-shadow:0 2px 10px rgba(15,27,61,.06)}
-.lib-folder-hit{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;
-  border:none;background:none;cursor:pointer;font-family:inherit;padding:12px 12px 11px;text-align:left}
-.lib-folder-hit svg{color:#2462EB;margin-bottom:4px}
-/* 낱말이 끊기지 않게 한 줄 + 말줄임 (표준: 표 셀의 의도치 않은 두 줄 방지) */
-.lib-folder-name{font-size:13.5px;font-weight:800;color:#0f172a;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.lib-folder-sub{font-size:11.5px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.lib-folder-act{position:absolute;top:6px;right:6px;display:flex;gap:2px;opacity:0;transition:opacity .12s}
-.lib-folder:hover .lib-folder-act,.lib-folder:focus-within .lib-folder-act{opacity:1}
-.lib-frename{width:100%;height:44px;border:1.4px solid #2462EB;border-radius:12px;
-  padding:0 11px;font-size:13.5px;font-family:inherit;color:#0f172a;outline:none;background:#fff}
+/* 폴더 — **목록의 첫 줄들**(2026-09-15 ①ㄴ). 전에는 5열 카드였다.
+   사이드바 나무가 생긴 뒤로 카드가 하는 일(폴더로 들어가기)을 나무가 똑같이 해서,
+   같은 것이 한 화면에 두 번 있었다. 카드를 지우는 대신 자료와 같은 줄로 내려보냈다 —
+   카드에만 있던 이름 바꾸기·삭제가 갈 곳이 있어야 했고, 줄 끝이 이미 그 자리였다.
+   세로로 82px 를 돌려받는다.
 
-/* 검색 범위 — 글자로 말한다(D27). 토글을 두지 않는다. */
-.lib-scope{font-size:12px;color:#94a3b8;white-space:nowrap}
+   **색으로 가르지 않는다**(D19). 폴더 줄에는 「폴더」라고 글자로 적힌 칩이 붙고,
+   아래 옅은 바탕은 그 글자를 거드는 데까지만 쓴다. */
+.lib-frow td{background:#FFFDF8}
+.lib-tbl tbody tr.lib-frow:hover td{background:#FFF8EA}
+.lib-chip.folder{background:#FFF4DF;color:#8a5a10}
+.lib-tico.fol{background:#FFF4DF;color:#B8791C}
+/* 자료 수는 이름 **바로 옆**이다. 「수정일」 칸에 밀어 넣으면 날짜 자리에 숫자가
+   앉아 열 제목이 거짓말을 한다 — 폴더에는 수정일이 없다. */
+.lib-fcount{flex:0 0 auto;font-size:11.5px;font-weight:700;color:#94a3b8;white-space:nowrap}
+/* 줄 목록(좁은 칸)에서도 같은 차례·같은 표시 */
+.lib-fline .lib-ico.fol{background:#FFF4DF;color:#B8791C}
+.lib-fline{background:#FFFDF8}
+/* 폴더만 있고 자료가 없을 때 — 목록이 통째로 비는 것이 아니므로 줄 하나로 말한다. */
+.lib-trempty td{white-space:pre-line;text-align:center;color:#94a3b8;font-size:13px;
+  line-height:1.7;padding:26px 20px}
+/* 이름 바꾸기 — 이제 **줄 안**이라 줄 높이를 안 밀어낸다(예전 카드에서는 44px 였다). */
+.lib-frename{flex:1;min-width:0;height:30px;border:1.4px solid #2462EB;border-radius:8px;
+  padding:0 9px;font-size:13.5px;font-weight:800;font-family:inherit;color:#0f172a;
+  outline:none;background:#fff}
+
+/* `.lib-scope` 를 걷었다(2026-09-15 ⑤ㄱ). 「내 자료 전체에서」라는 범위 표시를 없애기로
+   하면서 그 글자가 사라졌는데 규칙만 남아 있었다. 범위를 **글자로 말한다**(D27)는 뜻은
+   살아 있다 — 이제 경로 줄(`.lib-crumb`)과 사이드바에 켜진 폴더가 그 말을 한다. */
 
 /* 쪽 번호 — **이어진 다섯 칸**(D25). 목록 아래에 둔다. */
 .lib-pagebar{width:var(--lib-w);display:flex;justify-content:center;align-items:center;

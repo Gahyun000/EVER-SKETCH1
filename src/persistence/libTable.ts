@@ -124,3 +124,23 @@ export function sortRows<T extends LibRow>(
 function tie(a: LibRow, b: LibRow): number {
   return (b.updated_at || 0) - (a.updated_at || 0)
 }
+
+/**
+ * 목록 맨 위에 붙일 폴더 줄 (①ㄴ · 2026-09-15).
+ *
+ * **폴더 카드를 걷어 목록 안으로 들였다.** 사이드바 나무가 생긴 뒤로 카드가 하는 일
+ * (폴더로 들어가기)을 나무가 똑같이 하고 있었다 — 같은 것이 한 화면에 두 번 있었다.
+ * 카드를 그냥 지울 수는 없었다: **이름 바꾸기·삭제가 카드에만 있었다.** 그래서
+ * 없애는 대신 자료와 같은 줄 모양으로 내려보낸다. 도구는 줄 끝 그 자리에 그대로 온다.
+ *
+ * **검색 중에는 안 보인다.** 검색은 자료를 찾는 일이라, 결과 위에 폴더가 얹히면
+ * 무엇이 걸린 것인지 헷갈린다 — 카드 시절부터의 규칙을 그대로 옮겨 왔다.
+ *
+ * **첫 쪽에서만 보인다.** 폴더는 이제 목록의 일부지 목록 위에 붙은 머리글이 아니다.
+ * 쪽마다 되풀이되면 「2쪽에도 폴더가 있네」가 아니라 「쪽을 넘겼는데 안 넘어갔나」가 된다.
+ */
+export function folderRowsOf<T>(folders: readonly T[], searching: boolean, page: number): T[] {
+  if (searching) return []
+  if (page !== 1) return []
+  return folders.slice()
+}

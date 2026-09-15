@@ -27,7 +27,21 @@ const libCode = bare(lib)
 check(/PAGE_WINDOW = 5/.test(nav), 'D25 — 쪽 번호 창 5칸')
 check(/PATH_VISIBLE = 4/.test(nav), 'D26 — 경로는 4칸까지 다 보인다')
 check(/const PAGE_SIZE = 12/.test(lib), 'D28 — 자료 한 쪽 12건')
-check(/grid-template-columns:repeat\(5,1fr\)/.test(css), '폴더 한 줄 5개')
+// **뒤집힌 확정값이다**(2026-09-15 ①ㄴ). 원래 여기는 「폴더 한 줄 5개」를 못박았다.
+// 그 값이 틀려서가 아니라 **카드 자체가 없어져서다**: 사이드바 나무가 생긴 뒤로 카드가
+// 하는 일(폴더로 들어가기)을 나무가 똑같이 하고 있었고, 같은 것이 한 화면에 두 번
+// 있으면 둘 다 덜 믿게 된다. 폴더는 이제 **목록의 첫 줄들**이다.
+// 지키려던 것 — 「폴더를 어떻게 늘어놓을지가 한 군데서 정해져 있다」 — 는 그대로다.
+check(!/\.lib-folders\{/.test(css) && !/lib-folder-hit/.test(css),
+  '폴더 카드가 되살아나지 않았다 (되살리면 나무와 또 겹친다)')
+check(/export function folderRowsOf/.test(read('./src/persistence/libTable.ts')),
+  '폴더 줄을 보일지 말지는 libTable 이 한 번에 정한다 (표·줄 목록이 같은 답을 쓴다)')
+check(/fRows\.map/.test(lib) && (lib.match(/fRows\.map/g) || []).length === 2,
+  '표와 줄 목록 **둘 다** 폴더 줄을 그린다 — 창 크기를 바꿨다고 폴더가 사라지지 않는다')
+// 폴더는 자료보다 **먼저** 나온다. 줄 세우기(sort)는 자료에만 건다 —
+// 폴더에는 상태도 낸 날도 없어서 같이 세우면 무엇을 눌러도 폴더가 통째로 몰린다.
+check(lib.indexOf('fRows.map') < lib.indexOf('shown.map'),
+  '폴더가 자료보다 먼저 그려진다')
 check(/MAX_DEPTH = 3/.test(read('./server/folders.py')), 'D24 — 폴더 최대 깊이 3')
 // 받아 오는 자리가 화면에서 스토어로 옮겨 갔다(2026-09-15). **지키려던 것은 그대로다** —
 // 깊이 한도를 화면이 제 손으로 정하지 않는다.
@@ -74,7 +88,12 @@ check(/canCreateHere\(path\.length, maxDepth\)/.test(lib),
   '3단에서는 「새 폴더」가 꺼진다')
 
 // ── 두 줄 깨짐 방지 (표준 공통 UI 기준) ──
-for (const k of ['lib-folder-name', 'lib-folder-sub', 'lib-crumb-i', 'lib-scope']) {
+// `lib-folder-name`·`lib-folder-sub` 는 카드와 함께 없어졌다(2026-09-15). 그 둘이
+// 지키던 것 — 폴더 이름과 그 밑 숫자가 한 줄로 끝난다 — 은 `.lib-tname .t`(공통)과
+// 새로 생긴 `.lib-fcount` 가 이어받는다. **단언을 지운 것이 아니라 대상을 옮겼다.**
+// `lib-scope` 도 뺐다 — 「내 자료 전체에서」라는 범위 표시를 없애기로 하면서(⑤ㄱ)
+// 글자가 사라졌는데 규칙만 남아 있었다. **안 쓰는 것을 지키면 지킨 줄 안다.**
+for (const k of ['lib-fcount', 'lib-crumb-i']) {
   check(new RegExp(`\\.${k}\\{[^}]*white-space:nowrap`).test(css), `.${k} 는 낱말이 안 끊긴다`)
 }
 

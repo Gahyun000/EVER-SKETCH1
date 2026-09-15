@@ -16,10 +16,10 @@ import {
 } from './folderApi'
 import {
   canCreateHere, childrenOf, collapsePath, countInSubtree, pageWindow, scopeLabel,
-  scopedProjects, type Crumb,
+  scopedProjects, type Crumb, type FolderNode,
 } from './folderNav'
 import {
-  LIB_COLS, LIB_SORT_DEFAULT, LIB_STATE_LABEL, nextSort, sortRows, wantsTable,
+  LIB_COLS, LIB_SORT_DEFAULT, LIB_STATE_LABEL, folderRowsOf, nextSort, sortRows, wantsTable,
   type LibSort,
 } from './libTable'
 
@@ -297,6 +297,48 @@ export default function LibraryScreen() {
     try { await deleteProject(pendingDel.id); setPendingDel(null) } finally { setBusy(false) }
   }
 
+  /** 목록 맨 위에 붙는 폴더 줄(①ㄴ). 규칙은 libTable 이 정한다 —
+   *  표 모양과 줄 모양이 **같은 답**을 써야 한다. */
+  const fRows = useMemo(() => folderRowsOf(subFolders, searching, cur), [subFolders, searching, cur])
+
+  /** 폴더 이름 칸 — 고치는 중이면 입력칸이 된다. 자료의 `nameCell` 과 짝이다. */
+  const fNameCell = (f: FolderNode) =>
+    fEditing && fEditing.id === f.id ? (
+      <input className="lib-frename" autoFocus value={fEditing.value} maxLength={40}
+        aria-label="폴더 이름"
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => setFEditing({ id: f.id, value: e.target.value })}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && fEditing.value.trim()) {
+            e.preventDefault()
+            void fAct(async () => { await apiRenameFolder(f.id, fEditing.value.trim()); setFEditing(null) })
+          }
+          if (e.key === 'Escape') setFEditing(null)
+        }}
+        onBlur={() => setFEditing(null)} />
+    ) : f.name
+
+  /** 폴더 줄의 도구. **자리는 자료와 같다** — 줄 끝 오른쪽. 다만 폴더에는
+   *  제출도 복제도 없다: 결재에 내는 것도, 베끼는 것도 자료지 폴더가 아니다. */
+  const folderActs = (f: FolderNode) => (
+    <div className="lib-actions">
+      <button className="lib-act" title="이름 바꾸기"
+        onClick={() => setFEditing({ id: f.id, value: f.name })}><Pencil className="h-4 w-4" /></button>
+      <button className="lib-act danger" title="삭제"
+        onClick={() => { setFPendingDel(f); setFErr('') }}><Trash2 className="h-4 w-4" /></button>
+    </div>
+  )
+
+  /** 빈 화면 글귀 — **한 군데서 정한다.** 폴더만 있고 자료가 없을 때도 같은 말을
+   *  써야 하는데, 그때는 표 안에 한 줄로 들어간다(목록이 통째로 비지는 않는다). */
+  const emptyMsg = searching
+    ? `${scopeLabel(path)} 조건에 맞는 이북이 없어요.`
+    : path.length
+      ? '이 폴더에는 아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'
+      : canSubmit
+        ? '아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'
+        : '아직 만든 것이 없어요.\n여기에 만든 것은 나만 봅니다.\n팀에 올라온 자료는 「팀 공유」에서 봅니다.'
+
   const selChip = sel ? chips[sel.id] : undefined
 
   /** **그 자료가 든 폴더**의 경로. 지금 서 있는 자리가 아니다 — 검색은 하위까지 훑으므로
@@ -423,56 +465,19 @@ export default function LibraryScreen() {
         </div>
       )}
 
-      {/* 폴더 — 한 줄 5개(확정값). **검색 중에는 감춘다** — 검색은 자료를 찾는 일이라
-          폴더 칸이 결과 위에 얹히면 무엇이 걸린 건지 헷갈린다. */}
-      {!searching && subFolders.length > 0 && (
-        <div className="lib-folders">
-          {subFolders.map((f) => (
-            <div key={f.id} className="lib-folder">
-              {fEditing?.id === f.id ? (
-                <input className="lib-frename" autoFocus value={fEditing.value} maxLength={40}
-                  onChange={(e) => setFEditing({ id: f.id, value: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && fEditing.value.trim()) {
-                      void fAct(async () => {
-                        await apiRenameFolder(f.id, fEditing.value.trim()); setFEditing(null)
-                      })
-                    }
-                    if (e.key === 'Escape') setFEditing(null)
-                  }}
-                  onBlur={() => setFEditing(null)} />
-              ) : (
-                <>
-                  <button className="lib-folder-hit" onClick={() => goFolder(f.id)}
-                    title={`${f.name} 열기`}>
-                    <Folder className="h-5 w-5" />
-                    <span className="lib-folder-name">{f.name}</span>
-                    <span className="lib-folder-sub">
-                      {f.folder_count ? `폴더 ${f.folder_count} · ` : ''}
-                      자료 {countInSubtree(list, folders, f.id)}
-                    </span>
-                  </button>
-                  <div className="lib-folder-act">
-                    <button className="lib-act" title="이름 바꾸기"
-                      onClick={() => setFEditing({ id: f.id, value: f.name })}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button className="lib-act danger" title="삭제"
-                      onClick={() => { setFPendingDel(f); setFErr('') }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* **폴더 카드를 걷었다**(2026-09-15 ①ㄴ). 여기 있던 5열 카드는 사이드바 나무와
+          하는 일이 똑같았다 — 폴더로 들어가기. 같은 것이 한 화면에 두 번 있으면 둘 다
+          덜 믿게 된다. 이제 폴더는 **목록의 첫 줄들**로 내려가 자료와 한 목록이 된다
+          (아래 `fRows`). 카드에만 있던 이름 바꾸기·삭제는 줄 끝 그 자리로 따라갔다. */}
 
       {/* 개수 (표준: 전체개수·현재/총 페이지·페이지크기). 쪽 이동은 **목록 아래**에 둔다 —
           목록을 다 보고 나서 넘기는 것이 순서다. */}
       <div className="lib-pager">
         <span className="lib-count">
+          {/* 폴더 수는 **자료 건수와 따로** 적는다. 쪽 나누기는 자료만 대상이라,
+              둘을 더해 「전체 5개」라고 적으면 12개씩 나누는 셈과 안 맞는다 —
+              「전체 5개 · 1/1 페이지」인데 실제로 쪽에 실린 것은 3개가 된다. */}
+          {fRows.length ? `폴더 ${fRows.length}개 · ` : ''}
           {searching ? '조회 결과' : '전체'} {total}개 · {cur}/{pages} 페이지 · {PAGE_SIZE}개씩
         </span>
       </div>
@@ -490,14 +495,8 @@ export default function LibraryScreen() {
               <button className="lib-btn dark" onClick={() => void loadList()}>다시 시도</button>
             </div>
           </div>
-        ) : total === 0 ? (
-          <div className="lib-empty">{searching
-            ? `${scopeLabel(path)} 조건에 맞는 이북이 없어요.`
-            : path.length
-              ? '이 폴더에는 아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'
-              : canSubmit
-                ? '아직 이북이 없어요.\n＋ 새 이북으로 시작해 보세요.'
-                : '아직 만든 것이 없어요.\n여기에 만든 것은 나만 봅니다.\n팀에 올라온 자료는 「팀 공유」에서 봅니다.'}</div>
+        ) : total === 0 && fRows.length === 0 ? (
+          <div className="lib-empty">{emptyMsg}</div>
         ) : asTable ? (
           /* ── 표 (⑤) ── 열 머리를 눌러 줄을 세운다. 서버는 안 건드린다 —
              목록은 이미 통째로 내려와 있고 쪽 나누기도 화면이 한다. */
@@ -519,6 +518,31 @@ export default function LibraryScreen() {
               </tr>
             </thead>
             <tbody>
+              {/* **폴더가 먼저다.** 줄 세우기(`sort`)는 자료에만 건다 — 폴더에는
+                  상태도 결재자도 낸 날도 없어서, 같이 세우면 무엇을 눌러도 폴더가
+                  통째로 위나 아래로 몰린다. 그러면 「세웠다」가 아니라 「폴더가
+                  왔다 갔다 한다」가 된다. 파인더도 탐색기도 폴더를 따로 둔다. */}
+              {fRows.map((f) => (
+                <tr key={'f:' + f.id} className="lib-frow">
+                  <td>
+                    <button className="lib-tname" title={`${f.name} 열기`}
+                      onClick={() => goFolder(f.id)}>
+                      <span className="lib-tico fol"><Folder className="h-4 w-4" /></span>
+                      <span className="t">{fNameCell(f)}</span>
+                      <span className="lib-fcount">
+                        {f.folder_count ? `폴더 ${f.folder_count} · ` : ''}
+                        자료 {countInSubtree(list, folders, f.id)}
+                      </span>
+                    </button>
+                  </td>
+                  <td><span className="lib-chip folder" style={{ marginLeft: 0 }}>폴더</span></td>
+                  <td>{dim}</td>
+                  <td>{dim}</td>
+                  <td>{dim}</td>
+                  <td>{dim}</td>
+                  <td className="acts">{folderActs(f)}</td>
+                </tr>
+              ))}
               {shown.map((p) => {
                 const c = chips[p.id]
                 return (
@@ -560,11 +584,37 @@ export default function LibraryScreen() {
                   </tr>
                 )
               })}
+              {/* 폴더는 있는데 자료가 없을 때. 목록이 통째로 비는 것이 아니므로
+                  큰 빈 화면 대신 **줄 하나**로 말한다. */}
+              {total === 0 && (
+                <tr className="lib-trempty">
+                  <td colSpan={LIB_COLS.length + 1}>{emptyMsg}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         ) : (
-          /* 칸이 좁으면 줄 목록으로 내려간다 — 여섯 열을 우겨 넣으면 제목이 두 글자만 남는다. */
-          shown.map((p) => (
+          /* 칸이 좁으면 줄 목록으로 내려간다 — 여섯 열을 우겨 넣으면 제목이 두 글자만 남는다.
+             **여기서도 폴더가 먼저다.** 표와 줄 목록이 차례가 다르면 창 크기를 바꿨을 뿐인데
+             목록이 뒤바뀐 것처럼 보인다. */
+          <>
+          {fRows.map((f) => (
+            <div key={'f:' + f.id} className="lib-card lib-fline">
+              <button className="lib-open-hit" title={`${f.name} 열기`} onClick={() => goFolder(f.id)}>
+                <div className="lib-ico fol"><Folder className="h-5 w-5" /></div>
+                <div className="lib-meta">
+                  <div className="lib-name">{fNameCell(f)}</div>
+                  <div className="lib-sub">
+                    폴더
+                    {f.folder_count ? ` · 폴더 ${f.folder_count}` : ''}
+                    {' · 자료 '}{countInSubtree(list, folders, f.id)}
+                  </div>
+                </div>
+              </button>
+              {folderActs(f)}
+            </div>
+          ))}
+          {shown.map((p) => (
             <div key={p.id} className={'lib-card' + (sel?.id === p.id ? ' on' : '')}>
               <button className="lib-open-hit" title="이 자료 살펴보기" onClick={() => setSel(p)}>
                 <div className="lib-ico"><BookOpen className="h-5 w-5" /></div>
@@ -588,7 +638,9 @@ export default function LibraryScreen() {
               </button>
               {actionsFor(p)}
             </div>
-          ))
+          ))}
+          {total === 0 && <div className="lib-empty">{emptyMsg}</div>}
+          </>
         )}
       </div>
 
