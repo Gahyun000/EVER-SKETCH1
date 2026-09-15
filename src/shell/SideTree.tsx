@@ -13,13 +13,15 @@ import { useProjects } from '../persistence/projects'
 import {
   shellTreeOpen, rememberShellTreeOpen, shellTreeCol, rememberShellTreeCol,
 } from '../persistence/prefs'
-import { treeRows, TREE_ROOT } from './sidebarTree'
+import { treeRows, TREE_OPEN_DEFAULT, TREE_ROOT } from './sidebarTree'
 
 /** 펴 둔 폴더. **모듈 밖에 둔다** — 사이드바는 화면이 바뀌어도 살아 있어야 하고,
- *  그 값은 사람마다 브라우저에 남는다. 처음 들어온 사람은 뿌리만 펴진 채로 본다. */
+ *  그 값은 사람마다 브라우저에 남는다. 아무것도 고른 적 없으면 `TREE_OPEN_DEFAULT`
+ *  (= 전부 접힘)로 시작한다. 「아직 안 골랐음(null)」과 「전부 접어 둠([])」을 가려
+ *  읽으므로, 전부 접은 사람이 들어올 때마다 뿌리가 도로 펴지는 일은 없다. */
 function firstOpen(): Set<string> {
   const saved = shellTreeOpen()
-  return new Set(saved === null ? [TREE_ROOT] : saved)
+  return new Set(saved === null ? TREE_OPEN_DEFAULT : saved)
 }
 
 /** 나무를 제 칸으로 뺐는가(①). 셸이 들고 있다 — 칸을 하나 더 그릴지 정하는 값이다. */

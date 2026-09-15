@@ -19,7 +19,7 @@ const check = (cond, label, extra = '') => {
   else { fail++; console.log('✗ ' + label + (extra ? '  — ' + extra : '')) }
 }
 
-const { treeRows, TREE_ROOT, TREE_DOCS } = await import('./src/shell/sidebarTree.ts')
+const { treeRows, TREE_ROOT, TREE_DOCS, TREE_OPEN_DEFAULT } = await import('./src/shell/sidebarTree.ts')
 
 const F = (id, name, parent_id = null) => ({ id, name, parent_id })
 const P = (id, name, folder_id = null, updated_at = 0) => ({ id, name, folder_id, updated_at })
@@ -32,6 +32,16 @@ const projects = [
 ]
 const open = (...ids) => new Set(ids)
 const kinds = (rows) => rows.map((r) => r.kind + ':' + r.name + '@' + r.depth).join(' ')
+
+// ── 처음 모습 (⑧ㄴ) ─────────────────────────────────
+//
+// 2026-09-15 · 처음에는 뿌리를 펴 둔 채로 시작했다. 그랬더니 뿌리에 쌓인 자료가
+// 그대로 늘어서서 **결재함이 한참 아래로 밀렸다** — 결재함 배지는 「지금 할 일」
+// 신호라 첫 화면에서 밀리면 안 되는 자리다. 그래서 전부 접고 시작한다.
+check(Array.isArray(TREE_OPEN_DEFAULT) && TREE_OPEN_DEFAULT.length === 0,
+  '아무것도 고른 적 없으면 **전부 접혀 있다** — 메뉴가 자료 목록에 안 밀린다')
+check(treeRows(folders, projects, new Set(TREE_OPEN_DEFAULT)).length === 0,
+  '그 기본값으로는 나무 줄이 하나도 안 생긴다')
 
 // ── 접으면 줄이 아예 없다 ────────────────────────────
 check(treeRows(folders, projects, open()).length === 0,
@@ -165,6 +175,8 @@ check(treeRows(folders, projects, open()).length === 0,
     '나무는 그 값을 받아 쓴다 — 제 손으로 또 만들지 않는다')
   check(!/useTreeOpen\(\)/.test(tsx.split('export default')[1] || ''),
     '나무 안에서 useTreeOpen() 을 다시 부르지 않는다')
+  check(/saved === null \? TREE_OPEN_DEFAULT : saved/.test(tsx),
+    '처음 모습은 **한 군데(TREE_OPEN_DEFAULT)**에서 온다 — 화면이 제 손으로 정하지 않는다')
 
   // 나무는 「내 자료」에만, 그리고 **메뉴 안에 둔 동안** 거기 달린다.
   // 제 칸으로 뺐으면(①ㄴ) 「내 자료」 밑은 비어야 한다 — 둘 다 그리면 나무가 두 벌이 된다.
