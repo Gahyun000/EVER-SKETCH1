@@ -694,12 +694,32 @@ SHELL_PATHS = ("inbox", "team", "users", "admin", "settings")
 
 @app.get("/{shell_path}")
 def spa_shell_view(shell_path: str):
-    if shell_path not in SHELL_PATHS:
-        raise HTTPException(status_code=404, detail="없는 주소입니다.")
-    idx = DIST / "index.html"
-    if not idx.exists():
-        raise HTTPException(status_code=404, detail="빌드된 화면이 없습니다.")
-    return FileResponse(str(idx))
+    if shell_path in SHELL_PATHS:
+        idx = DIST / "index.html"
+        if not idx.exists():
+            raise HTTPException(status_code=404, detail="빌드된 화면이 없습니다.")
+        return FileResponse(str(idx))
+
+    # **뿌리에 놓인 파일은 이 길에 먼저 걸린다**(2026-09-15).
+    #
+    # `/` 에 붙인 StaticFiles 는 이 함수보다 **뒤에** 등록되므로, `/favicon.svg` 같은
+    # 한 칸짜리 주소는 여기서 404 로 끝나고 정적 파일까지 가지도 못했다.
+    # 파비콘·`apple-touch-icon.png`·`tutorial.html`·`demo-storyboard.gif` 가 전부
+    # 그랬다 — 실제로 화면에 파비콘이 안 떴고 튜토리얼 주소도 안 열렸다.
+    #
+    # 그래서 여기서 **먼저 파일을 본다.** 한 칸짜리라 `/` 는 못 들어오지만
+    # `..` 은 들어올 수 있으므로, 풀어 본 경로가 `dist` 안인지 확인하고 준다.
+    if DIST.exists():
+        try:
+            f = (DIST / shell_path).resolve()
+            if f.is_file() and f.is_relative_to(DIST.resolve()):
+                return FileResponse(str(f))
+        except (OSError, ValueError):
+            pass
+
+    # 목록에 없고 파일도 아니면 그대로 404 로 둔다: 오타를 「내 자료」로 삼켜 주면
+    # 주소가 화면과 다른 말을 하게 된다.
+    raise HTTPException(status_code=404, detail="없는 주소입니다.")
 
 
 if DIST.exists():
