@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 세 칸 구조 v1.2 · 확정본 + 사이드바 펼치기</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#E8F0FE;--line:#e5e7eb;--sub:#5b6270;
+        --muted:#94a3b8;--card:#f8fafc;--bg:#f5f6f8}
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--navy);
+       font:14px/1.7 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+       letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 90px}
+  h1{font-size:25px;font-weight:900;margin:0 0 6px}
+  .lede{color:var(--sub);margin:0 0 18px;font-size:14.3px}
+  h2{font-size:17.5px;font-weight:900;margin:32px 0 8px;padding-top:20px;border-top:1px solid var(--line)}
+  h2 .no{display:inline-grid;place-items:center;width:23px;height:23px;border-radius:7px;
+         background:var(--navy);color:#fff;font-size:12.5px;margin-right:8px;vertical-align:2px}
+  p{margin:0 0 10px}
+  code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:12.4px;
+       font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .ans{background:#F2F7F4;border:1px solid #cfe3d8;border-radius:10px;padding:10px 14px;margin:10px 0 14px;font-size:13.2px}
+  .ans b{color:#1d5340}
+  .quote{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);
+         border-radius:0 8px 8px 0;padding:10px 14px;margin:11px 0;font-size:12.8px;color:var(--sub)}
+  .quote b{color:var(--navy)}
+  .warn{background:#FFF7E8;border:1px solid #f0dcb4;color:#8a5a10;border-radius:9px;padding:9px 13px;font-size:12.5px;margin:10px 0 0}
+  .good{background:#F0F7F3;border:1px solid #cfe3d8;color:#1d5340;border-radius:9px;padding:9px 13px;font-size:12.5px;margin:10px 0 0}
+
+  .opts{display:flex;gap:9px;flex-wrap:wrap;margin:11px 0 4px}
+  .opt{flex:1 1 250px;min-width:0;text-align:left;border:1.5px solid var(--line);background:#fff;
+       border-radius:11px;padding:10px 13px;cursor:pointer;font-family:inherit;color:inherit;transition:.12s}
+  .opt:hover{border-color:#c6d5ff}
+  .opt.on{border-color:var(--blue);background:var(--tint);box-shadow:0 0 0 3px rgba(36,98,235,.10)}
+  .opt .k{font-weight:900;font-size:13.2px;display:block;margin-bottom:2px}
+  .opt .d{font-size:12.2px;color:var(--sub);line-height:1.6}
+
+  .stage{position:sticky;top:0;z-index:30;background:#fff;padding:10px 0 12px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+  .stage-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+  .stage-bar .t{font-weight:900;font-size:12.5px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:5px 11px;font:800 11.8px/1.5 inherit;color:var(--sub);cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+  .hint{font-size:11.6px;color:var(--blue);font-weight:800}
+  .readout{font-size:11.8px;color:var(--sub);margin-left:auto;text-align:right}
+  .readout b{color:var(--navy)}
+  .frame{border:1px solid #dfe3ea;border-radius:12px;overflow:hidden;background:var(--bg);box-shadow:0 8px 26px rgba(15,27,61,.10)}
+  .scaler{transform-origin:top left}
+  .stagewrap{position:relative}
+
+  .app{display:flex;height:660px;background:var(--bg);font-size:13px}
+  .side{flex:0 0 214px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+  .brand{display:flex;align-items:center;gap:8px;padding:14px 14px 12px;font-weight:900;font-size:14px}
+  .brand .lg{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--navy);color:#fff;font-size:13px}
+  .nav{padding:4px 8px;flex:1;overflow:auto}
+  .acct{border-top:1px solid var(--line);padding:9px 12px;display:flex;align-items:center;gap:8px}
+  .acct .av{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:900}
+  .acct .nm{font-weight:800;font-size:12.6px}
+  .acct .cx{margin-left:auto;color:var(--muted);font-size:11px}
+
+  /* 사이드바 줄 — 아이콘 자리가 hover 하면 화살표로 바뀐다(노션) */
+  .nv{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;color:var(--sub);
+      font-weight:700;font-size:12.8px;position:relative;cursor:pointer}
+  .nv:hover{background:#F4F5F7;color:#111318}
+  .nv.on{background:var(--tint);color:var(--blue);font-weight:900}
+  .nv .ic{flex:0 0 17px;display:grid;place-items:center;font-size:13px;cursor:pointer;border-radius:4px}
+  .nv .ic .em{display:block}
+  .nv .ic .ar{display:none;font-size:10px;color:var(--sub);transition:transform .14s}
+  .nv.hasKids:hover .ic .em{display:none}
+  .nv.hasKids:hover .ic .ar{display:block}
+  .nv .ic:hover{background:#e3e6eb}
+  .nv.open .ic .ar{transform:rotate(0deg)}
+  .nv.shut .ic .ar{transform:rotate(-90deg)}
+  .nv .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .nv .bd{margin-left:auto;background:#FFF4E3;color:#8a5a10;font-size:10.5px;font-weight:900;border-radius:99px;padding:1px 7px}
+  .nv .dots{margin-left:auto;color:var(--muted);font-size:12px;opacity:0}
+  .nv:hover .dots{opacity:1}
+  .grp{font-size:10.5px;font-weight:900;color:var(--muted);padding:12px 12px 4px}
+  .kid{font-weight:600;font-size:12.3px}
+  .kid .c{margin-left:auto;font-size:10.5px;color:var(--muted)}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+  .head{display:flex;align-items:center;gap:9px;padding:12px 16px 9px;background:#fff;border-bottom:1px solid var(--line)}
+  .head .ti{font-weight:900;font-size:15px}
+  .head .crumb{font-size:11.6px;color:var(--muted)}
+  .head .sp{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .q{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:5px 10px;font-size:11.8px;color:var(--muted);min-width:150px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:800 11.8px/1.4 inherit;color:var(--sub);cursor:pointer;white-space:nowrap}
+  .btn.dark{background:var(--blue);border-color:var(--blue);color:#fff}
+  .cnt{font-size:11.3px;color:var(--muted);padding:8px 16px 4px}
+  .list{flex:1;overflow:auto;padding:0 12px 14px}
+
+  .row{display:flex;align-items:center;gap:11px;background:#fff;border:1.4px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
+  .row.on{border-color:var(--blue);background:var(--tint)}
+  .row .ico{flex:0 0 30px;height:30px;border-radius:8px;background:var(--tint);color:var(--blue);display:grid;place-items:center;font-size:13px}
+  .row .mt{flex:1;min-width:0}
+  .row .nm{font-weight:800;font-size:12.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .sb{font-size:11.2px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:2px}
+
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;table-layout:fixed}
+  .tbl th{font-size:11px;font-weight:900;color:var(--muted);text-align:left;padding:8px 10px;background:var(--card);border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer}
+  .tbl th:hover{color:var(--blue)}
+  .tbl th .ar{color:var(--blue);font-size:9px;margin-left:3px}
+  .tbl td{padding:9px 10px;border-bottom:1px solid #f1f3f6;font-size:12.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl tr.on td{background:var(--tint)}
+  .tbl tbody tr{cursor:pointer}
+  .tbl td.t{font-weight:800;font-size:12.6px;color:var(--navy)}
+  .tbl td.t .e{margin-right:5px}
+
+  .chip{font-size:10.2px;font-weight:900;padding:1.5px 7px;border-radius:99px;display:inline-block}
+  .chip.draft{background:#eef0f3;color:#6b7480}
+  .chip.pending{background:#FFF4E3;color:#8a5a10}
+  .chip.approved{background:#E9F5EF;color:#215c46}
+  .chip.rejected{background:#fdf0f0;color:#7d2027}
+  .chip.rev{background:#EDE9FE;color:#4c3ba6}
+
+  .det{flex:0 0 360px;background:#fff;border-left:1px solid var(--line);min-width:0;display:flex;flex-direction:column;overflow:hidden;box-shadow:-10px 0 24px rgba(15,27,61,.07)}
+  .det .dh{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .det .dh .nm{font-weight:900;font-size:13.6px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .det .dh .x{color:var(--muted);font-size:14px;cursor:pointer;padding:0 4px}
+  .det .db{flex:1;overflow:auto;padding:12px 14px 18px}
+  .sec{margin-bottom:14px}
+  .sec .sh{font-size:10.8px;font-weight:900;color:var(--muted);margin-bottom:6px;display:flex;align-items:center}
+  .sec .sh .more{margin-left:auto;color:var(--blue)}
+  .props{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.1px}
+  .props dt{color:var(--muted)}
+  .props dd{margin:0;font-weight:700}
+  .hist{font-size:11.9px;color:var(--sub)}
+  .hist div{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .hist div:last-child{border:0}
+  .hist .w{color:var(--muted);flex:0 0 68px}
+  .cmtchip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--sub);cursor:pointer}
+  .cmtchip b{color:var(--navy)}
+  .cmtchip .go{margin-left:auto;color:var(--blue);font-weight:800;font-size:11.4px}
+  .dacts{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
+  .lockmsg{flex:1 0 100%;font-size:11.4px;color:#8a5a10;margin-top:5px}
+
+  .toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(15,27,61,.93);color:#fff;
+         font-weight:800;font-size:12.5px;padding:8px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;max-width:80%;text-align:center}
+  .toast.on{opacity:1}
+
+  table.t2{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0}
+  table.t2 th,table.t2 td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+  table.t2 th{background:var(--card);font-weight:900;font-size:11.6px}
+  .n{font-variant-numeric:tabular-nums}
+  .sum{position:sticky;bottom:0;background:#fff;border-top:2px solid var(--navy);padding:9px 22px 10px;margin:28px -22px -90px;box-shadow:0 -6px 20px rgba(15,27,61,.07)}
+  .sum .t{font-size:10.5px;font-weight:900;color:var(--muted);margin-bottom:2px}
+  .sum .v{font-size:13px;font-weight:900;line-height:1.85}
+  .sum .v span{background:var(--tint);color:var(--blue);border-radius:7px;padding:2px 8px;margin-right:6px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>세 칸 구조 v1.2 — 확정본 + 사이드바 펼치기</h1>
+<p class="lede">고르신 ①~⑤ 를 그대로 넣었습니다. 위 화면은 <b>실제로 눌러 볼 수 있습니다</b> — 사이드바 「내 자료」의 아이콘에 마우스를 올려 보세요.</p>
+
+<div class="ans">
+ <b>확정</b> — ① 기본은 사이드바 안(바꿀 수 있음) · ② 안 골랐으면 <b>상세 칸이 아예 없다</b>(노션) · ③ 첫 장 미리보기 <b>뺌</b> ·
+ ④ 미리보기가 없으니 <b>「열기」 단추를 되살림</b> · ⑤ 표 = 제목 · 상태 · 결재자 · 낸 날 · 수정일 · 발행
+</div>
+
+<div class="stage">
+  <div class="stage-bar">
+    <span class="t">창</span>
+    <span class="seg" id="wseg"><button data-w="1126">1126</button><button data-w="1512" class="on">1512</button><button data-w="1910">1910</button></span>
+    <span class="hint">💡 「내 자료」 아이콘에 올리면 ▾ 로 바뀝니다 — 눌러 보세요</span>
+    <span class="readout" id="ro"></span>
+  </div>
+  <div class="frame stagewrap">
+    <div class="scaler" id="scaler"><div id="app"></div></div>
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<h2><span class="no">⑥</span>사이드바를 누르면 첫 화면으로 가는 문제</h2>
+<p>영상에서 보신 노션 동작은 <b>한 줄에 누를 곳이 둘</b>입니다. 평소엔 이모지가 있다가, 마우스를 올리면 그 자리가 <b>▾ 로 바뀝니다.</b></p>
+<table class="t2">
+  <tr><th>누른 곳</th><th>하는 일</th></tr>
+  <tr><td><b>아이콘 자리 (▾)</b></td><td>하위 항목을 <b>접고 편다</b>. 화면은 <b>그대로</b>.</td></tr>
+  <tr><td><b>이름</b></td><td>그 화면으로 간다. <b>이미 그 화면이면 안 움직이고 펼침만 바꾼다.</b></td></tr>
+</table>
+
+<div class="quote">
+ <b>왜 지금은 첫 화면으로 가는가.</b> 지금 「어느 폴더에 있는지」는 <code>LibraryScreen</code> 안의 지역 상태입니다 —
+ <code>const [path, setPath] = useState&lt;Crumb[]&gt;([])</code>. 편집기에 들어가면 그 화면이 통째로 내려가고,
+ 돌아오면 <code>[]</code> 로 다시 태어납니다. 그래서 <b>폴더가 아니라 「전체」로 떨어집니다.</b><br>
+ <b>①ㄱ 을 하면 이게 덤으로 고쳐집니다.</b> 지금 폴더가 사이드바에 살게 되니까 목록 화면이 내려가도 안 지워집니다.
+</div>
+
+<p>남은 갈래 둘만 정해 주시면 됩니다.</p>
+
+<h2><span class="no">⑦</span>편집기에서 「내 자료」 이름을 눌렀을 때</h2>
+<div class="opts" id="o7">
+  <button class="opt on" data-v="back"><span class="k">ㄱ · 보던 폴더로 돌아간다</span>
+    <span class="d">사이드바에 켜져 있던 그 폴더로 그대로 돌아옵니다. 「아까 그 자리」가 유지됩니다 — 지금 불편하신 게 바로 이 점입니다.</span></button>
+  <button class="opt" data-v="all"><span class="k">ㄴ · 늘 「전체」로 간다</span>
+    <span class="d">누를 때마다 같은 곳에 떨어져서 예측은 쉽습니다. 다만 깊은 폴더에서 일하던 사람은 매번 다시 들어가야 합니다.</span></button>
+</div>
+
+<h2><span class="no">⑧</span>접어 둔 상태를 기억할까</h2>
+<div class="opts" id="o8">
+  <button class="opt on" data-v="remember"><span class="k">ㄱ · 사람마다 기억한다</span>
+    <span class="d">사이드바 폭·접힘을 이미 기억하고 있어서(<code>rememberShellWidth</code>) 자리를 하나 더 늘리면 됩니다. 접어 둔 사람은 내일도 접힌 채로 시작합니다.</span></button>
+  <button class="opt" data-v="always"><span class="k">ㄴ · 늘 펼친 채로 시작</span>
+    <span class="d">폴더가 늘 보입니다. 폴더가 스무 개쯤 되는 사람은 매번 접어야 합니다.</span></button>
+</div>
+
+<h2>표가 들어가는지</h2>
+<p>고르신 여섯 열(제목 220 · 상태 92 · 결재자 96 · 낸 날 104 · 수정일 116 · 발행 62)은 최소 <b>716px</b> 입니다. ② 가 노션식이라 <b>상세를 닫으면 목록이 폭을 되찾습니다</b>.</p>
+<table class="t2">
+  <tr><th>창</th><th>상세 닫힘 (평소)</th><th>상세 열림</th></tr>
+  <tr><td class="n">1126</td><td class="n" id="q1"></td><td class="n" id="q2"></td></tr>
+  <tr><td class="n">1512</td><td class="n" id="q3"></td><td class="n" id="q4"></td></tr>
+  <tr><td class="n">1910</td><td class="n" id="q5"></td><td class="n" id="q6"></td></tr>
+</table>
+<div id="qw"></div>
+
+<div class="sum">
+  <div class="t">고른 것 + 남은 둘</div>
+  <div class="v" id="sum"></div>
+</div>
+
+</div>
+
+<script>
+const S = { W:1512, sel:-1, openTree:true, curFolder:'전체', back:'back', remember:'remember', inEditor:false, sort:'upd' }
+const SIDE=214, DET=360
+const CW = { name:220, state:92, appr:96, sent:104, upd:116, pub:62 }
+const CT = { name:'제목', state:'상태', appr:'결재자', sent:'낸 날', upd:'수정일', pub:'발행' }
+const TMIN = Object.values(CW).reduce((a,b)=>a+b,0) + 26
+
+const DOCS = [
+  { n:'2026년 9월 기획안',   e:'📕', s:'pending',  st:'결재 중', appr:'이강선', sent:'9월 3일',  upd:'9월 3일 14:20', p:12, f:'2026', pub:0, lock:1, why:'결재 중이라 잠겨 있습니다' },
+  { n:'물류 자동화 제안',     e:'📗', s:'approved', st:'승인',   appr:'이강선', sent:'9월 1일',  upd:'9월 2일 18:04', p:24, f:'물류', pub:1, lock:1, why:'승인된 자료라 잠겨 있습니다' },
+  { n:'경쟁사 분석 — 3분기',  e:'📘', s:'rejected', st:'반려',   appr:'곽두섭', sent:'8월 28일', upd:'8월 29일 11:31',p:18, f:'분석', pub:0, lock:0 },
+  { n:'채용 계획 v2',        e:'📙', s:'rev',      st:'수정 중', appr:'이강선', sent:'8월 20일', upd:'8월 27일 09:12',p:7,  f:'인사', pub:0, lock:0 },
+  { n:'MLOps 인프라 구성안', e:'📕', s:'draft',    st:'초안',   appr:'—',     sent:'—',       upd:'8월 25일 16:40',p:31, f:'2026', pub:0, lock:0 },
+  { n:'새 이북',             e:'📄', s:'draft',    st:'초안',   appr:'—',     sent:'—',       upd:'8월 24일 09:00',p:0,  f:'2026', pub:0, lock:0 },
+]
+const FOLDERS = [ {n:'전체',c:6,d:0}, {n:'기획',c:3,d:0}, {n:'2026',c:3,d:1}, {n:'제안',c:1,d:0}, {n:'물류',c:1,d:1}, {n:'분석',c:1,d:0}, {n:'인사',c:1,d:0} ]
+
+const listW = ()=> S.W - SIDE - (S.sel>=0 ? DET : 0)
+const esc = s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+
+function navRow(o){
+  const kids = o.kids ? ' hasKids' : ''
+  const st = o.kids ? (S.openTree?' open':' shut') : ''
+  return `<div class="nv${o.on?' on':''}${kids}${st}" data-nav="${o.k||''}">
+    <span class="ic" data-ar="${o.kids?1:0}">${o.kids?`<span class="em">${o.e}</span><span class="ar">▾</span>`:`<span class="em">${o.e}</span>`}</span>
+    <span class="lbl">${o.t}</span>${o.badge?`<span class="bd">${o.badge}</span>`:''}</div>`
+}
+
+function sidebarHTML(){
+  let h = navRow({ e:'📚', t:'내 자료', on:!S.inEditor, kids:1, k:'library' })
+  if (S.openTree) h += FOLDERS.map(f=>`<div class="nv kid${S.curFolder===f.n&&!S.inEditor?' on':''}" data-folder="${f.n}"
+      style="padding-left:${16+f.d*13}px"><span class="ic"><span class="em">${f.n==='전체'?'📂':'📁'}</span></span>
+      <span class="lbl">${f.n}</span><span class="c">${f.c}</span></div>`).join('')
+  h += navRow({ e:'📥', t:'결재함', badge:3, k:'inbox' })
+  h += navRow({ e:'👥', t:'팀 공유', k:'team' })
+  h += `<div class="grp">관리</div>`
+  h += navRow({ e:'🧑', t:'사용자 관리', k:'users' })
+  h += navRow({ e:'🏢', t:'팀 관리', k:'admin' })
+  h += navRow({ e:'⚙️', t:'환경 설정', k:'settings' })
+  return `<div class="nav">${h}</div>`
+}
+
+function sorted(){
+  const a = DOCS.slice()
+  if (S.sort==='state') a.sort((x,y)=>x.st.localeCompare(y.st))
+  if (S.sort==='appr') a.sort((x,y)=>x.appr.localeCompare(y.appr))
+  return a
+}
+function tableHTML(){
+  const cols = Object.keys(CW)
+  const th = cols.map(k=>`<th data-sort="${k}" style="width:${k==='name'?'auto':CW[k]+'px'}">${CT[k]}${S.sort===k?'<span class="ar">▼</span>':''}</th>`).join('')
+  const tr = sorted().map((d)=>{ const i = DOCS.indexOf(d); return `<tr class="${i===S.sel?'on':''}" data-i="${i}">
+    <td class="t"><span class="e">${d.e}</span>${esc(d.n)}${d.lock?' 🔒':''}</td>
+    <td><span class="chip ${d.s}">${d.st}</span></td>
+    <td>${d.appr==='—'?'<span style="color:#cbd5e1">—</span>':'🧑 '+d.appr}</td>
+    <td>${d.sent==='—'?'<span style="color:#cbd5e1">—</span>':d.sent}</td>
+    <td>${d.upd}</td>
+    <td>${d.pub?'<span class="chip approved">발행됨</span>':'<span style="color:#cbd5e1">—</span>'}</td></tr>` }).join('')
+  return `<table class="tbl"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`
+}
+function rowsHTML(){
+  return sorted().map(d=>{ const i=DOCS.indexOf(d); return `<div class="row${i===S.sel?' on':''}" data-i="${i}">
+    <div class="ico">${d.e}</div><div class="mt"><div class="nm">${esc(d.n)}</div>
+    <div class="sb">${d.upd} · ${d.appr}<span class="chip ${d.s}">${d.st}</span>${d.lock?'<span style="color:#8a5a10">🔒</span>':''}</div></div></div>` }).join('')
+}
+
+function detailHTML(){
+  const d = DOCS[S.sel]
+  return `<div class="dh"><span class="nm">${esc(d.n)}</span><span class="x" id="detx">✕</span></div>
+  <div class="db">
+    <div class="sec"><div class="sh">속성</div><dl class="props">
+      <dt>상태</dt><dd><span class="chip ${d.s}">${d.st}</span></dd>
+      <dt>폴더</dt><dd>${d.f}</dd><dt>결재자</dt><dd>${d.appr}</dd>
+      <dt>낸 날</dt><dd>${d.sent}</dd><dt>수정</dt><dd>${d.upd}</dd>
+      <dt>쪽수</dt><dd>${d.p}쪽</dd><dt>발행</dt><dd>${d.pub?'발행됨':'—'}</dd></dl></div>
+    <div class="sec"><div class="sh">결재 이력<span class="more">전체 보기 →</span></div><div class="hist">
+      <div><span class="w">9월 3일</span><span>김가현 제출 — 「9월 기획 검토 부탁드립니다」</span></div>
+      <div><span class="w">9월 2일</span><span>이강선 반려 — 「3쪽 수치가 작년 것입니다」</span></div>
+      <div><span class="w">8월 30일</span><span>김가현 제출 (1회차)</span></div></div></div>
+    <div class="sec"><div class="cmtchip">💬 의견 <b>2</b><span class="go">결재함에서 보기 →</span></div></div>
+    <div class="dacts">
+      <button class="btn dark" id="openbtn"${d.lock?' style="opacity:.5"':''}>열기</button>
+      <button class="btn"${d.lock?' style="opacity:.45"':''}>결재 제출</button>
+      <button class="btn">복제</button><button class="btn">삭제</button>
+      ${d.lock?`<div class="lockmsg">🔒 ${d.why} — 고치려면 「수정 요청」을 내세요</div>`:''}</div>
+  </div>`
+}
+
+function render(){
+  const lw = listW()
+  const useTable = lw >= TMIN
+  const app = `<div class="app" style="width:${S.W}px">
+    <div class="side"><div class="brand"><span class="lg">ℓ</span>EVER-SKETCH</div>${sidebarHTML()}
+      <div class="acct"><span class="av">가</span><span class="nm">김가현</span><span class="cx">⌃</span></div></div>
+    <div class="main">
+      <div class="head"><span class="ti">${S.inEditor?'2026년 9월 기획안':'내 자료'}</span>
+        <span class="crumb">${S.inEditor?'· 편집 중':'· '+S.curFolder}</span>
+        <span class="sp">${S.inEditor?'<button class="btn">저장됨</button>':'<span class="q">🔍 제목 또는 ID</span><button class="btn">기간</button><button class="btn dark">＋ 새 이북</button>'}</span></div>
+      ${S.inEditor
+        ? `<div style="flex:1;display:grid;place-items:center;color:var(--muted);font-size:13px;background:var(--bg)">
+             <div style="text-align:center">✏️ 편집기 화면<br><span style="font-size:11.6px">왼쪽 「내 자료」 이름을 눌러 돌아가 보세요</span></div></div>`
+        : `<div class="cnt">전체 ${DOCS.length}개 · 1/1 페이지 · 12개씩${useTable?'':' · <b style="color:#8a5a10">칸이 좁아 줄 목록</b>'}</div>
+           <div class="list" id="list">${useTable?tableHTML():rowsHTML()}</div>`}
+    </div>
+    ${(S.sel>=0 && !S.inEditor)?`<div class="det">${detailHTML()}</div>`:''}</div>`
+
+  document.getElementById('app').innerHTML = app
+  const avail = document.querySelector('.stage').clientWidth - 2
+  const maxH = Math.max(240, Math.min(430, window.innerHeight*0.40))
+  const k = Math.min(1, avail/S.W, maxH/660)
+  const sc = document.getElementById('scaler'); sc.style.transform='scale('+k+')'; sc.style.width=S.W+'px'
+  const fr = document.querySelector('.frame')
+  fr.style.height=Math.round(660*k)+'px'; fr.style.width=Math.round(S.W*k)+'px'; fr.style.margin='0 auto'
+  document.getElementById('ro').innerHTML =
+    `목록 칸 <b>${lw}px</b> · 표 최소 <b>${TMIN}px</b>` + (useTable?'':' · <b style="color:#8a5a10">줄 목록</b>')
+  bind(); tbl(); summary()
+}
+
+function bind(){
+  // 아이콘(▾) — 펼치기만
+  document.querySelectorAll('.nv .ic[data-ar="1"]').forEach(ic=>{
+    ic.onclick = e=>{ e.stopPropagation(); S.openTree = !S.openTree; render()
+      toast(S.openTree?'폴더를 폈습니다 — 화면은 안 바뀝니다':'폴더를 접었습니다 — 화면은 안 바뀝니다') }
+  })
+  // 이름 — 이동. 이미 그 화면이면 펼침만.
+  document.querySelectorAll('.nv[data-nav]').forEach(nv=>{
+    nv.onclick = ()=>{
+      const k = nv.dataset.nav
+      if (k !== 'library'){ toast('「'+nv.querySelector('.lbl').textContent+'」 화면으로 갑니다'); return }
+      if (S.inEditor){
+        S.inEditor = false
+        if (S.back==='all') S.curFolder = '전체'
+        render(); toast(S.back==='all'?'전체로 갑니다 (⑦ㄴ)':'보던 폴더 「'+S.curFolder+'」 로 돌아옵니다 (⑦ㄱ)')
+        return
+      }
+      S.openTree = !S.openTree; render()
+      toast('이미 이 화면이라 옮기지 않고 펼침만 바꿉니다')
+    }
+  })
+  document.querySelectorAll('.nv[data-folder]').forEach(f=>{
+    f.onclick = ()=>{ S.curFolder = f.dataset.folder; S.inEditor=false; S.sel=-1; render() }
+  })
+  document.querySelectorAll('#list [data-i]').forEach(r=>{ r.onclick = ()=>{ S.sel=+r.dataset.i; render() } })
+  document.querySelectorAll('.tbl th[data-sort]').forEach(t=>{
+    t.onclick = e=>{ e.stopPropagation(); S.sort = t.dataset.sort; render(); toast('「'+CT[S.sort]+'」 로 정렬했습니다 — 서버는 안 건드립니다') }
+  })
+  const x = document.getElementById('detx'); if (x) x.onclick = ()=>{ S.sel=-1; render() }
+  const ob = document.getElementById('openbtn')
+  if (ob) ob.onclick = ()=>{
+    const d = DOCS[S.sel]
+    if (d.lock){ toast('잠긴 자료입니다 — 「수정 요청」을 먼저 내세요'); return }
+    S.inEditor = true; S.sel = -1; render(); toast('편집기로 들어왔습니다 — 이제 왼쪽 「내 자료」를 눌러 보세요')
+  }
+}
+let tt
+function toast(t){ const e=document.getElementById('toast'); e.textContent=t; e.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('on'),2000) }
+
+function tbl(){
+  const bad=[]
+  ;[[1126,'q1','q2'],[1512,'q3','q4'],[1910,'q5','q6']].forEach(([W,a,b])=>{
+    const shut = W-SIDE, open = W-SIDE-DET
+    const mark = v => v>=TMIN ? `${v}px <span style="color:#215c46;font-weight:800">표 ○</span>`
+                              : `${v}px <span style="color:#7d2027;font-weight:800">표 ✕ → 줄</span>`
+    document.getElementById(a).innerHTML = mark(shut)
+    document.getElementById(b).innerHTML = mark(open)
+    if (open < TMIN) bad.push(W)
+  })
+  document.getElementById('qw').innerHTML = bad.length
+    ? `<div class="warn">${bad.join(' · ')} 창에서는 <b>상세를 열면</b> 목록이 ${1126-SIDE-DET}px 로 좁아져 표가 안 들어갑니다 — 그동안만 줄 목록으로 내려갔다가, 닫으면 표로 돌아옵니다.</div>`
+    : `<div class="good">세 창 모두, 상세를 열어도 표가 들어갑니다.</div>`
+}
+
+function summary(){
+  document.getElementById('sum').innerHTML =
+    `<span>① ㄱ 사이드바 안(기본)</span><span>② 노션식 — 안 고르면 상세 칸 없음</span>` +
+    `<span>③ 속성 · 이력 3줄 · 의견 숫자 · 단추</span><span>④ 열기 단추</span>` +
+    `<span>⑤ 표 — 제목 · 상태 · 결재자 · 낸 날 · 수정일 · 발행</span>` +
+    `<span>⑥ 아이콘=펼치기 / 이름=이동</span>` +
+    `<span>⑦ ${S.back==='back'?'ㄱ 보던 폴더로':'ㄴ 전체로'}</span>` +
+    `<span>⑧ ${S.remember==='remember'?'ㄱ 기억함':'ㄴ 늘 펼침'}</span>`
+}
+
+function seg(id,fn){ document.getElementById(id).onclick=e=>{ const b=e.target.closest('button'); if(!b)return
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c===b)); fn(b); render() } }
+seg('wseg', b=>{ S.W=+b.dataset.w })
+function opts(id,fn){ document.getElementById(id).onclick=e=>{ const b=e.target.closest('.opt'); if(!b)return
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c===b)); fn(b.dataset.v); render() } }
+opts('o7', v=>{ S.back=v })
+opts('o8', v=>{ S.remember=v })
+window.addEventListener('resize', render)
+render()
+</script>
+</body>
+</html>

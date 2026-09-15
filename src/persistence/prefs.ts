@@ -70,6 +70,7 @@ export function rememberOpenSections(v: Record<string, boolean>): void {
 
 const FOLD_KEY = 'es_shell_folded'
 const WIDTH_KEY = 'es_shell_width'
+const FOLD_EDITOR_KEY = 'es_shell_folded_editor'
 
 /** 펼친 사이드바 폭. 사람이 경계선을 끌어 맞춘 값이다.
  *  **접힘과 따로 둔다** — 접었다 펴면 맞춰 둔 폭으로 돌아와야 한다.
@@ -96,4 +97,23 @@ export function shellFolded(): boolean {
 
 export function rememberShellFolded(v: boolean): void {
   try { localStorage.setItem(FOLD_KEY, v ? '1' : '0') } catch { /* 저장이 막힌 브라우저 */ }
+}
+
+/** 편집 화면에서의 접힘. **목록과 따로 기억한다** — 목록에서는 펴 두고 편집에서는
+ *  접어 두는 손버릇이 흔하다. 한 값으로 묶으면 화면을 옮길 때마다 상대를 덮어쓴다.
+ *
+ *  **기본값은 접힘이다.** 편집은 필름스트립 + 캔버스 + 오른쪽 패널로 이미 꽉 차 있어서,
+ *  처음 들어가는 사람에게 214px 를 더 얹으면 방금 아낀 자리를 도로 내주는 셈이 된다.
+ *
+ *  「아직 고른 적 없음(null)」과 「안 접기로 함('0')」을 **갈라 본다.** 안 가르면
+ *  한 번 편 사람이 다음에 편집에 들어갈 때 또 접혀 있다 — 기억하는 뜻이 없어진다. */
+export function shellFoldedEditor(): boolean {
+  try {
+    const v = localStorage.getItem(FOLD_EDITOR_KEY)
+    return v === null ? true : v === '1'
+  } catch { return true }
+}
+
+export function rememberShellFoldedEditor(v: boolean): void {
+  try { localStorage.setItem(FOLD_EDITOR_KEY, v ? '1' : '0') } catch { /* 저장이 막힌 브라우저 */ }
 }

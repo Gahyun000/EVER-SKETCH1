@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 v1.4 — 편집기에서 사이드바 펴기</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#E8F0FE;--line:#e5e7eb;--sub:#5b6270;
+        --muted:#94a3b8;--card:#f8fafc;--bg:#f5f6f8}
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--navy);
+       font:14px/1.7 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 90px}
+  h1{font-size:25px;font-weight:900;margin:0 0 6px}
+  .lede{color:var(--sub);margin:0 0 16px;font-size:14.3px}
+  h2{font-size:17.5px;font-weight:900;margin:30px 0 8px;padding-top:20px;border-top:1px solid var(--line)}
+  p{margin:0 0 10px}
+  code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:12.4px;font-family:ui-monospace,Menlo,monospace}
+  pre{background:#0f1b3d;color:#e8eefc;border-radius:9px;padding:11px 14px;font-size:12.4px;overflow:auto;margin:10px 0;
+      font-family:ui-monospace,Menlo,monospace;line-height:1.7}
+  pre b{color:#ffd479}
+  .bug{background:#FDF2F2;border:1px solid #f0d6d6;border-radius:10px;padding:11px 14px;margin:10px 0 14px;font-size:13.2px;color:#6b2229}
+  .bug b{color:#7d2027}
+  .ans{background:#F2F7F4;border:1px solid #cfe3d8;border-radius:10px;padding:10px 14px;margin:10px 0 14px;font-size:13.2px}
+  .ans b{color:#1d5340}
+  .opts{display:flex;gap:9px;flex-wrap:wrap;margin:11px 0 4px}
+  .opt{flex:1 1 240px;min-width:0;text-align:left;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:10px 13px;cursor:pointer;font-family:inherit;color:inherit}
+  .opt:hover{border-color:#c6d5ff}
+  .opt.on{border-color:var(--blue);background:var(--tint);box-shadow:0 0 0 3px rgba(36,98,235,.10)}
+  .opt .k{font-weight:900;font-size:13.2px;display:block;margin-bottom:2px}
+  .opt .d{font-size:12.2px;color:var(--sub);line-height:1.6}
+
+  .stage{position:sticky;top:0;z-index:30;background:#fff;padding:10px 0 12px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+  .stage-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+  .stage-bar .t{font-weight:900;font-size:12.5px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:5px 11px;font:800 11.8px/1.5 inherit;color:var(--sub);cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+  .hint{font-size:11.6px;color:var(--blue);font-weight:800}
+  .readout{font-size:11.7px;color:var(--sub);margin-left:auto;text-align:right}
+  .readout b{color:var(--navy)}
+  .frame{border:1px solid #dfe3ea;border-radius:12px;overflow:hidden;background:var(--bg);box-shadow:0 8px 26px rgba(15,27,61,.10)}
+  .scaler{transform-origin:top left}.stagewrap{position:relative}
+
+  .app{display:flex;flex-direction:column;height:660px;background:var(--bg);font-size:13px}
+  .top{display:flex;align-items:center;gap:9px;padding:9px 14px;background:#fff;border-bottom:1px solid var(--line);flex:0 0 auto}
+  .top .lg{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--navy);color:#fff;font-size:12px}
+  .top .bn{font-weight:900;font-size:13px}
+  .top .cr{font-size:11.6px;color:var(--muted)}
+  .top .cr b{color:var(--navy)}
+  .top .rt{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .body{flex:1;display:flex;min-height:0;position:relative}
+
+  .side{background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;
+        transition:flex-basis .18s ease, width .18s ease;position:relative;z-index:5}
+  .side.over{position:absolute;left:60px;top:0;bottom:0;width:232px;box-shadow:6px 0 22px rgba(15,27,61,.13);border-right:1px solid var(--line)}
+  .nav{padding:5px 7px;flex:1;overflow:auto}
+  .acct{border-top:1px solid var(--line);padding:8px 10px;display:flex;align-items:center;gap:8px}
+  .acct .av{width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:10.5px;font-weight:900}
+  .acct .nm{font-weight:800;font-size:12.3px}
+  .side.mini .acct .nm{display:none}
+  .side.mini .nav{padding:5px 4px}
+
+  .nv{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;color:var(--sub);
+      font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;position:relative}
+  .nv:hover{background:#F4F5F7;color:#111318}
+  .nv.on{background:var(--tint);color:var(--blue);font-weight:900}
+  .nv .ic{flex:0 0 16px;display:grid;place-items:center;font-size:12.5px;border-radius:4px}
+  .nv .ic .ar{display:none;font-size:9px;color:var(--sub)}
+  .nv.kids:hover .ic .em{display:none}.nv.kids:hover .ic .ar{display:block}
+  .nv.kids .ic:hover{background:#e3e6eb}
+  .nv.shut2 .ic .ar{transform:rotate(-90deg)}
+  .nv .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .nv .bd{margin-left:auto;background:#FFF4E3;color:#8a5a10;font-size:10.2px;font-weight:900;border-radius:99px;padding:1px 6px}
+  .nv .c{margin-left:auto;font-size:10.2px;color:var(--muted)}
+  .nv.doc{font-weight:600;font-size:12.2px}.nv.doc.on{font-weight:800}
+  .side.mini .nv{justify-content:center;padding:8px 0}
+  .side.mini .nv .lbl,.side.mini .nv .c,.side.mini .grp{display:none}
+  .side.mini .nv .bd{position:absolute;top:1px;right:5px;padding:0 4px;font-size:9px}
+  .grp{font-size:10.3px;font-weight:900;color:var(--muted);padding:10px 9px 3px}
+
+  .edge{position:absolute;top:50%;transform:translateY(-50%);width:22px;height:46px;border:1px solid var(--line);
+        background:#fff;border-radius:7px;display:grid;place-items:center;font-size:12px;color:var(--sub);
+        cursor:pointer;z-index:8;box-shadow:0 2px 8px rgba(15,27,61,.10);transition:left .18s ease}
+  .edge:hover{color:var(--blue);border-color:#c6d5ff}
+
+  .ed{flex:1;display:flex;min-width:0;background:var(--bg)}
+  .films{flex:0 0 96px;background:#fff;border-right:1px solid var(--line);padding:8px 6px;overflow:auto}
+  .th{border:1.4px solid var(--line);border-radius:5px;background:#fff;height:54px;margin-bottom:6px;padding:5px;position:relative;cursor:pointer}
+  .th.on{border-color:var(--blue);box-shadow:0 0 0 2px var(--tint)}
+  .th i{display:block;height:3px;border-radius:2px;background:#e2e8f0;margin-bottom:3px}
+  .th i.t{background:#cbd5e1;width:60%;height:5px}
+  .th b{position:absolute;right:3px;bottom:2px;font-size:8px;color:var(--muted)}
+  .paper{flex:1;display:grid;place-items:center;min-width:0;padding:16px}
+  .sheet{background:#fff;border:1px solid var(--line);border-radius:8px;width:100%;max-width:560px;aspect-ratio:4/3;padding:26px}
+  .sheet h4{margin:0 0 14px;font-size:16px}
+  .sheet i{display:block;height:9px;border-radius:3px;background:#eef1f5;margin-bottom:9px}
+
+  .libscreen{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+  .lhead{display:flex;align-items:center;gap:9px;padding:11px 16px 9px;background:#fff;border-bottom:1px solid var(--line)}
+  .lhead .ti{font-weight:900;font-size:14.5px}
+  .llist{flex:1;overflow:auto;padding:12px}
+  .lrow{display:flex;align-items:center;gap:10px;background:#fff;border:1.4px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:6px;font-size:12.4px}
+  .chip{font-size:10.1px;font-weight:900;padding:1.5px 7px;border-radius:99px;margin-left:auto}
+  .chip.draft{background:#eef0f3;color:#6b7480}.chip.pending{background:#FFF4E3;color:#8a5a10}
+  .chip.approved{background:#E9F5EF;color:#215c46}
+
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font:800 11.6px/1.4 inherit;color:var(--sub);cursor:pointer;white-space:nowrap}
+  .btn.dark{background:var(--blue);border-color:var(--blue);color:#fff}
+  .toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(15,27,61,.93);color:#fff;
+         font-weight:800;font-size:12.4px;padding:8px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;max-width:84%;text-align:center}
+  .toast.on{opacity:1}
+  table.t2{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0}
+  table.t2 th,table.t2 td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+  table.t2 th{background:var(--card);font-weight:900;font-size:11.6px}
+  .sum{position:sticky;bottom:0;background:#fff;border-top:2px solid var(--navy);padding:9px 22px 10px;margin:28px -22px -90px;box-shadow:0 -6px 20px rgba(15,27,61,.07)}
+  .sum .t{font-size:10.5px;font-weight:900;color:var(--muted);margin-bottom:2px}
+  .sum .v{font-size:13px;font-weight:900;line-height:1.85}
+  .sum .v span{background:var(--tint);color:var(--blue);border-radius:7px;padding:2px 8px;margin-right:6px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>v1.4 — 스케치 화면에서 사이드바가 안 펴지는 문제</h1>
+<p class="lede">영상을 프레임으로 뜯어서 무슨 일이 일어나는지 확인했고, 코드에서 원인을 찾았습니다.</p>
+
+<div class="bug">
+ <b>원인은 한 줄입니다.</b> <code>src/shell/AppShell.tsx:79</code>
+ <pre>const shut = folded || <b>view === 'editor'</b></pre>
+ <b>편집기에서는 사이드바가 무조건 접힙니다.</b> 「펴기(›)」 단추는 <code>fold(!shut)</code> 로 <code>folded</code> 만 바꾸는데
+ <code>view === 'editor'</code> 가 계속 참이라 <b>눌러도 안 펴집니다.</b>
+ 그래서 접힌 열에 남은 건 아이콘뿐이고, 그걸 누르면 <code>onView(it.k)</code> 가 실행돼 <b>편집기를 떠나 목록으로 갑니다.</b>
+ 사이드바를 펴려던 손짓이 「나가기」가 되어 버린 것입니다.
+</div>
+
+<div class="ans">
+ <b>고칠 것</b> — <code>shut = folded</code> 로 바꿔서 <b>편집기에서도 펼 수 있게</b> 합니다.
+ 편집기에 <b>처음 들어갈 때만</b> 접힌 채로 시작하고(종이를 넓게 쓰려고), 그 뒤엔 사람이 정합니다.
+ 펴면 <b>지금 보고 있는 자료가 사이드바에 켜져 있고</b> 그 위로 폴더가 보입니다 — 화면은 그대로입니다.
+</div>
+
+<div class="stage">
+  <div class="stage-bar">
+    <span class="t">비교</span>
+    <span class="seg" id="nowseg"><button data-now="1">지금</button><button data-now="0" class="on">바뀐 뒤</button></span>
+    <span class="hint" id="hint"></span>
+    <span class="readout" id="ro"></span>
+  </div>
+  <div class="frame stagewrap"><div class="scaler" id="scaler"><div id="app"></div></div>
+    <div class="toast" id="toast"></div></div>
+</div>
+
+<h2>⑪ 접힌 열의 아이콘을 눌렀을 때</h2>
+<p>접혀 있으면 글자가 없어서 <b>무엇을 누르는지 알 수 없습니다.</b> 지금은 그 상태에서 누르면 바로 화면이 바뀝니다.</p>
+<div class="opts" id="o11">
+  <button class="opt on" data-v="open"><span class="k">ㄱ · 먼저 펴기만 한다</span>
+    <span class="d">접힌 상태에서 어느 아이콘을 누르든 <b>사이드바가 펴지기만</b> 합니다. 화면은 그대로. 펴진 뒤 이름을 눌러야 이동합니다. <b>실수로 나가는 일이 없습니다.</b></span></button>
+  <button class="opt" data-v="go"><span class="k">ㄴ · 바로 그 화면으로 간다 (지금과 같음)</span>
+    <span class="d">한 번에 갑니다. 대신 아이콘만 보고 눌러야 하고, 사이드바를 펴려던 손짓과 구별이 안 됩니다.</span></button>
+  <button class="opt" data-v="hover"><span class="k">ㄷ · 마우스만 올려도 덮개로 뜬다</span>
+    <span class="d">노션·VS Code 방식. 올리면 사이드바가 <b>종이 위에 겹쳐</b> 뜨고, 떼면 사라집니다. 누르면 그때 이동. 종이 폭을 하나도 안 뺏깁니다.</span></button>
+</div>
+
+<h2>⑫ 편집기에 들어갈 때 기본</h2>
+<div class="opts" id="o12">
+  <button class="opt on" data-v="mini"><span class="k">ㄱ · 접힌 채로 시작 (지금과 같음)</span>
+    <span class="d">종이를 넓게 씁니다. 펴고 싶으면 펴고, <b>편 상태는 기억됩니다</b> — 다음에 편집기에 들어가면 편 채로 시작합니다.</span></button>
+  <button class="opt" data-v="open"><span class="k">ㄴ · 펴진 채로 시작</span>
+    <span class="d">어디 있는지 늘 보입니다. 대신 1126 창에서는 종이가 좁아집니다.</span></button>
+</div>
+
+<table class="t2">
+  <tr><th>상태</th><th>종이에 남는 폭 (1512 창)</th></tr>
+  <tr><td>접힘 (60px)</td><td class="n">1356px</td></tr>
+  <tr><td>펴짐 (232px)</td><td class="n">1184px</td></tr>
+  <tr><td>덮개 (ㄷ)</td><td class="n">1356px — 겹쳐 뜨므로 안 줄어듦</td></tr>
+</table>
+
+<div class="sum"><div class="t">고른 것</div><div class="v" id="sum"></div></div>
+</div>
+
+<script>
+const S = { now:false, W:1512, open:false, over:false, rail:'open', start:'mini',
+            view:'editor', page:0, openDoc:'d1', tree:new Set(['lib','plan','y2026']) }
+const FD=[{id:'plan',n:'기획',p:'lib'},{id:'y2026',n:'2026',p:'plan'},{id:'ana',n:'분석',p:'lib'},{id:'hr',n:'인사',p:'lib'}]
+const DOCS=[
+ {id:'d1',n:'EVER-SKETCH 기획·설계 사상',e:'📕',f:'y2026',s:'approved',st:'승인',p:5},
+ {id:'d2',n:'2026년 9월 기획안',e:'📕',f:'y2026',s:'pending',st:'결재 중',p:12},
+ {id:'d3',n:'MLOps 인프라 구성안',e:'📕',f:'y2026',s:'draft',st:'초안',p:31},
+ {id:'d4',n:'경쟁사 분석 — 3분기',e:'📘',f:'ana',s:'draft',st:'초안',p:18},
+ {id:'d5',n:'채용 계획 v2',e:'📙',f:'hr',s:'draft',st:'초안',p:7},
+]
+const fname=id=>id==='lib'?'내 자료':(FD.find(f=>f.id===id)||{}).n
+const kidsF=id=>FD.filter(f=>f.p===id), kidsD=id=>DOCS.filter(d=>d.f===id)
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+const mini = ()=> !(S.open || S.over)
+
+function treeHTML(id,depth){
+  const fs=kidsF(id), ds=kidsD(id), has=fs.length+ds.length>0, op=S.tree.has(id)
+  let h=`<div class="nv${has?' kids':''}${op?'':' shut2'}" data-f="${id}" style="padding-left:${8+depth*12}px">
+    <span class="ic"><span class="em">${id==='lib'?'📚':(op?'📂':'📁')}</span>${has?'<span class="ar">▾</span>':''}</span>
+    <span class="lbl">${fname(id)}</span></div>`
+  if(!op) return h
+  fs.forEach(f=>h+=treeHTML(f.id,depth+1))
+  ds.forEach(d=>{ h+=`<div class="nv doc${S.openDoc===d.id?' on':''}" data-d="${d.id}" style="padding-left:${8+(depth+1)*12}px">
+    <span class="ic"><span class="em">${d.e}</span></span><span class="lbl">${esc(d.n)}</span></div>` })
+  return h
+}
+function sideHTML(asMini){
+  let h=''
+  if (S.now || asMini){
+    h = `<div class="nv${S.view==='list'?' on':''}" data-plain="library"><span class="ic"><span class="em">📚</span></span><span class="lbl">내 자료</span></div>`
+  } else {
+    h = treeHTML('lib',0)
+  }
+  h += `<div class="nv" data-plain="inbox"><span class="ic"><span class="em">📥</span></span><span class="lbl">결재함</span><span class="bd">3</span></div>
+        <div class="nv" data-plain="team"><span class="ic"><span class="em">👥</span></span><span class="lbl">팀 공유</span></div>
+        <div class="grp">관리</div>
+        <div class="nv" data-plain="users"><span class="ic"><span class="em">🧑</span></span><span class="lbl">사용자 관리</span></div>
+        <div class="nv" data-plain="settings"><span class="ic"><span class="em">⚙️</span></span><span class="lbl">환경 설정</span></div>`
+  return `<div class="nav">${h}</div>`
+}
+function editorHTML(){
+  const d=DOCS.find(x=>x.id===S.openDoc)||DOCS[0]
+  let f=''
+  for(let i=0;i<Math.min(d.p,8);i++) f+=`<div class="th${i===S.page?' on':''}" data-pg="${i}"><i class="t"></i><i></i><i style="width:70%"></i><b>${i+1}</b></div>`
+  return `<div class="ed"><div class="films">${f}</div>
+    <div class="paper"><div class="sheet"><h4>${esc(d.n)} — ${S.page+1}쪽</h4>
+      <i></i><i style="width:88%"></i><i style="width:72%"></i><i style="width:80%"></i><i style="width:64%"></i></div></div></div>`
+}
+function libHTML(){
+  return `<div class="libscreen"><div class="lhead"><span class="ti">내 자료</span>
+      <span style="margin-left:auto"><button class="btn dark">＋ 새 이북</button></span></div>
+    <div class="llist">${DOCS.map(d=>`<div class="lrow">${d.e} ${esc(d.n)}<span class="chip ${d.s}">${d.st}</span></div>`).join('')}</div></div>`
+}
+
+function render(){
+  const m = mini()
+  // **덮개일 때도 아이콘 열은 제자리에 남는다.** 흐름에서 빼 버리면 종이가 왼쪽으로
+  // 밀려 들어와서 「겹쳐 떴다」가 아니라 「자리를 옮겼다」로 보인다.
+  const flowMini = S.over ? true : m
+  const sideW = flowMini ? 60 : 232
+  const d = DOCS.find(x=>x.id===S.openDoc)||DOCS[0]
+  const app = `<div class="app" style="width:${S.W}px">
+    <div class="top"><span class="lg">ℓ</span><span class="bn">EVER-SKETCH</span>
+      <span class="cr">내 자료 · <b>${S.view==='editor'?esc(d.n):'전체'}</b></span>
+      <span class="rt">${S.view==='editor'?'<button class="btn">저장됨</button><button class="btn dark">결재 제출</button>':'<button class="btn">김가현</button>'}</span></div>
+    <div class="body">
+      <div class="side${flowMini?' mini':''}" id="side" style="flex:0 0 ${sideW}px">
+        ${sideHTML(flowMini)}
+        <div class="acct"><span class="av">가</span><span class="nm">김가현</span></div></div>
+      ${S.over?`<div class="side over" id="over">${sideHTML(false)}
+        <div class="acct"><span class="av">가</span><span class="nm">김가현</span></div></div>`:''}
+      ${S.view==='editor'?editorHTML():libHTML()}
+      <div class="edge" id="edge" style="left:${(S.over?60:sideW)-11}px">${m&&!S.over?'›':'‹'}</div>
+    </div></div>`
+  document.getElementById('app').innerHTML = app
+
+  const avail=document.querySelector('.stage').clientWidth-2
+  const maxH=Math.max(240,Math.min(430,window.innerHeight*0.40))
+  const k=Math.min(1,avail/S.W,maxH/660)
+  const sc=document.getElementById('scaler'); sc.style.transform='scale('+k+')'; sc.style.width=S.W+'px'
+  const fr=document.querySelector('.frame')
+  fr.style.height=Math.round(660*k)+'px'; fr.style.width=Math.round(S.W*k)+'px'; fr.style.margin='0 auto'
+
+  document.getElementById('hint').textContent = S.now
+    ? '💡 「›」를 눌러 보세요 — 안 펴집니다. 아이콘을 누르면 나가 버립니다'
+    : (S.rail==='hover' ? '💡 접힌 열에 마우스를 올려 보세요 — 덮개로 뜹니다'
+       : '💡 「›」나 아이콘을 눌러 보세요 — 편집기는 그대로 있습니다')
+  document.getElementById('ro').innerHTML = S.view==='editor'
+    ? `편집기 · 사이드바 ${S.over?'덮개':(m?'접힘 60px':'펴짐 232px')} · 종이에 남는 폭 <b>${S.W-(S.over?60:sideW)-96}px</b>`
+    : '자료 목록 — 편집기를 떠났습니다'
+  bind(); summary()
+}
+
+function bind(){
+  const edge=document.getElementById('edge')
+  edge.onclick=()=>{
+    if (S.now && S.view==='editor'){ toast("지금은 안 펴집니다 — shut = folded || view === 'editor'"); return }
+    S.open=!S.open; S.over=false; render()
+    toast(S.open?'폈습니다 — 화면은 그대로입니다':'접었습니다')
+  }
+  const side=document.getElementById('side')
+  if (!S.now && S.rail==='hover' && mini() && !S.over){
+    side.onmouseenter=()=>{ S.over=true; render() }
+  }
+  const ov=document.getElementById('over')
+  if (ov) ov.onmouseleave=()=>{ S.over=false; render() }
+
+  document.querySelectorAll('.nv[data-plain]').forEach(n=>{
+    n.onclick=()=>{
+      const k=n.dataset.plain, lbl=n.querySelector('.lbl').textContent
+      if (S.now){
+        if (k==='library'){ S.view='list'; render(); toast('편집기를 떠나 목록 첫 화면으로 갑니다 — 영상 그대로입니다'); return }
+        toast('「'+lbl+'」 화면으로 갑니다'); return
+      }
+      if (mini() && S.rail==='open'){ S.open=true; S.over=false; render(); toast('먼저 폈습니다 — 화면은 그대로입니다 (⑪ㄱ)'); return }
+      if (k==='library'){ S.view='list'; S.over=false; render(); toast('목록 화면으로 갑니다'); return }
+      toast('「'+lbl+'」 화면으로 갑니다')
+    }
+  })
+  document.querySelectorAll('.nv[data-f]').forEach(n=>{
+    n.onclick=e=>{ const id=n.dataset.f
+      if (e.target.closest('.ic')){ S.tree.has(id)?S.tree.delete(id):S.tree.add(id); render(); toast('접고 폈습니다 — 화면은 그대로'); return }
+      S.view='list'; S.over=false; render(); toast('「'+fname(id)+'」 목록으로 갑니다') }
+  })
+  document.querySelectorAll('.nv[data-d]').forEach(n=>{
+    n.onclick=()=>{ S.openDoc=n.dataset.d; S.view='editor'; S.page=0; S.over=false; render()
+      toast('사이드바에서 바로 건너뛰었습니다 — 목록을 안 거쳤습니다') }
+  })
+  document.querySelectorAll('.th').forEach(t=>{ t.onclick=()=>{ S.page=+t.dataset.pg; render() } })
+}
+let tt
+function toast(t){ const e=document.getElementById('toast'); e.textContent=t; e.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('on'),2200) }
+function summary(){
+  document.getElementById('sum').innerHTML =
+    `<span>⑪ ${{open:'ㄱ 먼저 펴기만',go:'ㄴ 바로 이동',hover:'ㄷ 올리면 덮개'}[S.rail]}</span>` +
+    `<span>⑫ ${S.start==='mini'?'ㄱ 접힌 채 시작 (편 상태 기억)':'ㄴ 펴진 채 시작'}</span>` +
+    `<span>고칠 곳 — AppShell.tsx:79 <code style="background:#fff">shut = folded</code></span>`
+}
+function seg(id,fn){ document.getElementById(id).onclick=e=>{const b=e.target.closest('button'); if(!b)return
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c===b)); fn(b); render()} }
+seg('nowseg', b=>{ S.now=b.dataset.now==='1'; S.view='editor'; S.open=false; S.over=false })
+function opts(id,fn){ document.getElementById(id).onclick=e=>{const b=e.target.closest('.opt'); if(!b)return
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c===b)); fn(b.dataset.v); render()} }
+opts('o11', v=>{ S.rail=v; S.open=false; S.over=false; S.view='editor' })
+opts('o12', v=>{ S.start=v; S.open=(v==='open'); S.over=false; S.view='editor' })
+window.addEventListener('resize', render)
+render()
+</script>
+</body>
+</html>

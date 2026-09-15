@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 v1.3 — 사이드바에서 자료까지 펼치기</title>
+<style>
+  :root{--navy:#0F1B3D;--blue:#2462EB;--tint:#E8F0FE;--line:#e5e7eb;--sub:#5b6270;
+        --muted:#94a3b8;--card:#f8fafc;--bg:#f5f6f8}
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--navy);
+       font:14px/1.7 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 90px}
+  h1{font-size:25px;font-weight:900;margin:0 0 6px}
+  .lede{color:var(--sub);margin:0 0 16px;font-size:14.3px}
+  h2{font-size:17.5px;font-weight:900;margin:30px 0 8px;padding-top:20px;border-top:1px solid var(--line)}
+  p{margin:0 0 10px}
+  code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:12.4px;font-family:ui-monospace,Menlo,monospace}
+  .ans{background:#F2F7F4;border:1px solid #cfe3d8;border-radius:10px;padding:10px 14px;margin:10px 0 14px;font-size:13.2px}
+  .ans b{color:#1d5340}
+  .miss{background:#FFF7E8;border:1px solid #f0dcb4;border-radius:10px;padding:10px 14px;margin:10px 0 14px;font-size:13.2px;color:#6b4a10}
+  .miss b{color:#8a5a10}
+  .warn{background:#FFF7E8;border:1px solid #f0dcb4;color:#8a5a10;border-radius:9px;padding:9px 13px;font-size:12.5px;margin:10px 0 0}
+  .quote{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:10px 14px;margin:11px 0;font-size:12.8px;color:var(--sub)}
+  .quote b{color:var(--navy)}
+  .opts{display:flex;gap:9px;flex-wrap:wrap;margin:11px 0 4px}
+  .opt{flex:1 1 250px;min-width:0;text-align:left;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:10px 13px;cursor:pointer;font-family:inherit;color:inherit}
+  .opt:hover{border-color:#c6d5ff}
+  .opt.on{border-color:var(--blue);background:var(--tint);box-shadow:0 0 0 3px rgba(36,98,235,.10)}
+  .opt .k{font-weight:900;font-size:13.2px;display:block;margin-bottom:2px}
+  .opt .d{font-size:12.2px;color:var(--sub);line-height:1.6}
+
+  .stage{position:sticky;top:0;z-index:30;background:#fff;padding:10px 0 12px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+  .stage-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+  .stage-bar .t{font-weight:900;font-size:12.5px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:5px 11px;font:800 11.8px/1.5 inherit;color:var(--sub);cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+  .hint{font-size:11.6px;color:var(--blue);font-weight:800}
+  .readout{font-size:11.7px;color:var(--sub);margin-left:auto;text-align:right}
+  .readout b{color:var(--navy)}
+  .frame{border:1px solid #dfe3ea;border-radius:12px;overflow:hidden;background:var(--bg);box-shadow:0 8px 26px rgba(15,27,61,.10)}
+  .scaler{transform-origin:top left}.stagewrap{position:relative}
+
+  .app{display:flex;height:660px;background:var(--bg);font-size:13px}
+  .side{flex:0 0 232px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+  .brand{display:flex;align-items:center;gap:8px;padding:14px 14px 10px;font-weight:900;font-size:14px}
+  .brand .lg{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--navy);color:#fff;font-size:13px}
+  .nav{padding:4px 8px;flex:1;overflow:auto}
+  .acct{border-top:1px solid var(--line);padding:9px 12px;display:flex;align-items:center;gap:8px}
+  .acct .av{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:900}
+  .acct .nm{font-weight:800;font-size:12.6px}.acct .cx{margin-left:auto;color:var(--muted);font-size:11px}
+
+  .nv{display:flex;align-items:center;gap:7px;padding:5.5px 8px;border-radius:7px;color:var(--sub);
+      font-weight:700;font-size:12.6px;cursor:pointer;white-space:nowrap}
+  .nv:hover{background:#F4F5F7;color:#111318}
+  .nv.on{background:var(--tint);color:var(--blue);font-weight:900}
+  .nv .ic{flex:0 0 16px;display:grid;place-items:center;font-size:12.5px;border-radius:4px;position:relative}
+  .nv .ic .ar{display:none;font-size:9px;color:var(--sub);transition:transform .14s}
+  .nv.kids:hover .ic .em{display:none}
+  .nv.kids:hover .ic .ar{display:block}
+  .nv.kids .ic:hover{background:#e3e6eb}
+  .nv.shut .ic .ar{transform:rotate(-90deg)}
+  .nv .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .nv .bd{margin-left:auto;background:#FFF4E3;color:#8a5a10;font-size:10.3px;font-weight:900;border-radius:99px;padding:1px 6px}
+  .nv .c{margin-left:auto;font-size:10.3px;color:var(--muted)}
+  .nv.doc{font-weight:600;font-size:12.3px}
+  .nv.doc.on{font-weight:800}
+  .nv .lk{font-size:9.5px;color:#b98b2a}
+  .nv.pg{font-weight:500;font-size:11.8px;color:var(--muted)}
+  .grp{font-size:10.4px;font-weight:900;color:var(--muted);padding:11px 10px 3px}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+  .head{display:flex;align-items:center;gap:9px;padding:11px 16px 9px;background:#fff;border-bottom:1px solid var(--line)}
+  .head .ti{font-weight:900;font-size:14.5px}
+  .head .crumb{font-size:11.5px;color:var(--muted)}
+  .head .sp{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .q{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:5px 10px;font-size:11.7px;color:var(--muted);min-width:140px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:800 11.7px/1.4 inherit;color:var(--sub);cursor:pointer;white-space:nowrap}
+  .btn.dark{background:var(--blue);border-color:var(--blue);color:#fff}
+  .cnt{font-size:11.2px;color:var(--muted);padding:8px 16px 4px}
+  .list{flex:1;overflow:auto;padding:0 12px 14px}
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;table-layout:fixed}
+  .tbl th{font-size:10.8px;font-weight:900;color:var(--muted);text-align:left;padding:7px 10px;background:var(--card);border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl td{padding:8px 10px;border-bottom:1px solid #f1f3f6;font-size:12.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl tbody tr{cursor:pointer}.tbl tr.on td{background:var(--tint)}
+  .tbl td.t{font-weight:800;font-size:12.4px;color:var(--navy)}
+  .chip{font-size:10.1px;font-weight:900;padding:1.5px 7px;border-radius:99px;display:inline-block}
+  .chip.draft{background:#eef0f3;color:#6b7480}.chip.pending{background:#FFF4E3;color:#8a5a10}
+  .chip.approved{background:#E9F5EF;color:#215c46}.chip.rejected{background:#fdf0f0;color:#7d2027}
+  .chip.rev{background:#EDE9FE;color:#4c3ba6}
+
+  .ed{flex:1;display:flex;background:var(--bg);min-height:0}
+  .ed .films{flex:0 0 90px;background:#fff;border-right:1px solid var(--line);padding:8px 6px;overflow:auto}
+  .ed .th{border:1.4px solid var(--line);border-radius:5px;background:#fff;height:52px;margin-bottom:6px;padding:5px;position:relative}
+  .ed .th.on{border-color:var(--blue);box-shadow:0 0 0 2px var(--tint)}
+  .ed .th i{display:block;height:3px;border-radius:2px;background:#e2e8f0;margin-bottom:3px}
+  .ed .th i.t{background:#cbd5e1;width:60%;height:5px}
+  .ed .th b{position:absolute;right:3px;bottom:2px;font-size:8px;color:var(--muted)}
+  .ed .paper{flex:1;display:grid;place-items:center;min-width:0}
+  .ed .sheet{background:#fff;border:1px solid var(--line);border-radius:8px;width:76%;max-width:520px;aspect-ratio:4/3;padding:22px}
+  .ed .sheet h4{margin:0 0 12px;font-size:15px}
+  .ed .sheet i{display:block;height:8px;border-radius:3px;background:#eef1f5;margin-bottom:8px}
+
+  .det{flex:0 0 340px;background:#fff;border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;box-shadow:-10px 0 24px rgba(15,27,61,.07)}
+  .det .dh{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .det .dh .nm{font-weight:900;font-size:13.4px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .det .dh .x{color:var(--muted);font-size:14px;cursor:pointer;padding:0 4px}
+  .det .db{flex:1;overflow:auto;padding:12px 14px 18px}
+  .sec{margin-bottom:13px}
+  .sec .sh{font-size:10.6px;font-weight:900;color:var(--muted);margin-bottom:6px;display:flex}
+  .sec .sh .more{margin-left:auto;color:var(--blue)}
+  .props{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12px}
+  .props dt{color:var(--muted)}.props dd{margin:0;font-weight:700}
+  .hist{font-size:11.7px;color:var(--sub)}
+  .hist div{display:flex;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line)}
+  .hist div:last-child{border:0}.hist .w{color:var(--muted);flex:0 0 66px}
+  .cmtchip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:11.8px;color:var(--sub);cursor:pointer}
+  .cmtchip .go{margin-left:auto;color:var(--blue);font-weight:800;font-size:11.2px}
+  .dacts{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
+  .lockmsg{flex:1 0 100%;font-size:11.2px;color:#8a5a10;margin-top:5px}
+
+  .toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(15,27,61,.93);color:#fff;font-weight:800;font-size:12.4px;padding:8px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;max-width:82%;text-align:center}
+  .toast.on{opacity:1}
+  table.t2{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0}
+  table.t2 th,table.t2 td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+  table.t2 th{background:var(--card);font-weight:900;font-size:11.6px}
+  .sum{position:sticky;bottom:0;background:#fff;border-top:2px solid var(--navy);padding:9px 22px 10px;margin:28px -22px -90px;box-shadow:0 -6px 20px rgba(15,27,61,.07)}
+  .sum .t{font-size:10.5px;font-weight:900;color:var(--muted);margin-bottom:2px}
+  .sum .v{font-size:13px;font-weight:900;line-height:1.85}
+  .sum .v span{background:var(--tint);color:var(--blue);border-radius:7px;padding:2px 8px;margin-right:6px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>v1.3 — 사이드바에서 <b>자료까지</b> 펼친다</h1>
+
+<div class="miss">
+ <b>제가 한 단 얕게 만들었습니다.</b> v1.2 의 사이드바는 <b>폴더까지만</b> 펼쳤습니다.
+ 그런데 올려 주신 노션 영상에서 「유니에버(주) AI 솔루션 프로젝트」를 펼치면 나오는 것은 폴더가 아니라
+ <b>그 안의 문서들</b>(테이블 · 칸반 보드 · 캘린더 · 우선순위별 목록 · 타임라인)입니다.
+ 그러니까 「세부 항목」은 <b>자료 그 자체</b>였습니다. 그래서 목록 화면을 거치지 않고 사이드바에서 바로 자료로 갑니다.
+</div>
+
+<div class="ans">
+ <b>바로잡은 것</b> — 사이드바가 <b>내 자료 ▸ 폴더 ▸ 자료</b> 까지 내려갑니다.
+ <b>자료를 누르면 그 자리에서 편집기가 열리고</b>, 편집기 안에서도 사이드바는 그대로 있어 다른 자료로 바로 건너뜁니다.
+ 목록 화면은 <b>표로 훑고 싶을 때</b> 가는 곳이 됩니다.
+</div>
+
+<div class="stage">
+  <div class="stage-bar">
+    <span class="t">비교</span>
+    <span class="seg" id="nowseg"><button data-now="1">지금</button><button data-now="0" class="on">바뀐 뒤</button></span>
+    <span class="t" style="margin-left:4px">창</span>
+    <span class="seg" id="wseg"><button data-w="1126">1126</button><button data-w="1512" class="on">1512</button><button data-w="1910">1910</button></span>
+    <span class="hint" id="hint">💡 사이드바에서 자료 이름을 눌러 보세요 — 목록을 안 거칩니다</span>
+    <span class="readout" id="ro"></span>
+  </div>
+  <div class="frame stagewrap"><div class="scaler" id="scaler"><div id="app"></div></div>
+    <div class="toast" id="toast"></div></div>
+</div>
+
+<h2>세 가지 몸짓</h2>
+<table class="t2">
+  <tr><th>누른 곳</th><th>하는 일</th></tr>
+  <tr><td><b>아이콘 자리 (▾)</b></td><td>아래 항목을 접고 편다. <b>화면은 그대로.</b></td></tr>
+  <tr><td><b>폴더 이름</b></td><td>그 폴더의 <b>목록 화면</b>으로 간다 (표로 훑을 때).</td></tr>
+  <tr><td><b>자료 이름</b></td><td><b>그 자료를 연다</b> — 목록 화면을 거치지 않는다.</td></tr>
+</table>
+
+<div class="quote">
+ 「지금」으로 바꿔 놓고 편집기에서 <b>「내 자료」</b>를 눌러 보시면 영상 그대로 첫 화면으로 튑니다.
+ 원인은 <code>LibraryScreen</code> 안의 <code>const [path,setPath]=useState&lt;Crumb[]&gt;([])</code> — 화면이 내려갔다 오면 <code>[]</code> 로 다시 태어납니다.
+ 사이드바가 자료까지 들고 있으면 이 길 자체를 안 씁니다.
+</div>
+
+<h2>⑨ 어디까지 펼칠까</h2>
+<div class="opts" id="o9">
+  <button class="opt on" data-v="doc"><span class="k">ㄱ · 자료까지</span>
+    <span class="d">폴더 ▸ 자료. 노션과 같은 깊이입니다. 자료를 누르면 열리고, 그 안의 쪽은 편집기 왼쪽 필름에서 고릅니다 — 쪽 고르는 자리가 두 곳이 되지 않습니다.</span></button>
+  <button class="opt" data-v="page"><span class="k">ㄴ · 쪽까지</span>
+    <span class="d">폴더 ▸ 자료 ▸ 쪽. 다른 자료의 3쪽으로 한 번에 갈 수 있습니다. 대신 편집기 필름과 <b>같은 일을 하는 자리가 둘</b>이 되고, 30쪽짜리를 펼치면 사이드바가 길어집니다.</span></button>
+</div>
+
+<h2>⑩ 자료가 많아지면</h2>
+<p>지금 계정에 자료가 <b>12개</b>입니다. 폴더 하나에 50개가 쌓이면 펼쳤을 때 사이드바가 길어집니다.</p>
+<div class="opts" id="o10">
+  <button class="opt on" data-v="recent"><span class="k">ㄱ · 최근 10개만 + 「더 보기」</span>
+    <span class="d">사이드바는 <b>자주 가는 곳</b>이고 전부 훑는 곳은 목록 화면입니다. 10개를 넘으면 「⋯ 더 보기 (38)」 한 줄이 붙고, 누르면 그 폴더의 목록 화면으로 갑니다.</span></button>
+  <button class="opt" data-v="all"><span class="k">ㄴ · 전부 보여 준다</span>
+    <span class="d">빠진 것이 없어 찾기가 확실합니다. 대신 폴더 하나를 펼치면 사이드바를 한참 굴려야 결재함이 나옵니다.</span></button>
+</div>
+
+<div class="sum"><div class="t">고른 것</div><div class="v" id="sum"></div></div>
+</div>
+
+<script>
+const S = { W:1512, now:false, depth:'doc', many:'recent',
+  open:new Set(['lib','plan','y2026']), view:'list', curFolder:'lib', openDoc:null, sel:-1, page:0 }
+const SIDE=232, DET=340
+const TMIN = 220+92+96+104+116+62+26
+
+const FD = [
+  {id:'plan', n:'기획', p:'lib'},
+  {id:'y2026', n:'2026', p:'plan'},
+  {id:'prop', n:'제안', p:'lib'},
+  {id:'logi', n:'물류', p:'prop'},
+  {id:'ana', n:'분석', p:'lib'},
+  {id:'hr', n:'인사', p:'lib'},
+]
+const DOCS = [
+  {id:'d1', n:'2026년 9월 기획안',   e:'📕', f:'y2026', s:'pending', st:'결재 중', appr:'이강선', sent:'9월 3일', upd:'9월 3일 14:20', p:12, pub:0, lock:1, why:'결재 중이라 잠겨 있습니다'},
+  {id:'d2', n:'MLOps 인프라 구성안', e:'📕', f:'y2026', s:'draft',   st:'초안',   appr:'—',     sent:'—',      upd:'8월 25일 16:40', p:31, pub:0, lock:0},
+  {id:'d3', n:'새 이북',             e:'📄', f:'y2026', s:'draft',   st:'초안',   appr:'—',     sent:'—',      upd:'8월 24일 09:00', p:0,  pub:0, lock:0},
+  {id:'d4', n:'물류 자동화 제안',     e:'📗', f:'logi',  s:'approved',st:'승인',   appr:'이강선', sent:'9월 1일', upd:'9월 2일 18:04', p:24, pub:1, lock:1, why:'승인된 자료라 잠겨 있습니다'},
+  {id:'d5', n:'경쟁사 분석 — 3분기',  e:'📘', f:'ana',   s:'rejected',st:'반려',   appr:'곽두섭', sent:'8월 28일',upd:'8월 29일 11:31',p:18, pub:0, lock:0},
+  {id:'d6', n:'채용 계획 v2',        e:'📙', f:'hr',    s:'rev',     st:'수정 중', appr:'이강선', sent:'8월 20일',upd:'8월 27일 09:12',p:7,  pub:0, lock:0},
+  {id:'d7', n:'제목 없음',           e:'📄', f:'lib',   s:'draft',   st:'초안',   appr:'—',     sent:'—',      upd:'8월 14일 17:57', p:3,  pub:0, lock:0},
+  {id:'d8', n:'2026년 8월 임원회의',  e:'📕', f:'y2026', s:'approved',st:'승인',   appr:'이강선', sent:'8월 5일', upd:'8월 6일 09:40', p:15, pub:1, lock:1, why:'승인된 자료라 잠겨 있습니다'},
+  {id:'d9', n:'2026년 7월 임원회의',  e:'📕', f:'y2026', s:'approved',st:'승인',   appr:'이강선', sent:'7월 4일', upd:'7월 5일 10:12', p:14, pub:1, lock:1, why:'승인된 자료라 잠겨 있습니다'},
+  {id:'d10',n:'상반기 결산 보고',     e:'📗', f:'y2026', s:'approved',st:'승인',   appr:'곽두섭', sent:'7월 1일', upd:'7월 2일 16:22', p:22, pub:0, lock:1, why:'승인된 자료라 잠겨 있습니다'},
+  {id:'d11',n:'설비 예지 보전 개요',  e:'📘', f:'y2026', s:'rejected',st:'반려',   appr:'이강선', sent:'6월 20일',upd:'6월 21일 13:05',p:19, pub:0, lock:0},
+  {id:'d12',n:'데이터 마트 설계',     e:'📙', f:'y2026', s:'draft',   st:'초안',   appr:'—',     sent:'—',      upd:'6월 12일 11:48', p:26, pub:0, lock:0},
+]
+const fname = id => id==='lib' ? '내 자료' : (FD.find(f=>f.id===id)||{}).n
+const kidsF = id => FD.filter(f=>f.p===id)
+const kidsD = id => DOCS.filter(d=>d.f===id)
+const esc = s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+const listW = ()=> S.W - SIDE - (S.sel>=0 && S.view==='list' ? DET : 0)
+const inFolder = id => { // 그 폴더와 아래 전부
+  const acc=[]; const walk=f=>{ acc.push(...kidsD(f)); kidsF(f).forEach(x=>walk(x.id)) }; walk(id); return acc }
+
+function nodeHTML(id, depth){
+  const fs = kidsF(id), ds = kidsD(id)
+  const has = fs.length + ds.length > 0
+  const open = S.open.has(id)
+  const on = S.view==='list' && S.curFolder===id
+  let h = `<div class="nv${has?' kids':''}${open?'':' shut'}${on?' on':''}" data-f="${id}" style="padding-left:${8+depth*13}px">
+    <span class="ic" data-ar="${has?1:0}"><span class="em">${id==='lib'?'📚':(open?'📂':'📁')}</span>${has?'<span class="ar">▾</span>':''}</span>
+    <span class="lbl">${fname(id)}</span><span class="c">${inFolder(id).length}</span></div>`
+  if (!open) return h
+  fs.forEach(f=>{ h += nodeHTML(f.id, depth+1) })
+  let show = ds
+  let more = 0
+  if (S.many==='recent' && ds.length > 4){ show = ds.slice(0,4); more = ds.length-4 }
+  show.forEach(d=>{
+    const dOpen = S.open.has(d.id)
+    h += `<div class="nv doc${S.depth==='page'?' kids':''}${dOpen?'':' shut'}${S.openDoc===d.id?' on':''}" data-d="${d.id}" style="padding-left:${8+(depth+1)*13}px">
+      <span class="ic" data-ar="${S.depth==='page'?1:0}"><span class="em">${d.e}</span>${S.depth==='page'?'<span class="ar">▾</span>':''}</span>
+      <span class="lbl">${esc(d.n)}</span>${d.lock?'<span class="lk">🔒</span>':''}</div>`
+    if (S.depth==='page' && dOpen)
+      for(let i=0;i<Math.min(d.p,4);i++)
+        h += `<div class="nv pg${S.openDoc===d.id&&S.page===i?' on':''}" data-d="${d.id}" data-pg="${i}" style="padding-left:${8+(depth+2)*13}px">
+          <span class="ic"><span class="em">▫</span></span><span class="lbl">${i+1}쪽</span></div>`
+  })
+  if (more) h += `<div class="nv" data-more="${id}" style="padding-left:${8+(depth+1)*13}px;color:var(--blue);font-weight:800">
+      <span class="ic"><span class="em">⋯</span></span><span class="lbl">더 보기 (${more})</span></div>`
+  return h
+}
+
+function sideHTML(){
+  let h = ''
+  if (S.now){
+    h = `<div class="nv${S.view==='list'?' on':''}" data-plain="library"><span class="ic"><span class="em">📚</span></span><span class="lbl">내 자료</span></div>`
+  } else {
+    h = nodeHTML('lib', 0)
+  }
+  h += `<div class="nv" data-plain="inbox"><span class="ic"><span class="em">📥</span></span><span class="lbl">결재함</span><span class="bd">3</span></div>
+        <div class="nv" data-plain="team"><span class="ic"><span class="em">👥</span></span><span class="lbl">팀 공유</span></div>
+        <div class="grp">관리</div>
+        <div class="nv" data-plain="users"><span class="ic"><span class="em">🧑</span></span><span class="lbl">사용자 관리</span></div>
+        <div class="nv" data-plain="admin"><span class="ic"><span class="em">🏢</span></span><span class="lbl">팀 관리</span></div>
+        <div class="nv" data-plain="settings"><span class="ic"><span class="em">⚙️</span></span><span class="lbl">환경 설정</span></div>`
+  return `<div class="nav">${h}</div>`
+}
+
+function tableHTML(){
+  const ds = inFolder(S.curFolder)
+  const th = ['제목','상태','결재자','낸 날','수정일','발행']
+  const w = ['auto','92px','96px','104px','116px','62px']
+  return `<table class="tbl"><thead><tr>${th.map((t,i)=>`<th style="width:${w[i]}">${t}</th>`).join('')}</tr></thead>
+   <tbody>${ds.map(d=>`<tr class="${DOCS.indexOf(d)===S.sel?'on':''}" data-i="${DOCS.indexOf(d)}">
+    <td class="t">${d.e} ${esc(d.n)}${d.lock?' 🔒':''}</td><td><span class="chip ${d.s}">${d.st}</span></td>
+    <td>${d.appr==='—'?'<span style="color:#cbd5e1">—</span>':'🧑 '+d.appr}</td>
+    <td>${d.sent==='—'?'<span style="color:#cbd5e1">—</span>':d.sent}</td><td>${d.upd}</td>
+    <td>${d.pub?'<span class="chip approved">발행됨</span>':'<span style="color:#cbd5e1">—</span>'}</td></tr>`).join('')}</tbody></table>`
+}
+function rowsHTML(){
+  return inFolder(S.curFolder).map(d=>`<div class="nv" data-i="${DOCS.indexOf(d)}"
+    style="background:#fff;border:1.4px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:6px">
+    <span class="ic"><span class="em">${d.e}</span></span><span class="lbl">${esc(d.n)}</span>
+    <span class="chip ${d.s}">${d.st}</span></div>`).join('')
+}
+
+function detailHTML(){
+  const d = DOCS[S.sel]
+  return `<div class="dh"><span class="nm">${esc(d.n)}</span><span class="x" id="detx">✕</span></div><div class="db">
+  <div class="sec"><div class="sh">속성</div><dl class="props">
+    <dt>상태</dt><dd><span class="chip ${d.s}">${d.st}</span></dd><dt>폴더</dt><dd>${fname(d.f)}</dd>
+    <dt>결재자</dt><dd>${d.appr}</dd><dt>낸 날</dt><dd>${d.sent}</dd><dt>수정</dt><dd>${d.upd}</dd>
+    <dt>쪽수</dt><dd>${d.p}쪽</dd><dt>발행</dt><dd>${d.pub?'발행됨':'—'}</dd></dl></div>
+  <div class="sec"><div class="sh">결재 이력<span class="more">전체 보기 →</span></div><div class="hist">
+    <div><span class="w">9월 3일</span><span>김가현 제출</span></div>
+    <div><span class="w">9월 2일</span><span>이강선 반려</span></div>
+    <div><span class="w">8월 30일</span><span>김가현 제출 (1회차)</span></div></div></div>
+  <div class="sec"><div class="cmtchip">💬 의견 <b>2</b><span class="go">결재함에서 보기 →</span></div></div>
+  <div class="dacts"><button class="btn dark" id="openbtn"${d.lock?' style="opacity:.5"':''}>열기</button>
+    <button class="btn"${d.lock?' style="opacity:.45"':''}>결재 제출</button>
+    <button class="btn">복제</button><button class="btn">삭제</button>
+    ${d.lock?`<div class="lockmsg">🔒 ${d.why} — 「수정 요청」을 내세요</div>`:''}</div></div>`
+}
+
+function editorHTML(){
+  const d = DOCS.find(x=>x.id===S.openDoc) || DOCS[0]
+  const n = Math.max(d.p,1)
+  let films=''
+  for(let i=0;i<Math.min(n,8);i++)
+    films += `<div class="th${i===S.page?' on':''}" data-pg="${i}"><i class="t"></i><i></i><i style="width:70%"></i><b>${i+1}</b></div>`
+  return `<div class="ed"><div class="films">${films}</div>
+    <div class="paper"><div class="sheet"><h4>${esc(d.n)} — ${S.page+1}쪽</h4>
+      <i></i><i style="width:88%"></i><i style="width:72%"></i><i style="width:80%"></i></div></div></div>`
+}
+
+function render(){
+  const lw = listW()
+  const useTable = lw >= TMIN
+  const isEd = S.view==='editor'
+  const d = isEd ? DOCS.find(x=>x.id===S.openDoc) : null
+  const app = `<div class="app" style="width:${S.W}px">
+    <div class="side"><div class="brand"><span class="lg">ℓ</span>EVER-SKETCH</div>${sideHTML()}
+      <div class="acct"><span class="av">가</span><span class="nm">김가현</span><span class="cx">⌃</span></div></div>
+    <div class="main">
+      <div class="head"><span class="ti">${isEd?esc(d.n):'내 자료'}</span>
+        <span class="crumb">${isEd?'· 편집 중':'· '+fname(S.curFolder)}</span>
+        <span class="sp">${isEd?'<button class="btn">저장됨</button><button class="btn dark">결재 제출</button>'
+          :'<span class="q">🔍 제목 또는 ID</span><button class="btn dark">＋ 새 이북</button>'}</span></div>
+      ${isEd ? editorHTML()
+        : `<div class="cnt">${fname(S.curFolder)} ${inFolder(S.curFolder).length}개${useTable?'':' · <b style="color:#8a5a10">칸이 좁아 줄 목록</b>'}</div>
+           <div class="list" id="list">${useTable?tableHTML():rowsHTML()}</div>`}
+    </div>
+    ${(S.sel>=0 && !isEd)?`<div class="det">${detailHTML()}</div>`:''}</div>`
+  document.getElementById('app').innerHTML = app
+
+  const avail = document.querySelector('.stage').clientWidth - 2
+  const maxH = Math.max(240, Math.min(430, window.innerHeight*0.40))
+  const k = Math.min(1, avail/S.W, maxH/660)
+  const sc=document.getElementById('scaler'); sc.style.transform='scale('+k+')'; sc.style.width=S.W+'px'
+  const fr=document.querySelector('.frame')
+  fr.style.height=Math.round(660*k)+'px'; fr.style.width=Math.round(S.W*k)+'px'; fr.style.margin='0 auto'
+  document.getElementById('hint').textContent = S.now
+    ? '💡 자료를 열고 나서 왼쪽 「내 자료」를 눌러 보세요 — 영상처럼 튑니다'
+    : '💡 사이드바에서 자료 이름을 눌러 보세요 — 목록을 안 거칩니다'
+  document.getElementById('ro').innerHTML = isEd ? '편집기 — 사이드바는 그대로 있습니다'
+    : `목록 칸 <b>${lw}px</b> · 표 최소 <b>${TMIN}px</b>${useTable?'':' · <b style="color:#8a5a10">줄 목록</b>'}`
+  bind(); summary()
+}
+
+function bind(){
+  document.querySelectorAll('.nv .ic[data-ar="1"]').forEach(ic=>{
+    ic.onclick = e=>{ e.stopPropagation()
+      const p = ic.closest('.nv'); const id = p.dataset.f || p.dataset.d
+      S.open.has(id) ? S.open.delete(id) : S.open.add(id)
+      render(); toast('접고 폈습니다 — 화면은 안 바뀝니다') }
+  })
+  document.querySelectorAll('.nv[data-f]').forEach(n=>{
+    n.onclick = ()=>{ const id=n.dataset.f
+      if (S.view==='list' && S.curFolder===id){ S.open.has(id)?S.open.delete(id):S.open.add(id); render()
+        toast('이미 이 화면이라 옮기지 않고 펼침만 바꿉니다'); return }
+      S.view='list'; S.curFolder=id; S.sel=-1; S.open.add(id); render(); toast('「'+fname(id)+'」 목록으로 갑니다') }
+  })
+  document.querySelectorAll('.nv[data-d]').forEach(n=>{
+    n.onclick = ()=>{ S.openDoc=n.dataset.d; S.view='editor'; S.sel=-1
+      if (n.dataset.pg!==undefined) S.page=+n.dataset.pg; else S.page=0
+      render(); toast('사이드바에서 바로 열었습니다 — 목록을 안 거쳤습니다') }
+  })
+  document.querySelectorAll('.nv[data-more]').forEach(n=>{
+    n.onclick = ()=>{ S.view='list'; S.curFolder=n.dataset.more; S.sel=-1; render(); toast('나머지는 목록 화면에서 봅니다') }
+  })
+  document.querySelectorAll('.nv[data-plain]').forEach(n=>{
+    n.onclick = ()=>{ const k=n.dataset.plain
+      if (k!=='library'){ toast('「'+n.querySelector('.lbl').textContent+'」 화면으로 갑니다'); return }
+      S.view='list'; S.curFolder='lib'; S.sel=-1; render()
+      toast('지금은 여기서 늘 「전체」로 떨어집니다 — 보던 폴더를 잃습니다') }
+  })
+  document.querySelectorAll('#list [data-i]').forEach(r=>{ r.onclick = ()=>{ S.sel=+r.dataset.i; render() } })
+  document.querySelectorAll('.films .th').forEach(t=>{ t.onclick = ()=>{ S.page=+t.dataset.pg; render() } })
+  const x=document.getElementById('detx'); if(x) x.onclick=()=>{ S.sel=-1; render() }
+  const ob=document.getElementById('openbtn')
+  if (ob) ob.onclick = ()=>{ const d=DOCS[S.sel]
+    if (d.lock){ toast('잠긴 자료입니다 — 「수정 요청」을 먼저 내세요'); return }
+    S.openDoc=d.id; S.view='editor'; S.sel=-1; S.page=0; render() }
+}
+let tt
+function toast(t){ const e=document.getElementById('toast'); e.textContent=t; e.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('on'),2100) }
+function summary(){
+  document.getElementById('sum').innerHTML =
+    `<span>① ㄱ 사이드바 안</span><span>② 노션식 · 상세는 고를 때만</span><span>③ 속성·이력·의견 숫자·단추</span>` +
+    `<span>④ 열기 단추</span><span>⑤ 표 6열</span><span>⑥ 아이콘=펼치기 / 폴더=목록 / 자료=바로 열기</span>` +
+    `<span>⑨ ${S.depth==='doc'?'ㄱ 자료까지':'ㄴ 쪽까지'}</span><span>⑩ ${S.many==='recent'?'ㄱ 최근 4개+더 보기':'ㄴ 전부'}</span>`
+}
+function seg(id,fn){ document.getElementById(id).onclick=e=>{const b=e.target.closest('button'); if(!b)return
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c===b)); fn(b); render()} }
+seg('wseg', b=>{ S.W=+b.dataset.w })
+seg('nowseg', b=>{ S.now = b.dataset.now==='1' })
+function opts(id,fn){ document.getElementById(id).onclick=e=>{const b=e.target.closest('.opt'); if(!b)return
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c===b)); fn(b.dataset.v); render()} }
+opts('o9', v=>{ S.depth=v })
+opts('o10', v=>{ S.many=v })
+window.addEventListener('resize', render)
+render()
+</script>
+</body>
+</html>

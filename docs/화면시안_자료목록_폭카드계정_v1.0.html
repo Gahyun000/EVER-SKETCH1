@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 자료 목록 (폭 · 카드 · 계정 자리)</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --ink2:#3d4658; --muted:#6b7280; --line:#e3e6ee; --navy:#0F1B3D;
+    --blue:#2462EB; --blue-d:#184f95; --blue100:#eaf2fd; --plane:#f5f6f8;
+    --ok:#1d6f4f; --okbg:#e8f6ef; --okline:#bfe3d1;
+    --warn:#7a4412; --warnbg:#fff3e2; --warnline:#f0d7b4;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef0f4;color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo',sans-serif;
+    letter-spacing:-.01em}
+  .wrap{max-width:1240px;margin:0 auto;padding:26px 18px 80px}
+  h1{font-size:21px;margin:0 0 6px;color:var(--navy);letter-spacing:-.02em}
+  .lede{color:var(--muted);font-size:13px;margin:0 0 18px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;margin:16px 0;
+    box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card>h2{font-size:15px;margin:0;padding:14px 18px 12px;border-bottom:1px solid var(--line);
+    color:var(--navy);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .tag{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--blue100);color:var(--blue-d)}
+  .body{padding:16px 18px 18px}
+  .lead{font-size:12.5px;color:var(--ink2);background:var(--plane);border-left:3px solid var(--blue);
+    border-radius:0 8px 8px 0;padding:10px 13px;margin:0 0 14px}
+  .lead b{color:var(--navy)}
+
+  /* ── 조종간 ── */
+  .ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
+  .seg{display:flex;border:1px solid #d4dae6;border-radius:999px;overflow:hidden;background:#fff}
+  .seg button{border:0;background:none;padding:6px 15px;font:inherit;font-size:12px;font-weight:700;
+    color:#26324a;cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+  .ctl .lab{font-size:11.5px;font-weight:800;color:#8a93a5}
+  .num{font-family:var(--mono);font-size:11.5px;color:var(--ink2);background:#f2f4f8;
+    border-radius:6px;padding:3px 9px}
+  .num b{color:#b9541b}
+
+  /* ── 가짜 앱 ── */
+  .viewport{border:1px solid #d9dde6;border-radius:10px;overflow:hidden;background:#fff;
+    box-shadow:0 3px 14px rgba(16,24,40,.08)}
+  .scaler{transform-origin:left top}
+  .app{background:#f5f6f8;font-size:13px;color:#1a1a1a;height:620px;display:flex;flex-direction:column}
+  .ahead{display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid #eceef3;
+    padding:0 18px;height:52px;flex:0 0 auto}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#0f1b3d}
+  .brand .lg{width:26px;height:26px;border-radius:8px;background:#0f1b3d;color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px}
+  .crumb{font-size:12.5px;color:#8a93a5}
+  .crumb b{color:#1a1a1a}
+  .sp{flex:1}
+  .ub{display:flex;align-items:center;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid #e3e6ee;border-radius:999px;
+    padding:4px 11px 4px 5px;background:#fff}
+  .av{width:22px;height:22px;border-radius:50%;background:#2fa37a;color:#fff;font-size:11px;font-weight:800;
+    display:flex;align-items:center;justify-content:center}
+  .chip b{font-size:12.5px}
+  .lv{font-size:10.5px;font-weight:800;color:#1d6f4f;background:#e8f6ef;border-radius:999px;padding:1px 7px}
+  .lnk{border:1px solid #e3e6ee;background:#fff;border-radius:999px;padding:4px 11px;
+    font:inherit;font-size:12px;color:#3d4658;cursor:default}
+  .abody{flex:1;display:flex;min-height:0}
+  .side{width:214px;flex:0 0 auto;background:#fff;border-right:1px solid #eceef3;padding:10px 10px 0;
+    display:flex;flex-direction:column}
+  .nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;font-size:13px;color:#3d4658}
+  .nav.on{background:#eaf2fd;color:#184f95;font-weight:800}
+  .nav .ic{width:17px;height:17px;border-radius:5px;background:#dfe5ef;flex:0 0 auto}
+  .nav.on .ic{background:#9dbdf0}
+  .nav .bd{margin-left:auto;font-size:10.5px;font-weight:800;background:#e8eef9;color:#26324a;
+    border-radius:999px;padding:1px 7px}
+  .grp{font-size:10.5px;font-weight:800;color:#a8b0be;margin:12px 11px 5px}
+  .sidefoot{margin-top:auto;border-top:1px solid #eef0f4;padding:9px 0 11px}
+  .acct{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;cursor:default}
+  .acct:hover{background:#f3f6fb}
+  .acct .nm{font-size:12.5px;font-weight:700}
+  .acct .sub{font-size:10.5px;color:#8a93a5}
+  .acct .car{margin-left:auto;color:#a8b0be;font-size:11px}
+  .pop{position:absolute;left:12px;bottom:56px;width:186px;background:#fff;border:1px solid #e3e6ee;
+    border-radius:11px;box-shadow:0 12px 34px rgba(16,24,40,.16);padding:6px;z-index:5}
+  .pop div{padding:8px 10px;border-radius:7px;font-size:12.5px;color:#3d4658}
+  .pop div:hover{background:#f3f6fb}
+  .pop .sepl{height:1px;background:#eef0f4;margin:4px 6px;padding:0}
+  .main{flex:1;min-width:0;overflow:hidden;padding:22px 20px 30px;position:relative}
+
+  /* 지금 — 880 고정 세로 목록 */
+  .listwrap{margin:0 auto}
+  .toolbar{display:flex;gap:8px;align-items:center;margin:0 0 12px}
+  .tb{border:1px solid #e3e6ee;background:#fff;border-radius:9px;height:34px;display:flex;align-items:center;
+    padding:0 11px;font-size:12px;color:#8a93a5}
+  .tb.grow{flex:1}
+  .tb.dark{background:#0f1b3d;color:#fff;border-color:#0f1b3d;font-weight:700}
+  .cnt{font-size:11.5px;color:#8a93a5;margin:0 2px 9px}
+  .row{display:flex;align-items:center;gap:11px;background:#fff;border:1.4px solid #e9ebf0;
+    border-radius:14px;padding:12px 14px;margin-bottom:10px}
+  .row .bk{width:42px;height:42px;border-radius:10px;background:#eef3fb;flex:0 0 auto}
+  .row .t{font-size:14px;font-weight:800}
+  .row .s{font-size:11.5px;color:#8a93a5;display:flex;gap:7px;align-items:center;margin-top:2px}
+  .row .acts{margin-left:auto;display:flex;gap:13px;color:#b6bdc9;font-size:13px}
+  .badge{font-size:10px;font-weight:800;border-radius:999px;padding:1px 7px}
+  .b-pend{background:#fff3e2;color:#7a4412}
+  .b-rej{background:#fdeceb;color:#b4232a}
+  .b-ok{background:#e8f6ef;color:#1d6f4f}
+  .b-lock{background:#f1f3f7;color:#6b7280}
+
+  /* 바뀐 뒤 — 카드 그리드 */
+  .grid{display:grid;gap:12px}
+  .gcard{background:#fff;border:1.4px solid #e9ebf0;border-radius:14px;padding:13px 14px;
+    display:flex;flex-direction:column;gap:9px;min-height:104px}
+  .gcard .top{display:flex;align-items:flex-start;gap:10px}
+  .gcard .bk{width:34px;height:34px;border-radius:9px;background:#eef3fb;flex:0 0 auto}
+  .gcard .t{font-size:13.5px;font-weight:800;line-height:1.35}
+  .gcard .s{font-size:11px;color:#8a93a5;margin-top:3px}
+  .gcard .foot{margin-top:auto;display:flex;align-items:center;gap:6px}
+  .gcard .acts{margin-left:auto;display:flex;gap:11px;color:#c3c9d4;font-size:12px}
+
+  .note{font-size:11.5px;color:#8a8883;line-height:1.6;margin:11px 0 0}
+  .note b{color:var(--ink)}
+  table.sum{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0 0}
+  table.sum th,table.sum td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  table.sum th{background:#f4f6fa;font-size:11.5px;color:var(--navy);font-weight:800}
+  table.sum b{color:var(--navy)}
+  .ask{background:var(--warnbg);border:1px solid var(--warnline);border-radius:10px;padding:12px 15px;
+    font-size:12.5px;color:var(--warn);margin:14px 0 0}
+  .ask b{color:#5c3208}
+  .ask ul{margin:7px 0 0;padding-left:19px} .ask li{margin:4px 0}
+  code{font-family:var(--mono);font-size:11.5px;background:#f2f4f8;border-radius:4px;padding:1px 5px}
+  .foot{color:var(--muted);font-size:11.5px;margin-top:24px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>자료 목록 — 폭(가) · 카드(나) · 계정 자리</h1>
+  <p class="lede">아래 한 화면이 <b>진짜 창 크기대로</b> 그려집니다. 폭을 바꿔 가며 「지금 / 바뀐 뒤」를 견줘 보세요.</p>
+
+<div class="card">
+  <h2><span class="tag">화면</span> 지금 ↔ 바뀐 뒤</h2>
+  <div class="body">
+    <div class="ctl">
+      <span class="lab">창 너비</span>
+      <div class="seg" id="wseg">
+        <button data-w="1126">1126 <span style="opacity:.6">목업 기준</span></button>
+        <button data-w="1512">1512</button>
+        <button data-w="1910" class="on">1910 <span style="opacity:.6">지금 쓰시는 화면</span></button>
+      </div>
+      <span class="lab" style="margin-left:8px">모습</span>
+      <div class="seg" id="mseg">
+        <button data-m="now">지금</button>
+        <button data-m="new" class="on">바뀐 뒤</button>
+      </div>
+      <span class="num" id="readout"></span>
+    </div>
+    <div class="viewport" id="vp"><div class="scaler" id="sc"></div></div>
+    <p class="note" id="why"></p>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="tag">가</span> 폭 — 화면을 따라 늘린다</h2>
+  <div class="body">
+    <div class="lead">
+      지금은 <code>width: min(880px, 94vw)</code> 로 <b>880px 에서 멈춥니다.</b>
+      바꾼 뒤는 <code>min(1400px, 100% − 여백)</code> — 넓으면 넓은 대로 쓰되, 너무 벌어져
+      글이 한 줄에 너무 길어지지는 않게 1400 에서 멈춥니다.
+    </div>
+    <table class="sum">
+      <tr><th style="width:110px">창 너비</th><th style="width:110px">작업 영역<br><span style="font-weight:400;color:#8a93a5">(창 − 사이드바 214)</span></th><th>지금 — 목록 / 빈 여백</th><th>바뀐 뒤</th></tr>
+      <tr><td><b>1126</b></td><td>912</td><td>880 / 각 16px (<b>4%</b>)</td><td>880 / 각 0px (0%)</td></tr>
+      <tr><td><b>1512</b></td><td>1298</td><td>880 / 각 209px (32%)</td><td>1266 / 각 0px (0%)</td></tr>
+      <tr><td><b>1910</b></td><td>1696</td><td>880 / 각 <b>408px (48%)</b></td><td>1400 / 각 <b>132px (16%)</b></td></tr>
+    </table>
+    <p class="note">숫자는 실제 앱에서 잰 값입니다. <b>1126px 에서는 여백이 4% 뿐</b>이라 목업과 똑같이 꽉 차 보입니다 —
+      즉 이 화면은 <b>목업 폭에 맞게 만들어져 있고</b>, 넓은 화면을 쓰시면서 어긋난 것입니다.
+      <br><b>앞서 「54%」라고 말씀드린 건 제가 사이드바까지 여백으로 세어서 그렇습니다. 작업 영역 기준으로는 48% 입니다.</b></p>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="tag">나</span> 카드 — 넓으면 여러 줄로</h2>
+  <div class="body">
+    <div class="lead">
+      한 줄에 하나씩 놓으면 <b>가로로는 아무것도 안 채웁니다</b> — 880px 줄에서 글자가 있는 폭은
+      제목 113px · 부제 236px 뿐이고 나머지는 빕니다.
+      카드는 <code>repeat(auto-fill, minmax(268px, 1fr))</code> 로 <b>넓이에 맞춰 열 수가 스스로 늡니다.</b>
+    </div>
+    <table class="sum">
+      <tr><th style="width:120px">창 너비</th><th>지금</th><th>바뀐 뒤</th></tr>
+      <tr><td><b>1126</b></td><td>6줄 · 세로 468px</td><td><b>3열 × 2줄</b> · 세로 228px</td></tr>
+      <tr><td><b>1512</b></td><td>6줄</td><td><b>4열 × 2줄</b></td></tr>
+      <tr><td><b>1910</b></td><td>6줄</td><td><b>4열 × 2줄</b> (목록이 1400 에서 멈추므로 1512 와 같다)</td></tr>
+    </table>
+    <p class="note">카드 안은 <b>제목 → 날짜·쪽수 → 상태 배지</b> 순으로 쌓습니다. 줄로 늘어놓을 때와 달리
+      눈이 가로로 길게 움직일 필요가 없습니다. 오른쪽 아이콘 넷은 카드 아래쪽으로 내렸습니다.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="tag">계정</span> 오른쪽 위 → 사이드바 아래</h2>
+  <div class="body">
+    <div class="lead">
+      말씀하신 대로입니다. 지금 오른쪽 위에는 <b>이름 + 비밀번호 변경 + 로그아웃</b>이 늘 펼쳐져 있고,
+      관리자면 <b>사용자 관리 · 팀 관리</b>까지 다섯 덩이가 됩니다 —
+      그런데 그 둘은 <b>이미 왼쪽 「관리」에 있습니다.</b> 같은 길이 두 개입니다.
+    </div>
+    <table class="sum">
+      <tr><th style="width:120px"></th><th>지금</th><th>바뀐 뒤</th></tr>
+      <tr><td><b>오른쪽 위</b></td><td>이름 칩 + 비밀번호 변경 + 로그아웃<br>(관리자면 + 사용자 관리 · 팀 관리)</td>
+        <td><b>이름 칩만</b></td></tr>
+      <tr><td><b>사이드바 아래</b></td><td>없음</td>
+        <td><b>계정 줄</b> — 누르면 위로 열림<br>비밀번호 변경 · 로그아웃</td></tr>
+      <tr><td><b>관리 메뉴</b></td><td>두 곳(왼쪽 + 오른쪽 위)</td><td>왼쪽 한 곳</td></tr>
+    </table>
+    <p class="note">위 화면에서 <b>왼쪽 아래 「김가현」 줄을 눌러 보세요</b> — 열리고 닫힙니다.</p>
+    <div class="ask">
+      <b>여쭐 것 둘</b>
+      <ul>
+        <li><b>①</b> 계정 줄 이름 — <b>ㄱ.</b> 그냥 이름(김가현) / <b>ㄴ.</b> 「마이페이지」 / <b>ㄷ.</b> 「설정」</li>
+        <li><b>②</b> 오른쪽 위에 <b>이름만</b> 남길까요, 아니면 <b>아예 비울까요</b>(왼쪽 아래에 이름이 이미 있으니)?</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<p class="foot">EVER-SKETCH · 자료 목록 화면시안 v1.0 · 2026-09-15</p>
+</div>
+
+<script>
+(function(){
+  var W = 1910, MODE = 'new', POP = false;
+  var DOCS = [
+    { t:'EVER-SKETCH 기획 · 설계 사상', s:'09. 15. 11:42 · 12페이지', b:null },
+    { t:'제목 ㅇㅇ', s:'09. 14. 17:57 · 6페이지', b:['반려','b-rej'] },
+    { t:'제목 없음', s:'09. 08. 11:09 · 1페이지', b:['결재 중 2회차','b-pend'], lock:true },
+    { t:'2026년 10월 임원회의 — 김가현', s:'09. 07. 16:41 · 2페이지', b:['결재 중 2회차','b-pend'], lock:true },
+    { t:'2026년 9월 임원회의 — 김가현', s:'09. 07. 16:39 · 2페이지', b:null, lock:true },
+    { t:'2026년 9월 임원회의 — 김가현', s:'09. 04. 17:45 · 1페이지', b:null, lock:true },
+  ];
+  var esc = function(s){ return String(s).replace(/[&<>]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c] }) };
+
+  function badges(d){
+    var h = '';
+    if (d.b) h += '<span class="badge '+d.b[1]+'">'+esc(d.b[0])+'</span>';
+    if (d.lock) h += '<span class="badge b-lock">🔒 잠김</span>';
+    return h;
+  }
+  function nowMain(){
+    return '<div class="listwrap" style="width:880px">'
+      + '<div class="toolbar"><div class="tb">＋ 새 폴더</div><div class="tb dark">＋ 새 이북</div></div>'
+      + '<div class="toolbar"><div class="tb">연도. 월. 일.</div><div class="tb">연도. 월. 일.</div>'
+      + '<div class="tb grow">이북 제목 또는 ID</div><div class="tb dark">검색</div><div class="tb">초기화</div></div>'
+      + '<div class="cnt">전체 6개 · 1/1 페이지 · 12개씩</div>'
+      + DOCS.map(function(d){
+          return '<div class="row"><div class="bk"></div><div><div class="t">'+esc(d.t)+'</div>'
+            + '<div class="s">'+esc(d.s)+badges(d)+'</div></div>'
+            + '<div class="acts"><span>➤</span><span>✎</span><span>⧉</span><span>🗑</span></div></div>' }).join('')
+      + '</div>';
+  }
+  function newMain(inner){
+    var cols = Math.max(1, Math.floor((inner - 12) / 280));
+    return '<div class="listwrap" style="width:'+inner+'px">'
+      + '<div class="toolbar"><div class="tb">＋ 새 폴더</div><div class="tb dark">＋ 새 이북</div>'
+      + '<div class="tb grow">이북 제목 또는 ID</div><div class="tb">필터 ▾</div></div>'
+      + '<div class="cnt">전체 6개 · 1/1 페이지 · '+cols+'열</div>'
+      + '<div class="grid" style="grid-template-columns:repeat('+cols+',minmax(0,1fr))">'
+      + DOCS.map(function(d){
+          return '<div class="gcard"><div class="top"><div class="bk"></div><div>'
+            + '<div class="t">'+esc(d.t)+'</div><div class="s">'+esc(d.s)+'</div></div></div>'
+            + '<div class="foot">'+badges(d)
+            + '<div class="acts"><span>➤</span><span>✎</span><span>⧉</span><span>🗑</span></div></div></div>' }).join('')
+      + '</div></div>';
+  }
+  function render(){
+    var isNew = MODE === 'new';
+    var sideW = 214;                                // 실제 앱에서 잰 값
+    var pad = 32;                                   // .lib-screen 좌우 여백 합
+    var avail = W - sideW - pad;
+    var inner = isNew ? Math.min(1400, avail) : 880;
+    var gut = Math.round((avail - inner) / 2);
+
+    var ub = isNew
+      ? '<span class="chip"><span class="av">김</span><b>김가현</b><span class="lv">Lv2 작성자</span></span>'
+      : '<span class="chip"><span class="av">김</span><b>김가현</b><span class="lv">Lv2 작성자</span></span>'
+        + '<span class="lnk">비밀번호 변경</span><span class="lnk">로그아웃</span>';
+
+    var foot = isNew
+      ? '<div class="sidefoot"><div class="acct" id="acct"><span class="av">김</span>'
+        + '<span><span class="nm">김가현</span><br><span class="sub">Lv2 작성자</span></span>'
+        + '<span class="car">▴</span></div></div>'
+        + (POP ? '<div class="pop"><div>🔑 비밀번호 변경</div><div class="sepl"></div><div>↪ 로그아웃</div></div>' : '')
+      : '';
+
+    var html =
+      '<div class="app" style="width:'+W+'px">'
+      + '<div class="ahead"><div class="brand"><span class="lg">ℓ</span>EVER-SKETCH</div>'
+      + '<div class="crumb">내 자료</div><div class="sp"></div><div class="ub">'+ub+'</div></div>'
+      + '<div class="abody"><div class="side" style="position:relative">'
+      + '<div class="nav on"><span class="ic"></span>내 자료</div>'
+      + '<div class="nav"><span class="ic"></span>결재함<span class="bd">2</span></div>'
+      + '<div class="nav"><span class="ic"></span>팀 공유</div>'
+      + foot + '</div>'
+      + '<div class="main">' + (isNew ? newMain(inner) : nowMain()) + '</div>'
+      + '</div></div>';
+
+    var sc = document.getElementById('sc');
+    sc.innerHTML = html;
+    var vpW = document.getElementById('vp').clientWidth;
+    var k = vpW / W;
+    sc.style.transform = 'scale(' + k + ')';
+    document.getElementById('vp').style.height = Math.round(620 * k) + 'px';
+
+    document.getElementById('readout').innerHTML =
+      '목록 폭 ' + inner + 'px · 좌우 여백 각 <b>' + gut + 'px</b> (' + Math.round(gut * 2 / W * 100) + '%)';
+    document.getElementById('why').innerHTML = isNew
+      ? '넓어진 만큼 <b>열이 늘어납니다.</b> 창을 1126 으로 줄이면 3열, 1512 이상이면 4열에서 멈춥니다 — 목록 폭이 1400 에서 멈추기 때문입니다.'
+      : '창을 아무리 넓혀도 <b>목록은 880px 에서 멈춥니다.</b> 늘어나는 건 좌우 여백뿐입니다.';
+
+    var a = document.getElementById('acct');
+    if (a) a.onclick = function(){ POP = !POP; render(); };
+  }
+  document.getElementById('wseg').onclick = function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    [].forEach.call(this.children, function(x){ x.classList.remove('on') });
+    b.classList.add('on'); W = +b.getAttribute('data-w'); render();
+  };
+  document.getElementById('mseg').onclick = function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    [].forEach.call(this.children, function(x){ x.classList.remove('on') });
+    b.classList.add('on'); MODE = b.getAttribute('data-m'); POP = false; render();
+  };
+  window.addEventListener('resize', render);
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 세 칸(ERP) 구조 v1.1 · 표 형태</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --blue:#2462EB; --tint:#E8F0FE; --line:#e5e7eb;
+    --sub:#5b6270; --muted:#94a3b8; --card:#f8fafc; --bg:#f5f6f8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--navy);
+       font:14px/1.7 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+       letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 90px}
+  h1{font-size:25px;font-weight:900;margin:0 0 6px}
+  .lede{color:var(--sub);margin:0 0 18px;font-size:14.3px}
+  h2{font-size:17.5px;font-weight:900;margin:32px 0 8px;padding-top:20px;border-top:1px solid var(--line)}
+  h2 .no{display:inline-grid;place-items:center;width:23px;height:23px;border-radius:7px;
+         background:var(--navy);color:#fff;font-size:12.5px;margin-right:8px;vertical-align:2px}
+  p{margin:0 0 10px}
+  code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:12.4px;
+       font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .quote{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);
+         border-radius:0 8px 8px 0;padding:10px 14px;margin:11px 0;font-size:12.8px;color:var(--sub)}
+  .quote b{color:var(--navy)}
+  .ans{background:#F2F7F4;border:1px solid #cfe3d8;border-radius:10px;padding:10px 14px;
+       margin:10px 0 14px;font-size:13.2px}
+  .ans b{color:#1d5340}
+
+  .opts{display:flex;gap:9px;flex-wrap:wrap;margin:11px 0 4px}
+  .opt{flex:1 1 250px;min-width:0;text-align:left;border:1.5px solid var(--line);background:#fff;
+       border-radius:11px;padding:10px 13px;cursor:pointer;transition:.12s;font-family:inherit;color:inherit}
+  .opt:hover{border-color:#c6d5ff}
+  .opt.on{border-color:var(--blue);background:var(--tint);box-shadow:0 0 0 3px rgba(36,98,235,.10)}
+  .opt .k{font-weight:900;font-size:13.2px;display:block;margin-bottom:2px}
+  .opt .d{font-size:12.2px;color:var(--sub);line-height:1.6}
+  .opt.on .d{color:#3c4a6b}
+  .chk{display:flex;gap:7px;flex-wrap:wrap;margin:11px 0 4px}
+  .chk button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 14px;
+              font:800 12.4px/1 inherit;color:var(--sub);cursor:pointer}
+  .chk button.on{border-color:var(--blue);background:var(--blue);color:#fff}
+  .chk button.lock{opacity:.6;cursor:not-allowed}
+  .warn{background:#FFF7E8;border:1px solid #f0dcb4;color:#8a5a10;border-radius:9px;
+        padding:9px 13px;font-size:12.5px;margin:10px 0 0}
+  .good{background:#F0F7F3;border:1px solid #cfe3d8;color:#1d5340;border-radius:9px;
+        padding:9px 13px;font-size:12.5px;margin:10px 0 0}
+
+  .stage{position:sticky;top:0;z-index:30;background:#fff;padding:10px 0 12px;margin-bottom:6px;
+         border-bottom:1px solid var(--line)}
+  .stage-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+  .stage-bar .t{font-weight:900;font-size:12.5px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:5px 11px;font:800 11.8px/1.5 inherit;color:var(--sub);cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+  .readout{font-size:11.8px;color:var(--sub);margin-left:auto;text-align:right}
+  .readout b{color:var(--navy)}
+  .frame{border:1px solid #dfe3ea;border-radius:12px;overflow:hidden;background:var(--bg);
+         box-shadow:0 8px 26px rgba(15,27,61,.10)}
+  .scaler{transform-origin:top left}
+  .stagewrap{position:relative}
+
+  .app{display:flex;height:660px;background:var(--bg);font-size:13px}
+  .side{flex:0 0 214px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+  .brand{display:flex;align-items:center;gap:8px;padding:14px 14px 12px;font-weight:900;font-size:14px}
+  .brand .lg{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--navy);color:#fff;font-size:13px}
+  .nav{padding:4px 8px;flex:1;overflow:auto}
+  .nav .it{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;color:var(--sub);
+           font-weight:700;font-size:12.8px}
+  .nav .it.on{background:var(--tint);color:var(--blue);font-weight:900}
+  .nav .it .ic{width:15px;text-align:center;opacity:.85}
+  .nav .badge{margin-left:auto;background:#FFF4E3;color:#8a5a10;font-size:10.5px;font-weight:900;
+              border-radius:99px;padding:1px 7px}
+  .grp{font-size:10.5px;font-weight:900;color:var(--muted);padding:12px 12px 4px}
+  .acct{border-top:1px solid var(--line);padding:9px 12px;display:flex;align-items:center;gap:8px}
+  .acct .av{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;display:grid;
+            place-items:center;font-size:11px;font-weight:900}
+  .acct .nm{font-weight:800;font-size:12.6px}
+  .acct .cx{margin-left:auto;color:var(--muted);font-size:11px}
+
+  .tree{padding:2px 6px 8px}
+  .tw{display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:7px;font-size:12.3px;
+      color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tw.on{background:var(--tint);color:var(--blue);font-weight:800}
+  .tw .ar{width:11px;font-size:9px;color:var(--muted)}
+  .tw .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .tw .c{font-size:10.5px;color:var(--muted)}
+  .col2{flex:0 0 220px;background:#fff;border-right:1px solid var(--line);min-width:0;display:flex;flex-direction:column}
+  .col2 .hd{display:flex;align-items:center;font-size:10.8px;font-weight:900;color:var(--muted);padding:13px 12px 6px}
+  .col2 .hd .sw{margin-left:auto;font-size:11px;color:var(--blue);font-weight:800}
+  .sidehd{display:flex;align-items:center;padding:2px 12px 0;font-size:10.5px;color:var(--muted);font-weight:900}
+  .sidehd .sw{margin-left:auto;color:var(--blue)}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+  .head{display:flex;align-items:center;gap:9px;padding:12px 16px 9px;background:#fff;border-bottom:1px solid var(--line)}
+  .head .ti{font-weight:900;font-size:15px}
+  .head .crumb{font-size:11.6px;color:var(--muted)}
+  .head .sp{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .q{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;
+     background:#fff;padding:5px 10px;font-size:11.8px;color:var(--muted);min-width:150px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;
+       font:800 11.8px/1.4 inherit;color:var(--sub);cursor:pointer;white-space:nowrap}
+  .btn.dark{background:var(--blue);border-color:var(--blue);color:#fff}
+  .cnt{font-size:11.3px;color:var(--muted);padding:8px 16px 4px}
+  .list{flex:1;overflow:auto;padding:0 12px 14px}
+
+  .row{display:flex;align-items:center;gap:11px;background:#fff;border:1.4px solid var(--line);
+       border-radius:10px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
+  .row.on{border-color:var(--blue);background:var(--tint)}
+  .row .ico{flex:0 0 30px;height:30px;border-radius:8px;background:var(--tint);color:var(--blue);
+            display:grid;place-items:center;font-size:13px}
+  .row .mt{flex:1;min-width:0}
+  .row .nm{font-weight:800;font-size:12.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .sb{font-size:11.2px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);
+       border-radius:10px;overflow:hidden;table-layout:fixed}
+  .tbl th{font-size:11px;font-weight:900;color:var(--muted);text-align:left;padding:8px 10px;
+          background:var(--card);border-bottom:1px solid var(--line);white-space:nowrap}
+  .tbl th .ar{color:var(--blue);font-size:9px;margin-left:3px}
+  .tbl td{padding:9px 10px;border-bottom:1px solid #f1f3f6;font-size:12.3px;vertical-align:middle;
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl tr.on td{background:var(--tint)}
+  .tbl tr{cursor:pointer}
+  .tbl td.t{font-weight:800;font-size:12.6px;color:var(--navy)}
+  .tbl td.t .e{margin-right:5px}
+  .tbl .ov{background:#fff8e6;color:#8a5a10}
+
+  .chip{font-size:10.2px;font-weight:900;padding:1.5px 7px;border-radius:99px;display:inline-block}
+  .chip.draft{background:#eef0f3;color:#6b7480}
+  .chip.pending{background:#FFF4E3;color:#8a5a10}
+  .chip.approved{background:#E9F5EF;color:#215c46}
+  .chip.rejected{background:#fdf0f0;color:#7d2027}
+  .chip.rev{background:#EDE9FE;color:#4c3ba6}
+
+  .det{flex:0 0 360px;background:#fff;border-left:1px solid var(--line);min-width:0;
+       display:flex;flex-direction:column;overflow:hidden}
+  .det .dh{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .det .dh .nm{font-weight:900;font-size:13.6px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .det .dh .x{color:var(--muted);font-size:14px;cursor:pointer}
+  .det .db{flex:1;overflow:auto;padding:12px 14px 18px}
+  .sec{margin-bottom:14px}
+  .sec .sh{font-size:10.8px;font-weight:900;color:var(--muted);margin-bottom:6px;display:flex;align-items:center}
+  .sec .sh .more{margin-left:auto;color:var(--blue);font-size:10.8px}
+  .prevbox{position:relative;border:1px solid var(--line);border-radius:9px;background:#fff;padding:9px;
+           display:flex;gap:9px;cursor:pointer;overflow:hidden}
+  .prevbox .ovl{position:absolute;inset:0;background:rgba(15,27,61,.55);color:#fff;display:grid;
+                place-items:center;font-weight:900;font-size:13px;opacity:0;transition:.14s}
+  .prevbox:hover .ovl{opacity:1}
+  .prevbox.locked .ovl{opacity:1;background:rgba(138,90,16,.82);font-size:11.6px;text-align:center;padding:0 16px;line-height:1.5}
+  .pg{flex:0 0 116px;height:74px;border:1px solid var(--line);border-radius:5px;background:#fff;padding:7px;overflow:hidden}
+  .pg i{display:block;height:4px;border-radius:2px;background:#e2e8f0;margin-bottom:4px}
+  .pg i.t{background:#cbd5e1;width:62%;height:6px}
+  .pgs{display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:11px;color:var(--muted)}
+  .props{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.1px}
+  .props dt{color:var(--muted)}
+  .props dd{margin:0;font-weight:700}
+  .hist{font-size:11.9px;color:var(--sub)}
+  .hist div{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .hist div:last-child{border:0}
+  .hist .w{color:var(--muted);flex:0 0 68px}
+  .cmtchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;
+           padding:7px 11px;font-size:12px;color:var(--sub);cursor:pointer;width:100%}
+  .cmtchip b{color:var(--navy)}
+  .cmtchip .go{margin-left:auto;color:var(--blue);font-weight:800;font-size:11.4px}
+  .cmt{border:1px solid var(--line);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:11.8px}
+  .cmt p{margin:2px 0 0;color:var(--sub)}
+  .dacts{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
+  .sumcard{padding:14px}
+  .sumcard .big{font-size:22px;font-weight:900;margin-bottom:2px}
+  .sumcard .st{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
+  .empty{flex:1;display:grid;place-items:center;color:var(--muted);font-size:12.4px;text-align:center;padding:24px}
+
+  .toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(15,27,61,.93);
+         color:#fff;font-weight:800;font-size:12.5px;padding:8px 16px;border-radius:10px;opacity:0;
+         transition:opacity .2s;pointer-events:none;z-index:9;max-width:80%;text-align:center}
+  .toast.on{opacity:1}
+
+  .sum{position:sticky;bottom:0;background:#fff;border-top:2px solid var(--navy);padding:9px 22px 10px;
+       margin:28px -22px -90px;box-shadow:0 -6px 20px rgba(15,27,61,.07)}
+  .sum .t{font-size:10.5px;font-weight:900;color:var(--muted);margin-bottom:2px}
+  .sum .v{font-size:13px;font-weight:900;line-height:1.85}
+  .sum .v span{background:var(--tint);color:var(--blue);border-radius:7px;padding:2px 8px;margin-right:6px;display:inline-block}
+  table.t2{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0}
+  table.t2 th,table.t2 td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+  table.t2 th{background:var(--card);font-weight:900;font-size:11.6px}
+  .n{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>세 칸 구조 v1.1 — 답한 것 반영 + 표 형태</h1>
+<p class="lede">지난 목업에 주신 다섯 가지를 넣었습니다. 아직 갈리는 곳만 아래에 남겨 두었고, 나머지는 <b>정해진 것</b>으로 적어 두었습니다.</p>
+
+<!-- 붙박이 화면 -->
+<div class="stage">
+  <div class="stage-bar">
+    <span class="t">창</span>
+    <span class="seg" id="wseg">
+      <button data-w="1126">1126</button><button data-w="1512" class="on">1512</button><button data-w="1910">1910</button>
+    </span>
+    <span class="t" style="margin-left:4px">폴더 칸</span>
+    <span class="seg" id="tseg">
+      <button data-v="side" class="on">사이드바 안</button><button data-v="col">전용 칸</button>
+    </span>
+    <span class="t" style="margin-left:4px">목록</span>
+    <span class="seg" id="lseg">
+      <button data-v="rows">줄</button><button data-v="table" class="on">표</button>
+    </span>
+    <button class="btn" id="noselbtn" style="margin-left:4px">안 고른 상태로</button>
+    <span class="readout" id="ro"></span>
+  </div>
+  <div class="frame stagewrap">
+    <div class="scaler" id="scaler"><div id="app"></div></div>
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<!-- ① -->
+<h2><span class="no">①</span>폴더 칸 — 고를 수 있게</h2>
+<div class="ans"><b>정해진 것</b> — 사용자가 <b>ㄱ ↔ ㄴ 을 직접 바꿉니다.</b> 위 「폴더 칸」 단추가 그것입니다. 실제로는 폴더 머리의 작은 글씨(<code>칸 나누기</code> / <code>합치기</code>)로 바꾸고, <b>사람마다 기억</b>합니다 — 사이드바 폭·접힘을 이미 그렇게 기억하고 있어서(<code>rememberShellWidth</code> · <code>rememberShellFolded</code>) 자리를 하나 더 늘리면 됩니다.</div>
+<p>하나만 정해 주시면 됩니다 — <b>처음 들어온 사람이 보는 기본값.</b></p>
+<div class="opts" id="o1">
+  <button class="opt on" data-v="side"><span class="k">ㄱ · 기본은 사이드바 안 (칸 둘)</span>
+    <span class="d">처음엔 칸이 적어 단순하고, 폴더가 늘어난 사람이 「칸 나누기」를 켭니다. 앱을 처음 본 사람에게 칸 넷은 많습니다.</span></button>
+  <button class="opt" data-v="col"><span class="k">ㄴ · 기본은 전용 칸 (칸 셋)</span>
+    <span class="d">처음부터 자리가 또렷합니다. 폴더가 두세 개뿐인 사람에게는 220px 이 그냥 빈 칸이 됩니다.</span></button>
+</div>
+
+<!-- ② -->
+<h2><span class="no">②</span>안 골랐을 때 오른쪽 칸</h2>
+<p>②ㄱ(늘 붙어 있는 칸)으로 정했으니 <b>물으신 대로 「그럼 빈칸이냐」</b>가 남습니다. 세 가지가 있습니다. 위 「안 고른 상태로」 단추로 지금 고른 안을 바로 보실 수 있습니다.</p>
+<div class="opts" id="o2">
+  <button class="opt" data-v="msg"><span class="k">ㄱ · 빈 문구 (결재함과 같게)</span>
+    <span class="d">「왼쪽에서 자료를 골라 주세요」. 결재함과 완전히 같아집니다. 대신 들어올 때마다 한 번은 빈 칸을 봅니다.</span></button>
+  <button class="opt on" data-v="auto"><span class="k">ㄴ · 첫 줄을 자동으로 고른다</span>
+    <span class="d">목록은 최근 수정 순(<code>ORDER BY updated_at DESC</code>)이라 첫 줄은 <b>대개 방금까지 만지던 자료</b>입니다. 빈 칸이 아예 안 생기고 새로 만들 것도 없습니다. 다만 안 누른 것이 열려 있어 보입니다.</span></button>
+  <button class="opt" data-v="sum"><span class="k">ㄷ · 폴더 요약판</span>
+    <span class="d">「이 폴더 6개 · 결재 중 1 · 승인 2 …」 와 최근 수정 3건. 빈 칸도 아니고 쓸모도 있습니다. 대신 <b>새로 만들 화면이 하나 늘어납니다.</b></span></button>
+</div>
+
+<!-- ③ -->
+<h2><span class="no">③</span>전체 다 넣으면 과한가</h2>
+<div class="ans"><b>네, 두 곳이 과합니다.</b> <b>의견</b>과 <b>이력 전체</b>입니다.<br>
+ · <b>의견</b> — 결재함의 의견은 <b>쪽별 의견</b>까지 갈라 놓았고(<code>byPage</code>), 「관리자와 낸 사람만 본다」는 규칙이 붙어 있습니다. 자료 목록에 입력칸을 또 두면 같은 대화가 두 곳에 생기고 규칙도 두 벌이 됩니다. 목록에는 <b>「의견 2 · 결재함에서 보기」 한 줄</b>만 둡니다 — 숫자는 이미 있습니다(<code>a.comment_count</code>).<br>
+ · <b>이력</b> — 전체가 아니라 <b>최근 3줄 + 「전체 보기」</b>. 회차가 쌓이면 상세 칸이 이력만으로 채워집니다.</div>
+<p>아래는 그 결과입니다. 눌러서 바꿔 보실 수 있습니다.</p>
+<div class="chk" id="o3">
+  <button class="on" data-v="prev">첫 장 미리보기</button>
+  <button class="on" data-v="props">속성</button>
+  <button class="on" data-v="hist3">이력 — 최근 3줄</button>
+  <button data-v="histall">이력 — 전체</button>
+  <button class="on" data-v="cmtn">의견 — 숫자 한 줄</button>
+  <button data-v="cmtfull">의견 — 입력칸까지</button>
+  <button class="on" data-v="acts">단추</button>
+</div>
+<div class="warn" id="w3" hidden></div>
+
+<!-- ④ -->
+<h2><span class="no">④</span>ㄷ 으로 가면 「열기」 단추는 뺀다</h2>
+<div class="ans"><b>맞습니다 — 뺐습니다.</b> 단추 줄은 <b>결재 제출 · 복제 · 삭제</b> 뿐입니다. 다만 「열기」가 사라지면 <b>말할 자리</b>도 같이 사라져서, 두 가지를 미리보기 위에 얹었습니다.<br>
+ · 마우스를 올리면 <b>「열기 →」</b> 가 덮여 뜹니다 — 누를 수 있는 곳이라는 표시입니다.<br>
+ · <b>잠긴 자료</b>면 덮개가 항상 떠 있고 자물쇠와 이유가 적힙니다. 눌러도 편집기로 안 갑니다. (목록에서 <b>물류 자동화 제안</b>이나 <b>2026년 9월 기획안</b>을 골라 보세요.)</div>
+<p>남은 것 하나 — <b>쪽이 하나도 없는 새 자료</b>는 미리보기가 빈 종이라 누를 곳이 티가 안 납니다.</p>
+<div class="opts" id="o4">
+  <button class="opt on" data-v="ghost"><span class="k">ㄱ · 빈 종이에 「＋ 여기부터 시작」 이라고 적는다</span>
+    <span class="d">미리보기 자리를 그대로 쓰고 글씨만 바꿉니다. 길이 하나로 유지됩니다.</span></button>
+  <button class="opt" data-v="btnback"><span class="k">ㄴ · 그 경우에만 「열기」 단추를 되살린다</span>
+    <span class="d">확실하지만, 단추가 있을 때와 없을 때가 생겨서 「열기가 어디 있더라」가 됩니다.</span></button>
+</div>
+
+<!-- ⑤ -->
+<h2><span class="no">⑤</span>표 형태 — 어떤 열을 세울까</h2>
+<p>노션 표처럼 <b>열로 갈라 놓으면</b> 같은 종류가 세로로 줄을 서서 비교가 됩니다. 지금 줄 목록은 <code>9월 3일 14:20 · 12페이지 · 결재 중 · 잠김</code> 을 한 줄에 이어 붙여 놓아서, 눈이 매번 글을 읽어야 합니다.</p>
+<div class="quote"><b>정렬은 거의 공짜입니다.</b> 목록은 서버가 <code>ORDER BY updated_at DESC</code> 로 <b>전부</b> 내려주고 쪽 나누기는 화면이 합니다(<code>shown = filtered.slice(...)</code>). 상태 칩도 <code>apiStatusMap()</code> 으로 <b>한 번에</b> 받습니다. 그래서 <b>열 머리를 눌러 정렬</b>하는 것은 서버를 안 고치고 화면에서 됩니다.</div>
+<p>세울 열을 골라 주세요. 제목과 상태는 고정입니다.</p>
+<div class="chk" id="o5">
+  <button class="on lock" data-v="name" disabled>제목 (고정)</button>
+  <button class="on lock" data-v="state" disabled>상태 (고정)</button>
+  <button class="on" data-v="appr">결재자</button>
+  <button class="on" data-v="sent">낸 날</button>
+  <button class="on" data-v="upd">수정일</button>
+  <button class="on" data-v="pages">쪽수</button>
+  <button data-v="folder">폴더</button>
+  <button data-v="pub">발행</button>
+  <button data-v="round">회차</button>
+</div>
+<div id="w5"></div>
+<table class="t2">
+  <tr><th>창</th><th>①ㄱ 사이드바 안</th><th>①ㄴ 전용 칸</th></tr>
+  <tr><td class="n">1126</td><td class="n" id="c1"></td><td class="n" id="c2"></td></tr>
+  <tr><td class="n">1512</td><td class="n" id="c3"></td><td class="n" id="c4"></td></tr>
+  <tr><td class="n">1910</td><td class="n" id="c5"></td><td class="n" id="c6"></td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--sub)">※ 표에 필요한 최소 폭 = 제목 220 + 고른 열의 폭 합. 모자라면 <b>줄 목록으로 저절로 바뀝니다</b>(좁은 창 규칙). 그래서 「줄 ↔ 표」는 고르는 것이자 동시에 <b>창 크기에 따라 자동</b>이기도 합니다.</p>
+
+<div class="sum">
+  <div class="t">고른 것 — 이대로 답해 주시면 됩니다</div>
+  <div class="v" id="sum"></div>
+</div>
+
+</div>
+
+<script>
+const S = {
+  W:1512, tree:'side', treeDefault:'side', list:'table',
+  empty:'auto', open4:'ghost',
+  parts:{ prev:1, props:1, hist3:1, histall:0, cmtn:1, cmtfull:0, acts:1 },
+  cols:{ name:1, state:1, appr:1, sent:1, upd:1, pages:1, folder:0, pub:0, round:0 },
+  sel:1,
+}
+const SIDE=214, COL2=220, DET=360
+const CW = { name:220, state:92, appr:96, sent:104, upd:116, pages:58, folder:118, pub:62, round:58 }
+const CT = { name:'제목', state:'상태', appr:'결재자', sent:'낸 날', upd:'수정일', pages:'쪽수', folder:'폴더', pub:'발행', round:'회차' }
+
+const DOCS = [
+  { n:'2026년 9월 기획안',        e:'📕', s:'pending',  st:'결재 중', appr:'이강선', sent:'9월 3일',  upd:'9월 3일 14:20', p:12, f:'기획/2026', pub:'—', rd:'2회차', lock:1 },
+  { n:'물류 자동화 제안',          e:'📗', s:'approved', st:'승인',    appr:'이강선', sent:'9월 1일',  upd:'9월 2일 18:04', p:24, f:'제안/물류', pub:'발행됨', rd:'1회차', lock:1 },
+  { n:'경쟁사 분석 — 3분기',       e:'📘', s:'rejected', st:'반려',    appr:'곽두섭', sent:'8월 28일', upd:'8월 29일 11:31',p:18, f:'분석',      pub:'—', rd:'1회차', lock:0 },
+  { n:'채용 계획 v2',             e:'📙', s:'rev',      st:'수정 중',  appr:'이강선', sent:'8월 20일', upd:'8월 27일 09:12',p:7,  f:'인사',      pub:'—', rd:'3회차', lock:0 },
+  { n:'MLOps 인프라 구성안',      e:'📕', s:'draft',    st:'초안',    appr:'—',     sent:'—',       upd:'8월 25일 16:40',p:31, f:'기획/2026', pub:'—', rd:'—', lock:0 },
+  { n:'새 이북',                  e:'📄', s:'draft',    st:'초안',    appr:'—',     sent:'—',       upd:'8월 24일 09:00',p:0,  f:'기획/2026', pub:'—', rd:'—', lock:0 },
+]
+const TREE = [
+  {d:0,n:'전체',c:6,on:1},{d:0,n:'기획',c:3,ar:'▾'},{d:1,n:'2026',c:3},
+  {d:0,n:'제안',c:1,ar:'▾'},{d:1,n:'물류',c:1},{d:0,n:'분석',c:1},{d:0,n:'인사',c:1},
+]
+
+const colList = ()=> Object.keys(CW).filter(k=>S.cols[k])
+const tableMin = ()=> colList().reduce((a,k)=>a+CW[k],0) + 26   // 좌우 여백
+function listW(W, tree){ return W - SIDE - (tree==='col'?COL2:0) - DET }
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) }
+
+function treeHTML(){
+  return TREE.map(t=>`<div class="tw${t.on?' on':''}" style="padding-left:${9+t.d*13}px">
+    <span class="ar">${t.ar||'·'}</span><span class="n">${t.n==='전체'?'📂 전체':'📁 '+t.n}</span><span class="c">${t.c}</span></div>`).join('')
+}
+
+function detailHTML(){
+  if (S.sel < 0) return emptyHTML()
+  const d = DOCS[S.sel], P = S.parts
+  let b = ''
+  if (P.prev){
+    const blank = d.p === 0
+    const ov = d.lock ? `<div class="ovl">🔒 ${d.s==='pending'?'결재 중이라 잠겨 있습니다':'승인된 자료라 잠겨 있습니다'}<br>고치려면 「수정 요청」을 내세요</div>`
+             : blank ? (S.open4==='ghost' ? `<div class="ovl" style="opacity:1;background:rgba(36,98,235,.10);color:var(--blue)">＋ 여기부터 시작</div>` : '')
+             : `<div class="ovl">열기 →</div>`
+    b += `<div class="sec"><div class="sh">첫 장</div>
+      <div class="prevbox${d.lock?' locked':''}" id="prevhit">
+        <div class="pg">${blank?'':'<i class="t"></i><i></i><i style="width:80%"></i><i style="width:64%"></i><i style="width:88%"></i>'}</div>
+        <div class="pgs">${d.p}쪽<br>${blank?'빈 자료':'미리보기'}</div>${ov}</div></div>`
+  }
+  if (P.props) b += `<div class="sec"><div class="sh">속성</div><dl class="props">
+      <dt>상태</dt><dd><span class="chip ${d.s}">${d.st}</span></dd>
+      <dt>폴더</dt><dd>${d.f}</dd><dt>결재자</dt><dd>${d.appr}</dd>
+      <dt>낸 날</dt><dd>${d.sent}</dd><dt>수정</dt><dd>${d.upd}</dd><dt>쪽수</dt><dd>${d.p}쪽</dd></dl></div>`
+  if (P.hist3 || P.histall){
+    const all = [
+      ['9월 3일','김가현 제출 — 「9월 기획 검토 부탁드립니다」'],
+      ['9월 2일','이강선 반려 — 「3쪽 수치가 작년 것입니다」'],
+      ['8월 30일','김가현 제출 (1회차)'],
+      ['8월 29일','김가현 회수'],
+      ['8월 28일','김가현 제출 (초안)'],
+    ]
+    const use = P.histall ? all : all.slice(0,3)
+    b += `<div class="sec"><div class="sh">결재 이력${P.histall?'':'<span class="more">전체 보기 →</span>'}</div>
+      <div class="hist">${use.map(([w,t])=>`<div><span class="w">${w}</span><span>${t}</span></div>`).join('')}</div></div>`
+  }
+  if (P.cmtfull) b += `<div class="sec"><div class="sh">의견 2</div>
+      <div class="cmt"><b>이강선</b><p>3쪽 수치가 작년 것입니다</p></div>
+      <div class="cmt"><b>김가현</b><p>올해 값으로 고쳐 다시 내겠습니다</p></div>
+      <div style="display:flex;gap:6px;margin-top:6px"><div style="flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 9px;color:var(--muted);font-size:11.6px">의견을 적습니다…</div><button class="btn dark">등록</button></div></div>`
+  else if (P.cmtn) b += `<div class="sec"><div class="cmtchip">💬 의견 <b>2</b><span class="go">결재함에서 보기 →</span></div></div>`
+  if (P.acts) b += `<div class="dacts">
+      <button class="btn"${d.lock?' style="opacity:.45"':''}>결재 제출</button>
+      <button class="btn">복제</button><button class="btn">삭제</button>
+      ${(d.p===0 && S.open4==='btnback')?'<button class="btn dark" id="openbtn">열기</button>':''}</div>`
+  if (!b) b = '<div style="color:var(--muted);font-size:12.4px">③ 에서 담을 것을 골라 주세요.</div>'
+  return `<div class="dh"><span class="nm">${esc(d.n)}</span></div><div class="db">${b}</div>`
+}
+
+function emptyHTML(){
+  if (S.empty==='msg')
+    return `<div class="dh"><span class="nm" style="color:var(--muted)">자료</span></div>
+            <div class="empty">왼쪽에서 자료를<br>골라 주세요.</div>`
+  // 폴더 요약판
+  return `<div class="dh"><span class="nm">📂 전체</span></div><div class="db sumcard">
+    <div class="big">6개</div><div style="font-size:11.8px;color:var(--muted)">이 폴더의 자료</div>
+    <div class="st"><span class="chip pending">결재 중 1</span><span class="chip approved">승인 2</span>
+      <span class="chip rejected">반려 1</span><span class="chip rev">수정 중 1</span><span class="chip draft">초안 2</span></div>
+    <div class="sec"><div class="sh">최근 수정</div><div class="hist">
+      <div><span class="w">9월 3일</span><span>2026년 9월 기획안</span></div>
+      <div><span class="w">9월 2일</span><span>물류 자동화 제안</span></div>
+      <div><span class="w">8월 29일</span><span>경쟁사 분석 — 3분기</span></div></div></div>
+    <div class="dacts"><button class="btn dark">＋ 새 이북</button><button class="btn">폴더 만들기</button></div></div>`
+}
+
+function rowsHTML(){
+  return DOCS.map((d,i)=>`<div class="row${i===S.sel?' on':''}" data-i="${i}">
+    <div class="ico">${d.e}</div><div class="mt"><div class="nm">${esc(d.n)}</div>
+    <div class="sb">${d.upd} · ${d.p}페이지<span class="chip ${d.s}">${d.st}</span>${d.lock?'<span style="color:#8a5a10">🔒 잠김</span>':''}</div></div></div>`).join('')
+}
+
+function tableHTML(){
+  const cols = colList()
+  const th = cols.map((k,i)=>`<th style="width:${k==='name'?'auto':CW[k]+'px'}">${CT[k]}${i===0?'':''}${k==='upd'?'<span class="ar">▼</span>':''}</th>`).join('')
+  const tr = DOCS.map((d,i)=>`<tr class="${i===S.sel?'on':''}" data-i="${i}">${cols.map(k=>{
+    if (k==='name') return `<td class="t"><span class="e">${d.e}</span>${esc(d.n)}${d.lock?' 🔒':''}</td>`
+    if (k==='state') return `<td><span class="chip ${d.s}">${d.st}</span></td>`
+    if (k==='appr') return `<td>${d.appr==='—'?'<span style="color:#cbd5e1">—</span>':'🧑 '+d.appr}</td>`
+    if (k==='sent') return `<td>${d.sent==='—'?'<span style="color:#cbd5e1">—</span>':d.sent}</td>`
+    if (k==='upd') return `<td>${d.upd}</td>`
+    if (k==='pages') return `<td>${d.p}쪽</td>`
+    if (k==='folder') return `<td>📁 ${d.f}</td>`
+    if (k==='pub') return `<td>${d.pub==='—'?'<span style="color:#cbd5e1">—</span>':'<span class="chip approved">발행됨</span>'}</td>`
+    if (k==='round') return `<td>${d.rd}</td>`
+    return '<td></td>'
+  }).join('')}</tr>`).join('')
+  return `<table class="tbl"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`
+}
+
+function render(){
+  const lw = listW(S.W, S.tree)
+  const tooNarrow = S.list==='table' && lw < tableMin()
+  const useTable = S.list==='table' && !tooNarrow
+
+  const nav = `<div class="nav">
+      <div class="it on"><span class="ic">📚</span>내 자료</div>
+      ${S.tree==='side'?`<div class="sidehd"><span>폴더</span><span class="sw">칸 나누기</span></div><div class="tree">${treeHTML()}</div>`:''}
+      <div class="it"><span class="ic">📥</span>결재함<span class="badge">3</span></div>
+      <div class="it"><span class="ic">👥</span>팀 공유</div>
+      <div class="grp">관리</div>
+      <div class="it"><span class="ic">🧑</span>사용자 관리</div>
+      <div class="it"><span class="ic">🏢</span>팀 관리</div>
+      <div class="it"><span class="ic">⚙️</span>환경 설정</div></div>`
+
+  const app = `<div class="app" style="width:${S.W}px">
+    <div class="side"><div class="brand"><span class="lg">ℓ</span>EVER-SKETCH</div>${nav}
+      <div class="acct"><span class="av">가</span><span class="nm">김가현</span><span class="cx">⌃</span></div></div>
+    ${S.tree==='col'?`<div class="col2"><div class="hd"><span>폴더</span><span class="sw">합치기</span></div><div class="tree">${treeHTML()}</div></div>`:''}
+    <div class="main">
+      <div class="head"><span class="ti">내 자료</span><span class="crumb">· 전체</span>
+        <span class="sp"><span class="q">🔍 제목 또는 ID</span><button class="btn">기간</button><button class="btn dark">＋ 새 이북</button></span></div>
+      <div class="cnt">전체 6개 · 1/1 페이지 · 12개씩${tooNarrow?' · <b style="color:#8a5a10">칸이 좁아 줄 목록으로 바꿨습니다</b>':''}</div>
+      <div class="list" id="list">${useTable?tableHTML():rowsHTML()}</div>
+    </div>
+    <div class="det">${detailHTML()}</div></div>`
+
+  document.getElementById('app').innerHTML = app
+
+  const avail = document.querySelector('.stage').clientWidth - 2
+  const maxH = Math.max(240, Math.min(430, window.innerHeight * 0.40))
+  const k = Math.min(1, avail/S.W, maxH/660)
+  const sc = document.getElementById('scaler')
+  sc.style.transform = 'scale('+k+')'; sc.style.width = S.W+'px'
+  const fr = document.querySelector('.frame')
+  fr.style.height = Math.round(660*k)+'px'; fr.style.width = Math.round(S.W*k)+'px'; fr.style.margin='0 auto'
+
+  document.getElementById('ro').innerHTML =
+    `목록 칸 <b>${lw}px</b> · 표에 필요한 최소 <b>${tableMin()}px</b> (열 ${colList().length}개)` +
+    (tooNarrow?' · <b style="color:#8a5a10">모자람 → 줄 목록</b>':'')
+
+  bind(); tbl(); summary()
+}
+
+function bind(){
+  document.querySelectorAll('#list .row,[data-i]').forEach(r=>{
+    if (!r.dataset.i) return
+    r.onclick = ()=>{ S.sel = +r.dataset.i; render() }
+  })
+  const ph = document.getElementById('prevhit')
+  if (ph) ph.onclick = ()=>{
+    const d = DOCS[S.sel]
+    if (d.lock) toast('잠긴 자료입니다 — 「수정 요청」을 먼저 내세요')
+    else toast('편집기로 갑니다 — ' + d.n)
+  }
+  const ob = document.getElementById('openbtn')
+  if (ob) ob.onclick = ()=> toast('편집기로 갑니다 — ' + DOCS[S.sel].n)
+}
+let tt
+function toast(t){ const e=document.getElementById('toast'); e.textContent=t; e.classList.add('on')
+  clearTimeout(tt); tt=setTimeout(()=>e.classList.remove('on'),1700) }
+
+function tbl(){
+  const need = tableMin()
+  ;[[1126,'side','c1'],[1126,'col','c2'],[1512,'side','c3'],[1512,'col','c4'],[1910,'side','c5'],[1910,'col','c6']]
+    .forEach(([W,t,id])=>{
+      const w = listW(W,t)
+      document.getElementById(id).innerHTML = w + 'px ' + (w>=need
+        ? '<span style="color:#215c46;font-weight:800">표 ○</span>'
+        : '<span style="color:#7d2027;font-weight:800">표 ✕ → 줄</span>')
+    })
+  const bad = [[1126,'side'],[1126,'col'],[1512,'side'],[1512,'col'],[1910,'side'],[1910,'col']]
+    .filter(([W,t])=>listW(W,t) < need)
+  const w5 = document.getElementById('w5')
+  w5.innerHTML = bad.length
+    ? `<div class="warn">고른 열로는 최소 <b>${need}px</b> 이 필요해서 <b>${bad.map(([W,t])=>W+(t==='col'?'(전용 칸)':'')).join(' · ')}</b> 에서는 표가 안 들어갑니다 — 그 창에서는 줄 목록으로 내려갑니다.</div>`
+    : `<div class="good">고른 열은 최소 <b>${need}px</b> — 세 창 모두, 폴더 칸을 어디에 두든 표가 들어갑니다.</div>`
+}
+
+function summary(){
+  const P=S.parts
+  const p3=[]
+  if(P.prev)p3.push('미리보기'); if(P.props)p3.push('속성')
+  if(P.histall)p3.push('이력 전체'); else if(P.hist3)p3.push('이력 3줄')
+  if(P.cmtfull)p3.push('의견 전부'); else if(P.cmtn)p3.push('의견 숫자')
+  if(P.acts)p3.push('단추')
+  const m1 = S.treeDefault==='side'?'ㄱ 사이드바 안(기본) · 바꿀 수 있음':'ㄴ 전용 칸(기본) · 바꿀 수 있음'
+  const m2 = {msg:'ㄱ 빈 문구',auto:'ㄴ 첫 줄 자동',sum:'ㄷ 폴더 요약판'}[S.empty]
+  const m4 = S.open4==='ghost'?'ㄷ 미리보기 · 빈 자료는 「여기부터 시작」':'ㄷ 미리보기 · 빈 자료만 열기 단추'
+  document.getElementById('sum').innerHTML =
+    `<span>① ${m1}</span><span>② ${m2}</span><span>③ ${p3.join(' · ')||'없음'}</span><span>④ ${m4}</span><span>⑤ ${S.list==='table'?'표':'줄'} — ${colList().map(k=>CT[k]).join(' · ')}</span>`
+  const m=[]
+  if (P.cmtfull) m.push('의견 입력칸을 목록 상세에도 두면 같은 대화가 두 곳에 생깁니다 — 「관리자와 낸 사람만 본다」는 규칙을 두 화면이 각각 지켜야 합니다.')
+  if (P.histall) m.push('이력 전체를 펼치면 회차가 쌓인 자료에서 상세 칸이 이력만으로 찹니다.')
+  if (!P.prev) m.push('④ 가 미리보기 누르기이므로 미리보기를 끄면 편집기로 가는 길이 사라집니다.')
+  const w3=document.getElementById('w3'); w3.hidden=!m.length; w3.innerHTML=m.join('<br>')
+}
+
+function seg(id, fn){ document.getElementById(id).onclick = e=>{
+  const b=e.target.closest('button'); if(!b) return
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c===b)); fn(b); render() } }
+seg('wseg', b=>{ S.W=+b.dataset.w })
+seg('tseg', b=>{ S.tree=b.dataset.v })
+seg('lseg', b=>{ S.list=b.dataset.v })
+document.getElementById('noselbtn').onclick = ()=>{
+  if (S.empty==='auto'){ S.sel=0; render(); toast('ㄴ 에서는 빈 상태가 없습니다 — 들어오면 첫 줄이 골라집니다'); return }
+  S.sel=-1; render()
+}
+function opts(id,fn){ document.getElementById(id).onclick = e=>{
+  const b=e.target.closest('.opt'); if(!b) return
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c===b)); fn(b.dataset.v); render() } }
+opts('o1', v=>{ S.treeDefault=v; S.tree=v
+  ;[...document.getElementById('tseg').children].forEach(c=>c.classList.toggle('on', c.dataset.v===v)) })
+opts('o2', v=>{ S.empty=v; S.sel = v==='auto'?0:-1 })
+opts('o4', v=>{ S.open4=v; S.sel=5 })
+document.getElementById('o3').onclick = e=>{
+  const b=e.target.closest('button'); if(!b||b.disabled) return
+  const k=b.dataset.v
+  const pair = { hist3:'histall', histall:'hist3', cmtn:'cmtfull', cmtfull:'cmtn' }[k]
+  S.parts[k] = S.parts[k]?0:1
+  if (S.parts[k] && pair){ S.parts[pair]=0 }
+  document.querySelectorAll('#o3 button').forEach(x=>x.classList.toggle('on', !!S.parts[x.dataset.v]))
+  render()
+}
+document.getElementById('o5').onclick = e=>{
+  const b=e.target.closest('button'); if(!b||b.disabled) return
+  const k=b.dataset.v; S.cols[k]=S.cols[k]?0:1; b.classList.toggle('on',!!S.cols[k]); render()
+}
+window.addEventListener('resize', render)
+render()
+</script>
+</body>
+</html>

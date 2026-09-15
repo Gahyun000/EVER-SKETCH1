@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 세 칸(ERP) 구조 ①~④</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --blue:#2462EB; --tint:#E8F0FE; --line:#e5e7eb;
+    --sub:#5b6270; --muted:#94a3b8; --card:#f8fafc; --bg:#f5f6f8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--navy);
+       font:14px/1.7 -apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+       letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 22px 90px}
+  h1{font-size:26px;font-weight:900;margin:0 0 6px}
+  .lede{color:var(--sub);margin:0 0 22px;font-size:14.5px}
+  h2{font-size:18px;font-weight:900;margin:34px 0 8px;padding-top:22px;border-top:1px solid var(--line)}
+  h2 .no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;
+         background:var(--navy);color:#fff;font-size:13px;margin-right:8px;vertical-align:2px}
+  p{margin:0 0 10px}
+  code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:12.5px;
+       font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .quote{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);
+         border-radius:0 8px 8px 0;padding:11px 14px;margin:12px 0;font-size:13px;color:var(--sub)}
+  .quote b{color:var(--navy)}
+
+  /* ── 고르는 단추 ───────────────────────────── */
+  .opts{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0 4px}
+  .opt{flex:1 1 260px;min-width:0;text-align:left;border:1.5px solid var(--line);background:#fff;
+       border-radius:11px;padding:11px 14px;cursor:pointer;transition:.12s;font-family:inherit;color:inherit}
+  .opt:hover{border-color:#c6d5ff}
+  .opt.on{border-color:var(--blue);background:var(--tint);box-shadow:0 0 0 3px rgba(36,98,235,.10)}
+  .opt .k{font-weight:900;font-size:13.5px;display:block;margin-bottom:2px}
+  .opt .d{font-size:12.3px;color:var(--sub);line-height:1.6}
+  .opt.on .d{color:#3c4a6b}
+  .chk{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+  .chk button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:7px 15px;
+              font:800 12.5px/1 inherit;color:var(--sub);cursor:pointer}
+  .chk button.on{border-color:var(--blue);background:var(--blue);color:#fff}
+  .warn{background:#FFF7E8;border:1px solid #f0dcb4;color:#8a5a10;border-radius:9px;
+        padding:9px 13px;font-size:12.6px;margin:10px 0 0}
+
+  /* ── 붙박이 화면 ───────────────────────────── */
+  .stage{position:sticky;top:0;z-index:30;background:#fff;padding:12px 0 14px;margin-bottom:6px;
+         border-bottom:1px solid var(--line)}
+  .stage-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:9px}
+  .stage-bar .t{font-weight:900;font-size:13px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:5px 12px;font:800 12px/1.5 inherit;color:var(--sub);cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+  .readout{font-size:12.2px;color:var(--sub);margin-left:auto}
+  .readout b{color:var(--navy)}
+  .frame{border:1px solid #dfe3ea;border-radius:12px;overflow:hidden;background:var(--bg);
+         box-shadow:0 8px 26px rgba(15,27,61,.10)}
+  .scaler{transform-origin:top left}
+
+  /* ── 가짜 앱 ───────────────────────────────── */
+  .app{display:flex;height:640px;background:var(--bg);font-size:13px}
+  .side{flex:0 0 214px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+  .brand{display:flex;align-items:center;gap:8px;padding:14px 14px 12px;font-weight:900;font-size:14px}
+  .brand .lg{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--navy);color:#fff;font-size:13px}
+  .nav{padding:4px 8px;flex:1;overflow:auto}
+  .nav .it{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;color:var(--sub);
+           font-weight:700;font-size:12.8px;cursor:default}
+  .nav .it.on{background:var(--tint);color:var(--blue);font-weight:900}
+  .nav .it .ic{width:15px;text-align:center;opacity:.85}
+  .nav .badge{margin-left:auto;background:#FFF4E3;color:#8a5a10;font-size:10.5px;font-weight:900;
+              border-radius:99px;padding:1px 7px}
+  .grp{font-size:10.5px;font-weight:900;color:var(--muted);padding:12px 12px 4px;letter-spacing:.02em}
+  .acct{border-top:1px solid var(--line);padding:9px 12px;display:flex;align-items:center;gap:8px}
+  .acct .av{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;display:grid;
+            place-items:center;font-size:11px;font-weight:900}
+  .acct .nm{font-weight:800;font-size:12.6px}
+  .acct .cx{margin-left:auto;color:var(--muted);font-size:11px}
+
+  /* 폴더 나무 */
+  .tree{padding:2px 6px 8px}
+  .tw{display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:7px;font-size:12.4px;
+      color:var(--sub);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tw:hover{background:#f3f6fb}
+  .tw.on{background:var(--tint);color:var(--blue);font-weight:800}
+  .tw .ar{width:11px;font-size:9px;color:var(--muted)}
+  .tw .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .tw .c{font-size:10.5px;color:var(--muted)}
+  .col2{flex:0 0 220px;background:#fff;border-right:1px solid var(--line);min-width:0;display:flex;flex-direction:column}
+  .col2 .hd{font-size:11px;font-weight:900;color:var(--muted);padding:13px 14px 6px}
+
+  /* 가운데 */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+  .head{display:flex;align-items:center;gap:10px;padding:13px 18px 9px;background:#fff;border-bottom:1px solid var(--line)}
+  .head .ti{font-weight:900;font-size:15px}
+  .head .crumb{font-size:12px;color:var(--muted)}
+  .head .sp{margin-left:auto;display:flex;gap:7px;align-items:center}
+  .q{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;
+     background:#fff;padding:5px 10px;font-size:12px;color:var(--muted);min-width:170px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;
+       font:800 12px/1.4 inherit;color:var(--sub);cursor:pointer}
+  .btn.dark{background:var(--blue);border-color:var(--blue);color:#fff}
+  .cnt{font-size:11.5px;color:var(--muted);padding:9px 18px 4px}
+  .list{flex:1;overflow:auto;padding:0 12px 14px}
+  .row{display:flex;align-items:center;gap:11px;background:#fff;border:1.4px solid var(--line);
+       border-radius:10px;padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:.1s}
+  .row:hover{border-color:#c6d5ff}
+  .row.on{border-color:var(--blue);background:var(--tint)}
+  .row .ico{flex:0 0 32px;height:32px;border-radius:8px;background:var(--tint);color:var(--blue);
+            display:grid;place-items:center;font-size:14px}
+  .row .mt{flex:1;min-width:0}
+  .row .nm{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .sb{font-size:11.4px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+  .chip{font-size:10.3px;font-weight:900;padding:1.5px 7px;border-radius:99px}
+  .chip.draft{background:#eef0f3;color:#6b7480}
+  .chip.pending{background:#FFF4E3;color:#8a5a10}
+  .chip.approved{background:#E9F5EF;color:#215c46}
+  .chip.rejected{background:#fdf0f0;color:#7d2027}
+  .chip.rev{background:#EDE9FE;color:#4c3ba6}
+  .acts{display:flex;gap:3px;opacity:0;transition:.1s}
+  .row:hover .acts{opacity:1}
+  .acts span{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;
+             font-size:11px;color:var(--muted);background:#f3f6fb}
+
+  /* 상세 */
+  .det{flex:0 0 360px;background:#fff;border-left:1px solid var(--line);min-width:0;
+       display:flex;flex-direction:column;overflow:hidden}
+  .det.peek{box-shadow:-10px 0 24px rgba(15,27,61,.07)}
+  .det .dh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .det .dh .nm{font-weight:900;font-size:14px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .det .dh .x{color:var(--muted);font-size:14px;cursor:pointer}
+  .det .db{flex:1;overflow:auto;padding:13px 14px 20px}
+  .empty{flex:1;display:grid;place-items:center;color:var(--muted);font-size:12.5px;text-align:center;padding:20px}
+  .sec{margin-bottom:15px}
+  .sec .sh{font-size:11px;font-weight:900;color:var(--muted);margin-bottom:7px;letter-spacing:.02em}
+  .prev{border:1px solid var(--line);border-radius:9px;background:#fff;padding:9px;display:flex;gap:8px}
+  .pg{flex:0 0 118px;height:76px;border:1px solid var(--line);border-radius:5px;background:#fff;padding:7px;overflow:hidden}
+  .pg i{display:block;height:4px;border-radius:2px;background:#e2e8f0;margin-bottom:4px}
+  .pg i.t{background:#cbd5e1;width:62%;height:6px}
+  .pgs{display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:11px;color:var(--muted)}
+  .props{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.2px}
+  .props dt{color:var(--muted)}
+  .props dd{margin:0;font-weight:700}
+  .hist{font-size:12px;color:var(--sub)}
+  .hist div{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .hist div:last-child{border:0}
+  .hist .w{color:var(--muted);flex:0 0 74px}
+  .cmt{border:1px solid var(--line);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12px}
+  .cmt b{font-size:11.6px}
+  .cmt p{margin:2px 0 0;color:var(--sub);font-size:12px}
+  .cmtin{display:flex;gap:6px;margin-top:6px}
+  .cmtin .box{flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 9px;color:var(--muted);font-size:11.8px}
+  .dacts{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:11px}
+
+  /* 토스트 */
+  .toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(15,27,61,.93);
+         color:#fff;font-weight:800;font-size:13px;padding:9px 18px;border-radius:10px;opacity:0;
+         transition:opacity .2s;pointer-events:none;z-index:9}
+  .toast.on{opacity:1}
+  .stagewrap{position:relative}
+
+  /* 요약 */
+  .sum{position:sticky;bottom:0;background:#fff;border-top:2px solid var(--navy);padding:9px 22px 10px;
+       margin:30px -22px -90px;box-shadow:0 -6px 20px rgba(15,27,61,.07)}
+  .sum .t{font-size:10.5px;font-weight:900;color:var(--muted);margin-bottom:2px}
+  .sum .v{font-size:13.5px;font-weight:900;line-height:1.8}
+  .sum .v span{background:var(--tint);color:var(--blue);border-radius:7px;padding:2px 9px;margin-right:7px;display:inline-block}
+  table{border-collapse:collapse;width:100%;font-size:12.8px;margin:12px 0}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left}
+  th{background:var(--card);font-weight:900;font-size:12px}
+  td.n{font-variant-numeric:tabular-nums}
+  .ok{color:#215c46;font-weight:800}
+  .no{color:#7d2027;font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>세 칸(ERP) 구조 — 고르는 화면</h1>
+<p class="lede">
+  위 화면은 <b>지금 고른 것이 바로 반영</b>됩니다. 아래에서 ①~④ 를 눌러 가며 보시고, 맨 아래 요약줄의 글자를 그대로 답해 주시면 됩니다.
+</p>
+
+<div class="quote">
+  근거 — 결재함은 <b>이미 이 구조</b>입니다. <code>src/auth/auth.css:321</code><br>
+  <code>.ap-body{display:flex} .ap-list{flex:0 0 300px} .ap-detail{flex:1}</code> · 빈 상세 문구 「왼쪽에서 결재 건을 골라 주세요」<br>
+  자료 목록만 <code>.lib-list{width:min(880px,94vw)}</code> 로 가운데 정렬입니다.
+</div>
+
+<!-- ── 붙박이 화면 ───────────────────────────── -->
+<div class="stage">
+  <div class="stage-bar">
+    <span class="t">창 너비</span>
+    <span class="seg" id="wseg">
+      <button data-w="1126">1126</button>
+      <button data-w="1512" class="on">1512</button>
+      <button data-w="1910">1910</button>
+    </span>
+    <span class="t" style="margin-left:6px">비교</span>
+    <span class="seg" id="nowseg">
+      <button data-now="1">지금</button>
+      <button data-now="0" class="on">바뀐 뒤</button>
+    </span>
+    <span class="readout" id="ro"></span>
+  </div>
+  <div class="frame stagewrap">
+    <div class="scaler" id="scaler"><div id="app"></div></div>
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<!-- ① -->
+<h2><span class="no">①</span>폴더 나무를 어디에</h2>
+<p>지금은 폴더가 <b>목록 위의 카드 5열</b>(<code>.lib-folders</code>)이라, 들어가면 카드가 사라지고 나오려면 위 경로를 눌러야 합니다. 나무로 바꾸면 <b>어디 있는지와 어디로 갈지가 늘 같이 보입니다.</b></p>
+<div class="opts" id="o1">
+  <button class="opt on" data-v="side"><span class="k">ㄱ · 사이드바 안에 (칸 둘)</span>
+    <span class="d">「내 자료」 아래로 폴더가 들여쓰기로 펼쳐집니다. 칸이 하나 덜 생기니 목록이 220px 더 넓습니다. 다만 메뉴와 폴더가 한 줄기라 폴더가 20개쯤 되면 「결재함·팀 공유」가 스크롤 아래로 밀립니다.</span></button>
+  <button class="opt" data-v="col"><span class="k">ㄴ · 폴더 전용 둘째 칸 (칸 셋, 파인더식)</span>
+    <span class="d">메뉴와 폴더가 갈라집니다. 폴더가 아무리 많아도 메뉴는 제자리에 있고, 화면만 봐도 「왼쪽=어느 화면 · 둘째=어느 폴더 · 가운데=자료 · 오른쪽=이 자료」 로 읽힙니다. 대신 폭을 220px 씁니다.</span></button>
+</div>
+
+<!-- ② -->
+<h2><span class="no">②</span>상세 칸의 성격</h2>
+<p>결재함은 이미 ㄱ 입니다. 같게 가면 두 화면이 한 몸이 되고, ㄴ 으로 가면 목록을 넓게 보는 순간과 자세히 보는 순간이 갈립니다.</p>
+<div class="opts" id="o2">
+  <button class="opt on" data-v="always"><span class="k">ㄱ · 늘 붙어 있는 칸 (결재함과 같게)</span>
+    <span class="d">고른 게 없으면 「왼쪽에서 자료를 골라 주세요」. 자리가 늘 잡혀 있어 목록 폭이 안 흔들리고, 결재함과 같은 몸짓이 됩니다.</span></button>
+  <button class="opt" data-v="peek"><span class="k">ㄴ · 고를 때만 밀고 나온다 (노션 peek)</span>
+    <span class="d">닫으면 목록이 폭을 되찾습니다. 좁은 창에서 유리하고, 「닫기」가 늘 필요합니다. 결재함과 몸짓이 달라집니다.</span></button>
+</div>
+<table>
+  <tr><th>창</th><th>칸 배치</th><th>목록 칸 폭 (상세 열림)</th><th>목록 칸 폭 (상세 닫힘)</th></tr>
+  <tr><td class="n">1126</td><td id="t1"></td><td class="n" id="t2"></td><td class="n" id="t3"></td></tr>
+  <tr><td class="n">1512</td><td id="t4"></td><td class="n" id="t5"></td><td class="n" id="t6"></td></tr>
+  <tr><td class="n">1910</td><td id="t7"></td><td class="n" id="t8"></td><td class="n" id="t9"></td></tr>
+</table>
+<p style="font-size:12.6px;color:var(--sub)">※ 지금 목록은 창이 아무리 넓어도 <b>880px</b> 에서 멈춥니다. ②ㄱ 은 「닫힘」 칸이 없습니다 — 늘 열려 있으니까요.</p>
+<div class="warn" id="tnote" hidden></div>
+
+<!-- ③ -->
+<h2><span class="no">③</span>상세에 무엇을 담을까</h2>
+<p>눌러서 켜고 끄면 위 화면의 오른쪽 칸이 바로 바뀝니다. <b>결재 이력·의견</b>은 지금 결재함에만 있습니다 — 자료 목록에도 두면 편하지만, 같은 것이 두 화면에 생깁니다.</p>
+<div class="chk" id="o3">
+  <button class="on" data-v="prev">첫 장 미리보기</button>
+  <button class="on" data-v="props">속성 줄 (상태·폴더·수정일·쪽수)</button>
+  <button class="on" data-v="hist">결재 이력</button>
+  <button data-v="cmts">의견</button>
+  <button class="on" data-v="acts">단추 (열기·제출·복제·삭제)</button>
+</div>
+<div class="warn" id="w3" hidden></div>
+
+<!-- ④ -->
+<h2><span class="no">④</span>편집기로 가는 길</h2>
+<p>지금은 <b>줄을 한 번 누르면 바로 편집기</b>로 갑니다(<code>lib-open-hit → openProject</code>). 상세 칸이 생기면 한 번 누르기는 상세를 여는 데 쓰이므로, 편집기로 가는 길을 따로 정해야 합니다. 위 화면에서 실제로 해 보세요.</p>
+<div class="opts" id="o4">
+  <button class="opt on" data-v="btn"><span class="k">ㄱ · 상세의 「열기」 단추</span>
+    <span class="d">가장 분명합니다. 잠긴 자료면 단추가 흐려지고 왜 잠겼는지 그 자리에 적을 수 있습니다 — 눌러 봐야 아는 길이 아닙니다.</span></button>
+  <button class="opt" data-v="dbl"><span class="k">ㄴ · 줄을 두 번 누르기</span>
+    <span class="d">파인더 몸짓입니다. 빠르지만 <b>보이지 않는 길</b>이라 처음 쓰는 사람은 모릅니다. 잠긴 자료를 두 번 눌렀을 때 아무 일이 없으면 고장으로 보입니다.</span></button>
+  <button class="opt" data-v="prevclick"><span class="k">ㄷ · 상세의 미리보기를 누르기</span>
+    <span class="d">노션식입니다. 「보던 것을 그대로 이어서 고친다」가 자연스럽습니다. 단 ③에서 미리보기를 꺼 두면 길이 사라집니다.</span></button>
+</div>
+<div class="warn" id="w4" hidden></div>
+
+<div class="sum">
+  <div class="t">고른 것 — 이대로 답해 주시면 됩니다</div>
+  <div class="v" id="sum"></div>
+</div>
+
+</div>
+
+<script>
+/* ── 상태 ─────────────────────────────────────── */
+const S = {
+  W: 1512, now: false,
+  tree: 'side', detail: 'always',
+  parts: { prev:1, props:1, hist:1, cmts:0, acts:1 },
+  open: 'btn',
+  sel: 1, peekOpen: false,
+}
+const SIDE = 214, COL2 = 220, DET = 360
+
+const DOCS = [
+  { n:'2026년 9월 기획안',        s:'pending',  st:'결재 중',  u:'9월 3일 14:20', p:12, f:'기획/2026' },
+  { n:'물류 자동화 제안',          s:'approved', st:'승인',     u:'9월 2일 18:04', p:24, f:'제안/물류' },
+  { n:'경쟁사 분석 — 3분기',       s:'rejected', st:'반려',     u:'8월 29일 11:31',p:18, f:'분석' },
+  { n:'채용 계획 v2',             s:'rev',      st:'수정 중',  u:'8월 27일 09:12', p:7,  f:'인사' },
+  { n:'MLOps 인프라 구성안',      s:'draft',    st:'초안',     u:'8월 25일 16:40', p:31, f:'기획/2026' },
+  { n:'품질관리 AI 에이전트 개요', s:'approved', st:'승인',     u:'8월 22일 10:05', p:9,  f:'제안/품질' },
+]
+const TREE = [
+  { d:0, n:'전체', c:6, k:'all' },
+  { d:0, n:'기획', c:2, k:'기획', ar:'▾' },
+  { d:1, n:'2026', c:2, k:'기획/2026' },
+  { d:0, n:'제안', c:2, k:'제안', ar:'▾' },
+  { d:1, n:'물류', c:1, k:'제안/물류' },
+  { d:1, n:'품질', c:1, k:'제안/품질' },
+  { d:0, n:'분석', c:1, k:'분석' },
+  { d:0, n:'인사', c:1, k:'인사' },
+]
+
+/* ── 폭 셈 ────────────────────────────────────── */
+function listW(W, tree, detail, open, now){
+  if (now) return Math.min(880, Math.round(W*0.94))
+  const used = SIDE + (tree==='col'?COL2:0) + ((detail==='always'|| (detail==='peek'&&open))?DET:0)
+  return W - used
+}
+
+/* ── 그리기 ───────────────────────────────────── */
+function el(h){ const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstElementChild }
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) }
+
+function treeHTML(){
+  return TREE.map(t=>`<div class="tw${t.k==='all'?' on':''}" style="padding-left:${9+t.d*13}px">
+      <span class="ar">${t.ar||'·'}</span><span class="n">${t.n==='전체'?'📂 전체':'📁 '+t.n}</span><span class="c">${t.c}</span></div>`).join('')
+}
+
+function detailHTML(){
+  const d = DOCS[S.sel]
+  const P = S.parts
+  let b = ''
+  if (P.prev) b += `<div class="sec"><div class="sh">첫 장</div>
+    <div class="prev" id="prevhit" style="cursor:${S.open==='prevclick'?'pointer':'default'}">
+      <div class="pg"><i class="t"></i><i></i><i style="width:80%"></i><i style="width:64%"></i><i style="width:88%"></i></div>
+      <div class="pgs">${d.p}쪽<br>${S.open==='prevclick'?'<b style="color:var(--blue)">눌러서 열기</b>':'미리보기'}</div>
+    </div></div>`
+  if (P.props) b += `<div class="sec"><div class="sh">속성</div><dl class="props">
+      <dt>상태</dt><dd><span class="chip ${d.s}">${d.st}</span></dd>
+      <dt>폴더</dt><dd>${d.f}</dd>
+      <dt>수정</dt><dd>${d.u}</dd>
+      <dt>쪽수</dt><dd>${d.p}쪽</dd>
+      <dt>결재자</dt><dd>${d.s==='draft'?'—':'관리자 이강선'}</dd></dl></div>`
+  if (P.hist) b += `<div class="sec"><div class="sh">결재 이력</div><div class="hist">
+      <div><span class="w">9월 3일</span><span>김가현 제출 — 「9월 기획 검토 부탁드립니다」</span></div>
+      <div><span class="w">9월 2일</span><span>이강선 반려 — 「3쪽 수치가 작년 것입니다」</span></div>
+      <div><span class="w">8월 30일</span><span>김가현 제출 (1회차)</span></div></div></div>`
+  if (P.cmts) b += `<div class="sec"><div class="sh">의견 2</div>
+      <div class="cmt"><b>이강선</b><p>3쪽 수치가 작년 것입니다</p></div>
+      <div class="cmt"><b>김가현</b><p>확인했습니다. 올해 값으로 고쳐 다시 내겠습니다</p></div>
+      <div class="cmtin"><div class="box">의견을 적습니다…</div><button class="btn dark">등록</button></div></div>`
+  if (P.acts) {
+    const lock = (d.s==='pending'||d.s==='approved')
+    b += `<div class="dacts">
+      <button class="btn dark" id="openbtn" ${S.open==='btn'?'':'style="opacity:.45"'}>열기</button>
+      <button class="btn"${lock?' style="opacity:.45"':''}>결재 제출</button>
+      <button class="btn">복제</button>
+      <button class="btn">삭제</button>
+      ${lock?'<div style="flex:1 0 100%;font-size:11.6px;color:#8a5a10;margin-top:6px">🔒 결재 중이거나 승인된 자료라 잠겨 있습니다</div>':''}</div>`
+  }
+  if (!b) b = '<div style="color:var(--muted);font-size:12.5px">담을 것을 하나도 안 골랐습니다 — ③ 에서 골라 주세요.</div>'
+  return `<div class="dh"><span class="nm">${esc(d.n)}</span>${S.detail==='peek'?'<span class="x" id="detx">✕</span>':''}</div>
+          <div class="db">${b}</div>`
+}
+
+function render(){
+  const showDet = S.now ? false : (S.detail==='always' || (S.detail==='peek' && S.peekOpen))
+  const lw = listW(S.W, S.tree, S.detail, S.peekOpen, S.now)
+  const showTree = !S.now && S.tree==='col'
+  const treeInSide = !S.now && S.tree==='side'
+
+  const nav = `
+    <div class="nav">
+      <div class="it on"><span class="ic">📚</span>내 자료</div>
+      ${treeInSide?`<div class="tree">${treeHTML()}</div>`:''}
+      <div class="it"><span class="ic">📥</span>결재함<span class="badge">3</span></div>
+      <div class="it"><span class="ic">👥</span>팀 공유</div>
+      <div class="grp">관리</div>
+      <div class="it"><span class="ic">🧑</span>사용자 관리</div>
+      <div class="it"><span class="ic">🏢</span>팀 관리</div>
+      <div class="it"><span class="ic">⚙️</span>환경 설정</div>
+    </div>`
+
+  const rows = DOCS.map((d,i)=>`
+    <div class="row${(!S.now && showDet && i===S.sel)?' on':''}" data-i="${i}">
+      <div class="ico">📕</div>
+      <div class="mt"><div class="nm">${esc(d.n)}</div>
+        <div class="sb">${d.u} · ${d.p}페이지<span class="chip ${d.s}">${d.st}</span>${
+          (d.s==='pending'||d.s==='approved')?'<span style="color:#8a5a10">🔒 잠김</span>':''}</div></div>
+      <div class="acts"><span>📤</span><span>✏️</span><span>⧉</span><span>🗑</span></div>
+    </div>`).join('')
+
+  const folderCards = S.now ? `
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px;padding:0 2px 12px">
+      ${['기획','제안','분석','인사','보관'].map(n=>`<div style="border:1.4px solid var(--line);background:#fff;border-radius:11px;padding:11px 10px">
+        <div style="color:var(--blue);font-size:15px">📁</div>
+        <div style="font-weight:800;font-size:12.6px;margin-top:3px">${n}</div>
+        <div style="font-size:11px;color:var(--muted)">이북 2개</div></div>`).join('')}
+    </div>` : ''
+
+  const main = `
+    <div class="main">
+      <div class="head">
+        <span class="ti">내 자료</span>
+        <span class="crumb">${S.now?'· 전체':'· 전체 (폴더 나무에서 고릅니다)'}</span>
+        <span class="sp">
+          <span class="q">🔍 이북 제목 또는 ID</span>
+          <button class="btn">기간</button>
+          <button class="btn dark">＋ 새 이북</button>
+        </span>
+      </div>
+      <div class="cnt">전체 6개 · 1/1 페이지 · 20개씩</div>
+      <div class="list" id="list">${folderCards}${rows}</div>
+    </div>`
+
+  const det = showDet ? `<div class="det${S.detail==='peek'?' peek':''}" id="det">${detailHTML()}</div>`
+    : (!S.now && S.detail==='peek' ? '' : '')
+
+  const emptyDet = (!S.now && S.detail==='always' && false) ? '' : ''
+
+  const app = `
+    <div class="app" style="width:${S.W}px">
+      <div class="side">
+        <div class="brand"><span class="lg">ℓ</span>EVER-SKETCH</div>
+        ${nav}
+        <div class="acct"><span class="av">가</span><span class="nm">김가현</span><span class="cx">⌃</span></div>
+      </div>
+      ${showTree?`<div class="col2"><div class="hd">폴더</div><div class="tree">${treeHTML()}</div></div>`:''}
+      ${S.now?`<div class="main" style="display:flex"><div class="head"><span class="ti">내 자료</span><span class="sp"><button class="btn dark">＋ 새 이북</button></span></div>
+        <div style="flex:1;overflow:auto;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding:20px 20px 40px">
+          <div style="width:${lw}px;max-width:100%">
+            <div style="display:flex;gap:7px;margin-bottom:10px;align-items:center">
+              <span class="q" style="flex:1">🔍 이북 제목 또는 ID</span><button class="btn">검색</button><button class="btn">초기화</button>
+            </div>
+            ${folderCards}
+            <div class="cnt" style="padding-left:0">전체 6개 · 1/1 페이지 · 20개씩</div>
+            ${rows}
+          </div>
+        </div></div>` : main}
+      ${det}
+    </div>`
+
+  const host = document.getElementById('app')
+  host.innerHTML = app
+
+  // 크기 맞추기 — **높이도 본다.** 붙박이 화면이 창의 절반을 넘으면
+  // 아래 고르는 단추가 화면 밖으로 밀려서 누를 수가 없다.
+  const avail = document.querySelector('.stage').clientWidth - 2
+  const maxH = Math.max(240, Math.min(430, window.innerHeight * 0.40))
+  const k = Math.min(1, avail / S.W, maxH / 640)
+  const sc = document.getElementById('scaler')
+  sc.style.transform = 'scale(' + k + ')'
+  sc.style.width = S.W + 'px'
+  const fr = document.querySelector('.frame')
+  fr.style.height = Math.round(640 * k) + 'px'
+  fr.style.width = Math.round(S.W * k) + 'px'   // 남는 띠가 안 생기게 테두리를 그림에 맞춘다
+  fr.style.margin = '0 auto'
+
+  // 읽기값
+  const gutter = S.now ? Math.max(0, (S.W - SIDE) - lw) : 0
+  document.getElementById('ro').innerHTML =
+    S.now ? `목록 폭 <b>${lw}px</b> · 양옆 빈 자리 <b>${gutter}px</b> (한쪽 ${Math.round(gutter/2)}px · 작업 영역의 ${Math.round(gutter/(S.W-SIDE)*100)}%)`
+          : `사이드바 ${SIDE} ${S.tree==='col'?'+ 폴더 '+COL2+' ':''}+ 목록 <b>${lw}</b> ${showDet?'+ 상세 '+DET:''} = ${S.W}px`
+
+  bind()
+  table()
+  summary()
+}
+
+function bind(){
+  document.querySelectorAll('#list .row').forEach(r=>{
+    const i = +r.dataset.i
+    r.onclick = ()=>{
+      if (S.now) { toast('지금은 한 번 누르면 바로 편집기로 갑니다'); return }
+      S.sel = i
+      if (S.detail==='peek') S.peekOpen = true
+      render()
+    }
+    r.ondblclick = ()=>{ if(!S.now && S.open==='dbl'){ toast('편집기로 갑니다 — ' + DOCS[i].n) } }
+  })
+  const x = document.getElementById('detx'); if (x) x.onclick = (e)=>{ e.stopPropagation(); S.peekOpen=false; render() }
+  const ob = document.getElementById('openbtn')
+  if (ob) ob.onclick = ()=>{ S.open==='btn' ? toast('편집기로 갑니다 — ' + DOCS[S.sel].n) : toast('④ 에서 「열기 단추」를 고르지 않아 이 길은 꺼져 있습니다') }
+  const ph = document.getElementById('prevhit')
+  if (ph && S.open==='prevclick') ph.onclick = ()=> toast('편집기로 갑니다 — ' + DOCS[S.sel].n)
+}
+
+let tt
+function toast(t){
+  const e = document.getElementById('toast')
+  e.textContent = t; e.classList.add('on')
+  clearTimeout(tt); tt = setTimeout(()=>e.classList.remove('on'), 1700)
+}
+
+function table(){
+  const ws = [1126,1512,1910]
+  ws.forEach((W,i)=>{
+    const base = 1+i*3
+    document.getElementById('t'+base).textContent =
+      S.tree==='col' ? '메뉴 214 + 폴더 220 + 목록 + 상세 360' : '메뉴 214 + 목록 + 상세 360'
+    document.getElementById('t'+(base+1)).textContent = listW(W, S.tree, 'always', true, false) + 'px'
+    document.getElementById('t'+(base+2)).textContent =
+      S.detail==='peek' ? listW(W, S.tree, 'peek', false, false) + 'px' : '— (늘 열림)'
+  })
+  // **가장 좁은 창을 먼저 본다.** 넓은 창에서 잘 되는 배치는 좁은 창에서 무너진다.
+  const narrow = listW(1126, S.tree, 'always', true, false)
+  const n = document.getElementById('tnote')
+  n.hidden = narrow >= 420
+  n.innerHTML = narrow >= 420 ? '' :
+    `1126 창에서 목록 칸이 <b>${narrow}px</b> 로 줄어듭니다 — 제목 한 줄과 날짜·상태 칩이 같이 안 들어갑니다.
+     이 조합으로 가려면 <b>좁은 창에서는 상세를 자동으로 접는 규칙</b>이 하나 더 필요합니다(예: 1280 아래면 ②ㄴ 처럼 동작).`
+}
+
+function summary(){
+  const P = S.parts
+  const names = { prev:'미리보기', props:'속성', hist:'이력', cmts:'의견', acts:'단추' }
+  const on = Object.keys(P).filter(k=>P[k]).map(k=>names[k])
+  const m1 = S.tree==='side' ? 'ㄱ 사이드바 안' : 'ㄴ 폴더 전용 칸'
+  const m2 = S.detail==='always' ? 'ㄱ 늘 붙어 있음' : 'ㄴ 고를 때만'
+  const m4 = { btn:'ㄱ 열기 단추', dbl:'ㄴ 두 번 누르기', prevclick:'ㄷ 미리보기 누르기' }[S.open]
+  document.getElementById('sum').innerHTML =
+    `<span>① ${m1}</span><span>② ${m2}</span><span>③ ${on.join(' · ')||'없음'}</span><span>④ ${m4}</span>`
+
+  const w3 = document.getElementById('w3')
+  const miss = []
+  if (!P.acts && S.open==='btn') miss.push('③ 에서 「단추」를 꺼 두면 ④ㄱ(열기 단추)의 길이 사라집니다.')
+  if (!P.prev && S.open==='prevclick') miss.push('③ 에서 「미리보기」를 꺼 두면 ④ㄷ(미리보기 누르기)의 길이 사라집니다.')
+  if (P.cmts) miss.push('의견을 자료 목록 상세에도 두면, 같은 의견이 결재함과 두 곳에 그려집니다 — 한쪽만 고치면 어긋납니다.')
+  w3.hidden = !miss.length
+  w3.innerHTML = miss.join('<br>')
+  const w4 = document.getElementById('w4')
+  const m = []
+  if (S.open==='dbl' && S.detail==='always') m.push('②ㄱ + ④ㄴ: 한 번 누르면 상세가 바뀌고 두 번 누르면 편집기 — 파인더와 같습니다. 다만 두 번 누르기는 화면에 안 보이는 길이라 매뉴얼 5편에 넣어야 합니다.')
+  if (S.open==='dbl' && S.detail==='peek') m.push('②ㄴ + ④ㄴ: 한 번에 상세가 열리고 두 번에 편집기 — 첫 누름의 결과(칸이 밀고 나옴)가 커서 두 번째 누름이 엉뚱한 곳에 떨어질 수 있습니다.')
+  w4.hidden = !m.length
+  w4.innerHTML = m.join('<br>')
+}
+
+/* ── 단추 묶기 ────────────────────────────────── */
+document.getElementById('wseg').onclick = e=>{
+  const b = e.target.closest('button'); if(!b) return
+  S.W = +b.dataset.w
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on', c===b)); render()
+}
+document.getElementById('nowseg').onclick = e=>{
+  const b = e.target.closest('button'); if(!b) return
+  S.now = b.dataset.now==='1'
+  ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on', c===b)); render()
+}
+function opts(id, key, after){
+  document.getElementById(id).onclick = e=>{
+    const b = e.target.closest('.opt'); if(!b) return
+    S[key] = b.dataset.v
+    ;[...e.currentTarget.children].forEach(c=>c.classList.toggle('on', c===b))
+    if (after) after()
+    render()
+  }
+}
+opts('o1','tree')
+opts('o2','detail', ()=>{ if(S.detail==='peek') S.peekOpen = true })
+opts('o4','open')
+document.getElementById('o3').onclick = e=>{
+  const b = e.target.closest('button'); if(!b) return
+  const k = b.dataset.v
+  S.parts[k] = S.parts[k] ? 0 : 1
+  b.classList.toggle('on', !!S.parts[k]); render()
+}
+window.addEventListener('resize', render)
+render()
+</script>
+</body>
+</html>

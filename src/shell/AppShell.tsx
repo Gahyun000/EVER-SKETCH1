@@ -21,6 +21,7 @@ import UserBar from '../auth/UserBar'
 import { apiListApprovals } from '../approvals/approvalApi'
 import {
   shellFolded, rememberShellFolded, shellWidth, rememberShellWidth,
+  shellFoldedEditor, rememberShellFoldedEditor,
   SIDE_MIN, SIDE_MAX, SIDE_DEFAULT,
 } from '../persistence/prefs'
 import type { ShellView } from './shellPath'
@@ -61,6 +62,8 @@ export default function AppShell({ view, onView, crumb, children }: {
 }) {
   const me = useAuth((s) => s.me)
   const [folded, setFolded] = useState(() => shellFolded())
+  /** 편집에서의 접힘은 **따로** 기억한다. 아래 `fold` 참고. */
+  const [foldedEd, setFoldedEd] = useState(() => shellFoldedEditor())
   const [width, setWidth] = useState(() => shellWidth())
   /** 끄는 중인가 — 끄는 동안에는 폭이 손을 따라가야 하므로 애니메이션을 끈다. */
   const [dragging, setDragging] = useState(false)
@@ -74,9 +77,17 @@ export default function AppShell({ view, onView, crumb, children }: {
   const canSubmit = role === 'writer' || role === 'admin'
   const admin = role === 'admin'
 
-  // **편집에서는 기본으로 접는다.** 사람이 편 것은 그대로 둔다 —
-  // 접었다 폈다를 화면이 대신 정하면, 편 사람은 편집에 들어갈 때마다 다시 편다.
-  const shut = folded || view === 'editor'
+  // **접힘은 화면마다 따로 기억한다.**
+  //
+  // 2026-09-15 · 여기 `|| view === 'editor'` 가 있었다. 편집에서는 무조건 접는다는 뜻인데,
+  // 펴는 단추는 `folded` 만 바꾸므로 **편집에서는 눌러도 안 펴졌다.** 접힌 열에 남은 것은
+  // 아이콘뿐이고 그걸 누르면 화면이 옮겨 갔으니, 「사이드바를 펴려던 손짓」이
+  // 그대로 **편집에서 나가는 길**이 되어 있었다.
+  //
+  // 편집은 여전히 **접힌 채로 시작한다**(필름스트립 + 캔버스 + 오른쪽 패널로 이미 꽉 차 있다).
+  // 다만 그건 첫 기본값일 뿐이고, 사람이 편 것은 그대로 남는다.
+  const inEditor = view === 'editor'
+  const shut = inEditor ? foldedEd : folded
 
   // 대기 건수 — 관리자에게는 「내가 결정할 것」, 작성자에게는 「답을 기다리는 것」이다.
   // 둘 다 **열어 보지 않아도 알아야** 하는 숫자라 같은 자리에 붙인다.
@@ -106,7 +117,12 @@ export default function AppShell({ view, onView, crumb, children }: {
       { k: 'settings' as const, t: '환경 설정', ic: 'set' }] : []),
   ]
 
-  const fold = (v: boolean) => { setFolded(v); rememberShellFolded(v) }
+  /** 접고 편다. **편집이면 편집 쪽 기억에 쓴다** — 목록에서는 펴 두고 편집에서는
+   *  접어 두는 손버릇이 흔해서, 한 값으로 묶으면 화면을 옮길 때마다 상대를 덮어쓴다. */
+  const fold = (v: boolean) => {
+    if (inEditor) { setFoldedEd(v); rememberShellFoldedEditor(v) }
+    else { setFolded(v); rememberShellFolded(v) }
+  }
 
   /** 경계선을 끌어 폭을 맞춘다(ㄹ).
    *
@@ -168,7 +184,14 @@ export default function AppShell({ view, onView, crumb, children }: {
             <div className="sh-grp" key={'s' + i}>{it.sep}</div>
           ) : (
             <button key={it.k} className={'sh-nav' + (view === it.k ? ' on' : '')}
-              onClick={() => onView(it.k)} title={it.t}
+              onClick={() => {
+                // **접혀 있으면 먼저 편다**(사용자 결정 ⑪ㄱ). 글자가 없는 아이콘 열에서
+                // 누르는 것은 대개 「어디에 뭐가 있나」를 보려는 손짓이지 화면을 옮기려는
+                // 것이 아니다. 한 번 더 눌러야 옮겨 가므로 **펴려다 나가 버리는 일이 없다.**
+                if (shut) { fold(false); return }
+                onView(it.k)
+              }}
+              title={shut ? `${it.t} · 누르면 메뉴가 펴집니다` : it.t}
               aria-current={view === it.k ? 'page' : undefined}>
               <span className="ic"><Icon d={IC[it.ic]} /></span>
               <span className="lbl">{it.t}</span>
