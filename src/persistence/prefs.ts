@@ -71,6 +71,7 @@ export function rememberOpenSections(v: Record<string, boolean>): void {
 const FOLD_KEY = 'es_shell_folded'
 const WIDTH_KEY = 'es_shell_width'
 const FOLD_EDITOR_KEY = 'es_shell_folded_editor'
+const TREE_KEY = 'es_shell_tree_open'
 
 /** 펼친 사이드바 폭. 사람이 경계선을 끌어 맞춘 값이다.
  *  **접힘과 따로 둔다** — 접었다 펴면 맞춰 둔 폭으로 돌아와야 한다.
@@ -116,4 +117,34 @@ export function shellFoldedEditor(): boolean {
 
 export function rememberShellFoldedEditor(v: boolean): void {
   try { localStorage.setItem(FOLD_EDITOR_KEY, v ? '1' : '0') } catch { /* 저장이 막힌 브라우저 */ }
+}
+
+// ── 사이드바 나무에서 펴 둔 폴더 ──────────────────────
+//
+// 접고 편 것을 안 기억하면 **화면을 옮길 때마다 처음으로 돌아간다.** 깊은 폴더에서
+// 일하는 사람은 자료를 하나 열 때마다 같은 폴더를 다시 세 번 펴야 한다 —
+// 폴더를 왼쪽에 놓은 이유가 반쯤 사라진다(사용자 결정 ⑧ㄱ).
+//
+// **뿌리는 펴 둔 채로 시작한다.** 접힌 채로 시작하면 처음 보는 사람에게는
+// 나무가 아예 없는 것과 같다. 그래서 아무것도 안 고른 상태의 기본값은 `[TREE_ROOT]` 다 —
+// 그 값은 `../shell/sideTree` 가 들고 있다. 여기서는 **글자 목록**만 다룬다.
+
+/** 펴 둔 폴더 id 목록. 모르면 `null` — 부르는 쪽이 제 기본값을 쓴다.
+ *  **「아직 고른 적 없음」과 「전부 접어 둠」은 다른 말이다.** 안 가르면
+ *  전부 접은 사람이 다음에 들어올 때마다 뿌리가 도로 펴진다. */
+export function shellTreeOpen(): string[] | null {
+  try {
+    const raw = localStorage.getItem(TREE_KEY)
+    if (raw === null) return null
+    const v: unknown = JSON.parse(raw)
+    // 손으로 고쳤거나 옛 판이 남긴 값일 수 있다. **글자만 남기고 버린다** —
+    // 숫자나 객체가 섞이면 `Set.has` 가 조용히 늘 거짓이 되어 나무가 안 펴진다.
+    if (!Array.isArray(v)) return null
+    return v.filter((x): x is string => typeof x === 'string').slice(0, 500)
+  } catch { return null }
+}
+
+export function rememberShellTreeOpen(ids: string[]): void {
+  // 500개를 넘겨 담지 않는다 — 지운 폴더의 id 가 쌓이기만 하는 자리다.
+  try { localStorage.setItem(TREE_KEY, JSON.stringify(ids.slice(0, 500))) } catch { /* 저장이 막힌 브라우저 */ }
 }

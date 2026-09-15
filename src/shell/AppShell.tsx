@@ -24,6 +24,8 @@ import {
   shellFoldedEditor, rememberShellFoldedEditor,
   SIDE_MIN, SIDE_MAX, SIDE_DEFAULT,
 } from '../persistence/prefs'
+import SideTree, { useTreeOpen } from './SideTree'
+import { TREE_ROOT } from './sidebarTree'
 import type { ShellView } from './shellPath'
 import './shell.css'
 
@@ -72,6 +74,9 @@ export default function AppShell({ view, onView, crumb, children }: {
    *  이걸 안 막으면 **폭을 넓히자마자 접힌다**(2026-09-14, 실제로 그랬다). */
   const dragged = useRef(false)
   const [pending, setPending] = useState(0)
+  /** 나무에서 펴 둔 폴더. **셸이 들고 있다** — 뿌리(「내 자료」)의 ▾ 와
+   *  나무가 같은 값을 봐야 접고 편 것이 어긋나지 않는다. */
+  const { open: treeOpen, toggle: treeToggle } = useTreeOpen()
 
   const role = me?.role
   const canSubmit = role === 'writer' || role === 'admin'
@@ -183,7 +188,11 @@ export default function AppShell({ view, onView, crumb, children }: {
           {items.map((it, i) => 'sep' in it ? (
             <div className="sh-grp" key={'s' + i}>{it.sep}</div>
           ) : (
-            <button key={it.k} className={'sh-nav' + (view === it.k ? ' on' : '')}
+            /* 「내 자료」만 아래로 나무가 달린다. **한 줄에 누를 곳이 둘**이라
+               단추를 겹쳐 두지 않고 나란히 둔다 — 단추 안에 단추는 없는 것이다. */
+            <div key={it.k} className="sh-navwrap">
+            <div className={'sh-navrow' + (it.k === 'library' && !shut ? ' hastree' : '')}>
+            <button className={'sh-nav' + (view === it.k ? ' on' : '')}
               onClick={() => {
                 // **접혀 있으면 먼저 편다**(사용자 결정 ⑪ㄱ). 글자가 없는 아이콘 열에서
                 // 누르는 것은 대개 「어디에 뭐가 있나」를 보려는 손짓이지 화면을 옮기려는
@@ -197,6 +206,21 @@ export default function AppShell({ view, onView, crumb, children }: {
               <span className="lbl">{it.t}</span>
               {it.badge ? <span className="bd" title={`대기 ${it.badge}건`}>{it.badge}</span> : null}
             </button>
+            {it.k === 'library' && !shut ? (
+              /* 아이콘 자리를 덮는다 — 평소엔 아래 아이콘이 보이고 마우스를 올리면
+                 이 ▾ 가 드러난다(사용자 결정 ⑥). **화면은 안 옮긴다.** */
+              <button className={'sh-fold' + (treeOpen.has(TREE_ROOT) ? '' : ' shut')
+                + (view === 'library' ? ' on' : '')}
+                onClick={() => treeToggle(TREE_ROOT)}
+                aria-expanded={treeOpen.has(TREE_ROOT)}
+                aria-label={treeOpen.has(TREE_ROOT) ? '폴더 접기' : '폴더 펴기'}
+                title={treeOpen.has(TREE_ROOT) ? '접기' : '펴기'}>▾</button>
+            ) : null}
+            </div>
+            {it.k === 'library' && !shut
+              ? <SideTree open={treeOpen} toggle={treeToggle} onGo={() => onView('library')} />
+              : null}
+            </div>
           ))}
         </nav>
         <main className="sh-main">{children}</main>

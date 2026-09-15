@@ -72,3 +72,52 @@
 .sh-page { flex: 1; min-height: 0; overflow: auto; padding: 16px 18px 28px; }
 .sh-page > .es-card, .sh-page > .ap-card { box-shadow: none; border: 1px solid #E6E8EE;
   max-width: 1180px; margin: 0 auto; width: 100%; }
+
+/* ── 사이드바 나무 (2026-09-15) ─────────────────────────────────
+   「내 자료」 아래로 폴더와 자료가 달린다. 한 줄에 누를 곳이 둘이다 —
+   아이콘 자리는 접고 펴고, 이름은 옮겨 간다. */
+.sh-navwrap { display: contents; }
+.sh-navrow { position: relative; }
+
+/* 아이콘 자리를 덮는 ▾. 평소엔 숨어 있다가 줄에 마우스가 오면 드러나고,
+   그때 **아래 아이콘은 숨긴다** — 한 자리에 두 그림이 겹쳐 보이면 안 된다.
+   키보드로 짚어도 드러난다(아이콘만 보고는 누를 곳인지 알 수 없다). */
+.sh-fold { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px; border: 0; background: transparent; border-radius: 5px;
+  padding: 0; display: none; place-items: center; cursor: pointer;
+  color: #5B6270; font-size: 10px; line-height: 1; }
+.sh-fold.on { color: #2462EB; }
+.sh-fold.shut { transform: translateY(-50%) rotate(-90deg); }
+.sh-navrow.hastree:hover > .sh-fold { display: grid; }
+.sh-navrow.hastree:hover > .sh-nav > .ic { visibility: hidden; }
+.sh-fold:hover { background: #E4E7EC; }
+.sh-fold:focus-visible { display: grid; outline: 2px solid #2462EB; outline-offset: 1px; }
+
+.sh-tree { display: flex; flex-direction: column; gap: 1px; margin: 1px 0 3px; }
+.sh-trow { position: relative; display: flex; align-items: center; gap: 7px;
+  border-radius: 8px; padding-right: 8px; min-width: 0; }
+.sh-trow:hover { background: #F4F5F7; }
+.sh-trow.on { background: #EAF1FE; }
+
+/* 접고 펴는 자리. 폴더 그림이 기본이고, 마우스를 올리면 ▾ 로 바뀐다. */
+.sh-tfold { flex: 0 0 18px; width: 18px; height: 26px; border: 0; background: transparent;
+  padding: 0; display: grid; place-items: center; cursor: pointer; border-radius: 4px;
+  font-size: 11px; line-height: 1; color: #5B6270; }
+.sh-tfold.flat { cursor: default; }
+.sh-tfold .ar { display: none; font-size: 9px; transition: transform .12s; }
+.sh-tfold.shut .ar { transform: rotate(-90deg); }
+.sh-trow.kids:hover .sh-tfold .em { display: none; }
+.sh-trow.kids:hover .sh-tfold .ar { display: block; }
+.sh-tfold:hover { background: #E4E7EC; }
+.sh-tfold:focus-visible { outline: 2px solid #2462EB; outline-offset: 1px; }
+
+.sh-tname { flex: 1; min-width: 0; border: 0; background: transparent; padding: 5px 0;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: #5B6270; cursor: pointer;
+  text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-trow.on .sh-tname { color: #2462EB; font-weight: 800; }
+.sh-trow:hover .sh-tname { color: #111318; }
+.sh-trow.on:hover .sh-tname { color: #2462EB; }
+.sh-tc { flex: 0 0 auto; font-size: 10.5px; color: #9aa3b2; font-variant-numeric: tabular-nums; }
+
+/* 접힌 사이드바(60px)에는 나무를 아예 안 그린다 — 글자가 없으면 나무가 아니다. */
+.sh-body.shut .sh-tree, .sh-body.shut .sh-fold { display: none !important; }
