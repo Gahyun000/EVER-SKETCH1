@@ -487,10 +487,14 @@ export default function LibraryScreen() {
           <div className="lib-empty">불러오는 중…</div>
         ) : listError ? (
           /* **「0개」와 「못 받아 왔다」를 갈라 말한다.** 실패를 빈 목록으로 그리면
-             사람은 자료가 사라진 줄 알고, 다시 시도할 방법도 모른 채 새로고침만 한다. */
+             사람은 자료가 사라진 줄 알고, 다시 시도할 방법도 모른 채 새로고침만 한다.
+
+             **다음 길도 `listError` 안에 함께 온다**(2026-09-16). 여기 「잠깐 끊겼을
+             수 있어요」가 글자로 박혀 있었는데, 그건 못 닿았을 때나 맞는 말이라
+             서버가 500 을 준 경우에도 그렇게 적혔다 — 화면이 거짓말을 한 셈이다.
+             칸은 `white-space: pre-line` 이라 두 줄이 그대로 선다. */
           <div className="lib-empty">
-            {listError}<br />
-            잠깐 끊겼을 수 있어요. 다시 시도해 보세요.
+            {listError}
             <div style={{ marginTop: 12 }}>
               <button className="lib-btn dark" onClick={() => void loadList()}>다시 시도</button>
             </div>

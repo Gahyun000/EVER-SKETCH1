@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import SearchRow from '../ui/SearchRow'
 import { inRange } from '../ui/searchFilter'
 import { clampMaster, keepOrFirst } from '../ui/masterSplit'
+import { loadErrorText } from '../persistence/loadError'
 import { masterWidth, rememberMasterWidth } from '../persistence/prefs'
 import { History, Users, X, ExternalLink } from 'lucide-react'
 import SlideViewer from '../approvals/SlideViewer'
@@ -68,7 +69,10 @@ export default function TeamLibraryPanel() {
       setTeams(await apiTeamLibrary())
       setPhase('ready')
     } catch (e) {
-      setErr(e instanceof TeamLibraryError ? e.message : '팀 공유를 불러오지 못했습니다.')
+      // **서버가 거절한 것과 서버에 닿지도 못한 것은 다른 말이다**(2026-09-16).
+      // 서버가 준 말이 있으면 그것이 가장 정확하고, 없으면 — 그러니까 요청이
+      // 서버까지 못 갔으면 — 무엇을 하면 되는지까지 갈라 적는다.
+      setErr(e instanceof TeamLibraryError ? e.message : loadErrorText(e, '팀 공유'))
       setPhase('error')
     }
   }

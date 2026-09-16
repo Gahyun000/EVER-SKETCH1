@@ -59,8 +59,15 @@ async function j<T>(res: Response): Promise<T> {
     } catch {
       /* JSON 이 아니면 무시 */
     }
-    if (res.status === 403) throw new Error(detail || '권한이 없습니다.')
-    throw new Error(detail || 'API ' + res.status + ' ' + res.statusText)
+    // **상태 코드를 오류에 붙인다**(2026-09-16). 전에는 글자 안에만 있었고,
+    // 403 은 그마저 지웠다. 그래서 받는 쪽에서 「서버가 거절한 것」과 「서버에
+    // 닿지도 못한 것」을 가릴 수가 없었다 — 둘은 사람이 할 일이 다르다
+    // (`loadError.ts`). 글은 그대로 두고 숫자만 얹는다.
+    const err = new Error(
+      res.status === 403 ? (detail || '권한이 없습니다.')
+        : (detail || 'API ' + res.status + ' ' + res.statusText)) as Error & { status: number }
+    err.status = res.status
+    throw err
   }
   return res.json() as Promise<T>
 }

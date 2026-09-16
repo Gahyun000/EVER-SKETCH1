@@ -80,8 +80,27 @@ check((boot.match(/await/g) || []).every(() => true) &&
   'boot 안의 기다림이 전부 시간 제한을 거친다')
 
 // 실패를 조용히 0개로 두지 않는다
-check(/listError/.test(code) && /listError: '목록을 불러오지 못했어요\.'/.test(code),
-  '못 받아 온 것을 상태로 남긴다')
+//
+// **글자를 못박던 것을 뗐다**(2026-09-16). 전에는 `listError: '목록을 불러오지
+// 못했어요.'` 라는 **문장 그대로**를 봤다. 그 문장이 없어진 것은 뜻이 바뀌어서가
+// 아니라, 한 문장이 **서로 다른 세 가지**를 뭉뚱그리고 있어서다 — 서버에 닿지
+// 못한 것 · 서버가 거절한 것 · 기다리다 끊은 것. 사용자가 실제로 겪었을 때
+// 화면만 보고는 어느 쪽인지 알 수 없어 서버 로그를 뒤져야 했다.
+// 이제 글은 `loadError.ts` 가 갈래에 맞춰 만든다(자세한 것은 load_error.test.mjs).
+// **지키려던 것은 그대로다: 실패를 빈 목록으로 삼키지 않는다.**
+{
+  // **`openProject:` 로 끊으면 안 된다** — 같은 이름이 타입 선언에도 있고 그게 앞에
+  // 나와서 자른 조각이 비어 버린다(여기서 한 번 걸렸다). 구현부끼리 자른다.
+  const ll0 = code.indexOf('loadList: async')
+  const ll = code.slice(ll0, code.indexOf('openProject: async', ll0))
+  const cat = ll.slice(ll.indexOf('} catch'))
+  check(/list: \[\]/.test(cat) && /listError:/.test(cat),
+    '못 받아 오면 **빈 목록과 함께 까닭을 남긴다**')
+  check(/loadErrorText\(e, '목록'\)/.test(cat),
+    '그 까닭은 갈래를 따져 적는다 — 한 문장으로 뭉치지 않는다')
+  check(!/listError: null/.test(cat),
+    '실패하고서 까닭을 지우지 않는다')
+}
 check(/listError \? \(/.test(bare(lib)) && /다시 시도/.test(lib),
   '**0개와 못 받아 온 것을 갈라 그리고**, 다시 시도할 길을 준다')
 

@@ -11,6 +11,7 @@ import { apiListFolders, type Folder as FolderRow } from './folderApi'
 import { setActiveProjectId } from './session'
 import { setAutosaveHydrated, setAutosaveReadOnly, markAutosaveHydrated, useAutosave, flushSave, cancelPendingSave } from './autosave'
 import { migrateLegacyDraftOnce } from './legacyMigration'
+import { loadErrorText } from './loadError'
 import { resetHistory } from '../canvas/history'
 
 /** 화면 이름. 둘에서 여섯으로 늘었다 — 결재함·팀 공유·팀 관리·환경 설정이
@@ -233,8 +234,11 @@ export const useProjects = create<ProjectsState>((set, get) => ({
       // 레거시 이관은 **부가 작업**이다. 늦으면 그냥 지나간다 — 다음 실행에서 다시 판단한다.
       try { await withTimeout(migrateLegacyDraftOnce(), BOOT_STEP_MS) } catch { /* noop */ }
       await withTimeout(get().loadList(), BOOT_STEP_MS)
-    } catch {
-      set({ listError: '목록을 불러오지 못했어요.' })
+    } catch (e) {
+      // `loadList` 는 제 오류를 스스로 삼키므로, 여기까지 오는 것은 **시간 초과**뿐이다.
+      // 그래도 갈래를 따져서 적는다 — 「여기 오는 건 늘 시간 초과」라고 못박아 두면
+      // 나중에 이 try 안에 다른 것이 들어왔을 때 조용히 거짓말을 한다.
+      set({ listError: loadErrorText(e, '목록') })
     } finally {
       // **편집 화면에서만 내려온다.** 예전에는 무조건 'library' 로 되돌렸는데,
       // 셸이 들어오면서 그게 주소를 이겼다 — `/inbox` 로 들어와도 목록을 받고 나면
@@ -249,10 +253,15 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     try {
       const list = await apiListProjects()
       set({ list, listError: null })
-    } catch {
+    } catch (e) {
       // **0개와 「못 받아 왔다」는 다른 말이다.** 조용히 빈 목록으로 두면
       // 사람은 자료가 사라진 줄 알고, 다시 시도할 방법도 모른다.
-      set({ list: [], listError: '목록을 불러오지 못했어요.' })
+      //
+      // **「못 받아 왔다」도 한 가지가 아니다**(2026-09-16). 서버가 거절한 것과
+      // 서버에 닿지도 못한 것은 사람이 할 일이 다르다 — 한 문장으로 뭉쳐 두었더니
+      // 실제로 일이 났을 때 화면만 보고는 어느 쪽인지 알 수 없어 서버 로그를
+      // 뒤져야 했다(사용자가 그 화면과 로그를 함께 보내 줬다).
+      set({ list: [], listError: loadErrorText(e, '목록') })
     }
   },
 
