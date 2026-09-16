@@ -119,6 +119,30 @@ def _max_list_rows() -> int:
 MAX_DATA_ROWS = _max_data_rows()
 MAX_LIST_ROWS = _max_list_rows()
 
+# ②③ 이름표가 표 위에서 차지하는 높이. 두 장 배치가 `BLOCK_Y - 22` 로 쓰던 그 값이다.
+LIST_LABEL_H = 22
+# 로드맵 표 아래와 ②③ 이름표 사이. 실물에서 두 덩어리가 붙어 보이지 않을 만큼만 띄운다.
+ONE_PAGE_GAP = 22
+
+
+def one_page_list_y(data_rows: int) -> int:
+    """한 장에 셋을 다 둘 때 ②③ **표**가 시작하는 y."""
+    rm_bottom = ROADMAP_Y + ROADMAP_ROW_H * (ROADMAP_HEADER_ROWS + data_rows)
+    return rm_bottom + ONE_PAGE_GAP + LIST_LABEL_H
+
+
+def fits_one_page(data_rows: int, list_rows: int) -> bool:
+    """①②③ 가 **한 장에** 들어가는가.
+
+    실물 파워포인트는 셋이 한 장이다. 2026-09-07 에 두 장으로 나눈 것은 자리가
+    모자라서였는데(로드맵을 늘리면 아래 목록이 못 늘었다), 그건 **양이 많을 때**
+    이야기다. 기본값(로드맵 5 · 목록 4)은 한 장에 넉넉히 들어간다.
+
+    그래서 규칙을 뒤집는다 — **들어가면 한 장, 안 들어가면 그때 두 장.**
+    쪽수는 계약이 아니다(server/template_guard.py — 지키는 것은 세트다).
+    """
+    return one_page_list_y(data_rows) + LIST_ROW_H * list_rows + FOOT_ZONE <= PAGE_H
+
 
 class TemplateError(ValueError):
     pass
@@ -313,27 +337,43 @@ def build_template_pages(period_ym: str, owner_name: str = "", dept: str = "",
                                                      ("  ·  " + dept) if dept else ""),
                         MARGIN, y, 700, FOOT_H, 10.5, tcolor="#98a1b2")
 
-    # ── 1쪽 — ① 로드맵 / 마일스톤 ──
+    if list_rows > MAX_LIST_ROWS:
+        raise TemplateError(
+            "진행현황·이슈 표가 너무 깁니다 — 한 장에 최대 %d행입니다 (요청 %d행)."
+            % (MAX_LIST_ROWS, list_rows))
+
+    issue_x = MARGIN + STATUS_W + LIST_GAP
+
+    def list_els(y: int) -> list[dict]:
+        """②③ 한 벌. 어느 쪽에 놓든 모양이 같아야 해서 한 곳에서 만든다."""
+        return [
+            _text_el(nid(), "SLOT-B", "② 진행 현황 · 향후 계획",
+                     MARGIN, y - LIST_LABEL_H, STATUS_W, 18, 12.5, bold=True),
+            build_status_el(nid(), MARGIN, y, STATUS_W, rows=list_rows),
+            _text_el(nid(), "SLOT-C", "③ 이슈 · 필요 지원",
+                     issue_x, y - LIST_LABEL_H, ISSUE_W, 18, 12.5, bold=True),
+            build_issue_el(nid(), issue_x, y, ISSUE_W, rows=list_rows),
+        ]
+
     rows1 = ROADMAP_HEADER_ROWS + max(1, data_rows)
     p1 = head_els()
     p1.append(_text_el(nid(), "SLOT-A", "① 로드맵 / 마일스톤", MARGIN, 72, 400, 18, 13,
                        bold=True))
     p1.append(build_roadmap_el(nid(), period_ym, data_rows))
-    p1.append(foot_el(ROADMAP_Y + ROADMAP_ROW_H * rows1 + FOOT_GAP))
 
-    # ── 2쪽 — ② 진행 현황 · 향후 계획 / ③ 이슈 · 필요 지원 ──
-    if list_rows > MAX_LIST_ROWS:
-        raise TemplateError(
-            "진행현황·이슈 표가 너무 깁니다 — 한 장에 최대 %d행입니다 (요청 %d행)."
-            % (MAX_LIST_ROWS, list_rows))
-    issue_x = MARGIN + STATUS_W + LIST_GAP
+    # ── 들어가면 **한 장** ──
+    # 실물 파워포인트가 그렇다. 사용자 판단(2026-09-16): 처음엔 한 쪽으로 두고,
+    # 넘칠 때만 ②③ 를 **통째로** 다음 쪽으로 보낸다(줄을 쪼개 잇지 않는다).
+    if fits_one_page(data_rows, list_rows):
+        ls_y = one_page_list_y(data_rows)
+        p1.extend(list_els(ls_y))
+        p1.append(foot_el(ls_y + LIST_ROW_H * list_rows + FOOT_GAP))
+        return [_page(1, p1)]
+
+    # ── 안 들어가면 두 장 ── 1쪽 로드맵, 2쪽 ②③ 통째로 ──
+    p1.append(foot_el(ROADMAP_Y + ROADMAP_ROW_H * rows1 + FOOT_GAP))
     p2 = head_els()
-    p2.append(_text_el(nid(), "SLOT-B", "② 진행 현황 · 향후 계획",
-                       MARGIN, BLOCK_Y - 22, STATUS_W, 18, 12.5, bold=True))
-    p2.append(build_status_el(nid(), MARGIN, BLOCK_Y, STATUS_W, rows=list_rows))
-    p2.append(_text_el(nid(), "SLOT-C", "③ 이슈 · 필요 지원",
-                       issue_x, BLOCK_Y - 22, ISSUE_W, 18, 12.5, bold=True))
-    p2.append(build_issue_el(nid(), issue_x, BLOCK_Y, ISSUE_W, rows=list_rows))
+    p2.extend(list_els(BLOCK_Y))
     p2.append(foot_el(BLOCK_Y + LIST_ROW_H * list_rows + FOOT_GAP))
 
     return [_page(1, p1), _page(2, p2)]

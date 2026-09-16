@@ -158,27 +158,40 @@ def test_하단_두_표의_폭_비율이_실물과_같다():
 
 
 # ══════════ 페이지 구조 ══════════
-def test_두_장이고_슬롯은_한_세트다():
-    """예전 이름은 「1인 1장」이었다. 계약이 지키려던 것은 쪽수가 아니라
+def test_기본값은_한_장이고_슬롯은_한_세트다():
+    """예전 이름은 「1인 1장」이었다가 「두 장」이었다. 계약이 지키려던 것은 쪽수가 아니라
     「취합 단위 = 사람」이었고, 취합은 슬롯 이름으로 찾지 쪽 번호로 찾지 않는다.
     그래서 **세는 것을 쪽에서 세트로 옮겼다**(AGENTS.md · template_guard.py).
 
-    쪽수가 2인 것은 계약이 아니라 지금 정본의 모양이다 — 사람이 늘려 써도 된다.
+    **2026-09-16 · 기본값이 다시 한 장이 됐다.** 실물 파워포인트가 한 장이고,
+    기본값(로드맵 5 · 목록 4)은 한 장에 넉넉히 들어간다. 검사를 지우지 않고 고쳐 쓴다 —
+    지키려던 것(세트가 온전하다)은 그대로 보고, **쪽수는 들어가는지에 맡긴다.**
     """
     st = T.build_template_state("2026-10", "김OO", "사업본부")
-    assert len(st["pages"]) == 2
+    assert len(st["pages"]) == 1, "기본값은 한 장입니다 (%d쪽)" % len(st["pages"])
     assert st["orientation"] == "landscape"
     tables = [e for pg in st["pages"] for e in pg["els"] if e["type"] == "table"]
     assert sorted(e["slot"] for e in tables) == ["SLOT-A", "SLOT-B", "SLOT-C"]
 
 
-def test_1쪽은_로드맵_2쪽은_진행현황과_이슈다():
-    """나눈 이유가 여기 있다 — 한 장일 때 두 블록은 같은 108px 여백을 나눠 썼다."""
-    pages = T.build_template_pages("2026-10")
+def test_들어가면_한_장_안_들어가면_두_장():
+    """쪽수는 **재 보고** 정한다. 규칙과 결과가 어긋나면 안 된다.
+
+    안 들어갈 때는 ②③ 가 **통째로** 다음 쪽으로 간다 — 줄을 쪼개 잇지 않는다
+    (사용자 판단 2026-09-16). 그래서 두 장일 때 1쪽에는 로드맵만 남는다."""
     def slots(pg):
         return {e["slot"] for e in pg["els"] if e["type"] == "table"}
-    assert slots(pages[0]) == {"SLOT-A"}
-    assert slots(pages[1]) == {"SLOT-B", "SLOT-C"}
+
+    one = T.build_template_pages("2026-10")                      # 기본값
+    assert T.fits_one_page(T.DEFAULT_DATA_ROWS, T.LIST_DEFAULT_ROWS)
+    assert len(one) == 1
+    assert slots(one[0]) == {"SLOT-A", "SLOT-B", "SLOT-C"}
+
+    two = T.build_template_pages("2026-10", data_rows=T.MAX_DATA_ROWS)
+    assert not T.fits_one_page(T.MAX_DATA_ROWS, T.LIST_DEFAULT_ROWS)
+    assert len(two) == 2
+    assert slots(two[0]) == {"SLOT-A"}
+    assert slots(two[1]) == {"SLOT-B", "SLOT-C"}, "②③ 는 통째로 넘어갑니다"
 
 
 def test_머리글은_두_쪽에_다_있다():

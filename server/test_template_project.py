@@ -111,9 +111,13 @@ def test_만들어진_것이_표준_양식_정본과_같다(ctx):
 def test_가로_한_장이다(ctx):
     st = ctx.as_user("writer").post(PATH, json={"period_ym": "2026-10"}).json()["state"]
     assert st["orientation"] == "landscape"     # 빈 슬라이드는 portrait 다. 섞이면 안 된다
-    # 1인 **1세트** — 쪽수는 계약이 아니다(2026-09-07). 지금 정본이 두 장일 뿐이고,
-    # 내용이 많은 임원은 더 늘려 써도 된다. 세트가 온전한지는 template_guard 가 본다.
-    assert len(st["pages"]) == 2
+    # 1인 **1세트** — 쪽수는 계약이 아니다(2026-09-07). 내용이 많은 임원은 늘려 써도 된다.
+    # 세트가 온전한지는 template_guard 가 본다.
+    # **2026-09-16 · 기본값은 한 장이다**(실물 파워포인트가 그렇다). 숫자를 박지 말고
+    # 만드는 쪽의 규칙에 맡긴다 — 여기서 2를 박아 두면 규칙을 고칠 때마다 또 깨진다.
+    from server import template_seed as _ts
+    want = 1 if _ts.fits_one_page(_ts.DEFAULT_DATA_ROWS, _ts.LIST_DEFAULT_ROWS) else 2
+    assert len(st["pages"]) == want
 
 
 def test_세_구획이_모두_있다(ctx):

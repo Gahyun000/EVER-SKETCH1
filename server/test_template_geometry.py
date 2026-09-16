@@ -62,7 +62,13 @@ def test_all_elements_inside_page(data_rows):
     종이 밖으로 나가도 아무도 모른다 — 이 파일이 생긴 사고와 똑같은 모양이다."""
     pages = ts.build_template_pages("2026-10", "홍길동", "SI개발본부",
                                     data_rows=data_rows)
-    assert len(pages) == 2, "쪽이 %d개입니다 — 정본은 두 장입니다." % len(pages)
+    # **2026-09-16 · 쪽수를 못 박지 않는다.** 예전에는 「정본은 두 장」이라고 박아 뒀는데,
+    # 사용자 판단으로 **들어가면 한 장**이 됐다(실물 파워포인트가 그렇다).
+    # 검사를 지우지 않고 고쳐 쓴다 — 지키려던 것(모든 쪽의 모든 요소가 종이 안)은 그대로다.
+    # 대신 **쪽수가 제 규칙과 맞는지**를 새로 본다: 들어간다고 재 놓고 두 장이면 틀린 것이다.
+    fits = ts.fits_one_page(data_rows, ts.LIST_DEFAULT_ROWS)
+    assert len(pages) == (1 if fits else 2), \
+        "들어가는지(%s)와 쪽수(%d)가 어긋납니다." % (fits, len(pages))
     for pg in pages:
         assert pg["els"], "%d쪽에 요소가 하나도 없습니다." % pg["id"]
         for el in pg["els"]:
@@ -78,13 +84,67 @@ def test_all_elements_inside_page(data_rows):
                     where, y + h - ts.PAGE_H, y + h, ts.PAGE_H)
 
 
+@pytest.mark.parametrize("data_rows", [1, ts.DEFAULT_DATA_ROWS, 8, ts.MAX_DATA_ROWS])
+@pytest.mark.parametrize("list_rows", [2, ts.LIST_DEFAULT_ROWS, 7, ts.MAX_LIST_ROWS])
+def test_어떤_조합이든_종이_안에_있다(data_rows, list_rows):
+    """줄 수를 **둘 다** 흔들어도 모든 요소가 종이 안에 있다 — 꼬리말까지.
+
+    2026-09-16 · 「들어가면 한 장」을 넣으면서 생긴 검사다. 한 장에 들어가는지 재는 자가
+    틀리면(예: 꼬리말 자리를 안 빼면) **쪽수와 규칙은 서로 맞는데 종이만 넘친다** —
+    쪽수만 보는 검사는 그걸 못 잡는다. 일부러 그렇게 망가뜨려 보고 안 잡히는 걸 확인한 뒤
+    이 검사를 더했다. 잡는 것은 쪽수가 아니라 **마지막 요소의 아래 끝**이다."""
+    pages = ts.build_template_pages("2026-10", "홍길동", "SI개발본부",
+                                    data_rows=data_rows, list_rows=list_rows)
+    for pg in pages:
+        for el in pg["els"]:
+            bottom = el["y"] + el["h"]
+            assert bottom <= ts.PAGE_H, (
+                "로드맵 %d · 목록 %d → %d쪽 %s(%s) 가 종이 아래로 %dpx 나갔습니다"
+                % (data_rows, list_rows, pg["id"], el.get("slot"),
+                   el.get("text", "")[:12] or el["type"], bottom - ts.PAGE_H))
+
+
 @pytest.mark.parametrize("list_rows", [2, ts.LIST_DEFAULT_ROWS, ts.MAX_LIST_ROWS])
-def test_second_page_inside_page(list_rows):
-    """2쪽 목록도 상한까지 종이 안에 있다 — 1쪽과 따로 잰다."""
+def test_list_block_inside_page(list_rows):
+    """②③ 목록은 상한까지 종이 안에 있다 — **어느 쪽에 놓이든**.
+
+    예전 이름은 `test_second_page_inside_page` 였고 `pages[1]` 을 곧바로 짚었다.
+    한 장으로 놓이는 경우가 생기면서 그 자리가 없을 수 있다 — 쪽 번호로 찾지 말고
+    **슬롯으로 찾는다.** 지키려던 것은 「목록이 종이 밖으로 안 나간다」이지 쪽 번호가 아니다."""
     pages = ts.build_template_pages("2026-10", list_rows=list_rows)
-    for el in pages[1]["els"]:
-        assert el["y"] + el["h"] <= ts.PAGE_H, \
-            "%s 가 종이 아래로 나갔습니다 (끝 %d)" % (el.get("slot"), el["y"] + el["h"])
+    seen = 0
+    for pg in pages:
+        for el in pg["els"]:
+            if el.get("slot") not in ("SLOT-B", "SLOT-C"):
+                continue
+            seen += 1
+            assert el["y"] + el["h"] <= ts.PAGE_H, \
+                "%d쪽 %s 가 종이 아래로 나갔습니다 (끝 %d)" % (
+                    pg["id"], el.get("slot"), el["y"] + el["h"])
+    assert seen >= 4, "②③ 의 이름표와 표가 다 있어야 합니다 (본 것 %d개)." % seen
+
+
+@pytest.mark.parametrize("data_rows", [1, ts.DEFAULT_DATA_ROWS, 8, ts.MAX_DATA_ROWS])
+@pytest.mark.parametrize("list_rows", [2, ts.LIST_DEFAULT_ROWS, 7, ts.MAX_LIST_ROWS])
+def test_이름표까지_아무것도_겹치지_않는다(data_rows, list_rows):
+    """표끼리만이 아니라 **이름표·머리글·꼬리말까지** 서로를 가리지 않는다.
+
+    2026-09-16 · 셋을 한 장에 두면서 ②③ 이름표가 로드맵 표 **바로 아래**에 선다.
+    그 사이 틈(ONE_PAGE_GAP)을 없애 보면 이름표가 표 위에 겹치는데, 표끼리만 재는
+    검사는 그걸 못 잡는다 — 일부러 그렇게 망가뜨려 보고 안 잡히는 걸 확인한 뒤 더했다."""
+    pages = ts.build_template_pages("2026-10", "홍길동", "SI개발본부",
+                                    data_rows=data_rows, list_rows=list_rows)
+    for pg in pages:
+        els = pg["els"]
+        for i, a in enumerate(els):
+            for b in els[i + 1:]:
+                ox = a["x"] < b["x"] + b["w"] and b["x"] < a["x"] + a["w"]
+                oy = a["y"] < b["y"] + b["h"] and b["y"] < a["y"] + a["h"]
+                def who(e):
+                    return "%s(%s)" % (e.get("slot"), (e.get("text") or e["type"])[:10])
+                assert not (ox and oy), (
+                    "로드맵 %d · 목록 %d → %d쪽에서 %s 와 %s 가 겹칩니다"
+                    % (data_rows, list_rows, pg["id"], who(a), who(b)))
 
 
 def test_elements_do_not_overlap_within_a_page():
@@ -104,10 +164,12 @@ def test_elements_do_not_overlap_within_a_page():
 
 
 def test_bottom_tables_do_not_overlap_horizontally():
-    """진행현황과 이슈는 2쪽에서 좌우로 나란히 선다."""
+    """진행현황과 이슈는 좌우로 나란히 선다 — **어느 쪽에 놓이든**."""
     pages = ts.build_template_pages("2026-10")
     tables = sorted(
-        [e for e in pages[1]["els"] if e["type"] == "table"], key=lambda e: e["x"])
+        [e for pg in pages for e in pg["els"]
+         if e["type"] == "table" and e.get("slot") in ("SLOT-B", "SLOT-C")],
+        key=lambda e: e["x"])
     assert len(tables) == 2
     for a, b in zip(tables, tables[1:]):
         assert a["x"] + a["w"] <= b["x"], "목록 표가 가로로 겹칩니다."
