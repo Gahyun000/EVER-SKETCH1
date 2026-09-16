@@ -194,11 +194,17 @@ const roadmap = (dataRowsN) => ({
 // ── 8. 창고가 되돌릴 것을 들고 있다 ─────────────
 {
   const st = bare(read('./src/state/store.ts'))
-  check(/lastCont = \{ pages: s\.pages, selectedPageId: s\.selectedPageId \}/.test(st),
+  // 2026-09-16 · ⑥ 을 고치면서 한 칸짜리 `lastCont` 를 **문서 단위 이력**으로 합쳤다
+  // (canvas/history.ts). 두 벌을 따로 두면 인라인 단추로 한 번, ⌘Z 로 또 한 번,
+  // 같은 일이 두 번 되돌아간다. 이 지킴이들은 그때 **모양을 붙잡고 있어서** 걸렸고,
+  // 지우지 않고 다시 쓴다 — 지켜야 할 것은 아래 세 가지다.
+  check(/pushDocSnap\(docSnap\(s\.pages, s\.selectedPageId\)\)/.test(st),
     '이어 붙이기 **전**을 적어 둔다')
   check(/undoContinue: \(\)/.test(st), '되돌리기가 있다')
-  check(/lastCont = null/.test(st), '한 번 되돌리면 비운다 — 두 번 누르면 엉뚱한 것이 돌아온다')
-  check(/return \{ pages: back\.pages, selectedPageId: back\.selectedPageId \}/.test(st),
+  check(!/lastCont/.test(st) && /hasDocUndo\(\)/.test(st),
+    '되돌릴 길이 **한 벌**이다 — 두 벌이면 같은 일이 두 번 되돌아간다')
+  check(/function docSnap\(pages: Page\[\], selectedPageId: number \| null\)/.test(st)
+    && /JSON\.stringify\(\{ pages, selectedPageId \}\)/.test(st),
     '보던 쪽도 함께 되돌린다 — 쪽만 지우면 없는 쪽을 보고 있게 된다')
 }
 

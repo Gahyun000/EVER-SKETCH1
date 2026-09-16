@@ -11,7 +11,7 @@ import { placeFoot, planListSpill } from '../canvas/listSpill'
 import { cardByKey } from '../cards/registry'
 import type { ImportedDoc } from '../import/htmlImport'
 import { polish } from '../builder/polish'
-import { dropHistory } from '../canvas/history'
+import { dropHistory, hasDocUndo, popDocRedo, popDocSnap, pushDocRedo, pushDocSnap, pushDocUndoRaw } from '../canvas/history'
 import type { ThemeName } from '../design/tokens'
 export type Orientation = 'portrait' | 'landscape'
 export type SizePreset = 's' | 'm' | 'l'
@@ -81,6 +81,11 @@ export interface BuilderState {
   /** 방금 「다음 장에 이어 적기」로 생긴 쪽을 **통째로 없던 일로.**
    *  ⌘Z 는 쪽 안의 요소만 되돌린다(이력이 쪽별이다) — 쪽이 생긴 것은 못 지운다. */
   undoContinue: () => void
+  /** 쪽 목록이 바뀌기 직전을 기억한다(쪽 추가·삭제·순서). */
+  snapDoc: () => void
+  /** 문서 단위 되돌리기 / 다시하기 — 쪽이 생기고 없어진 일이 여기로 돌아온다. */
+  undoDoc: () => void
+  redoDoc: () => void
   setFont: (f: string) => void
   setSize: (s: SizePreset) => void
   setTheme: (t: ThemeName) => void
@@ -154,15 +159,22 @@ export function nextElId(): number { return elUid++ }
  *  한 글자만 고쳐도 새 객체가 되므로 **어림짐작이 아니라 확실하다.** */
 let lastFit: { pages: Page[]; orientation: Orientation; after: Page[] } | null = null
 
-/** 방금 이어 적기로 생긴 쪽. 되돌리기 **한 번**을 위해서만 들고 있는다. */
-let lastCont: { pages: Page[]; selectedPageId: number | null } | null = null
+// 예전에는 「방금 이어 적기로 생긴 쪽」만 한 칸짜리 변수(lastCont)로 들고 있었다.
+// 2026-09-16 에 문서 단위 되돌리기(history.pushDocSnap)가 생기면서 **그 안으로 합쳤다** —
+// 두 벌을 따로 두면 인라인 「되돌리기」로 한 번, ⌘Z 로 또 한 번, 같은 일이 두 번 되돌아간다.
 
 /** **자료를 바꿔 열 때 비운다.**
  *
  *  `history.ts` 가 바로 이 이유로 `resetHistory()` 를 반드시 부르라고 적어 두었는데,
  *  위의 둘에는 그걸 안 붙였었다(2026-09-14에 찾음). 들고 있는 것이 **앞 자료의 쪽**이라,
  *  남아 있으면 다음 자료에 앞 자료의 쪽을 덮어쓸 수 있다. */
-export function resetFitUndo(): void { lastFit = null; lastCont = null }
+export function resetFitUndo(): void { lastFit = null }
+
+/** 문서 단위 되돌리기가 기억하는 **한 문서의 모습**.
+ *  쪽 안의 이력(canvas/history.ts 의 쪽별 스택)과 달리 쪽 목록 자체를 통째로 든다. */
+function docSnap(pages: Page[], selectedPageId: number | null): string {
+  return JSON.stringify({ pages, selectedPageId })
+}
 
 function defaultsFor(cardKey: string): Record<string, string> {
   const c = cardByKey(cardKey); const f: Record<string, string> = {}
@@ -228,7 +240,11 @@ export function reseedUids(pages: Page[]): void {
 export const useBuilder = create<BuilderState>((set, get) => ({
   title: '유니에버 AX 사업모델', orientation: 'portrait', font: 'auto', size: 'm', theme: 'light',
   pages: [], selectedPageId: null,
-  addCard: (cardKey, count, src) => set((s) => {
+  // 쪽이 **생기고·없어지고·자리를 바꾸는** 길에는 모두 문서 이력을 남긴다(2026-09-16).
+  // 쪽별 이력(canvas/history.ts)으로는 쪽 자체를 되돌릴 수 없어 ⌘Z 가 죽어 보였다.
+  addCard: (cardKey, count, src) => {
+    const g = get(); pushDocSnap(docSnap(g.pages, g.selectedPageId))
+    return set((s) => {
     // 슬라이드 = 빈 캔버스 편집 페이지(구글 슬라이드식). 블록편집기 없이 요소로 직접 편집.
     if (cardKey === 'slide') {
       const sp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true, els: [], conns: [], strokes: [], blocks: [], bg: '' }
@@ -282,10 +298,15 @@ export const useBuilder = create<BuilderState>((set, get) => ({
       ]
       p.bg = ''
     }
-    return { pages: [...s.pages, p], selectedPageId: p.id }
-  }),
+      return { pages: [...s.pages, p], selectedPageId: p.id }
+    })
+  },
   updateField: (pageId, key, value) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, fields: { ...p.fields, [key]: value } })) })),
   removePage: (pageId) => set((s) => {
+    if (!s.pages.some((p) => p.id === pageId)) return {} as Partial<BuilderState>
+    // **지우기 전을 기억한다.** 지운 쪽의 쪽별 이력은 아래 dropHistory 로 사라지지만,
+    // 쪽이 통째로 돌아오는 것은 문서 이력이 맡는다.
+    pushDocSnap(docSnap(s.pages, s.selectedPageId))
     dropHistory(pageId)
     const at = s.pages.findIndex((p) => p.id === pageId)
     const pages = s.pages.filter((p) => p.id !== pageId)
@@ -297,7 +318,7 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     }
     return { pages, selectedPageId: sel }
   }),
-  movePage: (pageId, dir) => set((s) => { const i = s.pages.findIndex((p) => p.id === pageId); const j = i + dir; if (i < 0 || j < 0 || j >= s.pages.length) return {} as Partial<BuilderState>; const pages = [...s.pages]; const tmp = pages[i]; pages[i] = pages[j]; pages[j] = tmp; return { pages } }),
+  movePage: (pageId, dir) => set((s) => { const i = s.pages.findIndex((p) => p.id === pageId); const j = i + dir; if (i < 0 || j < 0 || j >= s.pages.length) return {} as Partial<BuilderState>; pushDocSnap(docSnap(s.pages, s.selectedPageId)); const pages = [...s.pages]; const tmp = pages[i]; pages[i] = pages[j]; pages[j] = tmp; return { pages } }),
   // movePage 는 인접 스왑이라 임의 위치 이동을 표현할 수 없다(28→3 이면 25번 눌러야 한다).
   // 드래그 재정렬은 잘라내서 끼워 넣는 방식이어야 중간 페이지들의 상대 순서가 유지된다.
   reorderPage: (from, to) => set((s) => {
@@ -305,6 +326,7 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     if (from < 0 || from >= n) return {} as Partial<BuilderState>
     const dest = Math.max(0, Math.min(n - 1, to))
     if (dest === from) return {} as Partial<BuilderState>
+    pushDocSnap(docSnap(s.pages, s.selectedPageId))
     const pages = [...s.pages]
     const [moved] = pages.splice(from, 1)
     pages.splice(dest, 0, moved)
@@ -312,6 +334,7 @@ export const useBuilder = create<BuilderState>((set, get) => ({
   }),
   duplicatePage: (pageId) => set((s) => {
     const i = s.pages.findIndex((p) => p.id === pageId); if (i < 0) return {} as Partial<BuilderState>
+    pushDocSnap(docSnap(s.pages, s.selectedPageId))
     const src = s.pages[i]
     const copy = clonePageWithNewIds(src)
     const pages = [...s.pages]; pages.splice(i + 1, 0, copy)
@@ -355,11 +378,23 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     return { orientation: o, pages }
   }),
 
-  undoContinue: () => set(() => {
-    if (!lastCont) return {}
-    const back = lastCont
-    lastCont = null
-    return { pages: back.pages, selectedPageId: back.selectedPageId }
+  // 인라인 「되돌리기」 단추. ⌘Z 와 **같은 것**을 되돌린다 — 단추는 방금 저절로 일어난
+  // 일 바로 옆에만 떠 있으므로, 그때 문서 이력의 맨 위가 곧 그 일이다.
+  undoContinue: () => { if (hasDocUndo()) useBuilder.getState().undoDoc() },
+
+  /** 쪽이 생기고·없어지고·자리를 바꾸기 **직전**의 문서를 기억한다. */
+  snapDoc: () => { const s = get(); pushDocSnap(docSnap(s.pages, s.selectedPageId)) },
+  undoDoc: () => set((s) => {
+    const back = popDocSnap()
+    if (back == null) return {} as Partial<BuilderState>
+    pushDocRedo(docSnap(s.pages, s.selectedPageId))
+    return JSON.parse(back) as Partial<BuilderState>
+  }),
+  redoDoc: () => set((s) => {
+    const fwd = popDocRedo()
+    if (fwd == null) return {} as Partial<BuilderState>
+    pushDocUndoRaw(docSnap(s.pages, s.selectedPageId))
+    return JSON.parse(fwd) as Partial<BuilderState>
   }),
 
   undoFit: () => set(() => {
@@ -430,8 +465,8 @@ export const useBuilder = create<BuilderState>((set, get) => ({
       const pages = [...s.pages]
       pages.splice(i + 1, 0, np)
       made = { pageId: np.id, elId: cont.id }
-      // 저절로 이어질 수도 있으므로(⑤ ㄷ) **되돌릴 것을 남긴다.**
-      lastCont = { pages: s.pages, selectedPageId: s.selectedPageId }
+      // 저절로 이어질 수도 있으므로(⑤ ㄷ) **되돌릴 것을 남긴다.** ⌘Z 와 단추가 같은 것을 본다.
+      pushDocSnap(docSnap(s.pages, s.selectedPageId))
       return { pages, selectedPageId: np.id }
     })
     return made
@@ -463,7 +498,7 @@ export const useBuilder = create<BuilderState>((set, get) => ({
       pages.splice(i + 1, 0, np)
       made = { pageId: np.id, gap: plan.gap }
       // 저절로 일어나는 일이라 **되돌릴 것을 남긴다** — 이어쓰기와 같은 자리에 둔다.
-      lastCont = { pages: s.pages, selectedPageId: s.selectedPageId }
+      pushDocSnap(docSnap(s.pages, s.selectedPageId))
       return { pages, selectedPageId: np.id }
     })
     return made

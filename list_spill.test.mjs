@@ -164,8 +164,12 @@ const onePage = () => [
   check(/spillListBlock: \(pageId\) =>/.test(st), '창고에 통째로 넘기는 길이 있다')
   check(/planListSpill\(src\.els\)/.test(st), '자리 계산은 순수 함수가 한다 — 창고에서 다시 재지 않는다')
   const sp = st.slice(st.indexOf('spillListBlock: (pageId)'), st.indexOf('updateEl: (pageId, elId, patch)'))
-  check(/lastCont = \{ pages: s\.pages/.test(sp),
+  // 2026-09-16 · ⑥ 을 고치면서 한 칸짜리 `lastCont` 를 **문서 단위 이력으로 합쳤다.**
+  // 두 벌을 따로 두면 인라인 단추로 한 번, ⌘Z 로 또 한 번, 같은 일이 두 번 되돌아간다.
+  // 지킴이도 새 길을 보도록 다시 쓴다 — 지켜야 할 것은 「되돌릴 길이 남는다」이다.
+  check(/pushDocSnap\(docSnap\(s\.pages, s\.selectedPageId\)\)/.test(sp),
     '**되돌릴 것을 남긴다** — 저절로 일어나는 일이라 되돌릴 길이 없으면 안 된다')
+  check(!/lastCont/.test(st), '되돌릴 길이 **한 벌**이다 — 두 벌이면 같은 일이 두 번 되돌아간다')
   check(/e\.slot === 'head'/.test(sp) && /slot === 'foot'/.test(sp),
     '머리글·꼬리말을 새 쪽에도 붙인다 — 2쪽만 열어 본 사람도 누구 자료인지 알아야 한다')
   check(/pages\[i\] = \{ \.\.\.src, els: plan\.stay \}/.test(sp), '원래 쪽에서는 덜어 낸다')

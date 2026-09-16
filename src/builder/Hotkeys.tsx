@@ -3,7 +3,7 @@ import { useBuilder } from '../state/store'
 import type { FreeEl, Page } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
 import type { Tool } from '../state/canvasUI'
-import { pushSnap, popSnap, pushRedo, popRedo, pushUndoRaw, mkFreeEl } from '../canvas/model'
+import { pushSnap, popSnap, pushRedo, popRedo, pushUndoRaw, nextUndoKind, nextRedoKind, mkFreeEl } from '../canvas/model'
 
 interface Props {
   presentOpen: boolean; helpOpen: boolean; tutorialOpen: boolean
@@ -97,13 +97,32 @@ export default function Hotkeys(props: Props) {
         const alive = keep != null && !!now && now.els.some((el) => el.id === keep)
         ui.setSel(alive ? keep : null)
       }
+      /**
+       * **쪽 안의 일과 쪽 자체의 일 중, 나중에 한 것부터**(2026-09-16, 사용자 신고 ⑥).
+       *
+       * 되돌리기 이력이 쪽마다 따로라 쪽을 더하거나 지운 일은 어느 쪽의 것도 아니었고,
+       * 그래서 ⌘Z 가 죽은 것처럼 보였다. 이제 문서 단위 이력(canvas/history.ts)이 따로
+       * 있고, 둘 중 **번호가 큰**(= 나중에 쌓인) 것을 먼저 되돌린다. 순서를 안 보면
+       * 「쪽을 지우고 → 글자를 고치고 → ⌘Z」에서 글자가 아니라 쪽이 돌아온다.
+       *
+       * 문서를 통째로 되돌리면 고르고 있던 요소가 그 자리에 없을 수 있어 선택을 놓는다.
+       */
+      const undoOnce = () => {
+        if (!page) return
+        if (nextUndoKind(page.id) === 'doc') { bs.undoDoc(); ui.setSel(null); return }
+        const s = popSnap(page.id); if (s) { pushRedo(page.id, snapStr(page)); restore(page.id, s) }
+      }
+      const redoOnce = () => {
+        if (!page) return
+        if (nextRedoKind(page.id) === 'doc') { bs.redoDoc(); ui.setSel(null); return }
+        const s = popRedo(page.id); if (s) { pushUndoRaw(page.id, snapStr(page)); restore(page.id, s) }
+      }
       if (mod && lower === 'z') {
         e.preventDefault(); if (!page) return
-        if (e.shiftKey) { const s = popRedo(page.id); if (s) { pushUndoRaw(page.id, snapStr(page)); restore(page.id, s) } }
-        else { const s = popSnap(page.id); if (s) { pushRedo(page.id, snapStr(page)); restore(page.id, s) } }
+        if (e.shiftKey) redoOnce(); else undoOnce()
         return
       }
-      if (mod && lower === 'y') { e.preventDefault(); if (!page) return; const s = popRedo(page.id); if (s) { pushUndoRaw(page.id, snapStr(page)); restore(page.id, s) }; return }
+      if (mod && lower === 'y') { e.preventDefault(); redoOnce(); return }
 
       // Esc: 도구 취소 + 선택 해제
       if (k === 'Escape') { ui.setTool('select'); ui.setSel(null); ui.setConnSrc(null); return }

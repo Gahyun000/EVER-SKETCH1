@@ -67,15 +67,31 @@ check(/const restore = \(pageId: number, snapJson: string\)/.test(hk), '되돌�
   check(/ui\.setSel\(alive \? keep : null\)/.test(blk), '있으면 잡고, 없으면 놓는다')
 }
 {
-  // 옛 모양(늘 놓기)이 남아 있으면 반쯤 고친 것이다.
-  // **⌘Z 갈래만** 잘라 본다 — 넓게 자르면 Esc 의 「고른 것 놓기」까지 걸려 거짓으로 실패한다.
-  const i = hk.indexOf("if (mod && lower === 'z')")
-  const j = hk.indexOf("if (mod && lower === 'y')", i)
+  // 2026-09-16 · ⑥ 의 남은 절반(쪽을 더하고 지운 일도 ⌘Z 로)을 고치면서 이 갈래가
+  // `undoOnce` · `redoOnce` 두 함수로 빠졌다. 옛 지킴이는 **한 줄짜리 모양**을 붙잡고
+  // 있어서 바로 걸렸다 — 지우지 않고 다시 쓴다. 지켜야 할 것은 세 가지다.
+  const i = hk.indexOf('const undoOnce = ')
+  const j = hk.indexOf("if (mod && lower === 'z')", i)
   const blk = hk.slice(i, j)
-  check(!/ui\.setSel\(null\)/.test(blk), '「늘 놓기」가 안 남아 있다')
+  check(i > 0 && j > i, '되돌리기·다시하기가 한 자리에 모여 있다')
+  // ① 쪽 안의 일을 되돌릴 때는 **늘 놓기**가 아니다. 선택을 놓는 것은 문서를 통째로
+  //    되돌릴 때뿐이다 — 그때는 고르던 것이 아예 없어졌을 수 있다.
+  const pageBranch = blk.replace(/if \(next(Undo|Redo)Kind\(page\.id\) === 'doc'\)[^\n]*\n/g, '')
+  check(!/ui\.setSel\(null\)/.test(pageBranch), '「늘 놓기」가 안 남아 있다')
+  check(/bs\.undoDoc\(\); ui\.setSel\(null\)/.test(blk),
+    '문서를 통째로 되돌릴 때**만** 놓는다')
+  // ② 되돌리기와 다시하기가 같은 길(restore)을 쓴다.
   check((blk.match(/restore\(page\.id, s\)/g) || []).length === 2, '되돌리기와 다시하기가 **같은 길**을 쓴다')
 }
-check(/restore\(page\.id, s\)/.test(hk.slice(hk.indexOf("lower === 'y'"))), '⌘Y 도 같은 길로 간다')
+{
+  // ③ ⌘Z·⌘⇧Z·⌘Y 가 전부 그 두 함수로 들어간다. 하나라도 따로 놀면 「⌘Y 만 이상한」
+  //    상태가 된다 — 예전에 ⌘Y 가 제 코드를 따로 들고 있었다.
+  const z = hk.slice(hk.indexOf("if (mod && lower === 'z')"), hk.indexOf("k === 'Escape'"))
+  check(/if \(e\.shiftKey\) redoOnce\(\); else undoOnce\(\)/.test(z), '⌘Z 와 ⌘⇧Z 가 그리로 간다')
+  check(/lower === 'y'\) \{ e\.preventDefault\(\); redoOnce\(\)/.test(z), '⌘Y 도 같은 길로 간다')
+  check(!/popSnap\(page\.id\)/.test(z) && !/popRedo\(page\.id\)/.test(z),
+    '단축키 자리에 **같은 코드를 또** 적어 두지 않았다')
+}
 
 // ── ④ 되돌리기 살림은 그대로다 ───────────────────────
 // 여기 손대지 않았다는 것을 못 박는다 — 쌓는 규칙이 바뀌면 위 전부가 흔들린다.
