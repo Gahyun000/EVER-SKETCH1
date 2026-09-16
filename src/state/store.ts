@@ -7,6 +7,7 @@ import { treeParts } from '../cards/treeEls'
 import { treeShape, layoutTree, newNode, TREE_CONN } from '../cards/treeOps'
 import { rememberOrientation } from '../persistence/prefs'
 import { makeContinuation } from '../canvas/tableFlow'
+import { placeFoot, planListSpill } from '../canvas/listSpill'
 import { cardByKey } from '../cards/registry'
 import type { ImportedDoc } from '../import/htmlImport'
 import { polish } from '../builder/polish'
@@ -91,6 +92,13 @@ export interface BuilderState {
    *  만들어진 것을 돌려준다 — 부르는 쪽이 새 조각을 골라 줘야 사용자가 바로 이어 쓴다. */
   continueTable: (pageId: number, elId: number, headRows: number) =>
     { pageId: number; elId: number } | null
+  /** ②③ 를 **통째로** 다음 쪽으로 보낸다(사용자 판단 ㄴ). 조각내 잇지 않는다.
+   *  보낸 쪽의 id 를 돌려준다 — 부르는 쪽이 그 쪽으로 따라가야 사용자가 이어 쓴다.
+   *  되돌리기는 `undoContinue` 가 같이 맡는다(한 단추로 보이는 편이 낫다). */
+  spillListBlock: (pageId: number) => { pageId: number; gap: number } | null
+  /** 꼬리말을 덩어리 바로 밑으로 다시 앉힌다. 넘긴 뒤 줄을 더하면 표가 자라
+   *  꼬리말이 **표 속에 파묻힌다** — 그때 부른다. */
+  settleFoot: (pageId: number, gap: number) => void
   updateEl: (pageId: number, elId: number, patch: Partial<FreeEl>) => void
   removeEl: (pageId: number, elId: number) => void
   addConn: (pageId: number, conn: Conn) => void
@@ -428,6 +436,41 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     })
     return made
   },
+  // ②③ 를 통째로 다음 쪽으로. 자리 계산은 canvas/listSpill.ts 가 하고,
+  // 여기서는 쪽을 만들어 갈아 끼우기만 한다 — 계산을 순수하게 떼어 두면 재어 볼 수 있다.
+  spillListBlock: (pageId) => {
+    let made: { pageId: number; gap: number } | null = null
+    set((s) => {
+      const i = s.pages.findIndex((p) => p.id === pageId)
+      if (i < 0) return {} as Partial<BuilderState>
+      const src = s.pages[i]
+      const plan = planListSpill(src.els)
+      if (!plan) return {} as Partial<BuilderState>
+
+      // 머리글·꼬리말은 **두 쪽에 다 붙인다.** 2쪽만 열어 본 사람도 누구 자료인지
+      // 알아야 한다(continueTable 과 같은 규칙).
+      const heads = src.els.filter((e) => e.slot === 'head').map((e) => ({ ...e, id: nextElId() }))
+      const foot = src.els.find((e) => e.slot === 'foot')
+      const foots = foot ? [{ ...foot, id: nextElId() }] : []
+      const np: Page = {
+        id: uid++, cardKey: 'slide', fields: {}, free: true,
+        // 꼬리말 자리는 `placeFoot` 한 군데서 정한다 — 줄을 더한 뒤에도 같은 함수가 다시 앉힌다.
+        els: placeFoot([...heads, ...plan.move, ...foots], plan.gap),
+        conns: [], strokes: [], blocks: [], bg: '',
+      }
+      const pages = [...s.pages]
+      pages[i] = { ...src, els: plan.stay }
+      pages.splice(i + 1, 0, np)
+      made = { pageId: np.id, gap: plan.gap }
+      // 저절로 일어나는 일이라 **되돌릴 것을 남긴다** — 이어쓰기와 같은 자리에 둔다.
+      lastCont = { pages: s.pages, selectedPageId: s.selectedPageId }
+      return { pages, selectedPageId: np.id }
+    })
+    return made
+  },
+  settleFoot: (pageId, gap) => set((s) => ({
+    pages: mapPage(s.pages, pageId, (p) => ({ ...p, els: placeFoot(p.els, gap) })),
+  })),
   updateEl: (pageId, elId, patch) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, els: p.els.map((e) => (e.id === elId ? { ...e, ...patch } : e)) })) })),
   removeEl: (pageId, elId) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, els: p.els.filter((e) => e.id !== elId), conns: p.conns.filter((c) => c.from !== elId && c.to !== elId) })) })),
   addConn: (pageId, conn) => set((s) => ({ pages: mapPage(s.pages, pageId, (p) => ({ ...p, conns: [...p.conns, conn] })) })),

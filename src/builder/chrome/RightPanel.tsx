@@ -22,6 +22,7 @@ import { useComments } from '../../comments/store'
 import { CBG_LABEL, cbgPalette, cellBackground, cellColors, isSlotEl, lockedRowCount, slotAllows } from '../../template/slots'
 import { ALIGN_LABEL, AlignIcon, VALIGN_LABEL, VAlignIcon } from '../../ui/alignIcons'
 import { bottomLimit, dataCapacity, isFull } from '../../canvas/tableCapacity'
+import { canSpillListBlock, isListSlot } from '../../canvas/listSpill'
 import { slotLabels } from '../../template/unfilled'
 import '../../template/template.css'
 
@@ -113,6 +114,8 @@ export default function RightPanel() {
   const setTableSel = useCanvasUI((s) => s.setTableSel)
   const setSel = useCanvasUI((s) => s.setSel)
   const continueTable = useBuilder((s) => s.continueTable)
+  const spillListBlock = useBuilder((s) => s.spillListBlock)
+  const settleFoot = useBuilder((s) => s.settleFoot)
   const undoContinue = useBuilder((s) => s.undoContinue)
   /** 방금 이어 적어 만든 **조각의 id**. 되돌리기 줄은 그 조각을 보고 있을 때만 뜬다.
    *
@@ -121,6 +124,9 @@ export default function RightPanel() {
    *  그 자리에서 껐다. 켜는 일과 끄는 일이 한 동작 안에서 부딪힌 것이다.
    *  id 로 들고 있으면 그 다툼 자체가 없다 — 다른 것을 고르면 저절로 안 맞는다. */
   const [flowedEl, setFlowedEl] = useState<number | null>(null)
+  /** 방금 한 것이 **통째로 넘기기**였나, 조각내 잇기였나. 안내 글자가 달라진다 —
+   *  옮기고 나면 새 쪽에는 ① 이 없어 `canSpill` 이 거짓이 되므로 따로 기억해야 한다. */
+  const [flowedSpill, setFlowedSpill] = useState(false)
   const selElId = useCanvasUI((s) => s.selEl)
   const selEls = useCanvasUI((s) => s.selEls)
   const setCanvas = useBuilder((s) => s.setCanvas)
@@ -374,12 +380,44 @@ export default function RightPanel() {
    * **저절로 되는 일이라 되돌릴 길을 같이 준다.** ⌘Z 는 쪽 안의 요소만 되돌리므로
    * (이력이 쪽별이다) 쪽이 생긴 것은 못 지운다.
    */
+  /** ①과 **같은 쪽에 있는** ②③ 인가. 그러면 조각내지 않고 통째로 넘긴다(사용자 판단 ㄴ). */
+  const canSpill = !!page && !!el && isListSlot(el.slot) && canSpillListBlock(page.els)
+
+  /**
+   * **②③ 를 통째로 다음 쪽으로 보내고, 거기서 줄을 마저 더한다.**
+   *
+   * 처음 만들 때는 한 쪽에 ①②③ 가 다 들어간다(template_seed). 쓰다가 ②③ 가 넘치면
+   * 그때 둘이 **함께** 다음 쪽으로 내려간다 — 줄을 쪼개 잇지 않는다. 같은 표를 두 쪽에서
+   * 찾게 만들지 않으려는 것이고, 처음 만들 때의 규칙과도 같다.
+   *
+   * 옮기고 나면 표가 위로 올라가 자리가 생기므로 대개 바로 한 줄이 들어간다.
+   * 그래도 모자라면(아주 긴 목록) 그때는 예전처럼 조각내 잇는다.
+   */
+  function spillThenAddRow() {
+    if (!page || !el) return
+    const made = spillListBlock(page.id)
+    if (!made) { flowToNext(); return }
+    setSel(el.id)
+    setFlowedEl(el.id); setFlowedSpill(true)
+    setOpenSec((o) => (o.row ? o : { ...o, row: true }))
+    // 옮겨 간 쪽에서 같은 요소를 다시 찾아 줄을 더한다. **여기서 page 를 다시 읽는다** —
+    // 위에서 잡아 둔 `page` 는 옮기기 전의 것이라 그대로 쓰면 빈 쪽에 줄을 더한다.
+    const now = useBuilder.getState().pages.find((p) => p.id === made.pageId)
+    const moved = now?.els.find((e) => e.id === el.id)
+    if (!moved) return
+    if (isFull(moved, tableLimit)) { continueTable(made.pageId, moved.id, headLocked); return }
+    updateEl(made.pageId, moved.id, addRow(moved, (moved.rows || 1)))
+    // **줄을 더하면 표가 그만큼 자란다.** 꼬리말을 그대로 두면 표 속에 파묻힌다 —
+    // 옮긴 쪽을 사진으로 보고서야 알았다(2026-09-16).
+    settleFoot(made.pageId, made.gap)
+  }
+
   function flowToNext() {
     if (!page || !el) return
     const made = continueTable(page.id, el.id, headLocked)
     if (!made) return
     setSel(made.elId)
-    setFlowedEl(made.elId)
+    setFlowedEl(made.elId); setFlowedSpill(false)
     // **「행」 묶음을 펴 준다.** 되돌리기 줄이 그 안에 있다 — 접혀 있으면
     // 저절로 벌어진 일을 알리는 줄이 접힌 묶음 뒤에 숨는다. 기억에는 안 적는다
     // (사람이 고른 적 없는 값을 저장하면 「내가 편 적도 없는데 늘 열려 있다」가 된다).
@@ -529,7 +567,10 @@ export default function RightPanel() {
                   // **끝에 더하는데 이 장이 찼으면 다음 장에 이어 적는다**(⑤ ㄷ).
                   // 가운데에 끼우는 것은 그대로 둔다 — 그건 되흐름이고, 뒤 줄을
                   // 다음 장으로 밀어내는 일이라 훨씬 큰 공사다(tableFlow.ts 참조).
-                  if (tableFull && ar + 1 >= (el.rows || 0)) { flowToNext(); return }
+                  if (tableFull && ar + 1 >= (el.rows || 0)) {
+                    if (canSpill) { spillThenAddRow(); return }
+                    flowToNext(); return
+                  }
                   patchTable(addRow(el, ar + 1)); void shiftAnchors('row', ar + 1, 1)
                 }}>↓ 아래 추가</button>
                 <button className="insp-pill danger" disabled={!canRow || headRowSelected}
@@ -539,11 +580,15 @@ export default function RightPanel() {
               {/* **숫자를 말해 준다.** 「찼다」만 알면 다 쓰고 나서야 알고,
                   12를 알면 미리 나눠 쓸 수 있다. 이어 적은 직후에는 되돌릴 길을 함께 준다. */}
               {flowedEl != null && flowedEl === selElId ? (
-                <div className="insp-hint warn">다음 장에 이어 적고 있어요 — 머리글은 다시 붙였습니다.
+                <div className="insp-hint warn">{flowedSpill
+                  ? '②③ 를 통째로 다음 장으로 옮겼어요 — 표는 나누지 않았습니다.'
+                  : '다음 장에 이어 적고 있어요 — 머리글은 다시 붙였습니다.'}
                   {' '}<button className="insp-undo" onClick={() => { undoContinue(); setFlowedEl(null) }}>되돌리기</button></div>
               ) : tableFull ? (
                 <div className="insp-hint warn">이 장은 <b>{tableCap}줄</b>까지예요. 여기서
-                  <b> ↓ 아래 추가</b>를 누르면 <b>다음 장에 이어 적습니다.</b></div>
+                  <b> ↓ 아래 추가</b>를 누르면 {canSpill
+                    ? <><b>②③ 가 통째로 다음 장으로 갑니다.</b></>
+                    : <><b>다음 장에 이어 적습니다.</b></>}</div>
               ) : isTableEl ? (
                 <div className="insp-hint">이 장은 <b>{tableCap}줄</b>까지 들어가요 (지금 {Math.max(0, (el.rows || 0) - headLocked)}줄).
                   {' '}행을 넣으면 <b>줄 높이는 그대로</b> 두고 표가 그만큼 커져요.</div>

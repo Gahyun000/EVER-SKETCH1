@@ -135,8 +135,17 @@ const roadmap = (dataRowsN) => ({
 
   // **경고 조건과 이어 붙이는 조건이 같아야 한다.** 갈라지면
   // 「경고는 떴는데 안 이어진다」나 그 반대가 생긴다.
-  check(/if \(tableFull && ar \+ 1 >= \(el\.rows \|\| 0\)\) \{ flowToNext\(\); return \}/.test(rp),
-    '**끝에** 더하는데 찼으면 다음 장으로 — 경고와 **같은 조건**이다')
+  // 2026-09-16 에 이 지킴이가 **제 일을 했다.** ②③ 를 통째로 넘기는 갈래를 넣으면서
+  // 이 줄이 한 줄에서 블록으로 바뀌었는데, 옛 지킴이는 한 줄 모양을 글자 그대로
+  // 붙잡고 있어서 바로 걸렸다. 지우지 않고 **다시 쓴다** — 지켜야 할 것은 모양이 아니라
+  // 「경고 조건과 넘기는 조건이 같다」는 것이다.
+  const gate = rp.slice(rp.indexOf('if (tableFull && ar + 1 >= (el.rows || 0))'))
+  check(gate.startsWith('if (tableFull && ar + 1 >= (el.rows || 0))'),
+    '**끝에** 더하는데 찼으면 넘긴다 — 경고와 **같은 조건**이다')
+  const body = gate.slice(0, gate.indexOf('patchTable(addRow'))
+  check(/spillThenAddRow\(\); return/.test(body) && /flowToNext\(\); return/.test(body),
+    '그 조건 안에서 **둘 중 하나로** 갈라진다 — 통째로 넘기거나, 조각내 잇거나')
+  check(!/patchTable\(addRow/.test(body), '갈라진 뒤에는 그냥 줄을 더하는 길로 안 샌다')
   check(/continueTable\(page\.id, el\.id, headLocked\)/.test(rp), '창고의 이어 붙이기를 부른다')
 
   // 숫자를 말해 준다.
