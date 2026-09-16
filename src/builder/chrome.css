@@ -573,6 +573,9 @@
 .ax-cp { display: inline-flex; align-items: center; gap: 3px; padding: 0 2px;
   color: #5b6270; }
 .ax-cp .cp-trig { width: 18px; height: 18px; }
+/* 고른 칸이 없을 때. **감추지 않고 흐린다** — 자리가 사라지면 「아까 있던 게
+   어디 갔나」가 되고, 왜 못 쓰는지는 title 이 말해 준다. */
+.ax-cp .cp-trig:disabled { opacity: .4; cursor: default; }
 
 /* 정렬 아이콘 — 글자가 아니라 그림이다(파워포인트·한글과 같은 모양).
    단추 안에서 가운데로 서고, 단추 색을 그대로 물려받는다. */

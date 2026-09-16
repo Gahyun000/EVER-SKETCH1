@@ -30,6 +30,7 @@ const model = bare(read('./src/canvas/model.ts'))
 const free = bare(read('./src/canvas/FreeLayer.tsx'))
 const slots = bare(read('./src/template/slots.ts'))
 const icons = bare(read('./src/ui/alignIcons.tsx'))
+const cp = bare(read('./src/builder/chrome/ColorPicker.tsx'))
 
 const { NO_FILL } = await import('./src/canvas/model.ts')
 const { cellColors, CBG_FREE, cbgPalette } = await import('./src/template/slots.ts')
@@ -99,6 +100,59 @@ check(/'ebook:pick-shape'/.test(tb) && /addEventListener\('ebook:pick-shape'/.te
 check(/removeEventListener\('ebook:pick-shape'/.test(tb), '떠날 때 귀를 닫는다')
 // 목록을 메뉴에 복사하지 않는다 — 두 벌이 되면 도형을 하나 더할 때 한쪽만 는다.
 check(!/diamond|hexagon|parallelogram/.test(menu), '도형 목록이 메뉴에 복사돼 있지 않다')
+
+// ── ⑤ 표 칸 색도 도구줄에서 ────────────────────
+//
+// 2026-09-16 · ②를 하고 나서 사용자가 「표도 상단에서 가능하게」라고 했다. 맞는 말이다:
+// 도형은 도구줄에서 바로 칠하는데 표만 오른쪽 패널을 열어야 하면, 같은 일을 하는 길이
+// 둘로 갈라진다. 표는 요소 하나가 아니라 **고른 칸 범위**에 칠하므로 채우기(`NO_FILL`)
+// 옆이 아니라 **표 도구 옆** — 병합과 같은 「고른 칸에 하는 일」 자리에 둔다.
+{
+  const tt = tb.slice(tb.indexOf('function TableTools'), tb.indexOf('export default function EditToolbar'))
+  check(tt.length > 100, '표 도구 묶음을 찾았다')
+  check(/칸 색/.test(tt), '도구줄 표 묶음에 「칸 색」이 있다')
+  // **있다고만 보면 안 된다** — 2026-09-16, 묶음을 `{false ? (` 로 꺼 보니
+  // 이 검사가 그대로 통과했다. 글자는 파일에 남아 있는데 화면엔 안 나온다.
+  // 그래서 **실제로 그려지는 자리**를 본다: `canCbg` 로 갈라진 바로 그 안이어야 한다.
+  check(/\{canCbg \? \([\s\S]{0,400}칸 색/.test(tt), '그 묶음이 실제로 그려진다')
+  check(/setCellBgRange\(table,/.test(tt), '고른 칸 범위에 칠한다')
+  // 마찬가지로, 범위를 한 칸으로 줄여 보니 통과했다 — **지우는 줄**이 대신 걸렸던 것이다.
+  // 칠하는 줄(`, c)`)과 지우는 줄(`, null)`)을 따로 못 박는다.
+  check(/setCellBgRange\(table, ts\.r0, ts\.c0, ts\.r1, ts\.c1, c\)/.test(tt),
+    '한 칸이 아니라 끌어 고른 범위 전체를 칠한다')
+  // **칠하는 길과 지우는 길은 짝이다.** 칸 색은 「없음」이 정상 상태라, 지우는 길이
+  // 없으면 한 번 칠한 칸을 되돌릴 수 없다.
+  check(/onClear=/.test(tt), '지우는 길이 같이 있다')
+  check(/setCellBgRange\(table, ts\.r0, ts\.c0, ts\.r1, ts\.c1, null\)/.test(tt),
+    '지우기도 고른 범위 전체를 null 로 지운다')
+  // 칸을 안 고르면 칠할 대상이 없다 — 막되, **감추지 않는다**.
+  check(/disabled=\{!ts\}/.test(tt), '칸을 안 골랐으면 못 누른다')
+  check(/cbgWhy/.test(tt), '왜 못 누르는지 말해 준다')
+  // 판단을 두 번 적지 않는다: 쓸 수 있는지도, 색 목록도 슬롯 정책 한 곳에서 온다.
+  check(/slotAllows\(table\.slot, 'cbg'\)/.test(tt), '양식이 막은 표에서는 안 뜬다')
+  check(/cellColors\(table\.slot\)/.test(tt), '색 목록을 제 손으로 적지 않는다')
+  check(!/#[0-9A-Fa-f]{6}/.test(tt), '색을 도구줄에 직접 박아 두지 않았다')
+  // 양식 표의 앞 색은 **뜻**이다. 그 이름이 고르개에 같이 가야 한다.
+  check(/titles: CBG_LABEL/.test(tt), '양식 색 이름을 같이 보낸다')
+  check(/진행 표시/.test(tt), '양식 표에서는 「진행 표시」로 읽힌다')
+}
+// 패널과 도구줄이 **같은 함수**를 쓴다 — 한쪽만 고쳐지는 일을 막는다.
+check(/setCellBgRange/.test(rp) && /setCellBgRange/.test(tb), '패널과 도구줄이 같은 길로 칠한다')
+check(/cellColors\(/.test(rp) && /cellColors\(/.test(tb), '색 목록도 같은 데서 온다')
+
+// 고르개가 「이 자리에서 쓰는 색」을 맨 위에 따로 깐다 — 일반 팔레트는 그대로 남는다.
+check(/head\?:/.test(cp), '고르개가 앞줄을 받는다')
+check(/head\.colors\.map/.test(cp), '그 색들을 그린다')
+check(/head\.titles/.test(cp), '이름도 같이 보여 준다')
+check(/팔레트/.test(cp), '일반 팔레트를 없애지 않았다')
+check(/onClear/.test(cp) && /색 지우기/.test(cp), '지우는 단추가 있다')
+check(/disabled=\{disabled\}/.test(cp), '못 쓰는 상태를 받는다')
+{
+  // 앞줄이 팔레트보다 **위**에 있어야 한다. 아래로 밀리면 약속된 색이 안 보인다.
+  const iHead = cp.indexOf('head.colors.map')
+  const iPal = cp.indexOf('PALETTE.map')
+  check(iHead > 0 && iPal > 0 && iHead < iPal, '앞줄이 일반 팔레트보다 위에 있다')
+}
 
 console.log(`\n${pass} passed, ${fail} failed`)
 if (fail) process.exit(1)

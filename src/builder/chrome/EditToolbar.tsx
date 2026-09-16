@@ -11,8 +11,8 @@ import { useAutosave } from '../../persistence/autosave'
 import { useBuilder, type PaperType } from '../../state/store'
 import { PAPER_OPTIONS } from '../../cards/paper'
 import type { FreeEl } from '../../state/store'
-import { mergeCovering, mergeRange, unmergeAt } from '../../canvas/tableOps'
-import { ROADMAP_MONTH_COL0, isSlotEl, slotAllows, todayColumn, type TodayMode } from '../../template/slots'
+import { mergeCovering, mergeRange, setCellBgRange, unmergeAt } from '../../canvas/tableOps'
+import { CBG_LABEL, ROADMAP_MONTH_COL0, cbgPalette, cellColors, isSlotEl, slotAllows, todayColumn, type TodayMode } from '../../template/slots'
 import { tableAnchorLabel } from '../../comments/anchorLabel'
 import { cellKey } from '../../comments/anchor'
 import CommentComposer from '../../comments/CommentComposer'
@@ -336,6 +336,23 @@ function TableTools() {
   // 로드맵에만 있다. 기본은 자동(열 때마다 실제 오늘)이고, 발표용으로 특정 시점을
   // 붙잡아야 할 때만 사람이 고정한다. 어느 상태인지 글자로 같이 보여준다 —
   // 버튼 세 개만 있으면 지금 자동인지 고정인지 알 수가 없다.
+  // ── 칸 색 ──
+  //
+  // **오른쪽 패널에만 두면 안 된다**(2026-09-16, 사용자 지적). 도형은 도구줄에서 바로
+  // 칠하는데 표만 패널을 열어야 하면, 같은 일을 하는 길이 둘로 갈라진다.
+  // 표는 요소 하나가 아니라 **고른 칸 범위**에 칠하므로 채우기(`NO_FILL`)와는
+  // 다른 자리에 둔다 — 표 도구 옆, 병합과 같은 「고른 칸에 하는 일」 묶음이다.
+  //
+  // 색 목록은 `cellColors` 가 한 군데서 정한다. 양식 표는 앞의 몇 색이 **뜻을 가진
+  // 약속**(진행 표시)이라 고르개 맨 위에 이름과 함께 따로 깔고, 그 아래 일반
+  // 팔레트를 남긴다. 판단을 여기서 다시 적지 않는다 — 패널과 어긋나면 안 된다.
+  const canCbg = !inTemplate || slotAllows(table.slot, 'cbg')
+  const cbgPal = cbgPalette(table.slot)
+  const curBg = (table.cbg && ts) ? table.cbg[Math.min(ts.r0, ts.r1) + '_' + Math.min(ts.c0, ts.c1)] : undefined
+  const cbgWhy = !ts ? '표 안에서 칸을 고르면 칠할 수 있어요'
+    : ranged ? `고른 ${rows}×${cols} 칸을 칠합니다`
+    : '고른 칸을 칠합니다'
+
   const canToday = slotAllows(table.slot, 'today')
   const todayMode: TodayMode = table.todayMode ?? 'auto'
   const shownCol = todayColumn(table)
@@ -364,6 +381,27 @@ function TableTools() {
           : '칸을 끌어서 선택'}
       </span>
     </span>
+
+    {canCbg ? (
+      <span className="ax-grp gs">
+        <span className="lab">칸 색</span>
+        <span className="ax-cp" title={cbgWhy}>
+          {/* 아이콘은 **무엇의 색인지**를 말한다 — 도형 채우기(◇)와 헷갈리지 않게
+              「표의 한 칸이 칠해진」 그림이다. */}
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+            strokeWidth="1.8" aria-hidden="true">
+            <rect x="3.5" y="5" width="17" height="14" rx="1.5" />
+            <path d="M3.5 10.5h17M3.5 15h17M12 5v14" />
+            <rect x="12" y="10.5" width="8.5" height="4.5" fill="currentColor" stroke="none" opacity=".85" />
+          </svg>
+          <ColorPicker value={curBg} disabled={!ts} title={cbgWhy}
+            head={{ lab: cbgPal ? '진행 표시 · 칸 색' : '칸 색', colors: cellColors(table.slot), titles: CBG_LABEL }}
+            onChange={(c) => { if (ts) patch(setCellBgRange(table, ts.r0, ts.c0, ts.r1, ts.c1, c)) }}
+            onClear={() => { if (ts) patch(setCellBgRange(table, ts.r0, ts.c0, ts.r1, ts.c1, null)) }} />
+        </span>
+        <span className="tbtn-hint">{ts ? (curBg ? (CBG_LABEL[curBg] || '칠함') : '없음') : '칸을 먼저 고르세요'}</span>
+      </span>
+    ) : null}
 
     {canToday ? (
       <span className="ax-grp gs">
