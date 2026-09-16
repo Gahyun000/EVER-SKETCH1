@@ -566,3 +566,14 @@
   border-radius:7px;padding:4px 10px;font:inherit;font-size:11.5px;font-weight:800;cursor:pointer}
 .fit-toast button:hover{background:rgba(255,255,255,.14)}
 .fit-toast button.x{border:none;padding:2px 6px;font-size:14px;font-weight:400;opacity:.7}
+
+/* 도구줄의 채우기·테두리 (2026-09-16).
+   **아이콘이 무엇의 색인지를 말한다** — 색 동그라미만 둘 놓으면 어느 쪽이 채우기인지
+   눌러 봐야 안다. 아이콘과 색을 한 덩어리로 묶어 사이가 벌어지지 않게 한다. */
+.ax-cp { display: inline-flex; align-items: center; gap: 3px; padding: 0 2px;
+  color: #5b6270; }
+.ax-cp .cp-trig { width: 18px; height: 18px; }
+
+/* 정렬 아이콘 — 글자가 아니라 그림이다(파워포인트·한글과 같은 모양).
+   단추 안에서 가운데로 서고, 단추 색을 그대로 물려받는다. */
+.al-ic { display: block; }

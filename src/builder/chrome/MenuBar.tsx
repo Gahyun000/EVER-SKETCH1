@@ -68,7 +68,10 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
     { label: '삽입', items: [
       { label: 'T  텍스트 상자', run: () => tool('text') },
       { label: '🖼  이미지', run: () => emit('ebook:insert-image') },
-      { label: '◇  도형', run: () => tool('box') },
+      // **도구줄의 도형 팝업을 연다**(2026-09-16). 전에는 사각형 하나를 무장시켰는데,
+      // 팝업에는 스무 가지가 있어서 같은 이름이 두 곳에서 다른 말을 했다.
+      // 목록을 여기에도 적지 않는다 — 두 벌이 되면 한쪽만 는다.
+      { label: '◇  도형…', run: () => emit('ebook:pick-shape') },
       { label: '▦  표', run: () => tool('table') },
       { label: '╱  선', run: () => tool('pen') },
       { label: '🅰  Word Art (글맵시)', run: () => tool('wordart') },

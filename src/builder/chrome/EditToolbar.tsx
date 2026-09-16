@@ -1,9 +1,10 @@
 import { useCanvasUI } from '../../state/canvasUI'
-import { pushSnap } from '../../canvas/model'
+import { pushSnap, NO_FILL } from '../../canvas/model'
 import type { Tool } from '../../state/canvasUI'
 import { useSelEl } from '../useSelEl'
 import ColorPicker from './ColorPicker'
-import { useState, useRef } from 'react'
+import { ALIGN_LABEL, AlignIcon } from '../../ui/alignIcons'
+import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Pen, Highlighter, Eraser } from 'lucide-react'
 import { useAutosave } from '../../persistence/autosave'
@@ -66,6 +67,24 @@ function ShapeTool() {
     if (r) setPos({ x: r.left, y: r.bottom + 6 })
     setOpen(true)
   }
+  /**
+   * **메뉴의 「삽입 → 도형」이 이 팝업을 연다**(2026-09-16).
+   *
+   * 전에는 그 메뉴가 사각형 하나를 무장시켰다. 그런데 도구줄의 이 팝업에는 스무 가지가
+   * 있어서, **같은 이름이 두 곳에서 다른 말을 했다** — 메뉴로 배운 사람은 둥근 사각형도
+   * 마름모도 있는 줄 몰랐다(기획 문서가 그 둘을 25개나 쓴다).
+   *
+   * 목록을 메뉴에도 복사하지 않는다. 두 벌이 되면 도형을 하나 더할 때 한쪽만 는다.
+   */
+  useEffect(() => {
+    const open_ = () => {
+      const r = ref.current?.getBoundingClientRect()
+      if (r) setPos({ x: r.left, y: r.bottom + 6 })
+      setOpen(true)
+    }
+    window.addEventListener('ebook:pick-shape', open_)
+    return () => window.removeEventListener('ebook:pick-shape', open_)
+  }, [])
   return (
     <span className="shp-wrap">
       <button ref={ref} className={'ib shp-btn' + (active ? ' on' : '')} title="도형" onClick={toggle}>
@@ -191,10 +210,12 @@ function TextTools() {
       <span className="tbtn-hint" title="글자 크기">{fs}</span>
       <button className="ib" title="글자 크게" onClick={() => patch({ fs: Math.min(96, fs + 1) })}>＋</button>
       <span className="dv" />
-      {(['left', 'center', 'right'] as const).map((a, i) => (
+      {/* 표 칸과 **같은 그림**을 쓴다(2026-09-16). 예전에는 두 곳이 각자 글자를
+          박아 두어, 한쪽을 고치면 다른 쪽이 남았다. */}
+      {(['left', 'center', 'right'] as const).map((a) => (
         <button key={a} className={'ib' + ((el.align || 'left') === a ? ' on' : '')}
-          title={['왼쪽', '가운데', '오른쪽'][i] + ' 정렬'} onClick={() => patch({ align: a })}>
-          {['⇤', '⇔', '⇥'][i]}
+          title={ALIGN_LABEL[a]} onClick={() => patch({ align: a })}>
+          <AlignIcon dir={a} />
         </button>
       ))}
       <span className="dv" />
@@ -202,7 +223,47 @@ function TextTools() {
         <button key={c} className={'ax-dot' + ((el.tcolor || '#1a1a1a') === c ? ' on' : '')}
           style={{ background: c }} title="글자 색" onClick={() => patch({ tcolor: c })} />
       ))}
+      <FillTools />
     </span>
+  )
+}
+
+/**
+ * **채우기 색 · 테두리 색** — 도구줄에 올렸다(2026-09-16).
+ *
+ * 전에는 글자 색만 여기 있었고, 채우기는 오른쪽 패널을 열거나 요소를 눌러 뜨는 작은
+ * 막대를 찾아야 했다. 그런데 「EVER-SKETCH 기획·설계 사상」 12쪽을 세어 보니 채우기를
+ * 쓴 요소가 **56개**, 테두리 색이 **16개**였다 — 하루에 수십 번 하는 일이 두 번째로
+ * 깊은 자리에 있었다. 파워포인트·한글은 글자 색 바로 옆에 둔다.
+ *
+ * **오른쪽 패널의 것은 그대로 둔다.** 거기서 미리 정해 둔 조합(`PRESETS`)으로 고르는
+ * 사람이 있다. 여기 것은 「지금 이 도형 하나」를 빠르게 바꾸는 자리다.
+ *
+ * 속이 없는 갈래(글상자·아이콘·그림 …)와 표에는 안 띄운다 — 그 판단은 `NO_FILL`
+ * 한 곳에서만 한다(표는 칸마다 색이 따로다).
+ */
+function FillTools() {
+  const { el, patch } = useSelEl()
+  if (!el || NO_FILL.includes(el.type)) return null
+  return (
+    <>
+      <span className="dv" />
+      <span className="lab">색</span>
+      {/* 아이콘은 **무엇의 색인지**를 말한다. 색 동그라미만 둘 놓으면 어느 쪽이
+          채우기인지 눌러 봐야 안다. */}
+      <span className="ax-cp" title="채우기 색">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+          strokeWidth="1.9" strokeLinejoin="round" aria-hidden="true">
+          <path d="M5 12 12 5l7 7-7 7z" /><path d="M19.5 15.5c0 1.4 1.2 2.4 1.2 2.4" />
+        </svg>
+        <ColorPicker value={el.color} onChange={(c) => patch({ color: c })} allowTransparent />
+      </span>
+      <span className="ax-cp" title="테두리 색">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+          strokeWidth="2" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /></svg>
+        <ColorPicker value={el.borderColor} onChange={(c) => patch({ borderColor: c })} />
+      </span>
+    </>
   )
 }
 

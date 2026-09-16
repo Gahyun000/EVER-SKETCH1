@@ -7,7 +7,7 @@ import type { Page, FreeEl } from '../state/store'
 import { useBuilder } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
 import { useProjects } from '../persistence/projects'
-import { mkFreeEl, pushSnap, FCOLORS } from './model'
+import { mkFreeEl, pushSnap, FCOLORS, NO_FILL } from './model'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, dragTrack, mergeCovering, sizeTracks, trackSizes } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount, todayColumn } from '../template/slots'
@@ -402,7 +402,6 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   // 도구모음의 「→ 화살표 연결」로 이을 수 있다. **잇는 길이 없어지는 게 아니라,
   // 의도하지 않은 길 하나가 없어지는 것이다.**
   const NO_CPT = ['text', 'icon', 'wordart', 'note', 'table']
-  const NO_FILL = ['text', 'icon', 'wordart', 'image', 'note', 'table']  // 채우기색 안 쓰는 타입
   function setFill(el: FreeEl, c: string) { snap(); updateEl(page.id, el.id, { color: c }) }
   // 그룹이면 그 그룹 전체 id, 아니면 자기 id
   function expandGroupIds(id: number): number[] {

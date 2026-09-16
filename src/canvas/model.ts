@@ -37,6 +37,18 @@ export function mkFreeEl(type: string, x: number, y: number): FreeEl {
 }
 export const FCOLORS = ['#eaf0ff', '#dceeb1', '#f4d2c1', '#e7e3fb', '#cdeacf', '#fdf3b6', '#ffffff', '#111318']
 
+/**
+ * **채우기색을 안 쓰는 갈래.**
+ *
+ * 글상자·아이콘·글맵시·그림·메모는 속이 없고, 표는 **칸마다** 색이 따로 있다
+ * (`cbg`) — 표 전체를 한 색으로 칠하는 일은 없다.
+ *
+ * 2026-09-16 에 여기로 올렸다. 전에는 캔버스 안(`FreeLayer`)에만 있었는데, 도구줄에도
+ * 채우기가 생기면서 **같은 목록이 두 벌**이 될 참이었다. 두 벌은 언젠가 어긋나고,
+ * 그러면 한쪽에서만 칠해지는 갈래가 생긴다.
+ */
+export const NO_FILL = ['text', 'icon', 'wordart', 'image', 'note', 'table']
+
 // 되돌리기 스택은 canvas/history.ts 로 옮겼다(store.ts 와의 순환 참조를 피하기 위해).
 // 기존 import 경로를 유지하기 위해 여기서 다시 내보낸다.
 export {

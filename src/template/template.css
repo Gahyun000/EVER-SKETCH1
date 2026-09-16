@@ -54,6 +54,11 @@
   border: 1px solid rgba(15, 27, 61, .14); padding: 0;
 }
 .es-cbg.on { outline: 2px solid #2462EB; outline-offset: 1px; }
+/* 「다른 색」 — 목록에 없는 색을 고르는 자리 (2026-09-16). 목록만 두면 「그 색은 왜
+   안 되나」가 된다. 네모들과 **크기를 맞춘다** — 안 맞추면 마지막 하나만 다른 물건처럼
+   보인다. */
+.es-cbg-more { display: inline-flex; align-items: center; }
+.es-cbg-more .cp-trig { width: 22px; height: 20px; border-radius: 4px; }
 .es-cbg.clear {
   background: #fff; font-size: 11px; color: #6b7480; width: 26px;
   display: inline-flex; align-items: center; justify-content: center;

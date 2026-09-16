@@ -127,6 +127,37 @@ export function cbgPalette(slot: string | undefined): string[] | undefined {
   return SLOT_POLICY[slot]?.cbgPalette
 }
 
+/**
+ * **양식이 없는 표에서 쓰는 칸 색.**
+ *
+ * 2026-09-16 · 사용자가 「표는 색상 채우기 기능이 따로 없는 것 같다」고 했고, 맞았다.
+ * 기능이 없던 게 아니라 **가려져 있었다**: 칸 색(`cbg`)은 자료에도 있고 화면도 그리는데,
+ * 색 목록을 `cbgPalette` 가 **슬롯에서만** 내주다 보니 슬롯이 없는 표에서는 그 칸이
+ * 통째로 안 떴다. 요소를 눌러 뜨는 막대에서도 표는 채우기 대상이 아니다(`NO_FILL`) —
+ * 표는 칸마다 색이 따로라서 그게 맞다. 그래서 **어디에도 길이 없었다.**
+ *
+ * 표준 양식의 「진행 표시」와는 **뜻이 다르다.** 거기 색들은 상태를 가리키는 약속이라
+ * 이름이 붙어 있고(`CBG_LABEL`) 양식이 정한 것만 쓴다. 여기 색은 그냥 색이다 —
+ * 그래서 이름을 안 붙이고, 자료 목록·결재함이 쓰는 옅은 바탕색과 같은 계열로 고른다.
+ * 글자는 늘 진한 잉크색이므로 **옅은 색만** 둔다(대비를 지키려고).
+ */
+export const CBG_FREE: string[] = [
+  '#FFFFFF', '#F1F3F6', '#EAF0FF', '#E9F5EF', '#FFF4E3', '#FDF0F0', '#EEF2FA', '#F6F0FF',
+]
+
+/**
+ * 이 표에서 쓸 수 있는 칸 색. **한 군데서 정한다** — 화면이 「슬롯이면 이것, 아니면
+ * 저것」을 제 손으로 갈라 두면 나중에 한쪽만 고쳐진다.
+ *
+ * 슬롯 표는 양식 색을 **그대로 두고**, 그 뒤에 자유 색을 덧붙인다: 진행 표시의 뜻을
+ * 안 깨면서 「그냥 옅게 칠하고 싶다」도 되게 하려는 것이다.
+ */
+export function cellColors(slot: string | undefined): string[] {
+  const p = cbgPalette(slot)
+  if (!p) return CBG_FREE
+  return [...p, ...CBG_FREE.filter((c) => !p.includes(c))]
+}
+
 /** 표 본문 기본 글자색(index.css 와 같은 값). */
 const INK = '#1c2433'
 

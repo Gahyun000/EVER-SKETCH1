@@ -19,7 +19,8 @@ import { addRow, delRow, addCol, delCol, setAlignRange, setVAlignRange, setCellF
 import AnchorLossDialog from '../../comments/AnchorLossDialog'
 import { anchorLostBy } from '../../comments/anchor'
 import { useComments } from '../../comments/store'
-import { CBG_LABEL, cbgPalette, cellBackground, isSlotEl, lockedRowCount, slotAllows } from '../../template/slots'
+import { CBG_LABEL, cbgPalette, cellBackground, cellColors, isSlotEl, lockedRowCount, slotAllows } from '../../template/slots'
+import { ALIGN_LABEL, AlignIcon, VALIGN_LABEL, VAlignIcon } from '../../ui/alignIcons'
 import { bottomLimit, dataCapacity, isFull } from '../../canvas/tableCapacity'
 import { slotLabels } from '../../template/unfilled'
 import '../../template/template.css'
@@ -467,15 +468,20 @@ export default function RightPanel() {
                 </div>
               )}
               <div className="insp-sec">셀 정렬{selCount > 1 ? ` (${selCount}칸)` : ''}</div>
+              {/* **그림도 말도 파워포인트·한글을 따른다**(2026-09-16). 전에는
+                  유니코드 글자(⇤ ⇔ ⇥ ⤒ ⇕ ⤓)였다 — 글꼴마다 모양이 달라지고, 두
+                  제품에서 보던 그림이 아니라 매번 눌러 봐야 알았다. */}
               <div className="insp-row seg">
-                <button title="왼쪽" onClick={() => patchTable(setAlignRange(el, ...rng(), 'left'))}>⇤</button>
-                <button title="가운데" onClick={() => patchTable(setAlignRange(el, ...rng(), 'center'))}>⇔</button>
-                <button title="오른쪽" onClick={() => patchTable(setAlignRange(el, ...rng(), 'right'))}>⇥</button>
+                {(['left', 'center', 'right'] as const).map((d) => (
+                  <button key={d} title={ALIGN_LABEL[d]}
+                    onClick={() => patchTable(setAlignRange(el, ...rng(), d))}><AlignIcon dir={d} /></button>
+                ))}
               </div>
               <div className="insp-row seg">
-                <button title="위" onClick={() => patchTable(setVAlignRange(el, ...rng(), 'top'))}>⤒</button>
-                <button title="세로 가운데" onClick={() => patchTable(setVAlignRange(el, ...rng(), 'middle'))}>⇕</button>
-                <button title="아래" onClick={() => patchTable(setVAlignRange(el, ...rng(), 'bottom'))}>⤓</button>
+                {(['top', 'middle', 'bottom'] as const).map((d) => (
+                  <button key={d} title={VALIGN_LABEL[d]}
+                    onClick={() => patchTable(setVAlignRange(el, ...rng(), d))}><VAlignIcon dir={d} /></button>
+                ))}
               </div>
               <div className="insp-sec">셀 글자 크기</div>
               <div className="insp-row">
@@ -532,24 +538,35 @@ export default function RightPanel() {
                 </div>
               </>) : null}
               </Acc>
-              {canCbg && palette ? (
-                <Acc k="stage" t="진행 표시" sub={secSub.stage}>
-              {canCbg && palette && (<>
-                <div className="insp-sec">진행 표시</div>
-                <div className="insp-row es-cbg-row">
-                  {palette.map((color) => (
-                    <button key={color} type="button"
-                      className={'es-cbg' + (curBg === color ? ' on' : '')}
-                      style={{ background: cellBackground(color) }}
-                      title={CBG_LABEL[color] || color}
-                      disabled={!ts}
-                      onClick={() => { if (ts) patchTable(setCellBgRange(el, ts.r0, ts.c0, ts.r1, ts.c1, color)) }} />
-                  ))}
-                  <button type="button" className="es-cbg clear" title="색 지우기" disabled={!ts}
-                    onClick={() => { if (ts) patchTable(setCellBgRange(el, ts.r0, ts.c0, ts.r1, ts.c1, null)) }}>✕</button>
-                </div>
-                <div className="insp-hint">셀을 드래그해 여러 칸을 한 번에 칠할 수 있어요. 병합도 같은 방식이에요 — 위 툴바의 <b>표 ⤢ 병합</b>.</div>
-              </>)}
+              {/* **보통 표에도 칸 색이 있다**(2026-09-16). 전에는 색 목록을 양식에서만
+                  내주다 보니, 양식 없는 표에서는 이 묶음이 **통째로 안 떴다** —
+                  자료에는 칸 색이 있고 화면도 그리는데 바꿀 길만 없었다. 요소 옆
+                  막대에도 표는 채우기 대상이 아니라(칸마다 색이 따로라 그게 맞다)
+                  **어디에도 길이 없었다.**
+
+                  묶음 이름이 표에 따라 다르다: 양식 표에서 앞의 몇 색은 **상태를 가리키는
+                  약속**이라 「진행 표시」로 읽혀야 하고, 보통 표에서는 그냥 색이다. */}
+              {canCbg ? (
+                <Acc k="stage" t={palette ? '진행 표시 · 칸 색' : '칸 색'} sub={secSub.stage}>
+              <div className="insp-sec">{palette ? '진행 표시' : '칸 색'}</div>
+              <div className="insp-row es-cbg-row">
+                {cellColors(slot).map((color) => (
+                  <button key={color} type="button"
+                    className={'es-cbg' + (curBg === color ? ' on' : '')}
+                    style={{ background: cellBackground(color) }}
+                    title={CBG_LABEL[color] || color}
+                    disabled={!ts}
+                    onClick={() => { if (ts) patchTable(setCellBgRange(el, ts.r0, ts.c0, ts.r1, ts.c1, color)) }} />
+                ))}
+                <button type="button" className="es-cbg clear" title="색 지우기" disabled={!ts}
+                  onClick={() => { if (ts) patchTable(setCellBgRange(el, ts.r0, ts.c0, ts.r1, ts.c1, null)) }}>✕</button>
+                {/* 목록에 없는 색도 쓴다 — 여기만 막아 두면 「그 색은 왜 안 되나」가 된다. */}
+                <span className="es-cbg-more" title="다른 색">
+                  <ColorPicker value={curBg}
+                    onChange={(c) => { if (ts) patchTable(setCellBgRange(el, ts.r0, ts.c0, ts.r1, ts.c1, c)) }} />
+                </span>
+              </div>
+              <div className="insp-hint">셀을 드래그해 여러 칸을 한 번에 칠할 수 있어요. 병합도 같은 방식이에요 — 위 툴바의 <b>표 ⤢ 병합</b>.</div>
                 </Acc>
               ) : null}
               <Acc k="text" t="표 전체 글자" sub={secSub.text}>
