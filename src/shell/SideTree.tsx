@@ -66,6 +66,8 @@ export default function SideTree({ open, toggle, onGo, col, onSwap }: {
   const loadFolders = useProjects((s) => s.loadFolders)
   const foldersError = useProjects((s) => s.foldersError)
   const openProject = useProjects((s) => s.openProject)
+  const openError = useProjects((s) => s.openError)
+  const openErrorId = useProjects((s) => s.openErrorId)
 
   // **폴더를 여기서도 받아 온다.** 예전에는 자료 목록 화면만 받아 왔다 —
   // 편집 중에 사이드바를 펴면 나무가 비어 있었다. 실패하면 **조용히 지나간다**:
@@ -98,6 +100,14 @@ export default function SideTree({ open, toggle, onGo, col, onSwap }: {
         <div className="sh-terr">
           폴더를 못 읽었어요.
           <button onClick={() => void loadFolders().catch(() => { /* 그대로 둔다 */ })}>다시</button>
+        </div>
+      )}
+      {/* **여기서 연 자료가 안 열렸을 때도 말해야 한다**(2026-09-16). 나무는 스케치 화면에서도
+          보이므로, 목록 화면에만 적어 두면 여기서 누른 사람은 **아무 말도 못 듣는다.** */}
+      {openError && (
+        <div className="sh-terr">
+          자료를 못 열었어요.
+          <button onClick={() => { if (openErrorId) void openProject(openErrorId) }}>다시</button>
         </div>
       )}
       {rows.map((r) => {

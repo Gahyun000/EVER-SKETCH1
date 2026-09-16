@@ -90,6 +90,17 @@ interface ProjectsState {
   /** 폴더를 못 읽었으면 그 까닭. **비어 있는 것과 못 읽은 것은 다르다** —
    *  나무는 오류를 삼키므로(부가 정보라서), 삼킨 사실만은 남겨야 화면이 말할 수 있다. */
   foldersError: string | null
+  /**
+   * 자료를 **여는 데** 실패했으면 그 까닭. 목록과 따로 둔다 — 못 여는 것과 목록이 안 오는 것은
+   * 사람이 할 일이 다르다(하나는 그 자료를 다시 누르는 일, 하나는 목록을 다시 받는 일).
+   *
+   * 2026-09-16 · 서버가 멈췄을 때 **동그라미가 영영 돌았다.** 첫 화면을 불러오는 길에는
+   * 시간 제한이 있었는데 **여는 길에만 없었다.** 그래서 사람은 자료가 큰 건지 서버가 죽은 건지
+   * 알 수가 없었다 — 실제로 그 화면을 한참 보고 있어야 했다.
+   */
+  openError: string | null
+  /** 그 실패가 **어느 자료**였나. 「다시」가 같은 자료를 다시 열게 하려면 있어야 한다. */
+  openErrorId: string | null
   /** 어느 계정으로 목록을 받아 뒀는가. 계정이 바뀌면 다시 받는다. */
   bootedFor: string | null
 
@@ -158,7 +169,7 @@ export function resetWorkspace(): void {
   useAutosave.setState({ status: 'idle', savedAt: undefined, error: undefined })
   useProjects.setState({
     view: 'library', activeId: null, access: null, template: null, list: [], loading: false,
-    listError: null, foldersError: null, bootedFor: null,
+    listError: null, foldersError: null, openError: null, openErrorId: null, bootedFor: null,
   })
 }
 
@@ -199,6 +210,8 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   loading: false,
   listError: null,
   foldersError: null,
+  openError: null,
+  openErrorId: null,
   bootedFor: null,
 
   folders: [],
@@ -311,10 +324,15 @@ export const useProjects = create<ProjectsState>((set, get) => ({
 
   openProject: async (id) => {
     try { await flushSave() } catch { /* noop */ }
-    set({ loading: true })
+    set({ loading: true, openError: null, openErrorId: null })
     try {
-      const p = await apiGetProject(id)
+      // **기다리기를 그만두는 자리**(2026-09-16). 없으면 서버가 멈췄을 때 동그라미가 영영 돈다.
+      // 시간은 첫 화면과 같은 값을 쓴다 — 자리마다 다른 숫자를 두면 왜 여기만 다른지 아무도 모른다.
+      const p = await withTimeout(apiGetProject(id), BOOT_STEP_MS)
       applyProject(p)
+    } catch (e) {
+      // **삼키지 않고 말한다.** 부르는 쪽은 `void openProject(...)` 라 던져 봐야 아무도 안 받는다.
+      set({ openError: loadErrorText(e, '자료'), openErrorId: id })
     } finally {
       set({ loading: false })
     }

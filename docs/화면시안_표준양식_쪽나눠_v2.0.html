@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>표준 양식 쪽 나눔 — 한 쪽에서 시작, 넘치면 다음 쪽</title>
+<style>
+  :root{ --navy:#0F1B3D; --blue:#2462EB; --line:#E6E8EE; --sub:#5B6270; --muted:#9AA3B2;
+         --card:#F8F9FB; --hdr:#FFFFCC; --hdr2:#FDF0E0; }
+  *{box-sizing:border-box}
+  body{margin:0;background:#EEF0F4;color:#111318;
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 18px 90px}
+  h1{font-size:21px;font-weight:900;color:var(--navy);margin:0 0 6px;letter-spacing:-.02em}
+  .lede{font-size:13.5px;color:var(--sub);margin:0 0 20px;line-height:1.75}
+  .lede b{color:#111318}
+  .sec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  .sec>h2{font-size:15px;font-weight:900;color:var(--navy);margin:0 0 4px}
+  .sec>.why{font-size:12.5px;color:var(--sub);margin:0 0 12px;line-height:1.8}
+  .why b{color:#111318}
+  .num{color:var(--blue);font-weight:900}
+  code{background:#F2F4F8;border-radius:4px;padding:1px 5px;font-size:12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 2px;align-items:center}
+  .bar .lab{font-size:12px;font-weight:900;color:var(--sub)}
+  .bar .val{font-size:12px;font-weight:900;color:var(--blue);min-width:44px}
+  input[type=range]{width:190px;vertical-align:middle}
+  .tg{border:1.4px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;font:inherit;
+    font-size:12.5px;font-weight:800;color:var(--sub);cursor:pointer}
+  .tg.on{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  /* ── 쪽 미리보기 (가로 1.44:1) ── */
+  .deck{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;align-items:flex-start}
+  .slidewrap{width:340px}
+  .slidewrap .cap{display:flex;justify-content:space-between;align-items:center;
+    font-size:11.5px;font-weight:900;color:var(--sub);margin-bottom:5px}
+  .slidewrap .cap .tag{font-size:10.5px;font-weight:900;border-radius:99px;padding:1px 8px}
+  .tag.ok{background:#E9F5EF;color:#215c46}
+  .tag.cut{background:#FFF4E3;color:#8a5a10}
+  .tag.no{background:#FDF0F0;color:#7d2027}
+  .slide{width:340px;height:236px;border:1px solid var(--line);border-radius:8px;background:#fff;
+    padding:9px 10px;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+  .s-h{display:flex;justify-content:space-between;align-items:flex-start}
+  .s-t{font-size:9.5px;font-weight:900;color:var(--navy)}
+  .s-m{font-size:6.5px;color:var(--muted);text-align:right;line-height:1.5}
+  .s-lab{font-size:7px;font-weight:800;color:#3a4152;margin:6px 0 2px}
+  .tb{border:1px solid #cfd5e2;border-collapse:collapse;width:100%;table-layout:fixed}
+  .tb td{border:1px solid #dfe4ee;height:7px;padding:0}
+  .tb td.h{background:var(--hdr);height:8px}
+  .tb td.h2{background:var(--hdr2)}
+  .row2{display:flex;gap:8px}
+  .row2 .l{flex:1.9} .row2 .r{flex:1}
+  .s-f{position:absolute;left:10px;bottom:6px;font-size:6px;color:#b9c0cd}
+  .cutline{position:absolute;left:0;right:0;border-top:1.5px dashed #E0A040}
+  .cutline span{position:absolute;right:4px;top:-13px;font-size:7.5px;font-weight:900;color:#8a5a10;
+    background:#FFF8EC;border:1px solid #F0DDBB;border-radius:4px;padding:0 4px}
+  .cont{font-size:6.5px;font-weight:800;color:#8a5a10;margin:0 0 2px}
+  .empty{display:grid;place-items:center;height:100%;font-size:10px;color:#c3c9d4;font-weight:800}
+
+  .note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:11px 13px;font-size:12.5px;color:var(--sub);line-height:1.75;margin-top:13px}
+  .note b{color:#111318}
+  .find{background:#FFF8EC;border:1px solid #F0DDBB;border-radius:11px;padding:11px 13px;
+    font-size:12.5px;color:#6b4a12;line-height:1.75;margin:10px 0}
+  .find b{color:#4a3208}
+  .find .t{display:block;font-weight:900;color:#8A5300;margin-bottom:3px;font-size:11.5px}
+
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  @media (max-width:760px){ .opts{grid-template-columns:1fr} }
+  .opt{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fff;cursor:pointer}
+  .opt.on{border-color:var(--blue);box-shadow:0 0 0 2px #E3ECFF}
+  .opt h4{margin:0 0 5px;font-size:12.5px;font-weight:900;color:var(--navy)}
+  .opt p{margin:0;font-size:12px;color:var(--sub);line-height:1.7}
+  .ko{display:inline-block;width:19px;height:19px;border-radius:50%;background:var(--navy);
+    color:#fff;font-size:11px;font-weight:900;text-align:center;line-height:19px;margin-right:5px}
+  .rec{font-size:10.5px;font-weight:900;color:#215c46;background:#E9F5EF;border-radius:99px;padding:1px 8px;margin-left:6px}
+  .steps{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .step{flex:1;min-width:210px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;background:#fff}
+  .step .n{font-size:10.5px;font-weight:900;color:var(--blue)}
+  .step h4{margin:2px 0 4px;font-size:12.5px;font-weight:900;color:var(--navy)}
+  .step p{margin:0;font-size:12px;color:var(--sub);line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>표준 양식 쪽 나눔 — 한 쪽에서 시작, 넘치면 다음 쪽</h1>
+<p class="lede">
+<b>이해한 것이 맞는지부터 확인해 주세요.</b> 실물 파워포인트처럼 <b>①로드맵 · ②진행현황·향후계획 · ③이슈를
+한 쪽에</b> 두고 시작하고, 줄이 늘어 한 장에 안 들어가는 순간에만 <b>다음 쪽</b>이 생깁니다.
+아래 손잡이를 끌어 보시면 언제 넘어가는지 보입니다. <b>코드는 안 건드렸습니다.</b>
+</p>
+
+<div class="sec">
+  <h2><span class="num">①</span> 세 가지를 나란히</h2>
+  <p class="why">왼쪽이 <b>실물 양식</b>(보내주신 10월 자료), 가운데가 <b>지금</b>, 오른쪽이 <b>고친 뒤</b>입니다.
+  줄이 적을 때는 고친 뒤가 실물과 같은 한 장이 됩니다.</p>
+  <div class="deck">
+    <div class="slidewrap">
+      <div class="cap"><span>실물 파워포인트</span><span class="tag ok">한 장</span></div>
+      <div class="slide" id="sReal"></div>
+    </div>
+    <div class="slidewrap">
+      <div class="cap"><span>지금 — 1쪽</span><span class="tag cut">로드맵만</span></div>
+      <div class="slide" id="sNow1"></div>
+      <div class="cap" style="margin-top:8px"><span>지금 — 2쪽</span><span class="tag cut">②③ 만</span></div>
+      <div class="slide" id="sNow2"></div>
+    </div>
+    <div class="slidewrap">
+      <div class="cap"><span>고친 뒤 — 1쪽</span><span class="tag ok">실물과 같은 한 장</span></div>
+      <div class="slide" id="sFix"></div>
+    </div>
+  </div>
+  <div class="find"><span class="t">확인한 것</span>
+  서버가 지키는 계약은 <b>「SLOT-A·B·C 가 각각 하나씩 있다」</b>뿐입니다(<code>template_guard.py</code> —
+  <b>「지키는 것은 쪽수가 아니라 세트」</b>). 취합도 슬롯 이름으로 찾지 몇 쪽인지로 찾지 않습니다.
+  <b>셋을 한 쪽에 둬도 서버는 거부하지 않습니다.</b></div>
+</div>
+
+<div class="sec">
+  <h2><span class="num">②</span> 줄을 늘려 보세요 — 언제 다음 쪽이 생기나</h2>
+  <div class="bar">
+    <span class="lab">① 로드맵 줄</span>
+    <input type="range" id="rmr" min="2" max="14" value="5"><span class="val" id="rmrv">5줄</span>
+    <span class="lab" style="margin-left:10px">②③ 줄</span>
+    <input type="range" id="lsr" min="2" max="20" value="4"><span class="val" id="lsrv">4줄</span>
+  </div>
+  <div class="bar">
+    <span class="lab">넘칠 때</span>
+    <button class="tg on" data-ov="flow">ㄱ · 넘친 줄만 이어 붙인다</button>
+    <button class="tg" data-ov="whole">ㄴ · ②③ 를 통째로 넘긴다</button>
+  </div>
+  <div class="deck" id="deck"></div>
+  <div class="note" id="deckNote"></div>
+</div>
+
+<div class="sec">
+  <h2><span class="num">③</span> 넘칠 때 — 두 갈래</h2>
+  <div class="opts">
+    <div class="opt on" data-pick="flow"><h4><span class="ko">ㄱ</span>넘친 줄만 이어 붙인다<span class="rec">권함</span></h4>
+      <p>1쪽에 들어가는 만큼 채우고, <b>남은 줄만</b> 다음 쪽에 머리글과 함께 이어집니다.
+      1쪽이 빈 채로 넘어가지 않아 <b>장수가 가장 적게</b> 나옵니다. 로드맵에 이미 있는 길
+      (<code>continueTable</code> · <code>contFrom</code>)을 ②③ 에도 쓰는 일입니다.</p></div>
+    <div class="opt" data-pick="whole"><h4><span class="ko">ㄴ</span>②③ 를 통째로 넘긴다</h4>
+      <p>한 줄이라도 넘치면 ②③ <b>전체</b>가 다음 쪽으로 내려갑니다. 표가 안 쪼개져 읽기 쉽지만,
+      1쪽 아래가 <b>크게 비고</b> 지금과 같은 두 쪽 모양으로 돌아갑니다.</p></div>
+  </div>
+  <div class="note"><b>로드맵이 길어질 때도 같은 규칙입니다.</b> 로드맵만으로 한 장이 차면
+  ②③ 가 통째로 다음 쪽으로 밀리고, 로드맵 자체가 넘치면 로드맵도 이어집니다.
+  위 손잡이에서 <b>로드맵 줄</b>을 올려 보시면 그 모양이 나옵니다.</div>
+</div>
+
+<div class="sec">
+  <h2><span class="num">④</span> 사람 눈에 보이는 순서</h2>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><h4>만들면 한 장</h4>
+      <p>새 자료를 만들면 실물처럼 <b>①②③ 가 한 쪽</b>에 있습니다. 쪽 수는 1입니다.</p></div>
+    <div class="step"><div class="n">2</div><h4>줄을 더하다 보면</h4>
+      <p>한 장에 안 들어가는 순간, <b>2쪽이 저절로 생기고</b> 넘친 줄이 그리로 이어집니다.</p></div>
+    <div class="step"><div class="n">3</div><h4>줄을 지우면</h4>
+      <p>다시 한 장에 들어가면 <b>2쪽은 저절로 사라집니다.</b> 빈 쪽이 남지 않습니다.</p></div>
+  </div>
+  <div class="note"><b>여기서 하나 정해야 합니다.</b> 3번(줄을 지우면 쪽이 사라진다)을 <b>자동</b>으로 할지,
+  아니면 빈 쪽을 그대로 두고 <b>사람이 지우게</b> 할지입니다. 자동은 손이 안 가는 대신,
+  2쪽에 도형이나 메모를 따로 얹어 둔 경우 <b>그것까지 같이 사라질</b> 수 있습니다 —
+  그때는 「빈 쪽이 됐어요. 지울까요?」로 <b>묻는 쪽</b>이 안전합니다. 어느 쪽이 좋으세요?</div>
+</div>
+
+</div>
+
+<script>
+var rmr=5, lsr=4, ov='flow'
+/* 한 쪽에 들어가는 높이(미리보기 단위) */
+var PAGE_H = 236, TOP = 40, FOOT = 14
+var RM_HEAD = 2, RM_RH = 8, LS_HEAD = 1, LS_RH = 8, LAB = 11, GAP = 8
+
+function tbl(cols, headRows, rows, headCls){
+  var h=''
+  for (var r=0;r<headRows;r++){
+    h+='<tr>'; for (var c=0;c<cols;c++) h+='<td class="h '+(headCls||'')+'"></td>'; h+='</tr>'
+  }
+  for (var r2=0;r2<rows;r2++){
+    h+='<tr>'; for (var c2=0;c2<cols;c2++) h+='<td></td>'; h+='</tr>'
+  }
+  return '<table class="tb">'+h+'</table>'
+}
+function head(title, sub){
+  return '<div class="s-h"><div class="s-t">'+title+'</div>'
+    +'<div class="s-m">작성 김가현 · SI개발본부<br>기간 2026-09</div></div>'
+}
+function roadmap(rows, cls){
+  return '<div class="s-lab">① 로드맵 / 마일스톤</div>'+tbl(14, RM_HEAD, rows, cls)
+}
+function lists(rows, contd){
+  return '<div class="row2" style="margin-top:7px">'
+    +'<div class="l"><div class="s-lab">② 진행 현황 · 향후 계획'+(contd?' <span class="cont">(이어짐)</span>':'')+'</div>'
+      +tbl(2, LS_HEAD, rows)+'</div>'
+    +'<div class="r"><div class="s-lab">③ 이슈 · 필요 지원'+(contd?' <span class="cont">(이어짐)</span>':'')+'</div>'
+      +tbl(1, LS_HEAD, rows)+'</div>'
+    +'</div>'
+}
+function foot(){ return '<div class="s-f">EVER-SKETCH · 2026-09 임원회의 · SI개발본부</div>' }
+
+/* 로드맵이 차지하는 높이 */
+function rmH(rows){ return LAB + (RM_HEAD+rows)*RM_RH + 2 }
+/* ②③ 한 줄이 차지하는 높이 */
+function lsH(rows){ return LAB + (LS_HEAD+rows)*LS_RH + 2 }
+/* 한 쪽에서 ②③ 가 쓸 수 있는 높이 */
+function room(rmRows){ return PAGE_H - TOP - rmH(rmRows) - GAP - FOOT }
+/* 그 높이에 들어가는 ②③ 줄 수 */
+function fits(rmRows){
+  var r = room(rmRows) - LAB - LS_RH - 2
+  return Math.max(0, Math.floor(r / LS_RH))
+}
+
+function slide(inner){ return inner }
+
+function draw(){
+  /* ── 위쪽 세 장 (고정 4줄 기준) ── */
+  document.getElementById('sReal').innerHTML =
+    head('2026년 10월 임원회의 — 진행보고') + roadmap(5,'h2') + lists(4) + foot()
+  document.getElementById('sNow1').innerHTML =
+    head('2026년 9월 임원회의 — 진행보고') + roadmap(5) + foot()
+  document.getElementById('sNow2').innerHTML =
+    head('2026년 9월 임원회의 — 진행보고') + lists(4) + foot()
+  document.getElementById('sFix').innerHTML =
+    head('2026년 9월 임원회의 — 진행보고') + roadmap(5) + lists(4) + foot()
+
+  /* ── 손잡이로 움직이는 덱 ── */
+  var cap = fits(rmr)
+  var el = document.getElementById('deck')
+  var note = document.getElementById('deckNote')
+  var html = '', pages = 1
+
+  if (lsr <= cap) {
+    html = card(1, head('2026년 9월 임원회의 — 진행보고') + roadmap(rmr) + lists(lsr) + foot(),
+                '한 쪽에 다 들어감', 'ok')
+    note.innerHTML = '<b>지금은 한 장입니다.</b> ②③ 가 '+lsr+'줄, 이 쪽에 들어가는 한도는 <b>'+cap+'줄</b>입니다. '
+      + '한 줄만 더 늘려 보세요 — 그 순간 2쪽이 생깁니다.'
+  } else if (ov === 'flow') {
+    var first = Math.max(0, cap), rest = lsr - first
+    html = card(1, head('2026년 9월 임원회의 — 진행보고') + roadmap(rmr)
+                 + (first>0 ? lists(first) : '') + foot(),
+                first>0 ? first+'줄까지' : '로드맵만 (②③ 자리 없음)', 'cut')
+        + card(2, head('2026년 9월 임원회의 — 진행보고') + lists(rest, true) + foot(),
+                '남은 '+rest+'줄', 'ok')
+    pages = 2
+    note.innerHTML = '<b>넘친 '+rest+'줄만</b> 2쪽으로 이어집니다. 1쪽은 '+(first>0? first+'줄로 꽉 찹니다.' : '로드맵만으로 이미 찼습니다.')
+      + ' 머리글은 2쪽에 다시 붙습니다 — 이어진 표도 혼자 읽힙니다.'
+  } else {
+    html = card(1, head('2026년 9월 임원회의 — 진행보고') + roadmap(rmr) + foot(),
+                '로드맵만 · 아래가 빔', 'cut')
+        + card(2, head('2026년 9월 임원회의 — 진행보고') + lists(lsr) + foot(), '②③ 전체', 'ok')
+    pages = 2
+    note.innerHTML = '<b>②③ 가 통째로</b> 2쪽으로 내려갑니다. 표가 안 쪼개져 읽기는 쉽지만, '
+      + '1쪽 아래가 크게 비고 <b>지금과 같은 두 쪽 모양</b>으로 돌아갑니다.'
+  }
+  el.innerHTML = html
+}
+function card(no, inner, tag, cls){
+  return '<div class="slidewrap"><div class="cap"><span>'+no+'쪽</span>'
+    +'<span class="tag '+cls+'">'+tag+'</span></div>'
+    +'<div class="slide">'+inner+'</div></div>'
+}
+
+document.getElementById('rmr').addEventListener('input',function(e){
+  rmr=Number(e.target.value); document.getElementById('rmrv').textContent=rmr+'줄'; draw() })
+document.getElementById('lsr').addEventListener('input',function(e){
+  lsr=Number(e.target.value); document.getElementById('lsrv').textContent=lsr+'줄'; draw() })
+document.querySelectorAll('[data-ov]').forEach(function(b){ b.addEventListener('click',function(){
+  document.querySelectorAll('[data-ov]').forEach(function(x){x.classList.remove('on')}); b.classList.add('on')
+  ov=b.dataset.ov
+  document.querySelectorAll('[data-pick]').forEach(function(x){ x.classList.toggle('on', x.dataset.pick===ov) })
+  draw() }) })
+document.querySelectorAll('[data-pick]').forEach(function(b){ b.addEventListener('click',function(){
+  ov=b.dataset.pick
+  document.querySelectorAll('[data-pick]').forEach(function(x){ x.classList.toggle('on', x.dataset.pick===ov) })
+  document.querySelectorAll('[data-ov]').forEach(function(x){ x.classList.toggle('on', x.dataset.ov===ov) })
+  draw() }) })
+draw()
+</script>
+</body>
+</html>

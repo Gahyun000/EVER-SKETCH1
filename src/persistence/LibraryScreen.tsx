@@ -37,6 +37,8 @@ export default function LibraryScreen() {
   const list = useProjects((s) => s.list)
   const loading = useProjects((s) => s.loading)
   const listError = useProjects((s) => s.listError)
+  const openError = useProjects((s) => s.openError)
+  const openErrorId = useProjects((s) => s.openErrorId)
   const loadList = useProjects((s) => s.loadList)
   const openProject = useProjects((s) => s.openProject)
   const newProject = useProjects((s) => s.newProject)
@@ -485,6 +487,18 @@ export default function LibraryScreen() {
       <div className="lib-list" ref={listRef}>
         {loading ? (
           <div className="lib-empty">불러오는 중…</div>
+        ) : openError ? (
+          /* **여는 데 실패한 것은 목록 실패와 다르다**(2026-09-16). 서버가 멈췄을 때
+             여기 「불러오는 중…」이 **영영** 서 있었다 — 여는 길에만 시간 제한이 없어서다.
+             이제 그만두고 **무슨 일이 났는지** 적는다. 「다시」는 목록이 아니라
+             **그 자료를** 다시 연다 — 사람이 하려던 일은 그것이었다. */
+          <div className="lib-empty">
+            {openError}
+            <div style={{ marginTop: 12 }}>
+              <button className="lib-btn dark"
+                onClick={() => { if (openErrorId) void openProject(openErrorId) }}>다시</button>
+            </div>
+          </div>
         ) : listError ? (
           /* **「0개」와 「못 받아 왔다」를 갈라 말한다.** 실패를 빈 목록으로 그리면
              사람은 자료가 사라진 줄 알고, 다시 시도할 방법도 모른 채 새로고침만 한다.
