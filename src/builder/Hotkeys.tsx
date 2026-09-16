@@ -81,14 +81,29 @@ export default function Hotkeys(props: Props) {
       const ui = useCanvasUI.getState()
       const page = curPage()
 
-      // 되돌리기 / 다시 실행
+      /**
+       * 되돌리기 / 다시 실행.
+       *
+       * **되돌린 뒤에도 고른 것을 놓지 않는다**(2026-09-16). 예전에는 늘 `setSel(null)` 이라,
+       * 연달아 되돌리면 어디를 보고 있었는지 매번 잃었다 — 되돌린 자리를 다시 찾아 눌러야 했다.
+       * 다만 되돌린 모습에 **그 요소가 없으면** 붙잡고 있을 수 없으니 그때만 놓는다.
+       * 칸 범위(`tableSel`)는 늘 푼다 — 표의 행·열이 달라졌을 수 있어 옛 범위는 못 믿는다
+       * (`setSel` 이 범위를 같이 비운다).
+       */
+      const restore = (pageId: number, snapJson: string) => {
+        const keep = ui.selEl
+        bs.setCanvas(pageId, JSON.parse(snapJson))
+        const now = useBuilder.getState().pages.find((p) => p.id === pageId)
+        const alive = keep != null && !!now && now.els.some((el) => el.id === keep)
+        ui.setSel(alive ? keep : null)
+      }
       if (mod && lower === 'z') {
         e.preventDefault(); if (!page) return
-        if (e.shiftKey) { const s = popRedo(page.id); if (s) { pushUndoRaw(page.id, snapStr(page)); bs.setCanvas(page.id, JSON.parse(s)); ui.setSel(null) } }
-        else { const s = popSnap(page.id); if (s) { pushRedo(page.id, snapStr(page)); bs.setCanvas(page.id, JSON.parse(s)); ui.setSel(null) } }
+        if (e.shiftKey) { const s = popRedo(page.id); if (s) { pushUndoRaw(page.id, snapStr(page)); restore(page.id, s) } }
+        else { const s = popSnap(page.id); if (s) { pushRedo(page.id, snapStr(page)); restore(page.id, s) } }
         return
       }
-      if (mod && lower === 'y') { e.preventDefault(); if (!page) return; const s = popRedo(page.id); if (s) { pushUndoRaw(page.id, snapStr(page)); bs.setCanvas(page.id, JSON.parse(s)); ui.setSel(null) }; return }
+      if (mod && lower === 'y') { e.preventDefault(); if (!page) return; const s = popRedo(page.id); if (s) { pushUndoRaw(page.id, snapStr(page)); restore(page.id, s) }; return }
 
       // Esc: 도구 취소 + 선택 해제
       if (k === 'Escape') { ui.setTool('select'); ui.setSel(null); ui.setConnSrc(null); return }

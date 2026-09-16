@@ -162,6 +162,14 @@ function Pin({ list, el, focusId, onFocus }: {
   )
 }
 
+/**
+ * 되돌리기가 기억하는 **한 쪽의 모습**. 한 글로 만들어 두면 「고친 게 있나」를
+ * 글자끼리 견주기만 하면 된다.
+ */
+function snapOf(pg: Page): string {
+  return JSON.stringify({ els: pg.els, conns: pg.conns, strokes: pg.strokes, detached: pg.detached })
+}
+
 export default function FreeLayer({ page, W, H, interactive }: Props) {
   // ── 접기는 **편집 화면에서만** 듣는다 (사용자 결정 ②ㄴ · 2026-09-15) ──────
   //
@@ -221,17 +229,39 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   // 그래서 편집을 끝내는 모든 경로가 endEditing() 을 거치게 하고, 거기서 먼저 커밋한다.
   const editRef = useRef<{ id: number; node: HTMLElement; commit: () => void } | null>(null)
   const layerRef = useRef<HTMLDivElement>(null)
+  /**
+   * **칸에 들어가기 직전의 모습.** 여기 담아 두었다가, 나올 때 **달라졌으면** 되돌리기에 넣는다.
+   *
+   * 2026-09-16 · 사용자: 「뒤로가기(⌘Z)가 제대로 작동 안 함」. 재 보니 도형을 옮기거나
+   * 색을 칠할 때는 되돌릴 자리를 찍는데(`snap()`), **칸 글자에는 아무것도 안 찍고 있었다.**
+   * 그래서 칸을 고치고 나온 뒤 ⌘Z 를 눌러도 **아무 일도 안 일어났다**(실제로 그렇게 재 봤다).
+   *
+   * 들어갈 때 바로 찍지 않고 **나올 때 견주는** 까닭: 들어갔다 그냥 나온 것까지 한 단계로 세면
+   * ⌘Z 를 눌러도 화면이 안 바뀌는 헛걸음이 쌓인다. 사람은 「또 안 되네」로 읽는다.
+   */
+  const editSnapRef = useRef<string | null>(null)
   function commitEditing() {
     const cur = editRef.current
     if (!cur) return
     editRef.current = null
+    const before = editSnapRef.current
+    editSnapRef.current = null
     cur.commit()
+    if (before == null) return
+    // 스토어가 방금 바뀌었으므로 **지금 값**을 다시 읽는다 — 이 함수가 들고 있는 `page` 는 옛것이다.
+    const now = useBuilder.getState().pages.find((p) => p.id === page.id)
+    if (now && snapOf(now) !== before) pushSnap(page.id, before)
   }
   function endEditing() { commitEditing(); setEditing(null) }
   // 더블클릭한 화면 좌표. 편집을 켠 뒤 그 자리에 커서를 놓는 데 쓴다 —
   // contentEditable 은 다음 렌더에야 켜지므로 브라우저가 놓아 준 커서는 남지 않는다.
   const editAtRef = useRef<{ x: number; y: number } | null>(null)
-  function startEditing(id: number, at?: { x: number; y: number }) { if (editRef.current && editRef.current.id !== id) commitEditing(); editAtRef.current = at || null; setEditing(id) }
+  function startEditing(id: number, at?: { x: number; y: number }) {
+    if (editRef.current && editRef.current.id !== id) commitEditing()
+    if (editSnapRef.current == null) editSnapRef.current = snapOf(page)
+    editAtRef.current = at || null
+    setEditing(id)
+  }
   const [penPts, setPenPts] = useState<[number, number][] | null>(null)
   const [mouse, setMouse] = useState<Pt | null>(null)
   const [bending, setBending] = useState<Pt | null>(null)
@@ -345,7 +375,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   const markerId = 'fah' + page.id
   const markerStartId = 'fas' + page.id
 
-  function snap() { pushSnap(page.id, JSON.stringify({ els: page.els, conns: page.conns, strokes: page.strokes, detached: page.detached })) }
+  function snap() { pushSnap(page.id, snapOf(page)) }
 
   // ── 표 셀 키보드 조작 ──────────────────────────────────────────────
   // 칸을 고른 상태에서 바로 글자를 치면 그 칸이 갈아끼워지고, Tab·방향키로 칸을 옮긴다.
@@ -360,7 +390,14 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   }
   function editCellNow(el: FreeEl, r: number, c: number, mode: 'all' | 'end') {
     // flushSync 로 편집 상태를 즉시 DOM 에 반영해야 이어지는 키 입력이 그 칸으로 들어간다.
-    flushSync(() => { if (editRef.current && editRef.current.id !== el.id) commitEditing(); editAtRef.current = null; setEditing(el.id) })
+    flushSync(() => {
+      if (editRef.current && editRef.current.id !== el.id) commitEditing()
+      // 여기도 **같은 자리**를 찍는다. 키보드로 칸에 들어오는 길이 따로 있어서,
+      // 한쪽만 찍어 두면 「더블클릭으로 고치면 되돌아가고 키보드로 고치면 안 되는」 꼴이 된다.
+      if (editSnapRef.current == null) editSnapRef.current = snapOf(page)
+      editAtRef.current = null
+      setEditing(el.id)
+    })
     focusCell(el.id, r, c, mode)
   }
   function clearCells(el: FreeEl, ts: { r0: number; c0: number; r1: number; c1: number }) {
