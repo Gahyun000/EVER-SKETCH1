@@ -149,8 +149,12 @@ def build(req: BuildReq, user: dict = Depends(require_active)):
         try:
             projects_store.set_published(req.project_id, eid)
             # 발행은 배포에 해당한다 — 감사로그 대상(UDS-107 §4).
-            # 인증 배선은 W2에서 이 엔드포인트에도 붙인다. 지금은 행위 자체만 남긴다.
-            auth_store.audit(None, "publish", req.project_id, "ebook=%s" % eid)
+            #
+            # **누가 했는지 남긴다**(2026-09-16). 예전에는 `None` 이었다 — 「인증 배선은
+            # W2 에서 붙인다」고 미뤄 둔 자리인데, 그 배선은 이미 와 있었다(`user`).
+            # 관리자만 발행하던 때는 「관리자 중 누군가」로 좁혀지기라도 했지만, 이제
+            # 작성자도 발행한다. 누가 무엇을 내보냈는지 모르는 로그는 로그가 아니다.
+            auth_store.audit(user.get("id"), "publish", req.project_id, "ebook=%s" % eid)
         except Exception:
             pass
     return {"ok": True, "id": eid, "path": out_path, "url": ("/ebooks/%s/index.html" % eid) if eid else None, "log": proc.stdout[-1500:]}
