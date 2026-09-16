@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>표 전체 칠하기 — 머리글 행은 어떻게 할까</title>
+<style>
+  :root{ --navy:#0F1B3D; --blue:#2462EB; --line:#E6E8EE; --sub:#5B6270; --muted:#9AA3B2; --card:#F8F9FB; }
+  *{box-sizing:border-box}
+  body{margin:0;background:#EEF0F4;color:#111318;
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 18px 90px}
+  h1{font-size:21px;font-weight:900;color:var(--navy);margin:0 0 6px;letter-spacing:-.02em}
+  .lede{font-size:13.5px;color:var(--sub);margin:0 0 22px;line-height:1.75}
+  .lede b{color:#111318}
+
+  .sec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  .sec>h2{font-size:15px;font-weight:900;color:var(--navy);margin:0 0 4px}
+  .sec>.why{font-size:12.5px;color:var(--sub);margin:0 0 12px;line-height:1.8}
+  .why b{color:#111318}
+  .num{color:var(--blue);font-weight:900}
+
+  .bar{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 2px;align-items:center}
+  .bar .lab{font-size:12px;font-weight:900;color:var(--sub);margin-right:4px}
+  .tg{border:1.4px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;font:inherit;
+    font-size:12.5px;font-weight:800;color:var(--sub);cursor:pointer}
+  .tg.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .sw{width:26px;height:24px;border-radius:6px;border:1px solid rgba(0,0,0,.16);cursor:pointer;padding:0}
+  .sw.on{outline:2px solid var(--blue);outline-offset:1px}
+
+  .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:14px}
+  @media (max-width:900px){ .trio{grid-template-columns:1fr} }
+  .pane{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+  .pcap{display:flex;align-items:center;gap:7px;padding:8px 12px;font-size:11.5px;font-weight:900;
+    border-bottom:1px solid var(--line);color:var(--sub)}
+  .pane.a .pcap{color:#8A5300} .pane.b .pcap{color:#7d2027} .pane.c .pcap{color:#215c46}
+  .pane.d .pcap{color:var(--blue)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#9AA3B2}
+  .pane.a .dot{background:#E0A040} .pane.b .dot{background:#C0504D}
+  .pane.c .dot{background:#3E9E6E} .pane.d .dot{background:var(--blue)}
+  .pbody{padding:13px}
+  .verdict{font-size:11.5px;color:var(--sub);line-height:1.7;padding:0 13px 13px}
+  .verdict b{color:#111318}
+
+  table.t{border-collapse:collapse;width:100%;font-size:11.5px;table-layout:fixed}
+  .t td{border:1px solid #cfd5e2;height:28px;text-align:center;color:#1c2433;padding:0 4px;
+    overflow:hidden;white-space:nowrap}
+  .t tr.h td{font-weight:700}
+
+  .note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:11px 13px;font-size:12.5px;color:var(--sub);line-height:1.75;margin-top:14px}
+  .note b{color:#111318}
+  .note.warn{border-left-color:#E0A040}
+
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:11px;margin-top:10px}
+  .fact{border:1px solid var(--line);border-radius:11px;padding:11px 13px;background:#fff}
+  .fact h4{margin:0 0 4px;font-size:12px;font-weight:900;color:var(--navy)}
+  .fact p{margin:0;font-size:12px;color:var(--sub);line-height:1.7}
+  .chip{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.16);
+    vertical-align:-2px;margin-right:4px}
+
+  table.cmp{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;margin-top:4px}
+  .cmp th{text-align:left;padding:8px 10px;font-size:11px;color:var(--muted);font-weight:800;
+    background:var(--card);border-bottom:1px solid var(--line);white-space:nowrap}
+  .cmp td{padding:8px 10px;color:var(--sub);border-bottom:1px solid #F1F3F7;vertical-align:top;line-height:1.7}
+  .cmp td.k{font-weight:800;color:var(--navy);white-space:nowrap}
+  .cmp tr:last-child td{border-bottom:0}
+  .cmp b{color:#111318}
+  .scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>표 전체 칠하기 — 머리글 행은 어떻게 할까</h1>
+<p class="lede">
+「칸을 안 골랐으면 표 전체」로 가기로 했으니, <b>머리글 행까지 덮을지</b>를 정해야 합니다.
+아래에서 <b>칠할 색</b>과 <b>표 종류</b>를 바꿔 가며 세 안을 나란히 보세요. <b>코드는 아직 안 건드렸습니다.</b>
+</p>
+
+<div class="sec">
+  <h2><span class="num">①</span> 먼저 — 지금 머리글은 어떻게 칠해져 있나</h2>
+  <p class="why">이걸 알아야 고를 수 있습니다. 머리글의 색은 <b>두 갈래</b>입니다.</p>
+  <div class="facts">
+    <div class="fact">
+      <h4><span class="chip" style="background:#f2f5fa"></span>아무도 안 칠한 머리글</h4>
+      <p>표를 만들면 머리글 행은 <b>저절로 옅은 회색</b>이 됩니다. 자료에 색이 적혀 있는 게 아니라,
+      그릴 때 「머리글이면 회색」으로 칠하는 것입니다.</p>
+    </div>
+    <div class="fact">
+      <h4><span class="chip" style="background:#DEEBF7"></span>사람이 칠해 둔 머리글</h4>
+      <p>칸 색을 한 번이라도 주면 그 색이 자동 회색을 이깁니다. <b>자료에 남는 건 이쪽뿐</b>입니다.</p>
+    </div>
+    <div class="fact">
+      <h4>글씨는 어느 쪽이든 굵다</h4>
+      <p>머리글 행은 <b>굵은 글씨</b>로 그려집니다. 색을 덮어도 이건 남습니다 —
+      「머리글 표시가 통째로 사라지지는 않는다」는 뜻입니다.</p>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <h2><span class="num">②</span> 세 안을 나란히</h2>
+  <div class="bar">
+    <span class="lab">칠할 색</span>
+    <button class="sw on" data-c="#FFF4E3" style="background:#FFF4E3"></button>
+    <button class="sw" data-c="#EAF0FF" style="background:#EAF0FF"></button>
+    <button class="sw" data-c="#E9F5EF" style="background:#E9F5EF"></button>
+    <button class="sw" data-c="#F1F3F6" style="background:#F1F3F6"></button>
+    <button class="sw" data-c="#FDF0F0" style="background:#FDF0F0"></button>
+  </div>
+  <div class="bar">
+    <span class="lab">표 종류</span>
+    <button class="tg on" data-k="auto">머리글이 자동 회색인 표</button>
+    <button class="tg" data-k="painted">머리글을 일부러 칠해 둔 표</button>
+  </div>
+
+  <div class="trio">
+    <div class="pane a">
+      <div class="pcap"><span class="dot"></span> 칠하기 전</div>
+      <div class="pbody"><table class="t" id="t0"></table></div>
+      <div class="verdict" id="v0"></div>
+    </div>
+    <div class="pane b">
+      <div class="pcap"><span class="dot"></span> ㄱ — 다 덮는다</div>
+      <div class="pbody"><table class="t" id="t1"></table></div>
+      <div class="verdict" id="v1"></div>
+    </div>
+    <div class="pane c">
+      <div class="pcap"><span class="dot"></span> ㄴ — 머리글은 남긴다</div>
+      <div class="pbody"><table class="t" id="t2"></table></div>
+      <div class="verdict" id="v2"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:13px">
+    <div class="pane d">
+      <div class="pcap"><span class="dot"></span> ㄷ — 다 덮되, 머리글만 한 톤 진하게 (사람이 안 고른 색이 생긴다)</div>
+      <div class="pbody" style="max-width:380px"><table class="t" id="t3"></table></div>
+      <div class="verdict" id="v3"></div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <h2><span class="num">③</span> 고르는 데 쓸 재료</h2>
+  <div class="scroll">
+  <table class="cmp">
+    <tr><th>　</th><th>ㄱ 다 덮는다</th><th>ㄴ 머리글은 남긴다</th><th>ㄷ 한 톤 진하게</th></tr>
+    <tr>
+      <td class="k">규칙을 말로 하면</td>
+      <td>「표 전체 = 모든 칸」. <b>한 줄이면 끝</b>.</td>
+      <td>「표 전체 = 본문 칸」. 단서가 하나 붙는다.</td>
+      <td>「표 전체 = 모든 칸, 머리글은 자동으로 진하게」. 단서가 둘.</td>
+    </tr>
+    <tr>
+      <td class="k">사람이 칠해 둔 머리글 색은</td>
+      <td><b>지워진다.</b> 되살리려면 그 줄을 다시 칠한다.</td>
+      <td>그대로 남는다.</td>
+      <td><b>지워진다</b>(자동으로 만든 색으로 바뀐다).</td>
+    </tr>
+    <tr>
+      <td class="k">머리글만 다른 색으로 하려면</td>
+      <td>그 줄을 골라 칠하면 된다.</td>
+      <td>그 줄을 골라 칠하면 된다.</td>
+      <td>그 줄을 골라 칠하면 된다(자동 색을 이긴다).</td>
+    </tr>
+    <tr>
+      <td class="k">표 전체를 한 색으로 하려면</td>
+      <td>한 번에 된다.</td>
+      <td><b>두 번 걸린다</b> — 전체 칠하고, 머리글 줄을 또 칠한다.</td>
+      <td>안 된다 — 머리글이 늘 달라진다.</td>
+    </tr>
+    <tr>
+      <td class="k">파워포인트는</td>
+      <td><b>이쪽.</b> 표를 고르고 칠하면 머리글까지 다 칠해진다.</td>
+      <td>—</td>
+      <td>표 스타일(줄무늬)이 따로 있어 비슷한 효과는 난다.</td>
+    </tr>
+  </table>
+  </div>
+
+  <div class="note warn"><b>어느 쪽이든 되돌리기는 한 번에.</b> 표 전체 칠하기는 칸 수십 개가 한꺼번에 바뀌므로
+  ⌘Z 한 번에 통째로 돌아가야 합니다 — 그건 셋 다 같습니다.</div>
+
+  <div class="note"><b>제 의견은 ㄱ입니다.</b> 갈림길 1에서 「양식 표도 허용」을 고르셨으니,
+  <b>규칙이 하나일수록</b> 전체가 일관됩니다. 머리글은 <b>굵은 글씨</b>가 남아 완전히 뭉개지지 않고,
+  머리글만 다시 칠하는 것도 한 번이면 됩니다. ㄴ은 「전체라고 해 놓고 전체가 아닌」 말이 되고,
+  ㄷ은 <b>사람이 고르지 않은 색을 시스템이 만들어 내는 자리</b>라, 나중에 「이 색은 어디서 나왔나」를
+  설명할 수 없습니다.</div>
+</div>
+
+</div>
+
+<script>
+let color='#FFF4E3', kind='auto'
+const HEAD_AUTO='#f2f5fa', HEAD_PAINT='#DEEBF7'
+const ROWS=[['구분','팀 공유','발행'],['언제','승인하는 순간','누를 때'],['누가','Lv1 관리자','Lv1 만'],['무엇','얼린 사본','PNG 이북']]
+
+function darken(hex, amt){
+  const n=parseInt(hex.slice(1),16)
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255
+  r=Math.round(r*(1-amt)); g=Math.round(g*(1-amt)); b=Math.round(b*(1-amt))
+  return '#'+[r,g,b].map(function(v){return v.toString(16).padStart(2,'0')}).join('')
+}
+function build(id, headBg, bodyBg){
+  var h=''
+  ROWS.forEach(function(row,r){
+    h+='<tr class="'+(r===0?'h':'')+'">'
+    row.forEach(function(cell){ h+='<td style="background:'+(r===0?headBg:bodyBg)+'">'+cell+'</td>' })
+    h+='</tr>'
+  })
+  document.getElementById(id).innerHTML=h
+}
+function render(){
+  var head0 = kind==='auto' ? HEAD_AUTO : HEAD_PAINT
+  build('t0', head0, '#fff')
+  build('t1', color, color)
+  build('t2', head0, color)
+  build('t3', darken(color,0.10), color)
+
+  document.getElementById('v0').innerHTML = kind==='auto'
+    ? '머리글은 <b>자동 회색</b>입니다. 자료에는 색이 안 적혀 있습니다.'
+    : '머리글에 <b>사람이 칠한 색</b>이 들어 있습니다. 자료에 남아 있는 색입니다.'
+  document.getElementById('v1').innerHTML = kind==='auto'
+    ? '머리글의 회색이 사라져 <b>한 덩어리</b>로 보입니다. 굵은 글씨만 남습니다.'
+    : '<b>칠해 뒀던 색이 지워집니다.</b> 되살리려면 그 줄을 다시 칠해야 합니다.'
+  document.getElementById('v2').innerHTML = '머리글은 손대지 않습니다. 대신 「전체」라고 해 놓고 <b>전체가 아닙니다</b>.'
+  document.getElementById('v3').innerHTML = '머리글이 <b>자동으로 한 톤 진해집니다</b>. 사람이 안 고른 색이 생기는 자리입니다.'
+}
+document.querySelectorAll('.sw').forEach(function(b){ b.addEventListener('click',function(){
+  document.querySelectorAll('.sw').forEach(function(x){x.classList.remove('on')}); b.classList.add('on')
+  color=b.dataset.c; render() }) })
+document.querySelectorAll('.tg').forEach(function(b){ b.addEventListener('click',function(){
+  document.querySelectorAll('.tg').forEach(function(x){x.classList.remove('on')}); b.classList.add('on')
+  kind=b.dataset.k; render() }) })
+render()
+</script>
+</body>
+</html>

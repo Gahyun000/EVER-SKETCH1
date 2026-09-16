@@ -545,10 +545,14 @@ export default function RightPanel() {
                   **어디에도 길이 없었다.**
 
                   묶음 이름이 표에 따라 다르다: 양식 표에서 앞의 몇 색은 **상태를 가리키는
-                  약속**이라 「진행 표시」로 읽혀야 하고, 보통 표에서는 그냥 색이다. */}
+                  약속**이라 「진행 표시」로 읽혀야 하고, 보통 표에서는 그냥 색이다.
+
+                  **이름은 도구줄과 같은 「채우기」다**(2026-09-16). 여기만 「칸 색」으로 두면
+                  같은 일에 이름이 둘이 되고, 그게 바로 사용자가 짚은 문제였다 —
+                  「표는 채우기가 아니라 칸 색으로 따로 뺀 거냐」. */}
               {canCbg ? (
-                <Acc k="stage" t={palette ? '진행 표시 · 칸 색' : '칸 색'} sub={secSub.stage}>
-              <div className="insp-sec">{palette ? '진행 표시' : '칸 색'}</div>
+                <Acc k="stage" t={palette ? '진행 표시 · 채우기' : '채우기'} sub={secSub.stage}>
+              <div className="insp-sec">{palette ? '진행 표시' : '채우기'}</div>
               <div className="insp-row es-cbg-row">
                 {cellColors(slot).map((color) => (
                   <button key={color} type="button"

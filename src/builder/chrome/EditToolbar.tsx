@@ -336,12 +336,20 @@ function TableTools() {
   // 로드맵에만 있다. 기본은 자동(열 때마다 실제 오늘)이고, 발표용으로 특정 시점을
   // 붙잡아야 할 때만 사람이 고정한다. 어느 상태인지 글자로 같이 보여준다 —
   // 버튼 세 개만 있으면 지금 자동인지 고정인지 알 수가 없다.
-  // ── 칸 색 ──
+  // ── 채우기 ──
   //
   // **오른쪽 패널에만 두면 안 된다**(2026-09-16, 사용자 지적). 도형은 도구줄에서 바로
   // 칠하는데 표만 패널을 열어야 하면, 같은 일을 하는 길이 둘로 갈라진다.
   // 표는 요소 하나가 아니라 **고른 칸 범위**에 칠하므로 채우기(`NO_FILL`)와는
   // 다른 자리에 둔다 — 표 도구 옆, 병합과 같은 「고른 칸에 하는 일」 묶음이다.
+  //
+  // **이름은 「채우기」로 맞춘다**(2026-09-16). 전에는 도형만 「채우기」, 표는 「칸 색」이라
+  // 사용자가 「표는 채우기가 아니라 칸 색으로 따로 뺀 거냐」고 물었다. 하는 일이 같으면
+  // 말도 같아야 찾는다. 그림만 표 칸 모양으로 남긴다 — **무엇에** 칠하는지는 그림이 말한다.
+  //
+  // **「칸을 안 골랐으면 표 전체」는 넣지 않는다.** 한 번 넣기로 했다가 물렀다(사용자 판단):
+  // 칠하는 규칙은 「끌어 고른 데를 칠한다」 하나로 족하고, 표 전체는 왼쪽 위에서 오른쪽
+  // 아래까지 끌면 된다. 규칙을 하나 더 만들면 「머리글도 덮나」 같은 물음이 딸려 온다.
   //
   // 색 목록은 `cellColors` 가 한 군데서 정한다. 양식 표는 앞의 몇 색이 **뜻을 가진
   // 약속**(진행 표시)이라 고르개 맨 위에 이름과 함께 따로 깔고, 그 아래 일반
@@ -384,7 +392,7 @@ function TableTools() {
 
     {canCbg ? (
       <span className="ax-grp gs">
-        <span className="lab">칸 색</span>
+        <span className="lab">채우기</span>
         <span className="ax-cp" title={cbgWhy}>
           {/* 아이콘은 **무엇의 색인지**를 말한다 — 도형 채우기(◇)와 헷갈리지 않게
               「표의 한 칸이 칠해진」 그림이다. */}
@@ -395,7 +403,7 @@ function TableTools() {
             <rect x="12" y="10.5" width="8.5" height="4.5" fill="currentColor" stroke="none" opacity=".85" />
           </svg>
           <ColorPicker value={curBg} disabled={!ts} title={cbgWhy}
-            head={{ lab: cbgPal ? '진행 표시 · 칸 색' : '칸 색', colors: cellColors(table.slot), titles: CBG_LABEL }}
+            head={{ lab: cbgPal ? '진행 표시 · 채우기' : '채우기', colors: cellColors(table.slot), titles: CBG_LABEL }}
             onChange={(c) => { if (ts) patch(setCellBgRange(table, ts.r0, ts.c0, ts.r1, ts.c1, c)) }}
             onClear={() => { if (ts) patch(setCellBgRange(table, ts.r0, ts.c0, ts.r1, ts.c1, null)) }} />
         </span>

@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>표 채우기 — 파워포인트식(ㄷ안)</title>
+<style>
+  :root{
+    --navy:#0F1B3D; --blue:#2462EB; --tint:#E8F0FE; --line:#E6E8EE;
+    --sub:#5B6270; --muted:#9AA3B2; --card:#F8F9FB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#EEF0F4;color:#111318;
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 18px 90px}
+  h1{font-size:21px;font-weight:900;color:var(--navy);margin:0 0 6px;letter-spacing:-.02em}
+  .lede{font-size:13.5px;color:var(--sub);margin:0 0 22px;line-height:1.75}
+  .lede b{color:#111318}
+
+  .sec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  .sec>h2{font-size:15px;font-weight:900;color:var(--navy);margin:0 0 4px}
+  .sec>.why{font-size:12.5px;color:var(--sub);margin:0 0 14px;line-height:1.8}
+  .why b{color:#111318}
+  .num{color:var(--blue);font-weight:900}
+
+  table.g{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+  .g th,.g td{text-align:left;padding:9px 10px;border-bottom:1px solid #F1F3F7;vertical-align:middle}
+  .g th{font-size:11px;color:var(--muted);font-weight:800;background:var(--card);
+    border-bottom:1px solid var(--line);white-space:nowrap}
+  .g tr:last-child td{border-bottom:0}
+  .g td.k{font-weight:800;color:var(--navy);white-space:nowrap}
+  .scroll{overflow-x:auto}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;border-radius:99px;padding:1px 8px;white-space:nowrap}
+  .t-all{background:#E9F5EF;color:#215c46}
+  .t-rng{background:#FFF4E3;color:#8a5a10}
+  .t-one{background:#EEF1F6;color:#5B6270}
+  .t-no{background:#fdf0f0;color:#7d2027}
+
+  .bar{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 2px;align-items:center}
+  .bar .lab{font-size:12px;font-weight:900;color:var(--sub);margin-right:4px}
+  .tg{border:1.4px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;font:inherit;
+    font-size:12.5px;font-weight:800;color:var(--sub);cursor:pointer}
+  .tg.on{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+  @media (max-width:900px){ .pair{grid-template-columns:1fr} }
+  .pane{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+  .pcap{display:flex;align-items:center;gap:7px;padding:8px 12px;font-size:11.5px;font-weight:900;
+    border-bottom:1px solid var(--line)}
+  .pane.now .pcap{color:#8A5300}
+  .pane.fix .pcap{color:var(--blue)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#E0A040}
+  .pane.fix .dot{background:var(--blue)}
+  .pbody{padding:12px;background:#fff}
+
+  /* 가짜 도구줄 */
+  .tb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid var(--line);
+    border-radius:10px;padding:6px 8px;background:#fff;min-height:44px}
+  .grp{display:flex;align-items:center;gap:5px;background:#F7F8FB;border:1px solid #EDEFF4;
+    border-radius:9px;padding:4px 8px}
+  .grp.hi{background:#EAF7F0;border-color:#9FD3B8;box-shadow:0 0 0 2px #DCF0E5}
+  .grp .glab{font-size:11px;font-weight:900;color:var(--blue);margin-right:2px;white-space:nowrap}
+  .grp.off{opacity:.45}
+  .tbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;
+    font:inherit;font-size:11.5px;font-weight:800;color:#3a4152}
+  .tbtn[disabled]{opacity:.42}
+  .hint{font-size:11px;color:var(--muted);font-weight:800;white-space:nowrap}
+  .cpick{display:inline-flex;align-items:center;gap:4px}
+  .cpick .sw{width:19px;height:19px;border-radius:5px;border:1px solid rgba(0,0,0,.18)}
+  .icn{color:#5B6270;display:block}
+
+  /* 눌러 보는 표 */
+  .demo{display:grid;grid-template-columns:1fr 268px;gap:16px;margin-top:12px}
+  @media (max-width:900px){ .demo{grid-template-columns:1fr} }
+  .slide{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px}
+  .tbl{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}
+  .tbl td{border:1px solid #cfd5e2;height:34px;text-align:center;color:#1c2433;
+    cursor:pointer;user-select:none;transition:background .12s}
+  .tbl tr:first-child td{font-weight:800;background:#EEF3FB}
+  .tbl td.sel{outline:2px solid #2462EB;outline-offset:-2px}
+  .tbl td.selbg{background:#DBE7FF !important}
+  .side{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .side h3{margin:0 0 8px;font-size:12px;font-weight:900;color:var(--navy)}
+  .pal{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .pal button{width:26px;height:24px;border-radius:6px;border:1px solid rgba(0,0,0,.14);cursor:pointer}
+  .pal button.x{background:#fff;color:#7d2027;font-weight:900;font-size:12px;border-color:#E0A0A0}
+  .stat{font-size:11.5px;color:var(--sub);line-height:1.8}
+  .stat b{color:#111318}
+  .who{display:inline-block;font-size:11px;font-weight:900;border-radius:99px;padding:2px 9px}
+
+  .note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:11px 13px;font-size:12.5px;color:var(--sub);line-height:1.75;margin-top:12px}
+  .note b{color:#111318}
+  .warn{border-left-color:#E0A040}
+  .pickrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+  @media (max-width:760px){ .pickrow{grid-template-columns:1fr} }
+  .opt{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fff}
+  .opt .ko{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--navy);
+    color:#fff;font-size:11px;font-weight:900;text-align:center;line-height:20px;margin-right:6px}
+  .opt h4{margin:0 0 5px;font-size:12.5px;font-weight:900;color:var(--navy)}
+  .opt p{margin:0;font-size:12px;color:var(--sub);line-height:1.7}
+  .opt .rec{font-size:10.5px;font-weight:900;color:#215c46;background:#E9F5EF;border-radius:99px;padding:1px 8px;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>표 채우기 — 파워포인트식(ㄷ안)</h1>
+<p class="lede">
+지금은 도형은 <b>「채우기」</b>, 표는 <b>「칸 색」</b>으로 말이 갈려 있다. ㄷ안은 <b>말도 자리도 하나</b>로 합치고,
+무엇에 칠할지는 <b>「지금 무엇을 골랐나」가 정한다</b> — 칸을 안 골랐으면 표 전체, 골랐으면 그 범위.
+파워포인트·한글이 그렇게 한다. <b>코드는 아직 안 건드렸다.</b>
+</p>
+
+<!-- ① 규칙 -->
+<div class="sec">
+  <h2><span class="num">①</span> 규칙은 한 줄이다</h2>
+  <p class="why">단추는 하나, <b>대상만 고른 것에 따라 바뀐다.</b> 사람이 「표는 저기, 도형은 여기」를 외울 일이 없어진다.</p>
+  <div class="scroll">
+  <table class="g">
+    <tr><th>지금 고른 것</th><th>채우기를 누르면</th><th>옆에 적히는 말</th><th>지금은</th></tr>
+    <tr><td class="k">표만 (칸 안 고름)</td><td><span class="tag t-all">표 전체</span> 모든 칸이 칠해진다</td><td>표 전체</td><td><span class="tag t-no">잠겨 있음 — 「칸을 먼저 고르세요」</span></td></tr>
+    <tr><td class="k">표 + 칸 3×2</td><td><span class="tag t-rng">고른 범위</span> 그 6칸만</td><td>3×2 칸</td><td>같음 (되던 것)</td></tr>
+    <tr><td class="k">도형 하나</td><td><span class="tag t-one">그 도형</span></td><td>—</td><td>같음 (되던 것)</td></tr>
+    <tr><td class="k">아무것도 안 고름</td><td>흐려진다</td><td>고를 것을 먼저</td><td>같음</td></tr>
+  </table>
+  </div>
+  <div class="note"><b>바뀌는 것은 딱 두 개다.</b> ㉠ 표를 골랐을 때 묶음 이름이 「칸 색」 → 「채우기」,
+  ㉡ 칸을 안 골라도 <b>표 전체</b>에 칠할 수 있게 된다. 칠하는 길·색 목록·지우기는 그대로다.</div>
+</div>
+
+<!-- ② 도구줄 -->
+<div class="sec">
+  <h2><span class="num">②</span> 도구줄 — 지금 / ㄷ안</h2>
+  <p class="why">고른 것을 바꿔 가며 보세요. 초록 테두리가 <b>달라지는 자리</b>입니다.</p>
+  <div class="bar">
+    <span class="lab">지금 고른 것</span>
+    <button class="tg on" data-s="table">표만 (칸 안 고름)</button>
+    <button class="tg" data-s="range">표 + 칸 3×2</button>
+    <button class="tg" data-s="shape">도형 하나</button>
+  </div>
+  <div class="pair">
+    <div class="pane now">
+      <div class="pcap"><span class="dot"></span> 지금</div>
+      <div class="pbody"><div class="tb" id="tbNow"></div></div>
+    </div>
+    <div class="pane fix">
+      <div class="pcap"><span class="dot"></span> ㄷ안 — 파워포인트식</div>
+      <div class="pbody"><div class="tb" id="tbFix"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ③ 눌러 보기 -->
+<div class="sec">
+  <h2><span class="num">③</span> 눌러 보기 — 어디에 칠해지나</h2>
+  <p class="why">표의 칸을 <b>끌어서</b> 고르거나, <b>빈 곳을 눌러</b> 칸 고르기를 풀어 보세요.
+  그 상태에서 오른쪽 색을 누르면 어디에 들어가는지 보입니다.</p>
+  <div class="demo">
+    <div class="slide">
+      <table class="tbl" id="dt"></table>
+      <div style="margin-top:10px;font-size:11.5px;color:#9AA3B2;font-weight:800">
+        칸을 끌어 고르면 범위, 표 밖(아래 빈 칸)을 누르면 <b>칸 고르기 풀림</b>
+      </div>
+      <div id="blank" style="height:34px;margin-top:6px;border:1px dashed #E6E8EE;border-radius:8px;
+        display:grid;place-items:center;font-size:11px;color:#9AA3B2;cursor:pointer">여기를 누르면 칸 고르기 풀림</div>
+    </div>
+    <div class="side">
+      <h3>채우기</h3>
+      <div style="margin-bottom:8px"><span class="who" id="who"></span></div>
+      <div class="pal" id="pal"></div>
+      <div class="stat" id="stat"></div>
+    </div>
+  </div>
+  <div class="note warn"><b>되돌리기는 한 번에.</b> 표 전체를 칠하는 건 칸 수십 개가 한꺼번에 바뀌는 일이라,
+  ⌘Z 한 번에 <b>통째로</b> 돌아가야 한다. 칸마다 한 번씩 무르게 두면 되돌리다 지친다.</div>
+</div>
+
+<!-- ④ 갈림길 -->
+<div class="sec">
+  <h2><span class="num">④</span> 정하고 가야 할 것 셋</h2>
+  <p class="why">ㄷ으로 가면 <b>새로 생기는 판단</b>들입니다. 고르시면 그대로 만들겠습니다.</p>
+
+  <h4 style="margin:14px 0 0;font-size:12.5px;color:var(--navy);font-weight:900">갈림길 1 — 표준 양식 표(로드맵 「진행 표시」)에서도 표 전체를 허용할까</h4>
+  <div class="pickrow">
+    <div class="opt"><h4><span class="ko">ㄱ</span>허용한다<span class="rec">단순함</span></h4>
+      <p>양식 표든 아니든 규칙이 하나다. 다만 로드맵은 <b>색이 곧 뜻</b>(진행 단계)이라,
+      전체를 한 색으로 덮으면 그 뜻이 통째로 지워진다.</p></div>
+    <div class="opt"><h4><span class="ko">ㄴ</span>양식 표는 칸을 골라야만</h4>
+      <p>양식 표에서는 「표 전체」를 막고 「칸을 고르세요」로 둔다. 실수로 로드맵을 밀어 버리는 일이 없다.
+      대신 표에 따라 되는 게 다르다.</p></div>
+  </div>
+
+  <h4 style="margin:18px 0 0;font-size:12.5px;color:var(--navy);font-weight:900">갈림길 2 — 표 전체를 칠할 때 머리글 행도 덮을까</h4>
+  <div class="pickrow">
+    <div class="opt"><h4><span class="ko">ㄱ</span>다 덮는다</h4>
+      <p>「전체」라는 말 그대로. 머리글만 따로 되돌리려면 그 줄을 다시 골라 칠해야 한다.</p></div>
+    <div class="opt"><h4><span class="ko">ㄴ</span>머리글은 남긴다<span class="rec">사고 적음</span></h4>
+      <p>머리글 행은 대개 이미 색이 정해져 있다(위 그림의 파란 줄). 전체 칠하기에서 빼 두면
+      표가 한 덩어리로 뭉개지지 않는다. 머리글까지 바꾸고 싶으면 그 줄을 골라 칠하면 된다.</p></div>
+  </div>
+
+  <h4 style="margin:18px 0 0;font-size:12.5px;color:var(--navy);font-weight:900">갈림길 3 — 무엇에 칠하는지 옆에 적을까</h4>
+  <div class="pickrow">
+    <div class="opt"><h4><span class="ko">ㄱ</span>적는다 — 「표 전체」 / 「3×2 칸」<span class="rec">권함</span></h4>
+      <p>같은 단추가 때에 따라 다른 데 칠하므로, <b>누르기 전에</b> 어디에 들어갈지 보여야 한다.
+      지금도 그 자리에 「칠함 / 없음」을 적고 있으니 자리를 더 쓰지 않는다.</p></div>
+    <div class="opt"><h4><span class="ko">ㄴ</span>안 적는다</h4>
+      <p>도구줄이 한 칸 짧아진다. 대신 표 전체가 칠해지는 걸 <b>누른 뒤에</b> 알게 된다.</p></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ── ② 도구줄 ───────────────────────────────── */
+const ICON_FILL = '<svg class="icn" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M5 12 12 5l7 7-7 7z"/><path d="M19.5 15.5c0 1.4 1.2 2.4 1.2 2.4"/></svg>';
+const ICON_CELL = '<svg class="icn" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="14" rx="1.5"/><path d="M3.5 10.5h17M3.5 15h17M12 5v14"/><rect x="12" y="10.5" width="8.5" height="4.5" fill="currentColor" stroke="none" opacity=".85"/></svg>';
+
+function grp(cls, inner){ return '<span class="grp '+cls+'">'+inner+'</span>' }
+function pick(color, icon){
+  return '<span class="cpick">'+icon+'<span class="sw" style="background:'+color+'"></span></span>' }
+
+function draw(state){
+  let now='', fix=''
+  if (state==='table'){
+    now  = grp('', '<span class="glab">표</span><button class="tbtn">⤢ 병합</button><button class="tbtn" disabled>⤡ 해제</button><span class="hint">칸을 끌어서 선택</span>')
+         + grp('', '<span class="glab">칸 색</span>'+pick('#fff', ICON_CELL)+'<span class="hint">칸을 먼저 고르세요</span>')
+    fix  = grp('', '<span class="glab">표</span><button class="tbtn">⤢ 병합</button><button class="tbtn" disabled>⤡ 해제</button><span class="hint">칸을 끌어서 선택</span>')
+         + grp('hi', '<span class="glab">채우기</span>'+pick('#fff', ICON_FILL)+'<span class="hint">표 전체</span>')
+  } else if (state==='range'){
+    now  = grp('', '<span class="glab">표</span><button class="tbtn">⤢ 병합</button><button class="tbtn" disabled>⤡ 해제</button><span class="hint">3×2 선택</span>')
+         + grp('', '<span class="glab">칸 색</span>'+pick('#FFF4E3', ICON_CELL)+'<span class="hint">칠함</span>')
+    fix  = grp('', '<span class="glab">표</span><button class="tbtn">⤢ 병합</button><button class="tbtn" disabled>⤡ 해제</button><span class="hint">3×2 선택</span>')
+         + grp('hi', '<span class="glab">채우기</span>'+pick('#FFF4E3', ICON_FILL)+'<span class="hint">3×2 칸</span>')
+  } else {
+    now  = grp('', '<span class="glab">색</span>'+pick('#DBE7FF', ICON_FILL)+pick('#2462EB','<svg class="icn" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/></svg>'))
+    fix  = grp('hi', '<span class="glab">채우기</span>'+pick('#DBE7FF', ICON_FILL)+pick('#2462EB','<svg class="icn" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/></svg>'))
+  }
+  document.getElementById('tbNow').innerHTML = now
+  document.getElementById('tbFix').innerHTML = fix
+}
+document.querySelectorAll('.tg').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tg').forEach(x=>x.classList.remove('on'))
+  b.classList.add('on'); draw(b.dataset.s)
+}))
+draw('table')
+
+/* ── ③ 눌러 보는 표 ─────────────────────────── */
+const R=6, C=3
+const HEAD='#EEF3FB'
+const bg = Array.from({length:R},(_,r)=>Array.from({length:C},()=>null))
+let sel = null            // {r0,c0,r1,c1} 또는 null
+let drag = null
+const COLORS=['#FFFFFF','#F1F3F6','#EAF0FF','#E9F5EF','#FFF4E3','#FDF0F0','#EEF2FA','#F6F0FF']
+
+function inSel(r,c){
+  if(!sel) return false
+  return r>=Math.min(sel.r0,sel.r1) && r<=Math.max(sel.r0,sel.r1)
+      && c>=Math.min(sel.c0,sel.c1) && c<=Math.max(sel.c0,sel.c1)
+}
+function render(){
+  const t=document.getElementById('dt'); let h=''
+  for(let r=0;r<R;r++){ h+='<tr>'
+    for(let c=0;c<C;c++){
+      const base = r===0 ? HEAD : '#fff'
+      const col = bg[r][c] || base
+      h+='<td data-r="'+r+'" data-c="'+c+'" class="'+(inSel(r,c)?'selbg':'')+'" '
+        +'style="background:'+col+'">'+(r===0?(c===0?'구분':c===1?'제목':''):'')+'</td>'
+    } h+='</tr>' }
+  t.innerHTML=h
+  bind()
+  const who=document.getElementById('who')
+  if(sel){
+    const n=(Math.abs(sel.r1-sel.r0)+1)+'×'+(Math.abs(sel.c1-sel.c0)+1)
+    who.textContent = n+' 칸'; who.style.background='#FFF4E3'; who.style.color='#8a5a10'
+  } else {
+    who.textContent = '표 전체'; who.style.background='#E9F5EF'; who.style.color='#215c46'
+  }
+  const filled = bg.flat().filter(Boolean).length
+  document.getElementById('stat').innerHTML =
+    '칠해진 칸 <b>'+filled+'</b> / '+(R*C)+'개<br>'
+    + (sel ? '고른 범위에만 들어갑니다.' : '<b>칸을 안 골랐으므로 표 전체</b>에 들어갑니다.')
+}
+function bind(){
+  document.querySelectorAll('#dt td').forEach(td=>{
+    td.addEventListener('mousedown',e=>{
+      const r=+td.dataset.r, c=+td.dataset.c
+      drag={r0:r,c0:c,r1:r,c1:c}; sel={...drag}; render(); e.preventDefault()
+    })
+    td.addEventListener('mouseenter',()=>{
+      if(!drag) return
+      drag.r1=+td.dataset.r; drag.c1=+td.dataset.c; sel={...drag}; render()
+    })
+  })
+}
+document.addEventListener('mouseup',()=>{ drag=null })
+document.getElementById('blank').addEventListener('click',()=>{ sel=null; render() })
+
+const pal=document.getElementById('pal')
+COLORS.forEach(c=>{
+  const b=document.createElement('button'); b.style.background=c; b.title=c
+  b.addEventListener('click',()=>paint(c)); pal.appendChild(b)
+})
+const x=document.createElement('button'); x.className='x'; x.textContent='✕'; x.title='색 지우기'
+x.addEventListener('click',()=>paint(null)); pal.appendChild(x)
+
+function paint(color){
+  if(sel){
+    for(let r=Math.min(sel.r0,sel.r1);r<=Math.max(sel.r0,sel.r1);r++)
+      for(let c=Math.min(sel.c0,sel.c1);c<=Math.max(sel.c0,sel.c1);c++) bg[r][c]=color
+  } else {
+    // 갈림길 2 — 여기서는 「머리글은 남긴다(ㄴ)」로 그려 둔다
+    for(let r=1;r<R;r++) for(let c=0;c<C;c++) bg[r][c]=color
+  }
+  render()
+}
+render()
+</script>
+</body>
+</html>
