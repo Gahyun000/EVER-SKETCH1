@@ -16,6 +16,7 @@ import { isContinuation } from './tableFlow'
 import { treeShape, descendantCount, knownOf, isTreePage } from '../cards/treeOps'
 import { parseCell } from '../comments/anchor'
 import { pinsOfPage, useComments } from '../comments/store'
+import type { Thread } from '../comments/commentsApi'
 import '../template/template.css'
 import ColorPicker from '../builder/chrome/ColorPicker'
 
@@ -127,6 +128,37 @@ function computeSnap(w: number, h: number, rawX: number, rawY: number, others: F
   for (const off of offX) for (const c of xsC) if (Math.abs(c - (nx + off)) < 0.5 && !gv.includes(c)) gv.push(c)
   for (const off of offY) for (const c of ysC) if (Math.abs(c - (ny + off)) < 0.5 && !gh.includes(c)) gh.push(c)
   return { x: nx, y: ny, v: gv, h: gh }
+}
+
+/**
+ * 지적 핀 하나. 올렸을 때 **어디를 가리키는지도** 함께 보여준다 —
+ * 범위로 짚으면 핀은 왼쪽 위 한 칸에만 붙어서, 글만 뜨면 어디까지가
+ * 지적 범위인지 다시 헤아려야 한다.
+ *
+ * **파일 맨 바깥에 둔다**(2026-09-16). 전에는 `FreeLayer` 안에 선언돼 있었는데,
+ * 그러면 캔버스를 다시 그릴 때마다 새 부품이 되어 리액트가 핀을 **버리고 새로 만든다**.
+ * 같은 잘못이 오른쪽 패널에서는 「스크롤이 맨 위로 튄다 · 치던 칸에서 손이 떨어진다」로
+ * 터졌다(RightPanel 의 `Acc` 주석 참고). 핀은 제 상태가 없어 눈에 띄는 탈은 없었지만,
+ * **같은 잘못**이라 같이 옮긴다.
+ */
+function Pin({ list, el, focusId, onFocus }: {
+  list: Thread[]
+  el?: FreeEl
+  focusId: string | null
+  onFocus: (id: string | null) => void
+}) {
+  return (
+    <div className={'cmt-pin' + (list.every((t) => t.resolved_at) ? ' done' : '')
+      + (list.some((t) => t.id === focusId) ? ' on' : '')}
+      title={list.map((t) => {
+        const w = tableAnchorLabel(el, t.cell)
+        return (w ? w + ' — ' : '') + t.body
+      }).join('\n').slice(0, 200)}
+      onPointerDown={(e) => { e.stopPropagation(); onFocus(list[0].id) }}
+      onClick={(e) => e.stopPropagation()}>
+      {list.length}
+    </div>
+  )
 }
 
 export default function FreeLayer({ page, W, H, interactive }: Props) {
@@ -299,21 +331,6 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       }
     }
   }
-  // 핀에 올렸을 때 **어디를 가리키는지도** 함께 보여준다.
-  // 범위로 짚으면 핀은 왼쪽 위 한 칸에만 붙는다 — 글만 뜨면 어디까지가
-  // 지적 범위인지 다시 헤아려야 한다.
-  const Pin = ({ list, el }: { list: typeof pagePins; el?: typeof page.els[number] }) => (
-    <div className={'cmt-pin' + (list.every((t) => t.resolved_at) ? ' done' : '')
-      + (list.some((t) => t.id === cmtFocusId) ? ' on' : '')}
-      title={list.map((t) => {
-        const w = tableAnchorLabel(el, t.cell)
-        return (w ? w + ' — ' : '') + t.body
-      }).join('\n').slice(0, 200)}
-      onPointerDown={(e) => { e.stopPropagation(); cmtFocus(list[0].id) }}
-      onClick={(e) => e.stopPropagation()}>
-      {list.length}
-    </div>
-  )
 
   // 페이지가 작업창보다 크면 Preview 가 CSS 로 축소해 그린다(맞춤 배율).
   // 그때 마우스가 지나간 **화면 픽셀은 페이지 좌표보다 크다.** 배율로 나누지 않으면
@@ -1026,7 +1043,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                             <div className="feltd-pin"
                               data-r={r} data-c={c} data-rc={r + '_' + c}
                               style={{ gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}` }}>
-                              <Pin list={pins} el={el} />
+                              <Pin list={pins} el={el} focusId={cmtFocusId} onFocus={cmtFocus} />
                             </div>
                           ) : null}
                           </Fragment>
@@ -1080,7 +1097,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                       onBlur={() => { endEditing() }}>{el.text}</div>
                   : <div className="feltext" style={txtStyle}>{el.text}</div>)}
             {active && isNote && editingThis ? <div className="note-drag" title="드래그해서 이동">⠿</div> : null}
-            {(() => { const ps = pinByEl.get(el.id); return ps ? <Pin list={ps} /> : null })()}
+            {(() => { const ps = pinByEl.get(el.id); return ps ? <Pin list={ps} focusId={cmtFocusId} onFocus={cmtFocus} /> : null })()}
           </div>
         )
       })}

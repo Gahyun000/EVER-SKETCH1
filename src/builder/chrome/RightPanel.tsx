@@ -48,6 +48,42 @@ type Tab = 'cell' | 'row' | 'stage' | 'look' | 'text' | 'geom' | 'extra' | 'bord
  *  예전 판이 남긴 키(table·style·arrange)가 화면에 없는 묶음을 열어 둔 채로 남지 않게. */
 const SECS: readonly Tab[] = ['cell', 'row', 'stage', 'look', 'text', 'geom', 'extra', 'border']
 
+/**
+ * **접이식 한 묶음.** 여덟 군데가 같은 모양이라 한 곳으로 모았다 —
+ * 묶음이 넷에서 여덟으로 늘면서 베껴 쓴 자리가 그만큼 늘어난다.
+ *
+ * ── 왜 **파일 맨 바깥**에 있나 (2026-09-16) ──────────────────────
+ *
+ * 전에는 이게 `RightPanel` **안에** 선언돼 있었다. 그러면 화면을 다시 그릴 때마다
+ * `Acc` 가 **새 부품**이 된다. 리액트는 「자리는 같은데 부품이 바뀌었다」고 보고
+ * 고쳐 그리는 대신 **여덟 묶음을 통째로 버리고 새로 만든다.** 그래서
+ *
+ *   · 패널 스크롤이 **맨 위로 튀었다** (내용이 잠깐 비어 브라우저가 0 으로 깎는다)
+ *   · 치던 숫자 칸이 **손에서 떨어졌다** — ▲를 두 번 연달아 못 눌렀다
+ *
+ * 사용자가 영상 둘로 신고한 그 증상이다. 재현해 보니 값을 한 번 올리는 것만으로
+ * scrollTop 286 → 0, 묶음 머리와 입력 칸이 **전부 새 DOM 노드**로 갈렸다.
+ *
+ * **그래서 부품은 바깥에 두고, 안에서 오는 것은 값으로 받는다.** 값이 바뀌면
+ * 고쳐 그릴 뿐 버리지 않는다. 이 자리에 부품을 다시 선언하면 같은 증상이 돌아온다.
+ */
+function Acc({ k, t, sub, sec, onToggle, children }: {
+  k: Tab; t: string; sub?: string
+  sec: Record<Tab, boolean>; onToggle: (k: Tab) => void
+  children: React.ReactNode
+}) {
+  const open = sec[k]
+  return (<>
+    <button className={'insp-acc' + (open ? ' on' : '')}
+      onClick={() => onToggle(k)} aria-expanded={open}>
+      <span className="ch">{open ? '▾' : '▸'}</span>
+      <span className="t">{t}</span>
+      {sub ? <span className="sub">{sub}</span> : null}
+    </button>
+    {open ? <>{children}</> : null}
+  </>)
+}
+
 /** 처음 여는 사람에게 **자주 쓰는 것만** 펴 준다(시안 그대로).
  *  표는 칸·행·진행 표시, 그 밖은 모양·글자. 나머지는 접힌 줄에 지금 값이 적혀 있어
  *  열지 않아도 읽힌다 — 그게 접이식으로 바꾼 이유다. */
@@ -382,20 +418,6 @@ export default function RightPanel() {
          el.headRow !== false ? '머리행' : ''].filter(Boolean).join(' · ') : '',
   }
 
-  /** 접이식 한 묶음. 여덟 군데가 같은 모양이라 한 곳으로 모았다 —
-   *  묶음이 넷에서 여덟으로 늘면서 베껴 쓴 자리가 그만큼 늘어난다. */
-  const Acc = ({ k, t, sub, children }: {
-    k: Tab; t: string; sub?: string; children: React.ReactNode
-  }) => (<>
-    <button className={'insp-acc' + (openSec[k] ? ' on' : '')}
-      onClick={() => toggle(k)} aria-expanded={openSec[k]}>
-      <span className="ch">{openSec[k] ? '▾' : '▸'}</span>
-      <span className="t">{t}</span>
-      {sub ? <span className="sub">{sub}</span> : null}
-    </button>
-    {openSec[k] ? <>{children}</> : null}
-  </>)
-
   // 고른 것의 이름 — 표준 양식이면 문서 안의 이름표, 아니면 생김새 이름.
   const EL_NAME: Record<string, string> = {
     table: '표', text: '글상자', icon: '아이콘', wordart: '꾸민 글자', note: '메모',
@@ -459,7 +481,7 @@ export default function RightPanel() {
                 표에서는 칸 글자가 「칸」 안에, 표 전체 글자가 「표 전체 글자」에 있어 이름이 답을 준다.
                 **조각은 한 글자도 안 고쳤다** — 자리만 옮겼다. */}
             {el.type === 'table' ? (<>
-              <Acc k="cell" t="칸" sub={secSub.cell}>
+              <Acc k="cell" t="칸" sub={secSub.cell} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">활성 셀 {ts ? `(${Math.min(ts.r0, ts.r1) + 1}행, ${Math.min(ts.c0, ts.c1) + 1}열)` : '— 표에서 셀 클릭'}</div>
               {inTemplate && (
                 <div className="insp-note">
@@ -499,7 +521,7 @@ export default function RightPanel() {
                     「병합 해제」는 병합 안 된 칸에서도 눌렸다. */}
               </>) : null}
               </Acc>
-              <Acc k="row" t="행" sub={secSub.row}>
+              <Acc k="row" t="행" sub={secSub.row} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">행</div>
               <div className="insp-row">
                 <button className="insp-pill" disabled={!canRow} onClick={() => { patchTable(addRow(el, Math.max(ar, headLocked))); void shiftAnchors('row', Math.max(ar, headLocked), 1) }}>↑ 위에 추가</button>
@@ -551,7 +573,7 @@ export default function RightPanel() {
                   같은 일에 이름이 둘이 되고, 그게 바로 사용자가 짚은 문제였다 —
                   「표는 채우기가 아니라 칸 색으로 따로 뺀 거냐」. */}
               {canCbg ? (
-                <Acc k="stage" t={palette ? '진행 표시 · 채우기' : '채우기'} sub={secSub.stage}>
+                <Acc k="stage" t={palette ? '진행 표시 · 채우기' : '채우기'} sub={secSub.stage} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">{palette ? '진행 표시' : '채우기'}</div>
               <div className="insp-row es-cbg-row">
                 {cellColors(slot).map((color) => (
@@ -573,7 +595,7 @@ export default function RightPanel() {
               <div className="insp-hint">셀을 드래그해 여러 칸을 한 번에 칠할 수 있어요. 병합도 같은 방식이에요 — 위 툴바의 <b>표 ⤢ 병합</b>.</div>
                 </Acc>
               ) : null}
-              <Acc k="text" t="표 전체 글자" sub={secSub.text}>
+              <Acc k="text" t="표 전체 글자" sub={secSub.text} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">글자</div>
               <div className="insp-row">
                 <button className={'insp-b' + (el.bold ? ' on' : '')} onClick={() => patch({ bold: !el.bold })}><b>B</b></button>
@@ -595,7 +617,7 @@ export default function RightPanel() {
                 <button className="insp-pill" onClick={() => emit('ebook:fmt-clear')}>서식 지우기</button>
               </div>
               </Acc>
-              <Acc k="geom" t="크기 · 자리" sub={secSub.geom}>
+              <Acc k="geom" t="크기 · 자리" sub={secSub.geom} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">크기</div>
               <div className="insp-row">{numRow('너비', el.w, (n) => patch({ w: Math.max(10, n) }), 10)}{numRow('높이', el.h, (n) => patch({ h: Math.max(10, n) }), 10)}</div>
               <div className="insp-sec">위치</div>
@@ -622,7 +644,7 @@ export default function RightPanel() {
               </div>
               <span style={cap}>여러 요소를 Shift+클릭하거나 빈 곳을 드래그해 함께 고른 뒤 그룹화하세요.</span>
               </Acc>
-              <Acc k="border" t="테두리 · 머리글" sub={secSub.border}>
+              <Acc k="border" t="테두리 · 머리글" sub={secSub.border} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">테두리 · 헤더</div>
               <div className="insp-row">
                 <ColorPicker value={el.borderColor || '#cfd5e2'} onChange={(c) => patchTable({ borderColor: c })} />
@@ -634,7 +656,7 @@ export default function RightPanel() {
               <span style={cap}>셀을 드래그하면 범위가 잡힙니다(Shift+클릭도 범위). 글자 수정은 표를 더블클릭. 표 자체를 옮길 땐 표 가장자리를 끌거나 방향키를 쓰세요.</span>
               </Acc>
             </>) : (<>
-              <Acc k="look" t="모양 · 색" sub={secSub.look}>
+              <Acc k="look" t="모양 · 색" sub={secSub.look} sec={openSec} onToggle={toggle}>
               {el.type === 'image' && el.src ? (<>
                 <div className="insp-sec">사진</div>
                 <div className="insp-row">
@@ -652,7 +674,7 @@ export default function RightPanel() {
               <div className="insp-sec">불투명도</div>
               <div className="insp-row"><input className="insp-range" type="range" min={0} max={100} value={Math.round((el.opacity ?? 1) * 100)} onChange={(e) => patch({ opacity: Number(e.target.value) / 100 })} /><span style={{ fontSize: 12, color: '#5b6270', width: 42, textAlign: 'right' }}>{Math.round((el.opacity ?? 1) * 100)}%</span></div>
               </Acc>
-              <Acc k="text" t="글자" sub={secSub.text}>
+              <Acc k="text" t="글자" sub={secSub.text} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">글자</div>
               <div className="insp-row">
                 <button className={'insp-b' + (el.bold ? ' on' : '')} onClick={() => patch({ bold: !el.bold })}><b>B</b></button>
@@ -674,7 +696,7 @@ export default function RightPanel() {
                 <button className="insp-pill" onClick={() => emit('ebook:fmt-clear')}>서식 지우기</button>
               </div>
               </Acc>
-              <Acc k="geom" t="크기 · 자리" sub={secSub.geom}>
+              <Acc k="geom" t="크기 · 자리" sub={secSub.geom} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">크기</div>
               <div className="insp-row">{numRow('너비', el.w, (n) => patch({ w: Math.max(10, n) }), 10)}{numRow('높이', el.h, (n) => patch({ h: Math.max(10, n) }), 10)}</div>
               <div className="insp-sec">위치</div>
@@ -687,7 +709,7 @@ export default function RightPanel() {
                 <button className={'insp-pill' + (el.flipV ? ' on' : '')} onClick={() => patch({ flipV: !el.flipV })}>↕ 상하</button>
               </div>
               </Acc>
-              <Acc k="extra" t="효과 · 순서" sub={secSub.extra}>
+              <Acc k="extra" t="효과 · 순서" sub={secSub.extra} sec={openSec} onToggle={toggle}>
               <div className="insp-sec">효과</div>
               <div className="insp-row">
                 <label className="insp-check"><input type="checkbox" checked={!!el.shadow} onChange={(e) => patch({ shadow: e.target.checked })} /> 그림자</label>
