@@ -21,7 +21,7 @@ const isHex = (v: string) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)
  * `onClear` 가 있으면 「색 지우기」가 같이 뜬다. 칸 색은 **없음이 정상 상태**라
  * 지우는 길이 없으면 한 번 칠한 칸을 되돌릴 수 없다.
  */
-export default function ColorPicker({ value, onChange, allowTransparent, head, onClear, disabled, title }: {
+export default function ColorPicker({ value, onChange, allowTransparent, head, onClear, disabled, title, caret }: {
   value?: string
   onChange: (c: string) => void
   allowTransparent?: boolean
@@ -29,6 +29,9 @@ export default function ColorPicker({ value, onChange, allowTransparent, head, o
   onClear?: () => void
   disabled?: boolean
   title?: string
+  /** 여는 단추를 **색 네모가 아니라 ▾** 로 그린다. 색을 보여 주는 일은 옆 단추가 맡고,
+   *  여기는 **고르개를 여는 일만** 한다 — 파워포인트의 「색 단추 + 화살표」와 같은 나눔이다. */
+  caret?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [hex, setHex] = useState(value || '#000000')
@@ -40,9 +43,14 @@ export default function ColorPicker({ value, onChange, allowTransparent, head, o
   const cur = value || 'transparent'
   return (
     <span className="cp">
-      <button type="button" className="cp-trig" onClick={() => setOpen((o) => !o)} title={title || '색 선택'}
-        disabled={disabled}
-        style={{ background: cur === 'transparent' ? 'repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 50% / 10px 10px' : cur }} />
+      {caret ? (
+        <button type="button" className="cp-trig cp-caret" onClick={() => setOpen((o) => !o)}
+          title={title || '다른 색'} disabled={disabled} aria-label={title || '다른 색'}>▾</button>
+      ) : (
+        <button type="button" className="cp-trig" onClick={() => setOpen((o) => !o)} title={title || '색 선택'}
+          disabled={disabled}
+          style={{ background: cur === 'transparent' ? 'repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 50% / 10px 10px' : cur }} />
+      )}
       {open && (
         <>
           <div className="cp-back" onClick={() => setOpen(false)} />

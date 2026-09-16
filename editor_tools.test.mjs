@@ -38,10 +38,16 @@ const { cellColors, CBG_FREE, cbgPalette } = await import('./src/template/slots.
 const { ALIGN_LABEL, VALIGN_LABEL } = await import('./src/ui/alignLabels.ts')
 
 // ── ① 채우기·테두리가 도구줄에 ────────────────────
-check(/function FillTools/.test(tb), '도구줄에 채우기·테두리 묶음이 있다')
-check(/<FillTools \/>/.test(tb), '그 묶음이 실제로 그려진다')
+//
+// **2026-09-16(둘째) · `FillTools` 라는 이름이 없어졌다.** 사용자가 「파워포인트는
+// 채우기·테두리·글씨 색이 나눠져 있다」고 해서, 한 묶음에 들어 있던 것을 **이름 붙은 셋**
+// 으로 쪼갰다(`InkTools` / `InkBtn`). 이 검사는 옛 이름을 그대로 박아 두어 깨졌으므로
+// **지우지 않고 새 모양으로 고쳐 쓴다** — 지키려던 것(도구줄에서 채우기·테두리를
+// 바꿀 수 있고, 속 없는 갈래에는 안 뜬다)은 그대로 본다. 자세한 것은 toolbar_ink.test.mjs.
+check(/function InkTools/.test(tb), '도구줄에 채우기·테두리 묶음이 있다')
+check(/<InkTools \/>/.test(tb), '그 묶음이 실제로 그려진다')
 {
-  const ft = tb.slice(tb.indexOf('function FillTools'))
+  const ft = tb.slice(tb.indexOf('function InkTools'))
   check(/patch\(\{ color: c \}\)/.test(ft), '채우기를 바꾼다')
   check(/patch\(\{ borderColor: c \}\)/.test(ft), '테두리 색을 바꾼다')
   check(/allowTransparent/.test(ft), '채우기는 **없앨 수도** 있다')

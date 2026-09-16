@@ -649,6 +649,10 @@ export default function RightPanel() {
               <div className="insp-row">
                 <ColorPicker value={el.borderColor || '#cfd5e2'} onChange={(c) => patchTable({ borderColor: c })} />
                 <select className="insp-sel" style={{ width: 'auto' }} value={el.borderWidth ?? 1} onChange={(e) => patchTable({ borderWidth: Number(e.target.value) })}>
+                  {/* **「없음」을 넣는다**(2026-09-16). 도형은 테두리를 없앨 수 있는데 표만
+                      얇게/보통/굵게뿐이라, 선 없는 표를 만들 길이 아예 없었다.
+                      0 이면 그리는 쪽에서 `0px solid` 가 되어 선이 사라진다. */}
+                  <option value={0}>없음</option>
                   <option value={0.5}>얇게</option><option value={1}>보통</option><option value={2}>굵게</option>
                 </select>
                 <label className="insp-check"><input type="checkbox" checked={el.headRow !== false} onChange={(e) => patchTable({ headRow: e.target.checked })} /> 헤더행</label>

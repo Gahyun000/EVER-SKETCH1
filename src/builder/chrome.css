@@ -577,6 +577,36 @@
    어디 갔나」가 되고, 왜 못 쓰는지는 title 이 말해 준다. */
 .ax-cp .cp-trig:disabled { opacity: .4; cursor: default; }
 
+/* ── 색 단추: 그림 + 지금 색 띠 + ▾ ──────────────────────────
+   파워포인트와 같은 모양이다. 띠가 **마지막에 쓴 색**을 보여 주고, 단추를 그냥 누르면
+   그 색이 칠해진다. ▾ 는 고르개만 연다. */
+.ax-ink { display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 1px solid transparent; border-radius: 6px; background: #fff;
+  padding: 2px 4px 3px; cursor: pointer; color: #3a4152; }
+.ax-ink:hover { background: #F2F4F8; }
+.ax-ink svg { display: block; }
+.ax-inkbar { display: block; width: 16px; height: 4px; border-radius: 1px;
+  border: 1px solid rgba(0,0,0,.12); }
+.cp-trig.cp-caret { width: 14px; height: 18px; border: 0; background: transparent;
+  font-size: 9px; line-height: 1; color: #5b6270; padding: 0; }
+.cp-trig.cp-caret:hover { color: #2462EB; }
+
+/* ── 좁으면 **이름표만 접는다** ──────────────────────────────
+   도구줄은 넘치면 다음 줄로 내려간다(flex-wrap). 그래서 도구가 사라지진 않지만,
+   창이 좁을수록 줄이 늘어 **캔버스가 그만큼 줄고**, 무엇을 골랐느냐에 따라 줄 수가
+   오르내려 화면이 들썩인다. 이름을 붙이면서 그게 더 심해졌다.
+
+   그래서 좁아지면 **이름표만 숨긴다.** 그림과 단추는 그대로라 쓸 수 있는 도구가
+   줄지 않고, 이름은 올려 보면 뜬다(묶음마다 title 을 단다).
+
+   **자바스크립트로 「넘치면」을 재지 않는다.** 이름을 숨기면 폭이 줄어 다시 들어가고,
+   들어가면 이름을 도로 띄우다가 또 넘친다 — 껐다 켰다가 멈추지 않는다.
+   컨테이너 질의는 **줄 자신의 폭**만 보므로 그런 진동이 없다(이름을 숨겨도 줄 폭은 그대로다). */
+.ax-tbrow { container-type: inline-size; }
+@container (max-width: 1240px) {
+  .ax-tbrow .ax-grp > .lab { display: none; }
+}
+
 /* 정렬 아이콘 — 글자가 아니라 그림이다(파워포인트·한글과 같은 모양).
    단추 안에서 가운데로 서고, 단추 색을 그대로 물려받는다. */
 .al-ic { display: block; }

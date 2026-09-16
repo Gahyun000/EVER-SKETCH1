@@ -192,7 +192,24 @@ function CommentTool() {
  *  시안 그림은 한 줄이지만, 이 코드가 두 줄로 나눠 둔 데에는 이유가 있다:
  *  줄이 생겼다 없어지면 툴바 높이가 42px 변하고 그만큼 문서가 아래위로 움직인다.
  *  칸을 끌던 사람이 한 줄 아래를 고르게 된다. 그래서 **자리는 고정, 내용만 바뀐다.** */
+/**
+ * **글자 · 글자 색 · 채우기 · 테두리 — 넷을 이름 붙여 나란히 둔다**(2026-09-16).
+ *
+ * 전에는 한 묶음 안에 전부 들어 있었다. 글자 색은 **이름 없는 점 여섯**이라 그 여섯 말고는
+ * 오른쪽 패널을 열어야 했고, 채우기·테두리는 「색」 하나에 묶여 눌러 봐야 어느 쪽인지 알았다.
+ * 두께는 아예 패널에만 있었다.
+ *
+ * 파워포인트는 **채우기 · 윤곽선 · 글꼴 색**이 각각 이름 붙은 단추이고, 단추 밑에 지금 색이
+ * 띠로 보인다. 그냥 누르면 **띠에 보이는 그 색**이 칠해지고, ▾ 를 눌러야 팔레트가 열린다 —
+ * 색을 새로 고르는 일보다 **같은 색을 여러 번 쓰는 일**이 훨씬 잦아서다. 같은 나눔을 쓴다.
+ */
 function TextTools() {
+  const { el } = useSelEl()
+  if (!el) return null
+  return (<><FontTools /><InkTools /></>)
+}
+
+function FontTools() {
   const { el, patch } = useSelEl()
   if (!el) return null
   const fs = el.fs || 13
@@ -218,56 +235,90 @@ function TextTools() {
           <AlignIcon dir={a} />
         </button>
       ))}
-      <span className="dv" />
-      {TEXT_COLORS.map((c) => (
-        <button key={c} className={'ax-dot' + ((el.tcolor || '#1a1a1a') === c ? ' on' : '')}
-          style={{ background: c }} title="글자 색" onClick={() => patch({ tcolor: c })} />
-      ))}
-      <FillTools />
     </span>
   )
 }
 
+const ICON_TEXT = (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><path d="M6 19 12 5l6 14M8.7 14.2h6.6" /></svg>
+)
+const ICON_FILL = (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+    strokeWidth="1.9" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12 12 5l7 7-7 7z" /><path d="M19.5 15.5c0 1.4 1.2 2.4 1.2 2.4" /></svg>
+)
+const ICON_BORDER = (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+    strokeWidth="2" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /></svg>
+)
+
 /**
- * **채우기 색 · 테두리 색** — 도구줄에 올렸다(2026-09-16).
+ * 색 단추 하나. **그림 + 지금 색 띠 + ▾.**
  *
- * 전에는 글자 색만 여기 있었고, 채우기는 오른쪽 패널을 열거나 요소를 눌러 뜨는 작은
- * 막대를 찾아야 했다. 그런데 「EVER-SKETCH 기획·설계 사상」 12쪽을 세어 보니 채우기를
- * 쓴 요소가 **56개**, 테두리 색이 **16개**였다 — 하루에 수십 번 하는 일이 두 번째로
- * 깊은 자리에 있었다. 파워포인트·한글은 글자 색 바로 옆에 둔다.
- *
- * **오른쪽 패널의 것은 그대로 둔다.** 거기서 미리 정해 둔 조합(`PRESETS`)으로 고르는
- * 사람이 있다. 여기 것은 「지금 이 도형 하나」를 빠르게 바꾸는 자리다.
- *
- * 속이 없는 갈래(글상자·아이콘·그림 …)와 표에는 안 띄운다 — 그 판단은 `NO_FILL`
- * 한 곳에서만 한다(표는 칸마다 색이 따로다).
+ * 그냥 누르면 띠 색을 칠하고, ▾ 는 고르개를 연다. 띠가 보여 주는 것은 **마지막에 쓴 색**이지
+ * 고른 것의 색이 아니다 — 파워포인트와 같다. 「이 도형이 무슨 색인가」는 고르개를 열면
+ * 그 색에 표시가 붙어 있고, 오른쪽 패널에도 그대로 있다.
  */
-function FillTools() {
-  const { el, patch } = useSelEl()
-  if (!el || NO_FILL.includes(el.type)) return null
+function InkBtn({ label, icon, color, onApply, onPick, allowTransparent, extra }: {
+  label: string
+  icon: React.ReactNode
+  color: string
+  onApply: () => void
+  onPick: (c: string) => void
+  allowTransparent?: boolean
+  extra?: React.ReactNode
+}) {
+  const shown = color === 'transparent'
+    ? 'repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 50%/6px 6px' : color
   return (
-    <>
-      <span className="dv" />
-      <span className="lab">색</span>
-      {/* 아이콘은 **무엇의 색인지**를 말한다. 색 동그라미만 둘 놓으면 어느 쪽이
-          채우기인지 눌러 봐야 안다. */}
-      <span className="ax-cp" title="채우기 색">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-          strokeWidth="1.9" strokeLinejoin="round" aria-hidden="true">
-          <path d="M5 12 12 5l7 7-7 7z" /><path d="M19.5 15.5c0 1.4 1.2 2.4 1.2 2.4" />
-        </svg>
-        <ColorPicker value={el.color} onChange={(c) => patch({ color: c })} allowTransparent />
-      </span>
-      <span className="ax-cp" title="테두리 색">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
-          strokeWidth="2" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /></svg>
-        <ColorPicker value={el.borderColor} onChange={(c) => patch({ borderColor: c })} />
-      </span>
-    </>
+    <span className="ax-grp gs" title={label}>
+      <span className="lab">{label}</span>
+      <button className="ax-ink" onClick={onApply} title={label + ' — ' + color + ' 을 칠합니다'}>
+        {icon}
+        <span className="ax-inkbar" style={{ background: shown }} />
+      </button>
+      <ColorPicker value={color} onChange={onPick} allowTransparent={allowTransparent}
+        caret title={label + ' — 다른 색'} />
+      {extra}
+    </span>
   )
 }
 
-/** 연결선을 고른 채로 종류·화살촉을 바꾼다. 지금까지는 오른쪽 패널에만 있었다. */
+function InkTools() {
+  const { el, patch } = useSelEl()
+  const inkText = useCanvasUI((s) => s.inkText)
+  const inkFill = useCanvasUI((s) => s.inkFill)
+  const inkBorder = useCanvasUI((s) => s.inkBorder)
+  const setInk = useCanvasUI((s) => s.setInk)
+  if (!el) return null
+  // 속이 없는 갈래(글상자·아이콘·그림 …)와 표에는 채우기·테두리를 안 띄운다 —
+  // 그 판단은 `NO_FILL` 한 곳에서만 한다(표는 칸마다 색이 따로다).
+  const canFill = !NO_FILL.includes(el.type)
+  return (<>
+    <InkBtn label="글자 색" icon={ICON_TEXT} color={inkText}
+      onApply={() => patch({ tcolor: inkText })}
+      onPick={(c) => { setInk('text', c); patch({ tcolor: c }) }} />
+    {canFill ? (<>
+      <InkBtn label="채우기" icon={ICON_FILL} color={inkFill} allowTransparent
+        onApply={() => patch({ color: inkFill })}
+        onPick={(c) => { setInk('fill', c); patch({ color: c }) }} />
+      <InkBtn label="테두리" icon={ICON_BORDER} color={inkBorder} allowTransparent
+        onApply={() => patch({ borderColor: inkBorder })}
+        onPick={(c) => { setInk('border', c); patch({ borderColor: c }) }}
+        extra={(
+          <select className="ax-fsel" title="테두리 두께" value={el.borderWidth ?? 1.5}
+            onChange={(e) => patch({ borderWidth: Number(e.target.value) })}>
+            <option value={0}>없음</option>
+            <option value={1}>얇게</option>
+            <option value={1.5}>보통</option>
+            <option value={3}>굵게</option>
+          </select>
+        )} />
+    </>) : null}
+  </>)
+}
+
 function ConnTools() {
   const selConn = useCanvasUI((s) => s.selConn)
   const pages = useBuilderStore((s) => s.pages)
