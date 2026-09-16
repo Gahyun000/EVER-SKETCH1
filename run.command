@@ -94,7 +94,30 @@ if [ "${HOST}" = "0.0.0.0" ]; then
   LANIP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "")
   [ -n "${LANIP}" ] && echo "   같은 망에서 접속: http://${LANIP}:${PORT}"
 fi
-echo "   로그는 이 창에 출력됩니다. 종료: Ctrl+C"
+# ── 로그는 **파일에 쓰고** 창에는 tail 로 비춘다 (2026-09-16) ─────────────
+#
+# **터미널이 출력을 안 받아 가면 서버가 통째로 멈춘다.** 전에는 uvicorn 의 출력이
+# 이 창으로 곧장 갔다. 창이 출력을 멈추면(Ctrl+S 로 흐름을 멈췄거나 창이 못 따라가면)
+# 쓰기가 막히고, 요청 한 건에 로그 한 줄이라 출력 버퍼가 차는 순간 **서버가 아무 말
+# 없이 대답을 그만둔다.** 오류도 안 난다 — 브라우저에는 그냥 (pending) 만 뜬다.
+#
+# 실제로 겪었다. 재현해 보니 1,052번째 요청에서 멈췄고(버퍼 64KB ÷ 한 줄 62바이트),
+# 출력을 한 번 비워 주니 그 자리에서 되살아났다.
+#
+# 이제 서버는 파일에 쓴다 — 파일은 안 막힌다. 창이 멈추면 `tail` 만 멈추고
+# **서버는 계속 돈다.** EVER-FOLIO 는 처음부터 이렇게 하고 있었고, 그래서 한 번도
+# 안 멈췄다. 같은 창에서 형제 앱만 멀쩡했던 이유가 그것이다.
+LOG="${LOG:-/tmp/eversketch.log}"
+: > "${LOG}" 2>/dev/null || LOG="$(mktemp -t eversketch)"
+echo "   로그: ${LOG} (이 창에 함께 비춥니다) · 종료: Ctrl+C"
 # 브라우저 자동 오픈 — AUTO_OPEN=0 이면 생략
 if [ "${AUTO_OPEN:-1}" != "0" ]; then ( sleep 2; open "${URL}" >/dev/null 2>&1 ) & fi
-exec python -m uvicorn server.app:app --host "${HOST}" --port "${PORT}"
+
+python -m uvicorn server.app:app --host "${HOST}" --port "${PORT}" >>"${LOG}" 2>&1 &
+SRV=$!
+tail -f "${LOG}" &
+TAIL=$!
+# Ctrl+C 한 번에 둘 다 정리한다. `exec` 를 뗐으므로 신호를 직접 받아 넘겨야 한다.
+trap 'kill ${SRV} ${TAIL} 2>/dev/null; wait ${SRV} 2>/dev/null; exit 0' INT TERM
+wait ${SRV}
+kill ${TAIL} 2>/dev/null

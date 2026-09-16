@@ -185,3 +185,13 @@
   color: #5B6270; cursor: pointer; text-align: left; }
 .sh-acct-it:hover { background: #F4F5F7; color: #111318; }
 .sh-acct-it.danger:hover { background: #fee2e2; color: #b91c1c; }
+
+/* 폴더를 못 읽었을 때 나무에 남기는 자국 (2026-09-16).
+   나무는 오류를 삼키는 것이 맞다 — 폴더를 못 읽었다고 자료 목록까지 못 보게 할
+   이유가 없다. 다만 **삼킨 사실까지 없어지면** 폴더가 왜 사라졌는지 아무도 모른다. */
+.sh-terr { margin: 3px 9px; padding: 6px 9px; border: 1px dashed #E0C08A; border-radius: 8px;
+  background: #FFFBF3; color: #8A5300; font-size: 11.5px; line-height: 1.5;
+  display: flex; align-items: center; gap: 7px; }
+.sh-terr button { margin-left: auto; border: 1px solid #E0C08A; background: #fff; border-radius: 6px;
+  padding: 1px 8px; font: inherit; font-size: 11px; font-weight: 800; color: #8A5300; cursor: pointer; }
+.sh-terr button:hover { background: #FFF4E3; }

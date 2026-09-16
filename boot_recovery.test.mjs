@@ -75,9 +75,33 @@ check(!/^\s*try \{ await migrateLegacyDraftOnce\(\) \} catch/m.test(code),
 const boot = code.slice(code.indexOf('boot: async'), code.indexOf('loadList: async'))
 check(/finally \{[\s\S]{0,120}loading: false/.test(boot),
   'boot 은 **어떤 길로 끝나든** loading 을 끈다')
-check((boot.match(/await/g) || []).every(() => true) &&
-      !/await (?!withTimeout)[a-zA-Z]/.test(boot.replace(/await withTimeout/g, '')),
-  'boot 안의 기다림이 전부 시간 제한을 거친다')
+// **모양이 바뀌어 다시 썼다**(2026-09-16). 전에는 「`await` 뒤에는 반드시
+// `withTimeout` 이 온다」를 글자로 봤다. 이제 boot 은 셋을 **나란히** 돌리느라
+// `await Promise.all([...])` 한 번만 기다린다 — 옛 규칙대로면 그 한 줄이 걸린다.
+// 하지만 **지키려던 것은 그대로다: boot 안의 기다림 가운데 시간 제한 없는 것이 없다.**
+// 그래서 「`await` 뒤 글자」가 아니라 **기다리는 것 하나하나**를 본다.
+{
+  const inside = boot.slice(boot.indexOf('Promise.all'), boot.indexOf('} catch'))
+  check(/withTimeout\(migrateLegacyDraftOnce\(\)/.test(inside), '이관에 시간 제한이 있다')
+  check(/withTimeout\(get\(\)\.loadList\(\)/.test(inside), '목록에 시간 제한이 있다')
+  // 폴더는 `loadFolders` **안쪽**에 제한이 있다 — 부르는 데가 셋이라(나무·목록 화면·
+  // boot) 바깥에 두면 한 곳만 빠뜨려도 그 길만 영영 기다린다.
+  const lf = code.slice(code.indexOf('loadFolders: async'), code.indexOf('boot: async'))
+  check(/withTimeout\(apiListFolders/.test(lf) && /withTimeout\(\s*fetch/.test(lf),
+    '폴더는 제 안에 시간 제한을 갖는다 (두 요청 다)')
+  check((lf.match(/await/g) || []).length === (lf.match(/await withTimeout/g) || []).length,
+    'loadFolders 안의 기다림도 전부 시간 제한을 거친다')
+
+  // **나란히 돌린다.** 줄줄이 기다리면 8초 + 8초라 「불러오는 중」이 16초까지 갔다.
+  check(/void Promise\.all\(\[/.test(boot), '곁다리는 띄워만 두고 안 기다린다')
+  check(boot.indexOf('Promise.all') < boot.indexOf('await withTimeout(get().loadList'),
+    '이관이 목록보다 앞에 서서 붙잡지 않는다')
+
+  // **비운 사람이 도로 채운다.** boot 이 folders 를 비우므로 boot 이 다시 받아야 한다 —
+  // 채우는 일을 화면에만 맡겨 두면 그 화면이 한 번 못 받는 순간 빈 채로 남는다.
+  check(/folders: \[\]/.test(boot) && /loadFolders\(\)/.test(boot),
+    'boot 이 폴더를 비웠으면 boot 이 다시 받는다')
+}
 
 // 실패를 조용히 0개로 두지 않는다
 //

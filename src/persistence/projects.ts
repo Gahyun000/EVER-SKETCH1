@@ -87,6 +87,9 @@ interface ProjectsState {
   loading: boolean
   /** 목록을 못 받아 왔다. **조용히 0개로 두지 않는다** — 사람은 자료가 사라진 줄 안다. */
   listError: string | null
+  /** 폴더를 못 읽었으면 그 까닭. **비어 있는 것과 못 읽은 것은 다르다** —
+   *  나무는 오류를 삼키므로(부가 정보라서), 삼킨 사실만은 남겨야 화면이 말할 수 있다. */
+  foldersError: string | null
   /** 어느 계정으로 목록을 받아 뒀는가. 계정이 바뀌면 다시 받는다. */
   bootedFor: string | null
 
@@ -155,7 +158,7 @@ export function resetWorkspace(): void {
   useAutosave.setState({ status: 'idle', savedAt: undefined, error: undefined })
   useProjects.setState({
     view: 'library', activeId: null, access: null, template: null, list: [], loading: false,
-    listError: null, bootedFor: null,
+    listError: null, foldersError: null, bootedFor: null,
   })
 }
 
@@ -195,6 +198,7 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   list: [],
   loading: false,
   listError: null,
+  foldersError: null,
   bootedFor: null,
 
   folders: [],
@@ -207,14 +211,35 @@ export const useProjects = create<ProjectsState>((set, get) => ({
   loadFolders: async () => {
     // 나무를 **한 번에** 받는다 — 검색 범위(D27)를 셈하려면 하위가 필요하고,
     // 한 단씩 물으면 폴더를 오갈 때마다 요청이 줄줄이 나간다.
-    const all = await apiListFolders(null)
-    const every = await fetch('/api/folders?all=true', { credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : null)).catch(() => null)
-    // **배열이 아니면 안 넣는다.** `undefined` 가 들어가면 다음 렌더에서 `folders.filter`
-    // 가 터지고 **자료 목록이 통째로 하얗게 뜬다** — 폴더 하나 못 읽었다고 화면 전체를
-    // 잃는 것은 값이 안 맞는 교환이다.
-    const rows = Array.isArray(every?.folders) ? (every.folders as FolderRow[]) : all.folders
-    set({ folders: Array.isArray(rows) ? rows : [], maxDepth: all.max_depth ?? 3 })
+    //
+    // **시간 제한이 여기 안에 있다**(2026-09-16). 부르는 데가 셋이라(나무·자료 목록·
+    // boot) 바깥에 두면 한 곳만 빠뜨려도 그 길만 영영 기다린다.
+    //
+    // 왜 필요했나 — 첫 요청의 **몸이 안 와서** 두 번째 줄로 못 가는 일이 실제로 났다
+    // (서버가 터미널 때문에 멈춰 있었다). 그러면 아래 `set` 까지 못 오고, boot 이
+    // 이미 폴더를 비워 둔 참이라 **폴더가 아무 말 없이 사라졌다.**
+    try {
+      const all = await withTimeout(apiListFolders(null), BOOT_STEP_MS)
+      const every = await withTimeout(
+        fetch('/api/folders?all=true', { credentials: 'same-origin' })
+          .then((r) => (r.ok ? r.json() : null)), BOOT_STEP_MS,
+      ).catch(() => null)
+      // **배열이 아니면 안 넣는다.** `undefined` 가 들어가면 다음 렌더에서 `folders.filter`
+      // 가 터지고 **자료 목록이 통째로 하얗게 뜬다** — 폴더 하나 못 읽었다고 화면 전체를
+      // 잃는 것은 값이 안 맞는 교환이다.
+      const rows = Array.isArray(every?.folders) ? (every.folders as FolderRow[]) : all.folders
+      set({
+        folders: Array.isArray(rows) ? rows : [],
+        maxDepth: all.max_depth ?? 3,
+        foldersError: null,
+      })
+    } catch (e) {
+      // **삼키더라도 흔적은 남긴다.** 부르는 쪽(나무)이 오류를 삼키는 것은 옳다 —
+      // 폴더를 못 읽었다고 자료 목록까지 못 보게 할 이유가 없다. 다만 삼킨 사실까지
+      // 없어지면 **폴더가 왜 사라졌는지 아무도 모른다.** 실제로 그래서 못 찾았다.
+      set({ foldersError: loadErrorText(e, '폴더') })
+      throw e
+    }
   },
 
   boot: async (uid) => {
@@ -231,13 +256,32 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     // 로딩 화면에 영원히 갇혔다 — `bootedFor` 가 이미 찍혀 있어 다시 시도되지도 않았다.
     // catch 는 던지는 것만 잡는다. **안 끝나는 것은 시간으로 끊어야 한다.**
     try {
-      // 레거시 이관은 **부가 작업**이다. 늦으면 그냥 지나간다 — 다음 실행에서 다시 판단한다.
-      try { await withTimeout(migrateLegacyDraftOnce(), BOOT_STEP_MS) } catch { /* noop */ }
+      // **셋을 나란히 돌린다**(2026-09-16). 전에는 이관이 끝나야 목록을 받기 시작했다 —
+      // 둘 다 굼뜨면 8초 + 8초, 「불러오는 중」이 **16초**까지 갔다. 이관은 목록과
+      // 아무 상관이 없는 부가 작업인데 목록을 붙잡고 있었다. 나란히 두면 최악이 8초다.
+      //
+      // **폴더도 여기서 받는다.** 비우는 것은 바로 위 `set` 이 하는데, 다시 채우는 일은
+      // 화면(나무)에 맡겨 두고 있었다. 비우는 쪽과 채우는 쪽이 갈라져 있으면 채우는
+      // 쪽이 한 번 못 오는 순간 **폴더가 빈 채로 남는다** — 실제로 그렇게 사라졌다.
+      // 비운 사람이 도로 채운다.
+      // **곁다리는 기다리지 않는다.** 「불러오는 중…」은 **자료 목록**의 말이다.
+      // 이관이나 폴더가 굼뜨다고 목록이 8초를 더 서 있을 이유가 없다 — 실제로 폴더
+      // 요청 하나가 늦어 목록이 8.5초 갇히는 것을 살아 있는 서버에서 봤다.
+      // 둘 다 제 안에 시간 제한이 있고 제 자리에서 제 오류를 말하므로, 여기서
+      // 붙들고 있을 까닭이 없다.
+      void Promise.all([
+        // 레거시 이관은 **부가 작업**이다. 늦으면 그냥 지나간다 — 다음 실행에서 다시 판단한다.
+        withTimeout(migrateLegacyDraftOnce(), BOOT_STEP_MS).catch(() => null),
+        // 폴더를 못 읽어도 **자료 목록은 뜬다.** 까닭은 `loadFolders` 가 남겨 둔다.
+        get().loadFolders().catch(() => null),
+      ])
+      // 목록만 기다린다. 실패는 화면에 말한다 — 이 화면의 주인공이다.
       await withTimeout(get().loadList(), BOOT_STEP_MS)
+        .catch((e) => { set({ listError: loadErrorText(e, '목록') }) })
     } catch (e) {
-      // `loadList` 는 제 오류를 스스로 삼키므로, 여기까지 오는 것은 **시간 초과**뿐이다.
-      // 그래도 갈래를 따져서 적는다 — 「여기 오는 건 늘 시간 초과」라고 못박아 두면
-      // 나중에 이 try 안에 다른 것이 들어왔을 때 조용히 거짓말을 한다.
+      // 위에서 저마다 받아 내므로 여기까지 오는 것은 뜻밖의 것뿐이다. 그래도 갈래를
+      // 따져서 적는다 — 「여기 오는 건 늘 시간 초과」라고 못박아 두면 나중에 이 안에
+      // 다른 것이 들어왔을 때 조용히 거짓말을 한다.
       set({ listError: loadErrorText(e, '목록') })
     } finally {
       // **편집 화면에서만 내려온다.** 예전에는 무조건 'library' 로 되돌렸는데,

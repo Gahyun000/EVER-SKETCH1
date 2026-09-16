@@ -64,6 +64,7 @@ export default function SideTree({ open, toggle, onGo, col, onSwap }: {
   const activeId = useProjects((s) => s.activeId)
   const setHere = useProjects((s) => s.setHere)
   const loadFolders = useProjects((s) => s.loadFolders)
+  const foldersError = useProjects((s) => s.foldersError)
   const openProject = useProjects((s) => s.openProject)
 
   // **폴더를 여기서도 받아 온다.** 예전에는 자료 목록 화면만 받아 왔다 —
@@ -74,7 +75,8 @@ export default function SideTree({ open, toggle, onGo, col, onSwap }: {
   const rows = treeRows(folders, list, col ? new Set([...open, TREE_ROOT]) : open)
   // 메뉴 안에 있을 때는 접으면 **통째로 사라진다**(위 「내 자료」의 ▾ 로 다시 편다).
   // 제 칸일 때는 머리줄이 남아야 한다 — 안 그러면 합칠 자리가 없어진다.
-  if (!col && !rows.length) return null
+  // **못 읽었으면 빈 채로 사라지지 않는다**(2026-09-16) — 그때는 그 한 줄을 띄운다.
+  if (!col && !rows.length && !foldersError) return null
 
   return (
     <div className={'sh-tree' + (col ? ' col' : '')} role="group" aria-label="폴더와 자료">
@@ -87,6 +89,15 @@ export default function SideTree({ open, toggle, onGo, col, onSwap }: {
         <div className="sh-thead">
           <span className="t">폴더</span>
           <button className="sh-tswap" onClick={onSwap} title="메뉴 안으로 합친다">합치기</button>
+        </div>
+      )}
+      {/* **폴더가 사라진 것과 없는 것은 다르다**(2026-09-16). 못 읽으면 나무는
+          조용히 지나가는데(부가 정보라서), 그러면 폴더가 **아무 말 없이 없어진다** —
+          실제로 그렇게 없어져서 왜 그런지 찾는 데 한참 걸렸다. 삼키되 자국은 남긴다. */}
+      {foldersError && (
+        <div className="sh-terr">
+          폴더를 못 읽었어요.
+          <button onClick={() => void loadFolders().catch(() => { /* 그대로 둔다 */ })}>다시</button>
         </div>
       )}
       {rows.map((r) => {
