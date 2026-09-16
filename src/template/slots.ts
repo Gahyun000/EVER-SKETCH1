@@ -74,8 +74,22 @@ export const SLOT_POLICY: Record<string, SlotPolicy> = {
     text: 'open',
     headerEdit: true,
   },
-  'SLOT-B': { edit: ['cell', 'row', 'format'], lockedRows: 1, text: 'open', headerEdit: true },
-  'SLOT-C': { edit: ['cell', 'row', 'format'], lockedRows: 1, text: 'open', headerEdit: true },
+  /**
+   * **2026-09-16 · ②③ 에도 병합·칸 색·정렬을 연다.**
+   *
+   * 사용자: 「로드맵은 셀 병합이 가능한데 왜 진행현황·향후 계획, 이슈는 병합이 안 되는지」.
+   * 고장이 아니라 처음에 그렇게 적어 둔 것이었다 — 로드맵은 진행 구간이 「가로 병합 +
+   * 단계 이름」이라 병합이 **필수**였고, ②③ 는 그냥 목록이라 필요 없다고 본 것이다.
+   *
+   * 열어도 안 깨진다. **병합은 열 수를 바꾸지 않는다** — 서버가 거부하는 것은
+   * 「표가 없어지거나 둘이 되거나 **열 수가 다르면**」이다(server/template_guard.py).
+   * 표마다 되는 게 다른 편이 오히려 「왜 여기만 안 되지」를 만든다.
+   *
+   * 칸 색은 **팔레트를 두지 않는다** — 로드맵의 색은 상태를 가리키는 약속이지만
+   * ②③ 의 색은 그냥 색이다(`cellColors` 가 자유 색을 내준다).
+   */
+  'SLOT-B': { edit: ['cell', 'merge', 'row', 'align', 'cbg', 'format'], lockedRows: 1, text: 'open', headerEdit: true },
+  'SLOT-C': { edit: ['cell', 'merge', 'row', 'align', 'cbg', 'format'], lockedRows: 1, text: 'open', headerEdit: true },
 }
 
 /** 이 슬롯의 이름표 문구를 고칠 수 있는가.

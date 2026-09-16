@@ -83,8 +83,21 @@ check(cellEditable('SLOT-Z', 0, 0) === true, '모르는 슬롯은 슬롯이 아�
 // ── 5) 편집 허용 ──
 check(slotAllows('SLOT-A', 'cbg') === true, '로드맵만 셀 색 허용')
 check(slotAllows('SLOT-A', 'merge') === true, '로드맵은 병합이 필수 — 진행 구간이 병합으로 그려진다')
-check(slotAllows('SLOT-B', 'cbg') === false, '목록 표는 셀 색 불가')
-check(slotAllows('SLOT-B', 'merge') === false, '목록 표는 병합 불가')
+// **2026-09-16 · ②③ 도 열었다.** 사용자가 「로드맵은 병합이 되는데 왜 여기는 안 되냐」고
+// 물었고, 막아 둘 까닭이 없었다 — 병합은 열 수를 바꾸지 않고, 서버가 거부하는 것은 열 수다.
+// 이 검사는 「막혀 있다」를 못 박던 것이라 깨졌다. **지우지 않고 뒤집어 쓴다.**
+check(slotAllows('SLOT-B', 'cbg') === true, '목록 표도 셀 색이 된다')
+check(slotAllows('SLOT-B', 'merge') === true, '목록 표도 병합이 된다')
+check(slotAllows('SLOT-B', 'align') === true, '목록 표도 칸 정렬이 된다')
+check(slotAllows('SLOT-C', 'merge') === true, '이슈 표도 병합이 된다')
+check(slotAllows('SLOT-C', 'cbg') === true, '이슈 표도 셀 색이 된다')
+// **열 다루기는 계속 막는다.** 여는 것과 안 여는 것을 가른 선이 여기다 —
+// 열을 더하거나 지우면 취합이 표를 못 잇는다(서버도 그것만 거부한다).
+check(slotAllows('SLOT-B', 'col') === false, '열을 더하고 지우는 것은 그대로 막는다')
+check(slotAllows('SLOT-C', 'col') === false, '이슈 표도 열은 그대로 막는다')
+check(slotAllows('SLOT-A', 'col') === false, '로드맵도 열은 원래 막혀 있다')
+// 팔레트는 **여전히 없다**. 로드맵 색은 상태를 가리키는 약속이지만 ②③ 색은 그냥 색이다.
+check(cbgPalette('SLOT-C') === undefined, '이슈 표에도 팔레트는 없다 — 색에 뜻을 심지 않는다')
 for (const s of Object.keys(SLOT_POLICY)) {
   check(slotAllows(s, 'col') === false, `${s}: 열 편집 금지`)
 }

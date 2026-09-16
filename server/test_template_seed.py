@@ -283,13 +283,36 @@ def test_열_추가삭제는_어느_슬롯에도_없다():
         assert "col" not in policy.get("edit", []), "%s 가 열 편집을 허용합니다" % slot
 
 
-def test_로드맵만_셀_배경색과_병합을_허용한다():
-    """로드맵의 병합은 장식이 아니다 — 진행 구간 자체가 '가로 병합 + 단계 이름'이다."""
-    assert T.slot_allows("SLOT-A", "cbg") is True
-    assert T.slot_allows("SLOT-A", "merge") is True
+def test_세_표_모두_병합과_셀_색을_허용한다():
+    """로드맵의 병합은 장식이 아니다 — 진행 구간 자체가 '가로 병합 + 단계 이름'이다.
+
+    **2026-09-16 · ②③ 도 열었다.** 예전 이름은 `test_로드맵만_..._허용한다` 였다.
+    사용자: 「로드맵은 셀 병합이 가능한데 왜 진행현황·향후 계획, 이슈는 병합이 안 되는지」.
+    막아 둘 까닭이 없었다 — **병합은 열 수를 바꾸지 않고**, 서버(template_guard)가 거부하는
+    것은 「표가 없어지거나 둘이 되거나 **열 수가 다르면**」이다. 표마다 되는 게 다른 편이
+    오히려 「왜 여기만 안 되지」를 만든다. 검사를 지우지 않고 **뒤집어 쓴다.**"""
+    for slot in ("SLOT-A", "SLOT-B", "SLOT-C"):
+        assert T.slot_allows(slot, "cbg") is True, slot
+        assert T.slot_allows(slot, "merge") is True, slot
+        assert T.slot_allows(slot, "align") is True, slot
+
+
+def test_열_다루기는_세_표_모두_막는다():
+    """**여는 것과 안 여는 것을 가른 선이 여기다.**
+
+    열을 더하거나 지우면 취합이 표를 못 잇는다 — 취합이 표를 잇는 근거가 열 번호다.
+    서버도 그것만 거부한다. 병합·색·정렬을 열면서 이 선까지 같이 풀리면
+    「열어도 안 깨진다」던 근거가 사라진다."""
+    for slot in ("SLOT-A", "SLOT-B", "SLOT-C"):
+        assert T.slot_allows(slot, "col") is False, slot
+
+
+def test_목록_표에는_팔레트가_없다():
+    """로드맵 색은 **상태를 가리키는 약속**이지만 ②③ 색은 그냥 색이다.
+    약속이 없는 자리에 팔레트를 두면 뜻이 있는 것처럼 읽힌다."""
+    assert T.SLOT_POLICY["SLOT-A"].get("cbgPalette")
     for slot in ("SLOT-B", "SLOT-C"):
-        assert T.slot_allows(slot, "cbg") is False
-        assert T.slot_allows(slot, "merge") is False
+        assert not T.SLOT_POLICY[slot].get("cbgPalette"), slot
 
 
 def test_행_추가는_세_표_모두_허용():
