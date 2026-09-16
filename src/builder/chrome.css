@@ -590,6 +590,8 @@
 .cp-trig.cp-caret { width: 14px; height: 18px; border: 0; background: transparent;
   font-size: 9px; line-height: 1; color: #5b6270; padding: 0; }
 .cp-trig.cp-caret:hover { color: #2462EB; }
+/* **못 하는 일을 말해 주는 자리.** 조용히 안 먹는 것보다 낫다. */
+.ax-tbrow .tbtn-hint.warn { color: #8a5300; }
 
 /* ── 좁으면 **이름표만 접는다** ──────────────────────────────
    도구줄은 넘치면 다음 줄로 내려간다(flex-wrap). 그래서 도구가 사라지진 않지만,

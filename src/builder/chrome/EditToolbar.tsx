@@ -1,5 +1,5 @@
 import { useCanvasUI } from '../../state/canvasUI'
-import { pushSnap, NO_FILL } from '../../canvas/model'
+import { pushSnap, CLIPPED, NO_FILL } from '../../canvas/model'
 import type { Tool } from '../../state/canvasUI'
 import { useSelEl } from '../useSelEl'
 import ColorPicker from './ColorPicker'
@@ -253,6 +253,22 @@ const ICON_BORDER = (
     strokeWidth="2" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /></svg>
 )
 
+/** 선 모양 그림 — 실선 · 파선 · 점선. 글자(─ ┄ ┈)로 그리면 글꼴마다 굵기가 달라 안 맞는다. */
+const DASH_LABEL: Record<'solid' | 'dashed' | 'dotted', string> = {
+  solid: '실선', dashed: '파선', dotted: '점선',
+}
+const DASH_PAT: Record<'solid' | 'dashed' | 'dotted', string | undefined> = {
+  solid: undefined, dashed: '5 3', dotted: '1.5 2.5',
+}
+function DashIcon({ kind }: { kind: 'solid' | 'dashed' | 'dotted' }) {
+  return (
+    <svg viewBox="0 0 22 12" width="18" height="12" aria-hidden="true">
+      <line x1="1.5" y1="6" x2="20.5" y2="6" stroke="currentColor" strokeWidth="2"
+        strokeLinecap="round" strokeDasharray={DASH_PAT[kind]} />
+    </svg>
+  )
+}
+
 /**
  * 색 단추 하나. **그림 + 지금 색 띠 + ▾.**
  *
@@ -306,7 +322,7 @@ function InkTools() {
       <InkBtn label="테두리" icon={ICON_BORDER} color={inkBorder} allowTransparent
         onApply={() => patch({ borderColor: inkBorder })}
         onPick={(c) => { setInk('border', c); patch({ borderColor: c }) }}
-        extra={(
+        extra={(<>
           <select className="ax-fsel" title="테두리 두께" value={el.borderWidth ?? 1.5}
             onChange={(e) => patch({ borderWidth: Number(e.target.value) })}>
             <option value={0}>없음</option>
@@ -314,7 +330,21 @@ function InkTools() {
             <option value={1.5}>보통</option>
             <option value={3}>굵게</option>
           </select>
-        )} />
+          {/* 선 모양. 파워포인트의 「대시 종류」다. 고르개보다 단추가 낫다 —
+              셋뿐이고, 한 번에 바뀐다. */}
+          {(['solid', 'dashed', 'dotted'] as const).map((d) => (
+            <button key={d} className={'ib' + ((el.borderDash || 'solid') === d ? ' on' : '')}
+              title={DASH_LABEL[d]} onClick={() => patch({ borderDash: d })}>
+              <DashIcon kind={d} />
+            </button>
+          ))}
+          {/* **조용히 안 먹는 것보다 말해 주는 게 낫다.** 오려 만든 갈래는 오릴 때
+              테두리도 같이 잘려서, 색·두께·선 모양을 줘도 빗변에 선이 안 생긴다.
+              고치려면 SVG 로 다시 그려야 한다(따로 한다). 그때까지는 적어 둔다. */}
+          {CLIPPED.includes(el.type)
+            ? <span className="tbtn-hint warn" title="이 갈래는 모양을 오려 만들어서, 오릴 때 테두리도 같이 잘립니다. 고치는 중입니다.">이 도형은 아직 테두리가 안 그려져요</span>
+            : null}
+        </>)} />
     </>) : null}
   </>)
 }

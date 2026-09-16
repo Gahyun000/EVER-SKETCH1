@@ -883,6 +883,8 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
         if (el.color === '#111318') style.borderColor = '#111318'
         if (el.borderColor) style.borderColor = el.borderColor
         if (el.borderWidth != null) style.borderWidth = el.borderWidth
+        // 선 모양(실선·파선·점선). 안 적혀 있으면 실선 — 옛 자료가 그대로 보인다.
+        if (el.borderDash) style.borderStyle = el.borderDash
         const txtStyle: CSSProperties = { fontSize: el.fs }
         if (el.bold) txtStyle.fontWeight = 800
         if (el.tcolor) txtStyle.color = el.tcolor
@@ -954,7 +956,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                           <div className={'feltd' + (sel ? ' cellsel' : '') + (rgE ? ' cmt-rg' : '') + (editingThis && !canEdit ? ' cell-locked' : '')} suppressContentEditableWarning
                             data-tel={el.id} data-r={r} data-c={c} data-rc={r + '_' + c}
                             title={editingThis && !canEdit ? '이 칸은 표준 양식이라 수정할 수 없어요' : undefined}
-                            style={{ border: bw + 'px solid ' + border, fontSize: cfs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}`, userSelect: canEdit ? 'text' : 'none', cursor: canEdit ? 'text' : 'default',
+                            style={{ border: bw + 'px ' + (el.borderDash || 'solid') + ' ' + border, fontSize: cfs, padding: '3px 5px', overflow: 'hidden', background: cellBg, color: sel ? undefined : cellTextColor(bg), fontWeight: isHead ? 700 : 400, textAlign: al, gridColumn: m ? `${c + 1} / span ${m.cs}` : `${c + 1}`, gridRow: m ? `${r + 1} / span ${m.rs}` : `${r + 1}`, userSelect: canEdit ? 'text' : 'none', cursor: canEdit ? 'text' : 'default',
                               ...(va ? { display: 'flex', flexDirection: 'column' as const, justifyContent: va === 'middle' ? 'center' : va === 'bottom' ? 'flex-end' : 'flex-start' } : null),
                               ...(rgE ? {
                                 boxShadow: `inset 0 0 0 999px ${rgE.done ? 'rgba(47,158,89,.08)' : 'rgba(224,139,44,.10)'}`,

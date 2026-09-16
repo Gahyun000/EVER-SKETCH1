@@ -1,0 +1,94 @@
+// **테두리 선 모양 — 실선 · 파선 · 점선.**
+//
+// 2026-09-16 · 사용자: 「테두리는 점선 실선 이런 거 가능」. 여기는 늘 실선이었다.
+// 점선은 **연결선에만** 있었고(패널의 체크상자), 도형과 표에는 없었다.
+//
+// 2차를 쪼개 **쉬운 것부터** 한다 — 사각형·둥근 사각형·표는 상자에 테두리를 그리므로
+// `border-style` 한 줄이면 된다. 오려 만든 갈래(마름모·삼각형 …)는 **테두리 자체가
+// 안 그려진다** — 오릴 때 테두리도 같이 잘린다. 그건 SVG 로 다시 그려야 하는 일이라
+// 따로 두되, **말이라도 해 준다**: 조용히 안 먹는 것보다 낫다.
+//
+// 실행: node --experimental-strip-types --import ./ts_register.mjs border_dash.test.mjs
+import { readFileSync } from 'node:fs'
+
+let pass = 0, fail = 0
+const check = (cond, label, extra = '') => {
+  if (cond) { pass++; console.log('✓ ' + label) }
+  else { fail++; console.log('✗ ' + label + (extra ? '  — ' + extra : '')) }
+}
+const read = (p) => readFileSync(p, 'utf8')
+const bare = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+  .replace(/^\s*\/\/.*$/gm, '')
+
+const tb = bare(read('./src/builder/chrome/EditToolbar.tsx'))
+const rp = bare(read('./src/builder/chrome/RightPanel.tsx'))
+const fl = bare(read('./src/canvas/FreeLayer.tsx'))
+const store = read('./src/state/store.ts')
+const indexCss = read('./src/index.css')
+const { CLIPPED, NO_FILL } = await import('./src/canvas/model.ts')
+
+// ── ① 자료에 자리가 있다 ─────────────────────────────
+check(/borderDash\?: 'solid' \| 'dashed' \| 'dotted'/.test(store), '요소에 선 모양 자리가 있다')
+// 연결선은 예전부터 `dash` 를 켜고 끄는 두 갈래다. 도형은 셋이라 **이름을 따로 둔다** —
+// 같은 이름으로 합치면 한쪽을 고칠 때 다른 쪽이 딸려 온다.
+check(/dash\?: boolean/.test(store), '연결선의 켜고 끄기는 그대로 둔다')
+
+// ── ② 화면이 그린다 ─────────────────────────────────
+check(/if \(el\.borderDash\) style\.borderStyle = el\.borderDash/.test(fl), '도형에 선 모양을 입힌다')
+check(/\(el\.borderDash \|\| 'solid'\)/.test(fl), '표 칸에도 입힌다')
+// **안 적혀 있으면 실선.** 옛 자료가 그대로 보여야 한다.
+check(/borderDash \|\| 'solid'/.test(fl), '안 적혀 있으면 실선이다')
+
+// ── ③ 도구줄에서 고른다 ─────────────────────────────
+{
+  const ink = tb.slice(tb.indexOf('function InkTools'))
+  check(/\['solid', 'dashed', 'dotted'\] as const/.test(ink), '세 갈래를 고를 수 있다')
+  check(/patch\(\{ borderDash: d \}\)/.test(ink), '고르면 그 값이 들어간다')
+  check(/<DashIcon kind=\{d\} \/>/.test(ink), '글자가 아니라 **그림**으로 보여 준다')
+  check(/DASH_LABEL\[d\]/.test(ink), '이름은 한 곳에서 온다')
+}
+check(/solid: '실선', dashed: '파선', dotted: '점선'/.test(tb), '실선 · 파선 · 점선')
+// 그림이 진짜 다른 모양이어야 한다 — 셋 다 같은 선이면 고를 이유가 없다.
+check(/dashed: '5 3', dotted: '1.5 2.5'/.test(tb), '파선과 점선이 서로 다른 그림이다')
+check(/solid: undefined/.test(tb), '실선은 끊지 않는다')
+
+// ── ④ 패널에서도 고른다 — 도형도 표도 ────────────────
+{
+  const n = (rp.match(/borderDash: e\.target\.value as 'solid' \| 'dashed' \| 'dotted'/g) || []).length
+  check(n === 2, '패널에도 두 자리(도형 · 표)에 있다', n + '곳')
+  check(/patchTable\(\{ borderDash/.test(rp), '표는 표 고치는 길로 들어간다')
+}
+
+// ── ⑤ 오려 만든 갈래는 **말해 준다** ──────────────────
+check(Array.isArray(CLIPPED) && CLIPPED.length > 0, '오려 만든 갈래 목록이 있다')
+check(/CLIPPED\.includes\(el\.type\)/.test(tb), '도구줄이 그 목록을 보고 말한다')
+check(/CLIPPED\.includes\(el\.type\)/.test(rp), '패널도 같은 목록을 본다')
+check(/테두리가 안 그려져요|테두리가 아직 안 그려집니다/.test(tb + rp), '무엇이 안 되는지 적는다')
+// **목록을 두 벌 들지 않는다.** 화면이 제 손으로 갈래를 적어 두면 도형이 하나 늘 때 어긋난다.
+// (도형 갤러리는 갈래 이름을 적는 게 제 일이라 여기서 안 본다 — **테두리 자리**만 본다.)
+{
+  const ink = tb.slice(tb.indexOf('function InkTools'), tb.indexOf('export default function EditToolbar'))
+  const i = rp.indexOf('CLIPPED.includes(el.type)')
+  const near = rp.slice(Math.max(0, i - 900), i + 400)
+  check(!/'diamond'|'triangle'|'hexagon'/.test(ink), '도구줄 테두리 자리가 갈래 이름을 직접 안 적는다')
+  check(!/'diamond'|'triangle'|'hexagon'/.test(near), '패널 테두리 자리도 직접 안 적는다')
+}
+
+// ── ⑥ 목록이 **실제로 오리는 것들과 같은가** ──────────
+// 이게 이 검사의 핵심이다. 오리는 규칙은 index.css 에 있고 목록은 model.ts 에 있다.
+// 둘이 어긋나면 「안 그려지는데 안 그려진다고 말 안 하는」 도형이 생긴다.
+{
+  const inCss = [...indexCss.matchAll(/\.([A-Za-z0-9]+)\s*\{\s*clip-path/g)].map((m) => m[1])
+  const css = [...new Set(inCss)].sort()
+  const mine = [...CLIPPED].sort()
+  check(css.length > 5, `index.css 에서 오리는 갈래를 찾았다 (${css.length}개)`)
+  check(css.join() === mine.join(), '**목록이 실제로 오리는 것들과 똑같다**',
+    'css: ' + css.join(' ') + ' / 목록: ' + mine.join(' '))
+}
+
+// 글상자는 원래 테두리를 투명으로 두는 갈래라 여기 끼면 안 된다 — 성질이 다르다.
+check(!CLIPPED.includes('text'), '글상자는 오려 만드는 갈래가 아니다')
+check(NO_FILL.includes('text'), '글상자는 채우기 대상이 아니다 (전과 같다)')
+
+console.log(`\n${pass} passed, ${fail} failed`)
+if (fail) process.exit(1)

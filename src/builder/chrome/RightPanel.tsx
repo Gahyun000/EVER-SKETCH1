@@ -12,7 +12,7 @@ import Editor from '../Editor'
 import ColorPicker from './ColorPicker'
 import { pageSize } from '../../cards/sizing'
 import { PAPER_OPTIONS } from '../../cards/paper'
-import { FCOLORS } from '../../canvas/model'
+import { CLIPPED, FCOLORS } from '../../canvas/model'
 import { pushSnap } from '../../canvas/model'
 import type { FreeEl } from '../../state/store'
 import { addRow, delRow, addCol, delCol, setAlignRange, setVAlignRange, setCellFsRange, setCellBgRange } from '../../canvas/tableOps'
@@ -655,6 +655,14 @@ export default function RightPanel() {
                   <option value={0}>없음</option>
                   <option value={0.5}>얇게</option><option value={1}>보통</option><option value={2}>굵게</option>
                 </select>
+                {/* 선 모양 — 도구줄의 도형 테두리와 **같은 값**(`borderDash`)을 쓴다. */}
+                <select className="insp-sel" style={{ width: 'auto' }} title="선 모양"
+                  value={el.borderDash || 'solid'}
+                  onChange={(e) => patchTable({ borderDash: e.target.value as 'solid' | 'dashed' | 'dotted' })}>
+                  <option value="solid">실선</option>
+                  <option value="dashed">파선</option>
+                  <option value="dotted">점선</option>
+                </select>
                 <label className="insp-check"><input type="checkbox" checked={el.headRow !== false} onChange={(e) => patchTable({ headRow: e.target.checked })} /> 헤더행</label>
               </div>
               <span style={cap}>셀을 드래그하면 범위가 잡힙니다(Shift+클릭도 범위). 글자 수정은 표를 더블클릭. 표 자체를 옮길 땐 표 가장자리를 끌거나 방향키를 쓰세요.</span>
@@ -674,7 +682,12 @@ export default function RightPanel() {
               <div className="insp-row"><ColorPicker value={el.color} onChange={(c) => patch({ color: c })} allowTransparent /><span style={{ fontSize: 12, color: '#5b6270' }}>도형 색</span></div>
               <div className="insp-sw">{FCOLORS.map((c) => (<span key={c} className={'insp-chip' + (el.color === c ? ' on' : '')} style={{ background: c === 'transparent' ? 'repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 50%/8px 8px' : c }} onClick={() => patch({ color: c })} />))}</div>
               <div className="insp-sec">테두리</div>
-              <div className="insp-row"><ColorPicker value={el.borderColor || '#cfd5e2'} onChange={(c) => patch({ borderColor: c })} allowTransparent /><select className="insp-sel" style={{ width: 'auto' }} value={el.borderWidth ?? 1.5} onChange={(e) => patch({ borderWidth: Number(e.target.value) })}><option value={0}>없음</option><option value={1}>얇게</option><option value={1.5}>보통</option><option value={3}>굵게</option></select></div>
+              <div className="insp-row"><ColorPicker value={el.borderColor || '#cfd5e2'} onChange={(c) => patch({ borderColor: c })} allowTransparent /><select className="insp-sel" style={{ width: 'auto' }} value={el.borderWidth ?? 1.5} onChange={(e) => patch({ borderWidth: Number(e.target.value) })}><option value={0}>없음</option><option value={1}>얇게</option><option value={1.5}>보통</option><option value={3}>굵게</option></select><select className="insp-sel" style={{ width: 'auto' }} title="선 모양" value={el.borderDash || 'solid'} onChange={(e) => patch({ borderDash: e.target.value as 'solid' | 'dashed' | 'dotted' })}><option value="solid">실선</option><option value="dashed">파선</option><option value="dotted">점선</option></select></div>
+              {/* 오려 만든 갈래는 오릴 때 테두리도 잘린다 — 색·두께를 줘도 빗변에 선이 안 생긴다.
+                  도구줄과 **같은 목록**(CLIPPED)을 보고 같은 말을 한다. */}
+              {CLIPPED.includes(el.type)
+                ? <div className="insp-hint warn">이 도형은 모양을 오려 만들어서 <b>테두리가 아직 안 그려집니다.</b> 고치는 중입니다.</div>
+                : null}
               <div className="insp-sec">불투명도</div>
               <div className="insp-row"><input className="insp-range" type="range" min={0} max={100} value={Math.round((el.opacity ?? 1) * 100)} onChange={(e) => patch({ opacity: Number(e.target.value) / 100 })} /><span style={{ fontSize: 12, color: '#5b6270', width: 42, textAlign: 'right' }}>{Math.round((el.opacity ?? 1) * 100)}%</span></div>
               </Acc>
