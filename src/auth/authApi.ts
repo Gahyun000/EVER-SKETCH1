@@ -124,6 +124,23 @@ export async function apiResetPassword(uid: string): Promise<string> {
   return d.password
 }
 
+/**
+ * 이름 바꾸기 — 관리자 전용.
+ *
+ * **이름은 살아 있는 값이다.** 결재 기록에는 사람의 id 만 적히고 이름은 볼 때마다
+ * 계정에서 찾아간다 — 그래서 한 번 바꾸면 **지난 결재 건의 결재자 이름까지** 함께
+ * 바뀐다. 되돌려 승인받을 필요가 없다.
+ *
+ * **자료 제목과 얼어붙은 스냅샷 속 글자는 안 바뀐다.** 만들 때 한 번 박힌 것이라서다.
+ * 그건 버그가 아니라 기록이다 — 그때 이름이 그때 이름으로 남는 편이 맞다.
+ */
+export async function apiSetName(uid: string, name: string): Promise<Me> {
+  const d = await req<{ ok: boolean; user: Me }>(`/users/${uid}/name`, {
+    method: 'POST', body: JSON.stringify({ name }),
+  })
+  return d.user
+}
+
 export async function apiSetStatus(uid: string, status: 'active' | 'disabled'): Promise<Me> {
   const d = await req<{ ok: boolean; user: Me }>(`/users/${uid}/status`, {
     method: 'POST', body: JSON.stringify({ status }),

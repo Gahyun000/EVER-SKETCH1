@@ -90,6 +90,22 @@ def cmd_promote(login_id: str, role: str) -> None:
           % (user["login_id"], perm.role_label(role)))
 
 
+def cmd_rename(login_id: str, name: str) -> None:
+    """이름을 고친다. 화면에도 같은 길이 있지만(사용자 관리), **화면에 못 들어가는
+    상황의 탈출구**로 여기에도 둔다 — 다른 명령들과 같은 이유다.
+
+    이름은 살아 있는 값이라, 고치면 **지난 결재 건의 결재자 이름까지** 함께 바뀐다.
+    자료 제목과 얼어붙은 스냅샷 속 글자는 안 바뀐다 — 그건 그때의 기록이다.
+    """
+    user = _find(login_id)
+    try:
+        updated = auth_store.set_name(None, user["id"], name)
+    except auth_store.AuthError as e:
+        raise SystemExit(str(e))
+    print("%s 의 이름을 %r → %r 로 바꿨습니다. 다시 로그인할 필요는 없습니다."
+          % (user["login_id"], user.get("name") or "", updated.get("name") or ""))
+
+
 def cmd_unlock(login_id: str) -> None:
     """로그인 시도 제한 해제. 임원이 비밀번호를 여러 번 틀려 잠긴 경우의 탈출구."""
     user = _find(login_id)
@@ -115,6 +131,10 @@ def main() -> None:
     p.add_argument("--login", default="admin", help="대상 아이디 (기본: admin)")
     p.add_argument("--password", default=None, help="직접 지정 (생략하면 무작위 발급)")
 
+    p = sub.add_parser("rename", help="이름 바꾸기")
+    p.add_argument("--login", required=True)
+    p.add_argument("--name", required=True)
+
     p = sub.add_parser("unlock", help="로그인 시도 제한 해제")
     p.add_argument("--login", required=True)
 
@@ -127,6 +147,8 @@ def main() -> None:
         cmd_list()
     elif args.cmd == "reset-pw":
         cmd_reset_pw(args.login, args.password)
+    elif args.cmd == "rename":
+        cmd_rename(args.login, args.name)
     elif args.cmd == "unlock":
         cmd_unlock(args.login)
     elif args.cmd == "promote":

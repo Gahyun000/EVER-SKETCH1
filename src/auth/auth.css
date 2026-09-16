@@ -610,3 +610,17 @@
 .tl-peek-veil > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
   background: var(--blue); color: #fff; font-size: 12px; font-weight: 800;
   border-radius: 99px; padding: 7px 15px; }
+
+/* 이름 바꾸기 — 사용자 관리 (2026-09-16).
+   **고치는 자리는 이름 옆이다.** 단추 칸을 따로 만들면 「무엇의 이름인지」가 한 칸
+   멀어진다. 평소에는 흐리게 두고 줄에 마우스가 오거나 탭으로 짚으면 드러난다 —
+   늘 진하면 이름보다 연필이 먼저 읽힌다. */
+.es-rename-b { margin-left: 6px; border: 0; background: transparent; color: var(--muted);
+  font: inherit; font-size: 12px; cursor: pointer; padding: 0 3px; border-radius: 5px;
+  opacity: 0; transition: opacity .12s, color .12s; }
+tr:hover .es-rename-b, .es-rename-b:focus-visible { opacity: 1; }
+.es-rename-b:hover { color: var(--blue); background: var(--tint); }
+.es-rename-b:disabled { opacity: .3; cursor: not-allowed; }
+.es-rename { width: 100%; max-width: 200px; height: 28px; padding: 0 9px;
+  border: 1.4px solid var(--blue); border-radius: 7px; font: inherit; font-size: 13px;
+  color: #0f172a; outline: none; background: #fff; }

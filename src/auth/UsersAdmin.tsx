@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ApiError, apiApprove, apiListUsers, apiResetPassword, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
+import { ApiError, apiApprove, apiListUsers, apiResetPassword, apiSetName, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
 import { useAuth } from './useAuth'
 import Modal from '../ui/Modal'
 
@@ -27,6 +27,10 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
   // 창을 닫으면 사라지므로 관리자가 당사자에게 전달할 때까지만 떠 있다.
   const [issued, setIssued] = useState<{ user: Me; password: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  /** 이름을 고치는 중인 줄. **이 화면에 길이 아예 없었다**(2026-09-16) — 처음 만들어진
+   *  관리자 이름이 「시스템 관리자」였는데 서버에도 화면에도 관리 도구에도 바꿀 길이
+   *  없어서 DB 를 직접 여는 수밖에 없었다. */
+  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   // 승인 시 부여할 역할. 기본값은 본인이 신청한 역할이지만 관리자가 낮출 수 있다.
   const [grant, setGrant] = useState<Record<string, Role>>({})
 
@@ -120,7 +124,29 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
                 return (
                   <tr key={u.id}>
                     <td><b>{u.login_id}</b>{self && <span style={{ color: '#98a1b2' }}> (나)</span>}</td>
-                    <td>{u.name}{u.dept ? ` · ${u.dept}` : ''}</td>
+                    <td>
+                      {renaming && renaming.id === u.id ? (
+                        <input className="es-rename" autoFocus value={renaming.value} maxLength={40}
+                          aria-label="이름" disabled={busy}
+                          onChange={(e) => setRenaming({ id: u.id, value: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && renaming.value.trim()) {
+                              void act(() => apiSetName(u.id, renaming.value.trim()), u.id)
+                              setRenaming(null)
+                            }
+                            if (e.key === 'Escape') setRenaming(null)
+                          }}
+                          onBlur={() => setRenaming(null)} />
+                      ) : (
+                        <>
+                          {u.name}{u.dept ? ` · ${u.dept}` : ''}
+                          {/* **고치는 자리를 이름 옆에 둔다.** 따로 단추 칸을 만들면
+                              「무엇의 이름인지」가 한 칸 멀어진다. */}
+                          <button className="es-rename-b" title="이름 바꾸기" disabled={busy}
+                            onClick={() => setRenaming({ id: u.id, value: u.name || '' })}>✎</button>
+                        </>
+                      )}
+                    </td>
                     <td><span className={`es-st ${u.status}`}>{
                       u.status === 'active' ? '사용 중' : u.status === 'pending' ? '대기' : '중지'
                     }</span></td>

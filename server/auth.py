@@ -547,6 +547,51 @@ def set_status(actor_id: str, target_id: str, status: str) -> dict:
     return result
 
 
+def set_name(actor_id: str, target_id: str, name: str) -> dict:
+    """이름을 고친다 — 관리자 전용. 호출 전에 `USER_MANAGE` 로 판정해야 한다.
+
+    **왜 이 길이 생겼나**(2026-09-16). 처음 만들어진 관리자 계정의 이름이
+    「시스템 관리자」였는데, 이름을 바꿀 길이 **서버에도 화면에도 관리 도구에도
+    없었다.** 씨앗 코드(`ensure_seed_admin`)의 글자를 고쳐도 소용이 없다 — 그 값은
+    **계정을 처음 만들 때 한 번만** 쓰이고, 이미 있으면 그 함수는 아무것도 안 한다.
+    그래서 DB 를 직접 여는 것 말고는 방법이 없었다.
+
+    **이름은 살아 있는 값이다.** 결재 기록에는 사람의 **id** 만 적히고 이름은 볼 때마다
+    여기서 찾아간다. 그래서 여기서 한 번 고치면 **지난 결재 건까지 전부** 새 이름으로
+    보인다 — 되돌려 승인받을 필요가 없다.
+
+    **안 따라오는 것도 있다.** 자료 제목(「…임원회의 — 홍길동」)과 얼어붙은 스냅샷 속
+    글자는 만들 때 한 번 박힌 것이라 안 바뀐다. 그건 버그가 아니라 기록이다 —
+    승인은 「그때 본 것」에 대한 승인이고, 그때 이름이 그때 이름으로 남는 편이 맞다.
+
+    비밀번호를 바꾸거나 역할을 낮추는 일과 달리 **세션을 끊지 않는다.** 이름은 무엇을
+    할 수 있는지를 바꾸지 않는다 — 쓰던 사람을 밖으로 밀어낼 까닭이 없다.
+    """
+    name = (name or "").strip()
+    if not name:
+        raise AuthError("이름을 입력해 주세요.")
+    if len(name) > MAX_NAME:
+        raise AuthError("이름은 %d자 이하여야 합니다." % MAX_NAME)
+    target = get_user(target_id)
+    if not target:
+        raise AuthError("대상 사용자를 찾을 수 없습니다.")
+    before = target.get("name") or ""
+    if before == name:
+        return target
+    c = _conn()
+    try:
+        c.execute("UPDATE Users SET name=? WHERE id=?", (name, target_id))
+        c.commit()
+    finally:
+        c.close()
+    # **앞 이름을 남긴다.** 이름이 바뀌면 지난 결재 건의 결재자 이름까지 함께 바뀌므로,
+    # 「그때 그 사람이 누구였나」를 되짚을 자리가 여기밖에 없다.
+    audit(actor_id, "rename", target_id, "name=%s (was %s)" % (name, before))
+    result = get_user(target_id)
+    assert result is not None
+    return result
+
+
 def change_password(user_id: str, old_pw: str, new_pw: str) -> None:
     if not new_pw or len(new_pw) < 8:
         raise AuthError("새 비밀번호는 8자 이상이어야 합니다.")
@@ -624,7 +669,7 @@ def ensure_seed_admin(initial_pw: Optional[str] = None) -> Optional[str]:
             c,
             ["id", "login_id", "pw_hash", "name", "dept", "requested_role", "role",
              "status", "must_change_pw", "created_at", "approved_at"],
-            [uid, _SEED_ADMIN_LOGIN, hash_pw(pw), "시스템 관리자", "", ADMIN, ADMIN,
+            [uid, _SEED_ADMIN_LOGIN, hash_pw(pw), "관리자", "", ADMIN, ADMIN,
              "active", 1, now, now],
         )
         c.execute(sql, vals)

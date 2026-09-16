@@ -159,6 +159,25 @@ def reset_password(uid: str, user: dict = Depends(require_login)):
     return {"ok": True, "password": pw}
 
 
+class NameIn(BaseModel):
+    name: str
+
+
+@router.post("/users/{uid}/name")
+def set_name(uid: str, req: NameIn, user: dict = Depends(require_login)):
+    """이름 고치기 — 관리자 전용.
+
+    **자기 이름도 여기로 고친다.** 따로 길을 내면 판정이 두 벌이 되고, 두 벌은
+    언젠가 어긋난다. 관리자만 쓰는 화면이라 그 한 벌로 충분하다.
+    """
+    require_action(user, perm.USER_MANAGE)
+    try:
+        updated = auth_store.set_name(user["id"], uid, req.name)
+    except auth_store.AuthError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True, "user": _public(updated)}
+
+
 class StatusIn(BaseModel):
     status: str
 

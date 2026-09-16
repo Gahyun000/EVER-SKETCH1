@@ -31,8 +31,8 @@ def clean_db():
     yield
 
 
-def mk(login, want="writer", pw="password123"):
-    return auth.signup(login, pw, "홍길동", "사업본부", want)
+def mk(login, want="writer", pw="password123", name="홍길동"):
+    return auth.signup(login, pw, name, "사업본부", want)
 
 
 def promote(uid, role="writer"):
@@ -295,3 +295,87 @@ def test_대기자_목록_필터():
     pending = auth.list_users(status="pending")
     logins = {u["login_id"] for u in pending}       # 저장 시 소문자로 정규화된다
     assert "listb" in logins and "lista" not in logins
+
+
+# ── 이름 바꾸기 (2026-09-16) ─────────────
+#
+# 처음 만들어진 관리자 이름이 「시스템 관리자」였는데, **이름을 바꿀 길이 서버에도
+# 화면에도 관리 도구에도 없었다.** 씨앗 코드의 글자를 고쳐도 소용이 없다 — 그 값은
+# 계정을 처음 만들 때 한 번만 쓰이고, 이미 있으면 `ensure_seed_admin` 은 아무것도
+# 안 한다(멱등). DB 를 직접 여는 것 말고는 방법이 없었다.
+def test_이름을_바꾼다():
+    u = mk("ren1", name="옛 이름")
+    admin, _ = promote(u["id"], "writer")
+    out = auth.set_name(admin["id"], u["id"], "새 이름")
+    assert out["name"] == "새 이름"
+    assert auth.get_user(u["id"])["name"] == "새 이름"
+
+
+def test_씨앗_관리자_이름도_바꿀_수_있다():
+    """**이게 안 돼서 이 길을 만들었다.** 씨앗으로 만들어진 계정이라고 예외가 아니다."""
+    auth.ensure_seed_admin("adminpw12345")
+    admin = [u for u in auth.list_users() if u["login_id"] == "admin"][0]
+    auth.set_name(admin["id"], admin["id"], "관리자")
+    assert auth.get_user(admin["id"])["name"] == "관리자"
+
+
+def test_빈_이름은_안_된다():
+    u = mk("ren2")
+    admin, _ = promote(u["id"], "writer")
+    for bad in ("", "   ", "\t"):
+        with pytest.raises(auth.AuthError):
+            auth.set_name(admin["id"], u["id"], bad)
+
+
+def test_너무_긴_이름은_안_된다():
+    """가입할 때와 **같은 자를 쓴다** — 한쪽만 느슨하면 그쪽으로 들어온다."""
+    u = mk("ren3")
+    admin, _ = promote(u["id"], "writer")
+    with pytest.raises(auth.AuthError):
+        auth.set_name(admin["id"], u["id"], "가" * (auth.MAX_NAME + 1))
+    auth.set_name(admin["id"], u["id"], "가" * auth.MAX_NAME)
+
+
+def test_없는_사람의_이름은_못_바꾼다():
+    auth.ensure_seed_admin("adminpw12345")
+    admin = [u for u in auth.list_users() if u["login_id"] == "admin"][0]
+    with pytest.raises(auth.AuthError):
+        auth.set_name(admin["id"], "u_없음", "아무개")
+
+
+def test_이름_앞뒤_공백은_털어_낸다():
+    u = mk("ren4")
+    admin, _ = promote(u["id"], "writer")
+    assert auth.set_name(admin["id"], u["id"], "  김가현  ")["name"] == "김가현"
+
+
+def test_이름을_바꿔도_쓰던_사람을_안_쫓아낸다():
+    """역할 변경·비활성화와 다르다. **이름은 무엇을 할 수 있는지를 안 바꾼다** —
+    쓰던 사람을 로그인 화면으로 밀어낼 까닭이 없다."""
+    u = mk("ren5", pw="password123")
+    admin, _ = promote(u["id"], "writer")
+    token, _ = auth.login("ren5", "password123")
+    auth.set_name(admin["id"], u["id"], "새 이름")
+    still = auth.user_by_token(token)
+    assert still is not None and still["name"] == "새 이름"
+
+
+def test_이름을_바꾸면_감사로그에_앞_이름이_남는다():
+    """이름이 바뀌면 **지난 결재 건의 결재자 이름까지** 함께 바뀐다(id 만 저장하므로).
+    그래서 「그때 그 사람이 누구였나」를 되짚을 자리가 여기밖에 없다."""
+    u = mk("ren6", name="옛 이름")
+    admin, _ = promote(u["id"], "writer")
+    auth.set_name(admin["id"], u["id"], "새 이름")
+    rows = [a for a in auth.list_audit() if a["action"] == "rename"]
+    assert rows, "rename 이 감사로그에 안 남았습니다"
+    assert "옛 이름" in rows[0]["detail"] and "새 이름" in rows[0]["detail"]
+
+
+def test_같은_이름으로_바꾸면_조용히_지나간다():
+    """감사로그가 「안 바뀐 변경」으로 불어나지 않는다."""
+    u = mk("ren7", name="그대로")
+    admin, _ = promote(u["id"], "writer")
+    before = len([a for a in auth.list_audit() if a["action"] == "rename"])
+    auth.set_name(admin["id"], u["id"], "그대로")
+    after = len([a for a in auth.list_audit() if a["action"] == "rename"])
+    assert before == after
