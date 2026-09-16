@@ -31,9 +31,15 @@ const { dragTrack, trackSizes } = await import('./src/canvas/tableOps.ts')
 
 // ── ① 손잡이가 표준 양식에서도 나온다 ────────────────
 {
+  // **글자 수로 창을 자르지 않는다**(2026-09-16). 처음엔 `i+1200` 으로 잘랐는데,
+  // 그 사이에 머리 띠(눌러서 줄 고르기)가 들어오자 손잡이가 창 밖으로 밀려나
+  // 「열과 행 둘 다 그린다」가 거짓으로 실패했다. 지킴이가 제 일을 한 것이지만,
+  // 지켜야 할 것은 「손잡이가 있다」이지 「1200자 안에 있다」가 아니다.
+  // 블록의 진짜 끝(`return <>{out}</>`)까지 자른다.
   const i = fl.indexOf('const cw = trackSizes(se.colw, C)')
   check(i > 0, '열·행 손잡이를 그리는 자리를 찾았다')
-  const blk = fl.slice(Math.max(0, i - 1500), i + 1200)
+  const end = fl.indexOf('return <>{out}</>', i)
+  const blk = fl.slice(Math.max(0, i - 1500), end > i ? end : i + 1200)
   check(/trk-grip trk-col/.test(blk) && /trk-grip trk-row/.test(blk), '열과 행 둘 다 그린다')
   // **슬롯을 보지 않는다.** 여기서 슬롯을 따지기 시작하면 표준 양식만 조용히 막힌다.
   check(!/slotAllows/.test(blk), '슬롯 정책을 보지 않는다 — 표준 양식도 크기를 바꾼다')

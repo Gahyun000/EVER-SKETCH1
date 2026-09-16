@@ -10,7 +10,7 @@ import { useProjects } from '../persistence/projects'
 import { mkFreeEl, pushSnap, FCOLORS, NO_FILL } from './model'
 import { CLIPPED, SHAPE_RADIUS, dashArray, polyClip, polyPoints } from './shapePaths'
 import NoteBlocks from '../builder/NoteBlocks'
-import { coveredSet, dragTrack, mergeCovering, sizeTracks, trackSizes } from './tableOps'
+import { bandRange, coveredSet, dragTrack, growToMerges, mergeCovering, sizeTracks, trackSizes } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, clampTodayX, clampTodayY, isSlotEl, lockedRowCount, todayPlace } from '../template/slots'
 import { tableAnchorLabel } from '../comments/anchorLabel'
 import { isContinuation } from './tableFlow'
@@ -486,6 +486,58 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
 
   function snap() { pushSnap(page.id, snapOf(page)) }
 
+  /**
+   * 칸 범위를 잡는다. **병합 칸에 닿으면 그 칸 전체를 품도록 넓힌다**(tableOps.growToMerges).
+   *
+   * 사람이 고른 범위는 **모두 이 문으로 들어온다** — 끌기·클릭·Shift 클릭·방향키·Tab.
+   * 한 군데라도 `setTableSel` 을 직접 부르면 거기서만 옛 결함이 살아남는다:
+   * 2행 높이로 병합된 칸(2027년)에 닿는 순간 범위가 0행으로 **줄어들어** 월 줄이 빠졌다.
+   */
+  function pickRange(el: FreeEl, r0: number, c0: number, r1: number, c1: number) {
+    const g = growToMerges(el.merges, r0, c0, r1, c1)
+    setTableSel({ elId: el.id, r0: g.r0, c0: g.c0, r1: g.r1, c1: g.c1 })
+  }
+
+  /**
+   * 머리 띠를 눌러 **줄·열을 통째로** 고른다(2026-09-16 · 사용자 결정 ㄷ).
+   *
+   * **`growToMerges` 를 쓰지 않는다.** 여기서 넓히면 월 줄을 눌러도 양옆의 2행 병합
+   * (Project·2027년)이 딸려 와 2행이 된다 — 이 기능이 있는 이유가 바로 그걸 피하려는 것이다.
+   * `bandRange` 가 「그 줄에서 시작하는 칸」만 세어 딱 맞는 범위를 준다.
+   */
+  function pickBand(el: FreeEl, axis: 'row' | 'col', i: number) {
+    const r = bandRange(el, axis, i)
+    if (!r) return
+    setTableSel({ elId: el.id, r0: r.r0, c0: r.c0, r1: r.r1, c1: r.c1 })
+  }
+
+  /** 머리 띠를 **끌면** 여러 줄이 이어서 골라진다. 두 띠의 범위를 합친다. */
+  function startBandDrag(el: FreeEl, axis: 'row' | 'col', i0: number, from: Element) {
+    pickBand(el, axis, i0)
+    const layer = from.closest('.freelayer')
+    let last = i0
+    const move = (ev: PointerEvent) => {
+      const node = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null
+      const band = node ? (node.closest('[data-band]') as HTMLElement | null) : null
+      if (!band || band.dataset.band !== axis || band.dataset.bel !== String(el.id)) return
+      if (!layer || !layer.contains(band)) return
+      const i = Number(band.dataset.bi)
+      if (!Number.isFinite(i) || i === last) return
+      last = i
+      const a = bandRange(el, axis, i0), b = bandRange(el, axis, i)
+      if (!a || !b) return
+      setTableSel({ elId: el.id,
+        r0: Math.min(a.r0, b.r0), c0: Math.min(a.c0, b.c0),
+        r1: Math.max(a.r1, b.r1), c1: Math.max(a.c1, b.c1) })
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
   // ── 표 셀 키보드 조작 ──────────────────────────────────────────────
   // 칸을 고른 상태에서 바로 글자를 치면 그 칸이 갈아끼워지고, Tab·방향키로 칸을 옮긴다.
   function focusCell(elId: number, r: number, c: number, mode: 'all' | 'end') {
@@ -534,17 +586,17 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       const eat = () => { e.preventDefault(); e.stopPropagation() }
       const k = e.key
       if (k === 'Escape') { eat(); setTableSel(null); return }
-      if (k === 'Tab') { eat(); const nc = Math.max(0, Math.min(C - 1, c + (e.shiftKey ? -1 : 1))); setTableSel({ elId: el.id, r0: r, c0: nc, r1: r, c1: nc }); return }
+      if (k === 'Tab') { eat(); const nc = Math.max(0, Math.min(C - 1, c + (e.shiftKey ? -1 : 1))); pickRange(el, r, nc, r, nc); return }
       if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight') {
         eat()
         const dr = k === 'ArrowUp' ? -1 : k === 'ArrowDown' ? 1 : 0
         const dc = k === 'ArrowLeft' ? -1 : k === 'ArrowRight' ? 1 : 0
         if (e.shiftKey) {   // Shift+방향키 = 잡은 범위를 넓히거나 좁힌다
           const nr = Math.max(0, Math.min(R - 1, ts.r1 + dr)), nc = Math.max(0, Math.min(C - 1, ts.c1 + dc))
-          setTableSel({ elId: el.id, r0: ts.r0, c0: ts.c0, r1: nr, c1: nc }); return
+          pickRange(el, ts.r0, ts.c0, nr, nc); return
         }
         const nr = Math.max(0, Math.min(R - 1, r + dr)), nc = Math.max(0, Math.min(C - 1, c + dc))
-        setTableSel({ elId: el.id, r0: nr, c0: nc, r1: nr, c1: nc }); return
+        pickRange(el, nr, nc, nr, nc); return
       }
       if (k === 'Enter' || k === 'F2') { eat(); editCellNow(el, r, c, 'end'); return }
       if (k === 'Delete' || k === 'Backspace') { eat(); clearCells(el, ts); return }
@@ -616,7 +668,8 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   // 좌표로 계산하지 않고 **elementFromPoint 로 실제 칸을 짚는다.**
   // 열 너비(colw)·행 높이(rowh)·병합이 섞이면 좌표 산술로는 어느 칸인지 못 맞춘다.
   // 병합에 덮인 자리는 앵커 칸이 그 영역을 차지하므로 앵커 좌표가 그대로 나온다.
-  function startCellDrag(elId: number, r0: number, c0: number, from: Element) {
+  function startCellDrag(el: FreeEl, r0: number, c0: number, from: Element) {
+    const elId = el.id
     // 같은 페이지가 필름스트립 미리보기에도 그려진다 — 거기 칸들도 data-tel 이 같다.
     // 레이어를 확인하지 않으면 커서가 미리보기 위를 지나는 순간 엉뚱한 칸이 잡힌다.
     const layer = from.closest('.freelayer')
@@ -631,7 +684,9 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       const key = r + '_' + c
       if (key === last) return
       last = key
-      setTableSel({ elId, r0, c0, r1: r, c1: c })
+      // **병합을 반영해 넓힌다.** 이 한 줄이 빠져 있어서, 2행 높이로 병합된 칸
+      // (2027년)에 닿는 순간 범위가 0행으로 줄어들며 월 1~12 가 통째로 빠졌다.
+      pickRange(el, r0, c0, r, c)
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
@@ -1144,7 +1199,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                             contentEditable={canEdit}
                             onKeyDown={canEdit ? (e) => {
                               // 값은 endEditing() 이 먼저 커밋한다. 칸을 옮기기 전에 반드시 거쳐야 한다.
-                              const to = (nr: number, nc: number) => { e.preventDefault(); e.stopPropagation(); endEditing(); setTableSel({ elId: el.id, r0: nr, c0: nc, r1: nr, c1: nc }) }
+                              const to = (nr: number, nc: number) => { e.preventDefault(); e.stopPropagation(); endEditing(); pickRange(el, nr, nc, nr, nc) }
                               if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endEditing(); return }
                               if (e.key === 'Enter' && !e.shiftKey) { to(Math.min(R - 1, r + 1), c); return }
                               if (e.key === 'Tab') { to(r, e.shiftKey ? Math.max(0, c - 1) : Math.min(C - 1, c + 1)) }
@@ -1168,9 +1223,9 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                               // 것으로 보였다. 표를 이 자리에서 옮기는 일은 거의 없고,
                               // 칸을 고르는 일은 매번 있다. 표 이동은 ⠿ 손잡이가 맡는다.
                               if (!tableActive) setSel(el.id)
-                              if (e.shiftKey && ts) { setTableSel({ elId: el.id, r0: ts.r0, c0: ts.c0, r1: r, c1: c }); return }
-                              setTableSel({ elId: el.id, r0: r, c0: c, r1: r, c1: c })
-                              startCellDrag(el.id, r, c, e.currentTarget)
+                              if (e.shiftKey && ts) { pickRange(el, ts.r0, ts.c0, r, c); return }
+                              pickRange(el, r, c, r, c)
+                              startCellDrag(el, r, c, e.currentTarget)
                             }}
                             onDoubleClick={(e) => {
                               // 더블클릭한 **그 칸**에 커서를 놓는다.
@@ -1370,6 +1425,27 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
               const cw = trackSizes(se.colw, C), rh = trackSizes(se.rowh, R)
               const cT = cw.reduce((a, b) => a + b, 0), rT = rh.reduce((a, b) => a + b, 0)
               const out: React.ReactNode[] = []
+              // ── 머리 띠(누르면 그 줄·열 통째로) ───────────────────────
+              // **경계 손잡이보다 먼저** 그린다 — 뒤에 그린 손잡이가 위에 얹혀,
+              // 경계에서는 크기 조절이 이긴다. 띠 하나가 두 가지 일을 한다.
+              let bacc = 0
+              for (let i = 0; i < C; i++) {
+                const x0 = bacc; bacc += cw[i]
+                out.push(<div key={'cb' + i} className="trk-band trk-band-col"
+                  data-band="col" data-bi={i} data-bel={se.id}
+                  title="눌러서 이 열 통째로 고르기 (끌면 여러 열)"
+                  style={{ left: (x0 / cT) * 100 + '%', width: (cw[i] / cT) * 100 + '%', top: bandT }}
+                  onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); startBandDrag(se, 'col', i, ev.currentTarget) }} />)
+              }
+              bacc = 0
+              for (let i = 0; i < R; i++) {
+                const y0 = bacc; bacc += rh[i]
+                out.push(<div key={'rb' + i} className="trk-band trk-band-row"
+                  data-band="row" data-bi={i} data-bel={se.id}
+                  title="눌러서 이 줄 통째로 고르기 (끌면 여러 줄)"
+                  style={{ top: (y0 / rT) * 100 + '%', height: (rh[i] / rT) * 100 + '%', left: bandL }}
+                  onPointerDown={(ev) => { ev.preventDefault(); ev.stopPropagation(); startBandDrag(se, 'row', i, ev.currentTarget) }} />)
+              }
               let acc = 0
               for (let i = 0; i < C - 1; i++) {
                 acc += cw[i]

@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>칸 크기 조절 — 지금 vs ㄱ</title>
+<style>
+  :root{
+    --ink:#0f1b3d; --sub:#5b6270; --dim:#98a1b2; --line:#e2e6ee;
+    --blue:#2462eb; --blue-s:#eaf0ff; --paper:#fff; --bg:#f4f6fa;
+    --warn:#d98a2a; --warn-s:#fff6e8; --ok:#2f8f46; --ok-s:#eef8f0;
+    --head:#ffffcc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 16px 80px}
+  h1{font-size:23px;margin:0 0 6px}
+  .lead{color:var(--sub);margin:0 0 22px}
+  .lead b{color:var(--ink)}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px;margin:0 0 18px}
+  .card h2{font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tag{font-size:11px;font-weight:800;letter-spacing:.02em;padding:2px 8px;border-radius:99px}
+  .tag.now{background:#eef1f6;color:var(--sub)}
+  .tag.new{background:var(--blue-s);color:var(--blue)}
+  .tag.rec{background:var(--ok-s);color:var(--ok)}
+  .note{color:var(--sub);font-size:13px;margin:6px 0 14px}
+  .note b{color:var(--ink)}
+
+  /* ── 공통 표 모형 ─────────────────────────── */
+  .stage{background:#eef1f6;border-radius:10px;padding:34px 18px 18px;position:relative;overflow-x:auto}
+  .tbl{position:relative;width:660px;margin:0 auto;background:#fff;
+    border:1.5px solid var(--blue);border-radius:4px;user-select:none}
+  .lab{position:absolute;left:0;top:-22px;font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap}
+  .grid{display:grid;position:relative}
+  .cell{border-right:1px solid #cfd5e2;border-bottom:1px solid #cfd5e2;
+    padding:6px 4px;font-size:11px;text-align:center;min-height:30px;overflow:hidden;white-space:nowrap}
+  .cell.h{background:var(--head);font-weight:700}
+  .cell.last{border-right:0}
+  .cell.sel{background:var(--blue-s)}
+
+  /* 지금: 표 밖 띠 */
+  .grip{position:absolute;top:-14px;height:11px;width:13px;cursor:col-resize;z-index:7}
+  .grip::before{content:'';position:absolute;left:5px;top:0;width:3px;height:11px;
+    background:var(--blue);opacity:.62;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.92)}
+  .grip:hover::before{opacity:1}
+  .rsh{position:absolute;top:-25px;width:10px;height:10px;border:1.5px solid var(--blue);
+    background:#fff;border-radius:2px;cursor:ew-resize;z-index:8}
+
+  /* ㄱ: 경계선 위 */
+  .edge{position:absolute;top:0;bottom:0;width:7px;margin-left:-3px;cursor:col-resize;z-index:6}
+  .edge:hover::after{content:'';position:absolute;left:3px;top:0;bottom:0;width:2px;background:var(--blue)}
+  .edge.on::after{content:'';position:absolute;left:3px;top:0;bottom:0;width:2px;background:var(--blue)}
+
+  .bub{position:absolute;transform:translate(-50%,-140%);background:#1f2937;color:#fff;
+    font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;white-space:nowrap;
+    pointer-events:none;opacity:0;transition:opacity .1s;z-index:20}
+  .bub.on{opacity:1}
+  .bub::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1f2937}
+
+  .try{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0 0;
+    font-size:12.5px;color:var(--sub)}
+  .kbd{background:#eef1f6;border:1px solid var(--line);border-radius:5px;padding:1px 7px;
+    font-size:11.5px;font-weight:700;color:var(--ink)}
+  .live{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+
+  table.cmp{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}
+  table.cmp th,table.cmp td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:#f7f9fc;font-weight:700;white-space:nowrap}
+  table.cmp td.n{color:var(--sub)}
+  .yes{color:var(--ok);font-weight:700}
+  .no{color:#c0392b;font-weight:700}
+
+  .box{border-left:3px solid var(--warn);background:var(--warn-s);padding:12px 14px;
+    border-radius:0 8px 8px 0;margin:14px 0 0;font-size:13px}
+  .box.m{border-left-color:var(--blue);background:var(--blue-s)}
+  .box b{color:var(--ink)}
+  .meas{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;
+    background:#f7f9fc;border:1px solid var(--line);border-radius:6px;padding:10px 12px;
+    white-space:pre;overflow-x:auto;color:var(--sub);margin:10px 0 0}
+  @media (max-width:700px){ .tbl{width:560px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>칸 크기 조절 — 지금 방식과 ㄱ안을 나란히</h1>
+  <p class="lead">
+    「셀 늘리는 건 기존처럼만 되면 된다」고 하셨으니 <b>고치자는 제안이 아닙니다.</b>
+    다만 ㄱ안이 어떤 느낌인지 보시겠다고 해서, 둘을 나란히 두고 <b>직접 끌어 보실 수 있게</b>
+    만들었습니다. 치수는 실제 앱에서 잰 값 그대로입니다.
+  </p>
+
+  <!-- ── 지금 ────────────────────────────── -->
+  <div class="card">
+    <h2><span class="tag now">지금</span> 표 바깥 띠에서 잡는다</h2>
+    <p class="note">
+      열 손잡이는 표 <b>윗변 바깥</b> 14~3px 에 있는 <b>10.8 × 9.1px</b> 짜리 띠입니다.
+      그 <b>1px 위</b>에 표 전체 크기 손잡이(흰 네모)가 붙어 있습니다.
+      아래에서 파란 눈금과 흰 네모를 각각 끌어 보세요 — 무엇이 잡히는지 느낌이 다릅니다.
+    </p>
+    <div class="stage">
+      <div class="tbl" id="tblA">
+        <div class="lab">① 로드맵 / 마일스톤</div>
+        <div class="grid" id="gridA"></div>
+      </div>
+    </div>
+    <div class="try">
+      <span>파란 눈금 = 열 너비</span><span class="kbd">·</span>
+      <span>흰 네모 = 표 전체</span>
+      <span class="live" id="liveA">—</span>
+    </div>
+    <div class="box">
+      <b>걸리는 곳.</b> 손을 뻗는 자리(칸과 칸 경계선)에는 아무 표시가 없습니다.
+      거기서 끌면 <b>칸 범위가 선택</b>되고, 조금 더 위로 올리면 <b>표 전체</b>가 잡힙니다.
+      실제로 보내 주신 영상에서 일어난 일이 이것입니다.
+    </div>
+  </div>
+
+  <!-- ── ㄱ안 ────────────────────────────── -->
+  <div class="card">
+    <h2><span class="tag new">ㄱ안</span> 경계선 자체를 잡는다 <span class="tag rec">엑셀·시트·PPT 와 같은 손놀림</span></h2>
+    <p class="note">
+      칸과 칸 <b>경계선 위 ±3px</b> 에서 커서가 <b>↔</b> 로 바뀌고, 끌면 그 열만 넓어지고 좁아집니다.
+      끄는 동안 <b>지금 몇 px 인지</b>를 말풍선으로 띄웁니다(보내 주신 시트 영상의 <code>108pt</code> 같은 것).
+      표 바깥 띠는 <b>그대로 둡니다</b> — 익숙해진 사람의 손을 빼앗지 않기 위해서입니다.
+    </p>
+    <div class="stage">
+      <div class="tbl" id="tblB">
+        <div class="lab">① 로드맵 / 마일스톤</div>
+        <div class="grid" id="gridB"></div>
+        <div class="bub" id="bubB">0px</div>
+      </div>
+    </div>
+    <div class="try">
+      <span>경계선에 커서를 올려 보세요</span><span class="kbd">↔</span>
+      <span>끌면 말풍선에 px 가 뜹니다</span>
+      <span class="live" id="liveB">—</span>
+    </div>
+    <div class="box m">
+      <b>대신 치러야 하는 값.</b> 경계선 ±3px 은 <b>칸 범위 끌기</b>와 같은 자리입니다.
+      그래서 「경계에서 3px 안이면 크기 조절, 그 밖이면 범위 선택」이라는 규칙이 하나 생깁니다.
+      월 칸처럼 <b>좁은 열(34px)</b> 에서는 칸 한가운데 28px 만 범위 선택으로 남습니다 —
+      좁지만 실물 도구도 같은 값을 치르고 있습니다.
+    </div>
+  </div>
+
+  <!-- ── 견주기 ──────────────────────────── -->
+  <div class="card">
+    <h2>나란히 놓고</h2>
+    <table class="cmp">
+      <tr><th style="width:170px"></th><th>지금 (표 바깥 띠)</th><th>ㄱ안 (경계선)</th></tr>
+      <tr><td>잡는 자리</td><td class="n">표 윗변 바깥 14~3px</td><td class="n">칸과 칸 경계선 ±3px</td></tr>
+      <tr><td>잡는 자리 크기</td><td class="n">10.8 × 9.1px</td><td class="n">7px × 표 높이</td></tr>
+      <tr><td>커서로 알 수 있나</td><td><span class="yes">그렇다</span> <span class="n">(띠 위에서만)</span></td><td><span class="yes">그렇다</span></td></tr>
+      <tr><td>배워야 하나</td><td><span class="no">그렇다</span> <span class="n">— 이 앱에만 있는 자리</span></td><td><span class="yes">아니다</span> <span class="n">— 엑셀·시트·PPT 와 같다</span></td></tr>
+      <tr><td>표 전체 손잡이와<br>헷갈리나</td><td><span class="no">그렇다</span> <span class="n">— 세로 1px 간격</span></td><td><span class="yes">아니다</span> <span class="n">— 표 안이라 안 겹친다</span></td></tr>
+      <tr><td>이름표에 가리나</td><td><span class="no">왼쪽 몇 개는 가린다</span></td><td><span class="yes">아니다</span></td></tr>
+      <tr><td>칸 범위 끌기와<br>부딪히나</td><td><span class="yes">아니다</span></td><td><span class="no">그렇다</span> <span class="n">— 3px 규칙이 필요</span></td></tr>
+      <tr><td>행 높이는</td><td class="n">왼쪽 바깥 띠(같은 방식)</td><td class="n">가로 경계선(같은 방식)</td></tr>
+      <tr><td>공사 크기</td><td class="n">—</td><td class="n">칸 위에 얇은 띠 18개 + 3px 규칙 + 말풍선</td></tr>
+    </table>
+    <div class="box">
+      <b>제 판단.</b> 지금 것이 고장 난 것은 아닙니다 — 손잡이 17개가 다 살아 있고 끌면 바뀝니다.
+      다만 <b>「경계선을 잡는다」는 기대가 워낙 굳어 있어</b>, 그 자리에 아무것도 없으면
+      사람은 기능이 없다고 결론을 내립니다. 실제로 그렇게 되셨습니다.
+      <br><br>
+      그래서 <b>말풍선(px 표시)만 먼저 넣는 것</b>도 한 가지 길입니다 — 공사가 제일 작고,
+      「지금 몇 px 인지」를 몰라서 겪는 답답함은 바로 사라집니다. ㄱ안은 그 다음에 판단하셔도 됩니다.
+    </div>
+  </div>
+
+  <!-- ── 잰 값 ───────────────────────────── -->
+  <div class="card">
+    <h2>실제 앱에서 잰 값</h2>
+    <div class="meas">칸 경계선 위          커서 default · 잡히는 것은 그냥 칸 · 끌면 칸 범위 선택
+열 손잡이             표 바깥 y −14~−3 · 10.8 × 9.1px · 커서 col-resize · 17개 모두 눌림
+표 전체 크기 손잡이   그 바로 위 y −25~−15 (세로 간격 1px)
+행 손잡이             표 바깥 왼쪽 · 11 × 13px
+① 로드맵 이름표       y −22~−4 를 가로지름 (클릭은 안 막지만 왼쪽 몇 개가 글자에 묻힘)
+너비 표시             없음
+패널·도구줄 너비 입력 없음</div>
+  </div>
+
+</div>
+
+<script>
+/* ── 표 모형 만들기 ───────────────────────────── */
+var COLS = [96, 78, 34,34,34,34,34,34,34,34,34,34,34,34, 52, 48, 48, 44]  // 18열
+var HEAD  = ['Project','그룹','1','2','3','4','5','6','7','8','9','10','11','12','2027년','계획','투입','비고']
+var ROWS  = 4
+
+function build(gridId, cols){
+  var g = document.getElementById(gridId)
+  g.innerHTML = ''
+  g.style.gridTemplateColumns = cols.map(function(w){ return w+'px' }).join(' ')
+  for (var r=0;r<ROWS;r++){
+    for (var c=0;c<cols.length;c++){
+      var d = document.createElement('div')
+      d.className = 'cell' + (r===0?' h':'') + (c===cols.length-1?' last':'')
+      d.textContent = r===0 ? HEAD[c] : ''
+      g.appendChild(d)
+    }
+  }
+}
+
+/* ── 지금: 표 밖 띠 ───────────────────────────── */
+var colsA = COLS.slice()
+function renderA(){
+  build('gridA', colsA)
+  var t = document.getElementById('tblA')
+  t.querySelectorAll('.grip,.rsh').forEach(function(n){ n.remove() })
+  var acc = 0
+  for (var i=0;i<colsA.length-1;i++){
+    acc += colsA[i]
+    var g = document.createElement('div')
+    g.className = 'grip'; g.style.left = (acc-13)+'px'; g.dataset.i = i
+    t.appendChild(g)
+  }
+  var total = colsA.reduce(function(a,b){return a+b},0)
+  ;[0, total/2, total].forEach(function(x){
+    var h = document.createElement('div')
+    h.className = 'rsh'; h.style.left = (x-5)+'px'
+    t.appendChild(h)
+  })
+}
+renderA()
+;(function(){
+  var t = document.getElementById('tblA'), live = document.getElementById('liveA')
+  var drag = null
+  t.addEventListener('pointerdown', function(e){
+    var g = e.target.closest('.grip'), h = e.target.closest('.rsh')
+    if (g){ drag = { kind:'col', i:+g.dataset.i, x:e.clientX, w:colsA[+g.dataset.i], n:colsA[+g.dataset.i+1] }
+            g.setPointerCapture(e.pointerId); e.preventDefault() }
+    else if (h){ drag = { kind:'all', x:e.clientX, cols:colsA.slice() }
+            h.setPointerCapture(e.pointerId); e.preventDefault() }
+  })
+  t.addEventListener('pointermove', function(e){
+    if (!drag) return
+    var d = e.clientX - drag.x
+    if (drag.kind === 'col'){
+      var a = Math.max(18, drag.w + d), b = Math.max(18, drag.n - d)
+      if (a + b === drag.w + drag.n){ colsA[drag.i] = a; colsA[drag.i+1] = b }
+      live.textContent = '열 너비 ' + Math.round(colsA[drag.i]) + 'px'
+    } else {
+      var k = Math.max(0.45, Math.min(1.35, 1 + d/600))
+      colsA = drag.cols.map(function(w){ return Math.max(18, Math.round(w*k)) })
+      live.textContent = '표 전체 ' + Math.round(colsA.reduce(function(a,b){return a+b},0)) + 'px — 모든 열이 같이 바뀝니다'
+    }
+    renderA()
+  })
+  t.addEventListener('pointerup', function(){ drag = null })
+})()
+
+/* ── ㄱ안: 경계선 ─────────────────────────────── */
+var colsB = COLS.slice()
+var selB = null
+function renderB(){
+  build('gridB', colsB)
+  var t = document.getElementById('tblB')
+  t.querySelectorAll('.edge,.grip').forEach(function(n){ n.remove() })
+  var acc = 0
+  for (var i=0;i<colsB.length-1;i++){
+    acc += colsB[i]
+    var e2 = document.createElement('div')
+    e2.className = 'edge'; e2.style.left = acc+'px'; e2.dataset.i = i
+    t.appendChild(e2)
+    /* 바깥 띠는 그대로 남긴다 — 익숙해진 손을 빼앗지 않는다 */
+    var g = document.createElement('div')
+    g.className = 'grip'; g.style.left = (acc-13)+'px'; g.dataset.i = i
+    t.appendChild(g)
+  }
+}
+renderB()
+;(function(){
+  var t = document.getElementById('tblB'), live = document.getElementById('liveB')
+  var bub = document.getElementById('bubB')
+  var drag = null
+  t.addEventListener('pointerdown', function(e){
+    var n = e.target.closest('.edge') || e.target.closest('.grip')
+    if (!n) return
+    var i = +n.dataset.i
+    drag = { i:i, x:e.clientX, w:colsB[i], n:colsB[i+1] }
+    n.classList.add('on'); n.setPointerCapture(e.pointerId); e.preventDefault()
+    bub.classList.add('on')
+  })
+  t.addEventListener('pointermove', function(e){
+    if (!drag) return
+    var d = e.clientX - drag.x
+    var a = Math.max(18, drag.w + d), b = Math.max(18, drag.n - d)
+    if (a + b === drag.w + drag.n){ colsB[drag.i] = a; colsB[drag.i+1] = b }
+    var acc = 0; for (var k=0;k<=drag.i;k++) acc += colsB[k]
+    bub.style.left = acc + 'px'
+    bub.style.top = '0px'
+    bub.textContent = Math.round(colsB[drag.i]) + 'px'
+    live.textContent = '열 너비 ' + Math.round(colsB[drag.i]) + 'px'
+    renderB()
+    var cur = t.querySelector('.edge[data-i="'+drag.i+'"]'); if (cur) cur.classList.add('on')
+  })
+  t.addEventListener('pointerup', function(){
+    drag = null; bub.classList.remove('on')
+    t.querySelectorAll('.edge.on').forEach(function(n){ n.classList.remove('on') })
+  })
+})()
+</script>
+</body>
+</html>

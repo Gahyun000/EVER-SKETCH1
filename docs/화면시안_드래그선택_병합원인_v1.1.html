@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>왜 1~12칸이 빠지나 — 원인과 ㄷ안</title>
+<style>
+  :root{
+    --ink:#0f1b3d; --sub:#5b6270; --dim:#98a1b2; --line:#e2e6ee;
+    --blue:#2462eb; --blue-s:#eaf0ff; --paper:#fff; --bg:#f4f6fa;
+    --warn:#d98a2a; --warn-s:#fff6e8; --bad:#c0392b; --bad-s:#fdeeec;
+    --ok:#2f8f46; --ok-s:#eef8f0; --head:#ffffcc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 16px 90px}
+  h1{font-size:23px;margin:0 0 6px}
+  .lead{color:var(--sub);margin:0 0 22px}
+  .lead b{color:var(--ink)}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px;margin:0 0 18px}
+  .card h2{font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px}
+  .tag.now{background:#eef1f6;color:var(--sub)}
+  .tag.bad{background:var(--bad-s);color:var(--bad)}
+  .tag.new{background:var(--blue-s);color:var(--blue)}
+  .tag.rec{background:var(--ok-s);color:var(--ok)}
+  .note{color:var(--sub);font-size:13px;margin:6px 0 14px}
+  .note b{color:var(--ink)}
+
+  .stage{background:#eef1f6;border-radius:10px;padding:40px 22px 22px;overflow-x:auto}
+  .tblwrap{position:relative;width:700px;margin:0 auto}
+  .tbl{position:relative;background:#fff;border:1px solid #b9c2d4;border-radius:4px;user-select:none}
+  .grid{display:grid;position:relative;
+    grid-template-columns:96px 78px repeat(12,34px) 52px 48px 48px 44px;
+    grid-template-rows:34px 30px 30px 30px}
+  .c{border-right:1px solid #cfd5e2;border-bottom:1px solid #cfd5e2;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;padding:2px;overflow:hidden;white-space:nowrap;position:relative}
+  .c.h{background:var(--head);font-weight:700}
+  .c.on{background:var(--blue-s)}
+  .c.lastc{border-right:0}
+  .c.lastr{border-bottom:0}
+  .box{position:absolute;border:2px solid var(--blue);pointer-events:none;z-index:9;border-radius:2px}
+
+  /* 머리 띠 */
+  .hb{position:absolute;background:#e7ecf5;border:1px solid #cfd5e2;
+    display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
+    color:var(--sub);cursor:pointer;z-index:5}
+  .hb:hover{background:#d8e2f4;color:var(--blue)}
+  .hb.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .hb.col{top:-19px;height:18px}
+  .hb.row{left:-24px;width:23px}
+  .hbedge{position:absolute;width:7px;margin-left:-3px;cursor:col-resize;z-index:7}
+  .hbedge.v{width:auto;height:7px;margin-left:0;margin-top:-3px;cursor:row-resize}
+  .hbedge:hover{background:rgba(36,98,235,.55)}
+
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0 0;font-size:13px;color:var(--sub)}
+  .out{margin-left:auto;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);
+    background:#f7f9fc;border:1px solid var(--line);border-radius:7px;padding:3px 12px}
+  .out.bad{color:var(--bad);border-color:#f0c9c3;background:var(--bad-s)}
+  .out.ok{color:var(--ok);border-color:#c6e6cf;background:var(--ok-s)}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 12px;
+    font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer}
+  .btn:hover{border-color:var(--blue);color:var(--blue)}
+
+  table.cmp{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}
+  table.cmp th,table.cmp td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.cmp th{background:#f7f9fc;font-weight:700;white-space:nowrap}
+  table.cmp td.n{color:var(--sub)}
+  .yes{color:var(--ok);font-weight:700}
+  .no{color:var(--bad);font-weight:700}
+  .cal{border-left:3px solid var(--warn);background:var(--warn-s);padding:12px 14px;
+    border-radius:0 8px 8px 0;margin:14px 0 0;font-size:13px}
+  .cal.m{border-left-color:var(--blue);background:var(--blue-s)}
+  .cal.r{border-left-color:var(--bad);background:var(--bad-s)}
+  .meas{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;
+    background:#f7f9fc;border:1px solid var(--line);border-radius:6px;padding:10px 12px;
+    white-space:pre;overflow-x:auto;color:var(--sub);margin:10px 0 0}
+  ol.q{margin:8px 0 0;padding-left:20px;font-size:13.5px}
+  ol.q li{margin:7px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>왜 1~12칸이 빠지나 — 원인, 그리고 ㄷ안</h1>
+  <p class="lead">
+    <b>앞 시안에서 제가 「드래그의 병합 규칙은 엑셀과 같다」고 적은 것은 틀렸습니다.</b>
+    엑셀은 병합 칸에 닿으면 선택이 <b>커지는데</b>, 여기서는 <b>줄어듭니다</b> — 2027년에 닿는 순간
+    월 줄(1~12)이 통째로 빠집니다. 그건 취향 차이가 아니라 <b>고쳐야 할 결함</b>입니다.
+    아래 첫 칸이 그걸 그대로 재현합니다.
+  </p>
+
+  <!-- ① 지금 -->
+  <div class="card">
+    <h2><span class="tag now">지금</span> 끌어서 고른다 <span class="tag bad">2027년을 지나면 월 줄이 빠진다</span></h2>
+    <p class="note">
+      <b>Project 칸에서 시작해</b> 오른쪽으로 끝까지 끌어 보세요(영상에서 하신 그대로).
+      <b>2027년에 닿는 순간 월 1~12 가 선택에서 빠집니다.</b>
+      병합 칸(Project·2026년·2027년)은 칠해진 채로 남아, 월 줄만 뻥 뚫린 모습이 됩니다.
+      월 <b>1</b> 에서 시작하면 안 그런데, 그래서 원인을 찾는 데 한참 걸렸습니다.
+    </p>
+    <div class="stage">
+      <div class="tblwrap"><div class="tbl" id="tA"><div class="grid" id="gA"></div></div></div>
+    </div>
+    <div class="bar">
+      <button class="btn" id="autoA">Project 에서 끝까지 끌어 보기</button>
+      <span>Project 에서 눌러 오른쪽 끝까지 끌어 보세요</span>
+      <span class="out" id="oA">—</span>
+    </div>
+    <div class="cal r">
+      <b>잰 값 — Project 에서 시작했을 때.</b>
+      월 9 → <b>2×11</b>(월 9칸 칠해짐) · 월 12 → <b>2×14</b>(12칸) ·
+      <b>2027년 → 1×15 (월 0칸)</b> · 계획 M/M → 1×16(0칸) · 비고 → 1×18(0칸) ·
+      본문까지 내려가면 → 3×18(다시 12칸).
+    </div>
+  </div>
+
+  <!-- ①-2 원인 -->
+  <div class="card">
+    <h2>왜 그런가 — 잰 것으로</h2>
+    <p class="note">
+      선택 사각형은 <b>두 칸에 저장된 (행, 열) 의 최소·최대</b>로만 만들어집니다.
+      그런데 <b>병합 칸은 제 왼쪽 위 칸의 좌표</b>를 갖습니다.
+    </p>
+    <div class="meas">Project  = (0행, 0열)   ← 2행 2열 병합인데 좌표는 0행
+2026년   = (0행, 2열)   ← 12열 병합
+2027년   = (0행,14열)   ← **2행 높이 병합인데 좌표는 0행**
+월 1~12  = (1행, 2~13열)
+
+Project(0행) 에서 시작 → 월 12(1행) 위  : 사각형 = 0~1행  → 월 칸 들어옴  (2×14)
+Project(0행) 에서 시작 → 2027년(0행) 위 : 사각형 = **0~0행** → 월 칸 빠짐   (1×15)</div>
+    <p class="note" style="margin-top:12px">
+      커서가 2027년에 닿는 순간 사각형의 아래 변이 <b>1행에서 0행으로 올라갑니다.</b>
+      그리고 칠하기는 <b>「칸의 왼쪽 위가 사각형 안에 있나」</b>로만 판정하므로,
+      2027년(0행)은 칠해지고 <b>그 칸이 2행 높이로 그려지니 월 줄 높이까지 파랗게</b> 보입니다.
+      정작 월 칸(1행)은 사각형 밖이라 안 칠해집니다 — 그래서 <b>월 줄만 뚫린</b> 모습이 됩니다.
+    </p>
+    <div class="cal r">
+      <b>엑셀은 반대입니다.</b> 병합 칸에 닿으면 선택이 <b>그 칸 전체를 삼키도록 커집니다.</b>
+      여기서는 <b>줄어듭니다.</b> 그래서 이건 「엑셀과 같은 동작」이 아니라 <b>고쳐야 할 결함</b>이고,
+      제가 앞 시안에 적은 설명은 틀렸습니다.
+    </div>
+    <div class="cal m">
+      <b>고칠 방향.</b> 사각형을 만들 때 <b>병합 칸의 실제 범위(몇 행 × 몇 열)를 반영해 넓힙니다.</b>
+      그러면 2027년에 닿아도 0~1행이 유지되어 월 줄이 안 빠집니다.
+      <br><br>
+      <b>다만 그걸 고쳐도 「월 1~12 만」은 여전히 못 고릅니다</b> — 월 줄 양옆이 전부 2행 병합이라
+      끝까지 끌면 2행이 됩니다. 그래서 아래 ㄷ안이 <b>따로</b> 필요합니다. 둘은 별개의 일입니다.
+    </div>
+  </div>
+
+  <!-- ② ㄷ안 -->
+  <div class="card">
+    <h2><span class="tag new">ㄷ안</span> 머리 띠를 <b>한 번 누른다</b> <span class="tag rec">권함</span></h2>
+    <p class="note">
+      표 <b>왼쪽</b>에 행 머리, <b>위</b>에 열 머리를 둡니다.
+      <b>월 줄의 행 머리를 한 번 누르면 1~12 만</b> 골라집니다 — 끌 일이 없으니 2px 때문에 깨질 일도 없습니다.
+      그 줄에 <b>실제로 들어 있는 칸</b>만 고르기 때문입니다(Project·2027년은 위 줄의 칸이라 안 들어옵니다).
+      머리를 <b>끌면</b> 여러 줄이 이어서 골라지고, 머리의 <b>경계</b>에서 끌면 지금처럼 크기가 바뀝니다.
+    </p>
+    <div class="stage">
+      <div class="tblwrap" style="padding-left:24px">
+        <div class="tbl" id="tB"><div class="grid" id="gB"></div></div>
+      </div>
+    </div>
+    <div class="bar">
+      <button class="btn" id="rowB">월 줄 머리 누르기</button>
+      <button class="btn" id="colB">「5」 열 머리 누르기</button>
+      <button class="btn" id="clrB">지우기</button>
+      <span class="out" id="oB">—</span>
+    </div>
+    <div class="cal m">
+      <b>띠 하나가 두 가지 일을 합니다.</b> 가운데를 <b>누르면</b> 그 줄·그 열을 고르고,
+      <b>경계</b>에 가면 커서가 <b>↔</b> 로 바뀌어 크기가 바뀝니다.
+      지금 있는 크기 조절 띠를 옮기거나 없애지 않고 <b>그 자리에 얹는</b> 방식이라,
+      익숙해진 손을 빼앗지 않습니다.
+    </div>
+  </div>
+
+  <!-- ③ 견주기 -->
+  <div class="card">
+    <h2>나란히 놓고</h2>
+    <table class="cmp">
+      <tr><th style="width:230px"></th><th>지금 (끌어서)</th><th>ㄷ안 (머리 띠)</th></tr>
+      <tr><td>월 1~12 만 고르기</td>
+          <td><span class="no">34px 안에서 떼야 함</span></td>
+          <td><span class="yes">한 번 누르면 끝</span></td></tr>
+      <tr><td>끝까지 끌었을 때</td>
+          <td><span class="no">2×16 — 2026년 줄까지</span></td>
+          <td><span class="yes">해당 없음</span></td></tr>
+      <tr><td>본문 한 줄 전체</td><td class="n">양 끝을 조심해서 끌기</td><td class="n">머리 한 번</td></tr>
+      <tr><td>여러 줄</td><td class="n">세로로 끌기</td><td class="n">머리를 끌기</td></tr>
+      <tr><td>일부만 (3~7월)</td><td><span class="yes">끌면 됨</span></td><td class="n">지금처럼 끌면 됨 — <b>그대로 남김</b></td></tr>
+      <tr><td>크기 조절</td><td class="n">표 밖 띠 (10.8 × 9.1px)</td><td class="n">같은 띠의 <b>경계</b>에서</td></tr>
+      <tr><td>배워야 하나</td><td class="n">—</td><td class="n">엑셀의 행 번호·열 문자와 같음</td></tr>
+      <tr><td>공사 크기</td><td class="n">—</td><td class="n">머리 띠 그리기 + 누르기 판정 + 「그 줄의 칸」 고르기</td></tr>
+    </table>
+  </div>
+
+  <!-- ④ 정해야 할 것 -->
+  <div class="card">
+    <h2>만들기 전에 정해야 할 것</h2>
+    <ol class="q">
+      <li><b>두 길의 답이 다릅니다 — 이걸 받아들일지부터.</b>
+        월 줄을 <b>끌어서</b> 고르면 병합 칸(2026년)이 딸려 와 2행이 되는데,
+        <b>머리를 눌러서</b> 고르면 안 딸려 옵니다(1×12). 「5」 열도 마찬가지 —
+        눌러서 고르면 <b>3×1</b>, 끌어서 고르면 2026년 때문에 12열이 됩니다.
+        <b>일부러 그렇게 뒀습니다</b>: 머리를 누르는 건 「이 줄을 달라」는 뜻이지
+        「이 칸에 닿았다」가 아니니까요. 다만 <b>같은 표에서 답이 둘</b>이라는 건
+        분명한 값이고, 여기에 동의하셔야 ㄷ안이 성립합니다.</li>
+      <li><b>머리 띠를 늘 보이게 할까, 표를 고른 뒤에만 보일까.</b>
+        늘 보이면 양식이 시트처럼 보이고, 골랐을 때만 보이면 지금 크기 조절 띠와 같은 규칙이 됩니다.
+        <b>제 생각은 「골랐을 때만」</b> — 결재·내보내기 화면에는 나오면 안 되니까요.</li>
+      <li><b>머리에 글자를 넣을까(1·2·3 / A·B·C), 빈 띠로 둘까.</b>
+        위 목업은 빈 띠에 가깝게 뒀습니다. 글자를 넣으면 찾기 쉽지만 양식이 시트처럼 보입니다.</li>
+      <li><b>가운데에 병합이 있는 줄은 어떻게 셀까.</b>
+        월 줄은 깨끗하지만, 본문 줄에 세로 병합(「삼일」 같은 것)이 걸쳐 있으면
+        「그 줄의 칸」이 이어지지 않습니다. <b>그때는 지금처럼 사각형으로 넓히는 편</b>이 덜 놀랍습니다.</li>
+      <li><b>머리글 행(로드맵 위 두 줄)도 고르게 할까.</b>
+        슬롯 정책상 글자는 못 고치지만 <b>칠하기는 됩니다</b> — 고를 수 있어야 맞습니다.</li>
+    </ol>
+    <div class="meas">실제 앱에서 잰 값
+  월 칸 하나 너비        34px (화면)
+  12 칸 한가운데         1×12 선택   커서 밑 = 1행 13열
+  12 칸 오른쪽 끝 +2px   2×13 선택   커서 밑 = 0행 14열 (2027년, 2행 높이 병합)
+  표 오른쪽 끝까지        2×16 선택
+  1 칸 왼쪽 끝 −2px      2×14 선택   (왼쪽도 마찬가지)
+  다시 칸 안으로 들어오면  1×12 로 돌아옴 — 손 떼는 위치가 전부</div>
+  </div>
+
+</div>
+
+<script>
+/* ── 표 모형 ─────────────────────────────────────
+   실제 로드맵과 같은 병합:
+     0행  Project(2행2열)  2026년(12열)  2027년·계획·투입·비고(각 2행)
+     1행  1 … 12
+     2~3행 본문 18칸                                       */
+var NCOL = 18, NROW = 4
+var CELLS = []   // {r,c,rs,cs,t,head}
+;(function(){
+  CELLS.push({r:0,c:0,rs:2,cs:2,t:'Project',head:1})
+  CELLS.push({r:0,c:2,rs:1,cs:12,t:'2026년',head:1})
+  CELLS.push({r:0,c:14,rs:2,cs:1,t:'2027년',head:1})
+  CELLS.push({r:0,c:15,rs:2,cs:1,t:'계획',head:1})
+  CELLS.push({r:0,c:16,rs:2,cs:1,t:'투입',head:1})
+  CELLS.push({r:0,c:17,rs:2,cs:1,t:'비고',head:1})
+  for (var c=2;c<14;c++) CELLS.push({r:1,c:c,rs:1,cs:1,t:String(c-1),head:1})
+  for (var r=2;r<NROW;r++) for (var c2=0;c2<NCOL;c2++)
+    CELLS.push({r:r,c:c2,rs:1,cs:1,t:(r===2&&c2===1)?'AI Agent':(r===2&&c2===0?'삼일':''),head:0})
+})()
+function at(r,c){ // (r,c) 를 덮고 있는 칸
+  for (var i=0;i<CELLS.length;i++){ var k=CELLS[i]
+    if (r>=k.r && r<k.r+k.rs && c>=k.c && c<k.c+k.cs) return k }
+  return null
+}
+function draw(gid, onDown, onMove, onUp){
+  var g = document.getElementById(gid); g.innerHTML=''
+  CELLS.forEach(function(k){
+    var d=document.createElement('div')
+    d.className='c'+(k.head?' h':'')+((k.c+k.cs>=NCOL)?' lastc':'')+((k.r+k.rs>=NROW)?' lastr':'')
+    d.style.gridColumn=(k.c+1)+' / span '+k.cs
+    d.style.gridRow=(k.r+1)+' / span '+k.rs
+    d.textContent=k.t
+    d.dataset.r=k.r; d.dataset.c=k.c
+    d.addEventListener('pointerdown',function(e){onDown(k,e,d)})
+    d.addEventListener('pointerenter',function(){onMove(k)})
+    g.appendChild(d)
+  })
+  document.addEventListener('pointerup',onUp)
+}
+/* 사각형을 병합에 맞춰 넓힌다 — 지금 앱과 같은 규칙 */
+function grow(r0,c0,r1,c1){
+  var a=Math.min(r0,r1), b=Math.max(r0,r1), x=Math.min(c0,c1), y=Math.max(c0,c1), ch=true
+  while(ch){ ch=false
+    for (var i=0;i<CELLS.length;i++){ var k=CELLS[i]
+      var hit = !(k.r>b || k.r+k.rs-1<a || k.c>y || k.c+k.cs-1<x)
+      if (hit){ if(k.r<a){a=k.r;ch=true} if(k.r+k.rs-1>b){b=k.r+k.rs-1;ch=true}
+                if(k.c<x){x=k.c;ch=true} if(k.c+k.cs-1>y){y=k.c+k.cs-1;ch=true} } } }
+  return [a,x,b,y]
+}
+function paint(gid,bid,rect,label,outEl,good){
+  var g=document.getElementById(gid)
+  g.querySelectorAll('.c').forEach(function(d){
+    var r=+d.dataset.r, c=+d.dataset.c, k=at(r,c)
+    var hit = rect && !(k.r>rect[2] || k.r+k.rs-1<rect[0] || k.c>rect[3] || k.c+k.cs-1<rect[1])
+    d.classList.toggle('on', !!hit)
+  })
+  var old=document.getElementById(bid); if(old) old.remove()
+  if (rect){
+    var box=document.createElement('div'); box.className='box'; box.id=bid
+    var first=g.querySelector('.c[data-r="'+rect[0]+'"]')
+    // 격자 좌표로 테두리를 그린다(병합 포함)
+    box.style.gridColumn=''
+    var gr=g.getBoundingClientRect()
+    var cs=getComputedStyle(g).gridTemplateColumns.split(' ').map(parseFloat)
+    var rs=getComputedStyle(g).gridTemplateRows.split(' ').map(parseFloat)
+    var L=0; for(var i=0;i<rect[1];i++) L+=cs[i]
+    var W=0; for(var i2=rect[1];i2<=rect[3];i2++) W+=cs[i2]
+    var T=0; for(var j=0;j<rect[0];j++) T+=rs[j]
+    var H=0; for(var j2=rect[0];j2<=rect[2];j2++) H+=rs[j2]
+    box.style.left=L+'px'; box.style.top=T+'px'; box.style.width=W+'px'; box.style.height=H+'px'
+    g.parentNode.appendChild(box)
+  }
+  outEl.textContent=label
+  outEl.className='out'+(good===true?' ok':good===false?' bad':'')
+}
+
+/* ── ① 지금: 끌어서 ───────────────────────────── */
+var A={anchor:null,down:false}
+/* **실제 앱과 같은 규칙** — 두 칸에 **저장된** (행,열) 의 최소·최대일 뿐,
+   병합 칸의 실제 높이·너비를 반영하지 않는다. 병합 칸은 제 왼쪽 위 좌표를 갖는다. */
+function rawRect(a,b){
+  return [Math.min(a.r,b.r), Math.min(a.c,b.c), Math.max(a.r,b.r), Math.max(a.c,b.c)]
+}
+function aRender(){
+  if(!A.anchor||!A.cur){ paint('gA','bA',null,'—',document.getElementById('oA')); return }
+  var r=rawRect(A.anchor,A.cur)
+  var nr=r[2]-r[0]+1, nc=r[3]-r[1]+1
+  /* 월 칸(1행)이 사각형 안에 있나 */
+  var months = (r[0]<=1 && r[2]>=1)
+  paint('gA','bA',r,nr+'×'+nc+' 선택'+(months?'  (월 칸 들어 있음)':'  ← **월 1~12 가 빠졌습니다**'),
+        document.getElementById('oA'), months)
+}
+draw('gA',function(k){A.anchor=k;A.cur=k;A.down=true;aRender()},
+         function(k){if(A.down){A.cur=k;aRender()}},
+         function(){A.down=false})
+document.getElementById('autoA').addEventListener('click',function(){
+  var seq=[[1,2],[1,6],[1,10],[1,13],[0,14],[0,15],[0,16],[0,17],[2,17]]
+  var i=0
+  A.anchor=at(0,0); A.cur=at(0,0); A.down=false; aRender()
+  var t=setInterval(function(){
+    A.cur=at(seq[i][0],seq[i][1]); aRender(); i++
+    if(i>=seq.length) clearInterval(t)
+  },520)
+})
+
+/* ── ② ㄷ안: 머리 띠 ─────────────────────────── */
+function bRender(rect,label,good){ paint('gB','bB',rect,label,document.getElementById('oB'),good) }
+var B={anchor:null,down:false}
+draw('gB',function(k){B.anchor=k;B.cur=k;B.down=true;bDrag()},
+         function(k){if(B.down){B.cur=k;bDrag()}},
+         function(){B.down=false})
+function bDrag(){
+  if(!B.anchor) return
+  var r=grow(B.anchor.r,B.anchor.c,B.cur.r,B.cur.c)
+  bRender(r,(r[2]-r[0]+1)+'×'+(r[3]-r[1]+1)+' 선택  (끌기는 지금 그대로)')
+}
+/* 머리 띠 그리기 */
+function heads(){
+  var t=document.getElementById('tB'), g=document.getElementById('gB')
+  t.querySelectorAll('.hb,.hbedge').forEach(function(n){n.remove()})
+  var cs=getComputedStyle(g).gridTemplateColumns.split(' ').map(parseFloat)
+  var rs=getComputedStyle(g).gridTemplateRows.split(' ').map(parseFloat)
+  var acc=0
+  cs.forEach(function(w,i){
+    var h=document.createElement('div'); h.className='hb col'; h.style.left=acc+'px'; h.style.width=w+'px'
+    h.dataset.col=i; h.title='이 열 통째로 고르기'
+    t.appendChild(h)
+    acc+=w
+    if(i<cs.length-1){ var e=document.createElement('div'); e.className='hbedge'
+      e.style.left=acc+'px'; e.style.top='-19px'; e.style.height='18px'; e.title='끌면 열 너비'
+      t.appendChild(e) }
+  })
+  var accy=0
+  rs.forEach(function(hh,i){
+    var h=document.createElement('div'); h.className='hb row'; h.style.top=accy+'px'; h.style.height=hh+'px'
+    h.dataset.row=i; h.title='이 줄 통째로 고르기'
+    t.appendChild(h)
+    accy+=hh
+    if(i<rs.length-1){ var e=document.createElement('div'); e.className='hbedge v'
+      e.style.top=accy+'px'; e.style.left='-24px'; e.style.width='23px'; e.title='끌면 행 높이'
+      t.appendChild(e) }
+  })
+}
+heads()
+function pickRow(r){
+  var own=CELLS.filter(function(k){return k.r===r})
+  if(!own.length){ bRender(null,'이 줄에는 제 칸이 없습니다'); return }
+  var c0=Math.min.apply(null,own.map(function(k){return k.c}))
+  var c1=Math.max.apply(null,own.map(function(k){return k.c+k.cs-1}))
+  var r1=Math.max.apply(null,own.map(function(k){return k.r+k.rs-1}))
+  var lab = (r===1) ? '1×12 선택  (월 1~12 — 한 번 눌러서)' : (r1-r+1)+'×'+(c1-c0+1)+' 선택'
+  bRender([r,c0,r1,c1], lab, r===1)
+  document.querySelectorAll('#tB .hb').forEach(function(n){n.classList.remove('on')})
+  var h=document.querySelector('#tB .hb.row[data-row="'+r+'"]'); if(h) h.classList.add('on')
+}
+function pickCol(c){
+  /* 행 머리와 **같은 규칙** — 그 열에 「제 칸」으로 들어 있는 것만.
+     2026년(12열 병합)은 2열에서 시작하므로 6열을 눌러도 안 딸려 온다. */
+  var own=CELLS.filter(function(k){return k.c===c})
+  if(!own.length){ bRender(null,'이 열에는 제 칸이 없습니다'); return }
+  var r0=Math.min.apply(null,own.map(function(k){return k.r}))
+  var r1=Math.max.apply(null,own.map(function(k){return k.r+k.rs-1}))
+  var c1=Math.max.apply(null,own.map(function(k){return k.c+k.cs-1}))
+  var r=[r0,c,r1,c1]
+  bRender(r,(r1-r0+1)+'×'+(c1-c+1)+' 선택  (이 열의 칸들)', true)
+  document.querySelectorAll('#tB .hb').forEach(function(n){n.classList.remove('on')})
+  var h=document.querySelector('#tB .hb.col[data-col="'+c+'"]'); if(h) h.classList.add('on')
+}
+document.getElementById('tB').addEventListener('click',function(e){
+  var h=e.target.closest('.hb'); if(!h) return
+  if(h.dataset.row!==undefined) pickRow(+h.dataset.row); else pickCol(+h.dataset.col)
+})
+document.getElementById('rowB').addEventListener('click',function(){pickRow(1)})
+document.getElementById('colB').addEventListener('click',function(){pickCol(6)})
+document.getElementById('clrB').addEventListener('click',function(){
+  bRender(null,'—'); document.querySelectorAll('#tB .hb').forEach(function(n){n.classList.remove('on')})})
+</script>
+</body>
+</html>

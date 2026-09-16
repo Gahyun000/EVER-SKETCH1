@@ -148,6 +148,19 @@ button{font-family:inherit;cursor:pointer}
    다만 **글상자는 글자를 고칠 수 있으므로** 글자 커서를 준다(더블클릭). */
 /* 열·행 경계선 손잡이. 표를 골랐을 때만 나오고, 표 **밖**(위·왼쪽 띠)에 선다 —
    칸 위에 겹치면 칸 고르기를 가로챈다. 평소엔 흐리게, 올리면 또렷하게. */
+/* **머리 띠** — 누르면 그 줄·열을 통째로 고른다(2026-09-16 · 사용자 결정 ㄷ).
+   경계 손잡이와 **같은 자리**에 깔고, 손잡이를 그 위에 얹는다(z-index 6 < 7):
+   가운데를 누르면 고르고, 경계에 가면 크기가 바뀐다. 띠 하나가 두 가지 일을 한다.
+
+   **왜 필요한가.** 월 줄(1~12)은 양옆이 전부 2행 높이 병합이라 **끌어서는 12칸만
+   고를 수가 없다** — 끝까지 끌면 병합에 닿아 2행이 된다. 엑셀에서도 그럴 때는
+   끌지 않고 행 번호·열 문자를 누른다. 그 자리를 만들어 준 것이다. */
+.trk-band{position:absolute;pointer-events:auto;z-index:6;cursor:pointer}
+.trk-band-col{height:11px}
+.trk-band-row{width:11px}
+.trk-band::before{content:'';position:absolute;inset:2px;border-radius:2px;
+  background:#2462EB;opacity:0;transition:opacity .12s}
+.trk-band:hover::before{opacity:.22}
 .trk-grip{position:absolute;pointer-events:auto;z-index:7}
 /* **있는데 안 보이면 없는 것과 같다**(2026-09-16).
    사용자가 「셀들은 사이즈 조정 가능하게」라고 했는데, 재 보니 **이미 되고 있었다** —

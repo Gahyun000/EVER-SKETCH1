@@ -30,6 +30,97 @@ export function mergeCovering(merges: Merge[] | undefined, r: number, c: number)
 }
 
 // 덮이지만 앵커가 아닌 셀들(렌더에서 숨김)
+/**
+ * 고른 칸 범위를 **병합 칸의 실제 크기에 맞춰 넓힌다.**
+ *
+ * ── 왜 필요한가 (2026-09-16, 사용자 신고) ─────────────────
+ * 범위는 눌러 시작한 칸과 커서가 있는 칸의 **저장된 (행, 열)** 로만 만들어졌다.
+ * 그런데 **병합 칸은 제 왼쪽 위 좌표 하나만** 갖는다. 로드맵에서 이런 일이 났다 —
+ *
+ *     Project = (0행,0열, 2행 2열)   2027년 = (0행,14열, **2행** 1열)   월 1~12 = (1행, 2~13열)
+ *
+ *     Project 에서 시작 → 월 12(1행) 위  : 0~1행 → 월 칸 들어옴 (2×14)
+ *     Project 에서 시작 → 2027년(0행) 위 : **0~0행** → 월 칸이 통째로 빠짐 (1×15)
+ *
+ * 커서가 2027년에 닿는 순간 범위의 아래 변이 1행에서 **0행으로 올라갔다.** 칠하기는
+ * 「칸의 왼쪽 위가 범위 안에 있나」로만 판정하므로 2027년은 칠해지고(게다가 2행 높이로
+ * 그려지니 월 줄 높이까지 파랗게 보이고) 정작 월 칸은 빠져서, 화면에는 **월 줄만 뻥 뚫린**
+ * 모습이 됐다. 「2027년까진 잘 되다가 지나면 1~12가 빠진다」가 이것이다.
+ *
+ * 엑셀은 반대다 — 병합 칸에 닿으면 선택이 **그 칸 전체를 삼키도록 커진다.** 여기서는
+ * 줄어들고 있었다. 그러니 이건 취향이 아니라 결함이다.
+ *
+ * ── 어떻게 넓히는가 ──────────────────────────────────
+ * 사각형에 **닿은** 병합 칸이 하나라도 있으면 그 칸을 통째로 품도록 사각형을 키우고,
+ * 키운 사각형이 또 다른 병합 칸에 닿을 수 있으니 **더 커지지 않을 때까지** 되풀이한다.
+ * 병합이 없으면 준 값이 그대로 나온다(가장 흔한 길에 값이 들지 않는다).
+ */
+export function growToMerges(merges: Merge[] | undefined,
+                             r0: number, c0: number, r1: number, c1: number,
+                             ): { r0: number; c0: number; r1: number; c1: number } {
+  let a = Math.min(r0, r1), b = Math.max(r0, r1)
+  let x = Math.min(c0, c1), y = Math.max(c0, c1)
+  if (!merges || !merges.length) return { r0: a, c0: x, r1: b, c1: y }
+  // 병합 개수만큼 돌면 반드시 멈춘다 — 한 번 도는 동안 적어도 하나는 새로 삼켜야
+  // 계속 커지기 때문이다. 무한 반복을 막는 빗장이기도 하다.
+  for (let pass = 0; pass <= merges.length; pass++) {
+    let grew = false
+    for (const m of merges) {
+      const mr1 = m.r + m.rs - 1, mc1 = m.c + m.cs - 1
+      if (m.r > b || mr1 < a || m.c > y || mc1 < x) continue   // 안 닿았다
+      if (m.r < a) { a = m.r; grew = true }
+      if (mr1 > b) { b = mr1; grew = true }
+      if (m.c < x) { x = m.c; grew = true }
+      if (mc1 > y) { y = mc1; grew = true }
+    }
+    if (!grew) break
+  }
+  return { r0: a, c0: x, r1: b, c1: y }
+}
+
+/**
+ * 머리 띠를 눌렀을 때 고를 범위 — **그 줄·그 열에 「제 칸」으로 들어 있는 것들.**
+ *
+ * ── 왜 「닿은 칸 전부」가 아닌가 ────────────────────────
+ * 사용자가 하려던 일은 「월 1~12 만 고르기」였다. 그런데 월 줄은 양옆이 전부 2행 높이
+ * 병합(Project·2027년·계획·투입·비고)이라, **끌어서는 절대 12칸만 고를 수 없다** —
+ * 끝까지 끌면 병합에 닿아 2행이 된다(`growToMerges` 로 고쳐도 마찬가지다. 그건
+ * 「줄어들던 것」을 고칠 뿐 「안 넓어지게」 하지는 못한다).
+ *
+ * 그래서 머리 띠는 다른 규칙을 쓴다. **그 줄에서 시작하는 칸만** 센다 —
+ * Project·2027년은 0행에서 시작하므로 1행을 눌러도 안 들어온다. 월 줄을 누르면 딱 1×12.
+ * 엑셀에서 12칸을 고를 때도 끌지 않고 열 머리를 쓰는 것과 같은 생각이다.
+ *
+ * ── 그래서 답이 둘이 된다 ──────────────────────────────
+ * **끌면** 병합이 딸려 오고, **머리를 누르면** 안 딸려 온다. 사용자 판단(2026-09-16):
+ * 머리를 누르는 건 「이 줄을 달라」는 뜻이지 「이 칸에 닿았다」가 아니므로 그게 맞다.
+ *
+ * 고를 게 없으면 null — 병합에 통째로 덮인 줄(제 칸이 하나도 없는 줄)이 그렇다.
+ */
+export function bandRange(el: Pick<FreeEl, 'rows' | 'cols' | 'merges'>,
+                          axis: 'row' | 'col', i: number,
+                          ): { r0: number; c0: number; r1: number; c1: number } | null {
+  const R = el.rows || 1, C = el.cols || 1
+  if (i < 0 || (axis === 'row' ? i >= R : i >= C)) return null
+  const cov = coveredSet(el.merges)
+  let r0 = Infinity, c0 = Infinity, r1 = -Infinity, c1 = -Infinity
+  const n = axis === 'row' ? C : R
+  for (let k = 0; k < n; k++) {
+    const r = axis === 'row' ? i : k
+    const c = axis === 'row' ? k : i
+    if (cov.has(r + '_' + c)) continue          // 위/왼쪽 병합에 덮인 자리 — 제 칸이 아니다
+    const m = mergeCovering(el.merges, r, c)
+    const er = m ? m.r + m.rs - 1 : r
+    const ec = m ? m.c + m.cs - 1 : c
+    if (r < r0) r0 = r
+    if (c < c0) c0 = c
+    if (er > r1) r1 = er
+    if (ec > c1) c1 = ec
+  }
+  if (r0 === Infinity) return null
+  return { r0, c0, r1, c1 }
+}
+
 export function coveredSet(merges: Merge[] | undefined): Set<string> {
   const s = new Set<string>()
   if (!merges) return s
