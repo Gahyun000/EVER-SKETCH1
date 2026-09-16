@@ -8,6 +8,7 @@ import { useBuilder } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
 import { useProjects } from '../persistence/projects'
 import { mkFreeEl, pushSnap, FCOLORS, NO_FILL } from './model'
+import { CLIPPED, SHAPE_RADIUS, dashArray, polyClip, polyPoints } from './shapePaths'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, dragTrack, mergeCovering, sizeTracks, trackSizes } from './tableOps'
 import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount, todayColumn } from '../template/slots'
@@ -885,6 +886,19 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
         if (el.borderWidth != null) style.borderWidth = el.borderWidth
         // 선 모양(실선·파선·점선). 안 적혀 있으면 실선 — 옛 자료가 그대로 보인다.
         if (el.borderDash) style.borderStyle = el.borderDash
+        /**
+         * **오려 만드는 갈래.** 오리는 규칙을 CSS 가 아니라 여기서 입힌다 —
+         * 꼭짓점 한 벌(shapePaths)로 **오리고 또 그리려면** 두 곳이 같은 숫자를 봐야 한다.
+         *
+         * 상자 테두리는 **아예 끈다.** 오릴 때 같이 잘려서 꼭짓점에 자국만 남기 때문이다.
+         * 선은 밑에서 SVG 로 그린다.
+         */
+        const clipped = CLIPPED.includes(el.type)
+        if (clipped) {
+          style.clipPath = polyClip(el.type)
+          style.borderRadius = SHAPE_RADIUS[el.type] ?? 0
+          style.borderWidth = 0
+        }
         const txtStyle: CSSProperties = { fontSize: el.fs }
         if (el.bold) txtStyle.fontWeight = 800
         if (el.tcolor) txtStyle.color = el.tcolor
@@ -909,6 +923,18 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
             onPointerEnter={active && tool === 'select' ? () => setHoverId(el.id) : undefined}
             onPointerLeave={active && tool === 'select' ? () => setHoverId((h) => (h === el.id ? null : h)) : undefined}
             onDoubleClick={active ? (e) => { if (isImg) pickImage(el); else startEditing(el.id, { x: e.clientX, y: e.clientY }) } : undefined}>
+            {/* **오려 만든 갈래의 테두리.** 상자에 그릴 수 없으니 그 위에 선을 얹는다.
+                굵기를 두 배로 그리면 바깥 절반이 오리는 규칙에 잘려 **딱 제 굵기**만 남고,
+                선이 모양 안쪽에 정확히 붙는다. (SVG 에는 「안쪽 선」이 따로 없다.) */}
+            {clipped && (el.borderWidth ?? 1.5) > 0 ? (
+              <svg className="fel-outline" viewBox={`0 0 ${el.w} ${el.h}`} aria-hidden="true">
+                <polygon points={polyPoints(el.type, el.w, el.h)} fill="none"
+                  stroke={el.borderColor || '#cfd5e2'}
+                  strokeWidth={(el.borderWidth ?? 1.5) * 2}
+                  strokeDasharray={dashArray(el.borderDash, el.borderWidth ?? 1.5)}
+                  strokeLinecap={el.borderDash === 'dotted' ? 'round' : undefined} />
+              </svg>
+            ) : null}
             {isNote
               ? (<div className="note-inner" style={{ pointerEvents: editingThis ? 'auto' : 'none' }}
                   onPointerDown={editingThis ? (e) => e.stopPropagation() : undefined}

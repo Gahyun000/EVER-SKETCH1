@@ -59,33 +59,30 @@ check(/solid: undefined/.test(tb), '실선은 끊지 않는다')
   check(/patchTable\(\{ borderDash/.test(rp), '표는 표 고치는 길로 들어간다')
 }
 
-// ── ⑤ 오려 만든 갈래는 **말해 준다** ──────────────────
-check(Array.isArray(CLIPPED) && CLIPPED.length > 0, '오려 만든 갈래 목록이 있다')
-check(/CLIPPED\.includes\(el\.type\)/.test(tb), '도구줄이 그 목록을 보고 말한다')
-check(/CLIPPED\.includes\(el\.type\)/.test(rp), '패널도 같은 목록을 본다')
-check(/테두리가 안 그려져요|테두리가 아직 안 그려집니다/.test(tb + rp), '무엇이 안 되는지 적는다')
-// **목록을 두 벌 들지 않는다.** 화면이 제 손으로 갈래를 적어 두면 도형이 하나 늘 때 어긋난다.
-// (도형 갤러리는 갈래 이름을 적는 게 제 일이라 여기서 안 본다 — **테두리 자리**만 본다.)
-{
-  const ink = tb.slice(tb.indexOf('function InkTools'), tb.indexOf('export default function EditToolbar'))
-  const i = rp.indexOf('CLIPPED.includes(el.type)')
-  const near = rp.slice(Math.max(0, i - 900), i + 400)
-  check(!/'diamond'|'triangle'|'hexagon'/.test(ink), '도구줄 테두리 자리가 갈래 이름을 직접 안 적는다')
-  check(!/'diamond'|'triangle'|'hexagon'/.test(near), '패널 테두리 자리도 직접 안 적는다')
-}
+// ── ⑤ 오려 만든 갈래도 이제 그린다 ────────────────────
+//
+// **2026-09-16(셋째) · 안내 문구를 지웠다.** 「이 도형은 아직 테두리가 안 그려져요」는
+// 못 하는 동안만 옳은 말이었다. 꼭짓점을 shapePaths.ts 로 옮겨 상자를 오리고 그 위에
+// 선을 그리게 하면서 **되게 됐으므로**, 그 말을 남겨 두면 그게 거짓말이 된다.
+// 이 검사도 「안내가 있다」를 보던 것이라 **지우지 않고 뒤집어 쓴다** —
+// 이제는 「선을 그린다」와 「거짓말이 안 남아 있다」를 본다. (자세한 것은 shape_outline.test.mjs)
+check(Array.isArray(CLIPPED) && CLIPPED.length === 14, '오려 만든 갈래가 열넷이다', String(CLIPPED.length))
+check(/className="fel-outline"/.test(fl), '오려 만든 갈래 **위에 선을 그린다**')
+check(/CLIPPED\.includes\(el\.type\)/.test(fl), '화면이 그 목록을 보고 가른다')
+check(!/테두리가 안 그려져요|테두리가 아직 안 그려집니다/.test(tb + rp),
+  '못 한다던 안내가 안 남아 있다 — 이제 그려진다')
 
-// ── ⑥ 목록이 **실제로 오리는 것들과 같은가** ──────────
-// 이게 이 검사의 핵심이다. 오리는 규칙은 index.css 에 있고 목록은 model.ts 에 있다.
-// 둘이 어긋나면 「안 그려지는데 안 그려진다고 말 안 하는」 도형이 생긴다.
+// ── ⑥ 오리는 규칙이 **한 벌만** 있는가 ──────────────────
+//
+// 전에는 index.css 가 오리고 목록은 따로 있어서, 둘이 어긋나면 「안 그려지는데
+// 안 그려진다고 말도 안 하는」 도형이 생겼다. 지금은 꼭짓점 한 곳에서 **오리고 또 그린다** —
+// CSS 에 옛 규칙이 남아 있으면 모양과 선이 서로 다른 데를 가리킨다.
 {
   const inCss = [...indexCss.matchAll(/\.([A-Za-z0-9]+)\s*\{\s*clip-path/g)].map((m) => m[1])
-  const css = [...new Set(inCss)].sort()
-  const mine = [...CLIPPED].sort()
-  check(css.length > 5, `index.css 에서 오리는 갈래를 찾았다 (${css.length}개)`)
-  check(css.join() === mine.join(), '**목록이 실제로 오리는 것들과 똑같다**',
-    'css: ' + css.join(' ') + ' / 목록: ' + mine.join(' '))
+  const left = [...new Set(inCss)].filter((k) => CLIPPED.includes(k))
+  check(left.length === 0, '**CSS 에 옛 오리는 규칙이 안 남아 있다**', left.join(' '))
+  check(/\.fel-outline\{/.test(indexCss), '선을 얹을 자리는 CSS 에 있다')
 }
-
 // 글상자는 원래 테두리를 투명으로 두는 갈래라 여기 끼면 안 된다 — 성질이 다르다.
 check(!CLIPPED.includes('text'), '글상자는 오려 만드는 갈래가 아니다')
 check(NO_FILL.includes('text'), '글상자는 채우기 대상이 아니다 (전과 같다)')

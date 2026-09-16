@@ -1,5 +1,6 @@
 import { useCanvasUI } from '../../state/canvasUI'
-import { pushSnap, CLIPPED, NO_FILL } from '../../canvas/model'
+import { pushSnap, NO_FILL } from '../../canvas/model'
+import { SHAPE_RADIUS, polyClip } from '../../canvas/shapePaths'
 import type { Tool } from '../../state/canvasUI'
 import { useSelEl } from '../useSelEl'
 import ColorPicker from './ColorPicker'
@@ -104,7 +105,10 @@ function ShapeTool() {
                   {c.items.map((sh) => (
                     <button key={sh.t} className={'shp-cell' + (tool === sh.t ? ' on' : '')} title={sh.label}
                       onClick={() => { setTool(sh.t); setOpen(false) }}>
-                      <span className={'shp-sh ' + sh.t} />
+                      {/* 미리보기도 **같은 꼭짓점**으로 오린다. 전에는 CSS 가 오렸는데,
+                          그 규칙을 캔버스와 나눠 쓰다 보니 테두리를 그릴 수 없었다. */}
+                      <span className={'shp-sh ' + sh.t}
+                        style={{ clipPath: polyClip(sh.t), borderRadius: SHAPE_RADIUS[sh.t] }} />
                     </button>
                   ))}
                 </div>
@@ -338,12 +342,6 @@ function InkTools() {
               <DashIcon kind={d} />
             </button>
           ))}
-          {/* **조용히 안 먹는 것보다 말해 주는 게 낫다.** 오려 만든 갈래는 오릴 때
-              테두리도 같이 잘려서, 색·두께·선 모양을 줘도 빗변에 선이 안 생긴다.
-              고치려면 SVG 로 다시 그려야 한다(따로 한다). 그때까지는 적어 둔다. */}
-          {CLIPPED.includes(el.type)
-            ? <span className="tbtn-hint warn" title="이 갈래는 모양을 오려 만들어서, 오릴 때 테두리도 같이 잘립니다. 고치는 중입니다.">이 도형은 아직 테두리가 안 그려져요</span>
-            : null}
         </>)} />
     </>) : null}
   </>)

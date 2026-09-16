@@ -137,22 +137,12 @@ button{font-family:inherit;cursor:pointer}
 .fel.sel{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,109,246,.2)}
 .fel.round{border-radius:16px}
 .fel.ellipse{border-radius:999px}
-/* 아래 clip-path 들은 툴바 도형 갤러리의 미리보기(.shp-sh)와 형상을 공유한다.
-   비율 기반 polygon 이라 크기와 무관하게 같은 모양이 나오므로, 여기가 유일한 정의다. */
-:is(.fel,.shp-sh).diamond{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);border-radius:0}
-:is(.fel,.shp-sh).triangle{clip-path:polygon(50% 5%,100% 100%,0 100%);border-radius:0}
-:is(.fel,.shp-sh).hexagon{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border-radius:0}
-:is(.fel,.shp-sh).pentagon{clip-path:polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%);border-radius:0}
-:is(.fel,.shp-sh).parallelogram{clip-path:polygon(22% 0,100% 0,78% 100%,0 100%);border-radius:0}
-:is(.fel,.shp-sh).chevron{clip-path:polygon(0 0,78% 0,100% 50%,78% 100%,0 100%,22% 50%);border-radius:0}
-:is(.fel,.shp-sh).arrowR{clip-path:polygon(0 28%,58% 28%,58% 0,100% 50%,58% 100%,58% 72%,0 72%);border-radius:0}
-:is(.fel,.shp-sh).arrowL{clip-path:polygon(42% 0,42% 28%,100% 28%,100% 72%,42% 72%,42% 100%,0 50%);border-radius:0}
-:is(.fel,.shp-sh).arrowU{clip-path:polygon(0 50%,50% 0,100% 50%,72% 50%,72% 100%,28% 100%,28% 50%);border-radius:0}
-:is(.fel,.shp-sh).arrowD{clip-path:polygon(28% 0,72% 0,72% 50%,100% 50%,50% 100%,0 50%,28% 50%);border-radius:0}
-:is(.fel,.shp-sh).star5{clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);border-radius:0}
-.fel.star4{clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);border-radius:0}
-.fel.banner{clip-path:polygon(0 0,100% 0,88% 50%,100% 100%,0 100%,12% 50%);border-radius:0}
-.fel.callout{clip-path:polygon(0 0,100% 0,100% 72%,34% 72%,20% 100%,24% 72%,0 72%);border-radius:8px}
+/* **오리는 규칙은 여기 없다.** 예전에는 이 자리에 clip-path 열넷이 있었는데,
+   그러면 테두리를 그릴 수 없다 — 오릴 때 테두리도 같이 잘려 꼭짓점에 자국만 남는다.
+   그래서 꼭짓점을 canvas/shapePaths.ts 로 옮겼다. 같은 숫자로 상자를 오리고 그 위에
+   선을 그린다(.fel-outline). 화면도 갤러리 미리보기도 거기서 읽어 **직접** 입힌다. */
+.fel-outline{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible}
+
 .fel.text{border-color:transparent;background:transparent}
 /* 잠긴 요소는 손 모양을 주지 않는다 — 못 움직이는데 움직일 수 있다고 말하면 안 된다.
    다만 **글상자는 글자를 고칠 수 있으므로** 글자 커서를 준다(더블클릭). */

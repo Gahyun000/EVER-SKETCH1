@@ -35,21 +35,8 @@ export function mkFreeEl(type: string, x: number, y: number): FreeEl {
   if (type === 'note') { el.blocks = [newBlock('text', '')] }
   return el
 }
-/**
- * **오려 만든 갈래 — 아직 테두리가 안 그려진다.**
- *
- * 마름모·삼각형 같은 모양은 네모 상자를 `clip-path` 로 **오려서** 만든다(index.css).
- * 그런데 오릴 때 **테두리도 같이 잘린다.** 그래서 색과 두께를 줘도 꼭짓점에 자국만
- * 남고 빗변에는 선이 안 생긴다. 직접 그려 확인했다(2026-09-16).
- *
- * 제대로 그리려면 상자가 아니라 **SVG 도형**으로 다시 그려야 한다 — 그건 따로 한다.
- * 그때까지는 **말이라도 해 준다**: 도구줄이 이 목록을 보고 「아직 안 그려져요」를 띄운다.
- * 조용히 안 먹는 것보다 낫다.
- *
- * 목록은 여기 한 군데서만 적는다 — index.css 의 clip-path 와 짝이다.
- */
-export const CLIPPED = ['diamond', 'triangle', 'hexagon', 'pentagon', 'parallelogram',
-  'chevron', 'arrowR', 'arrowL', 'arrowU', 'arrowD', 'star5', 'star4', 'banner', 'callout']
+// 오려 만든 갈래 목록은 **꼭짓점이 있는 곳**에서 온다 — 목록을 따로 적으면 어긋난다.
+export { CLIPPED } from './shapePaths'
 
 export const FCOLORS = ['#eaf0ff', '#dceeb1', '#f4d2c1', '#e7e3fb', '#cdeacf', '#fdf3b6', '#ffffff', '#111318']
 
