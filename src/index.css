@@ -149,7 +149,15 @@ button{font-family:inherit;cursor:pointer}
 /* 열·행 경계선 손잡이. 표를 골랐을 때만 나오고, 표 **밖**(위·왼쪽 띠)에 선다 —
    칸 위에 겹치면 칸 고르기를 가로챈다. 평소엔 흐리게, 올리면 또렷하게. */
 .trk-grip{position:absolute;pointer-events:auto;z-index:7}
-.trk-grip::before{content:'';position:absolute;background:#2462EB;opacity:.3;border-radius:2px;transition:opacity .12s}
+/* **있는데 안 보이면 없는 것과 같다**(2026-09-16).
+   사용자가 「셀들은 사이즈 조정 가능하게」라고 했는데, 재 보니 **이미 되고 있었다** —
+   로드맵에서 열 손잡이 17 · 행 손잡이 6 이 뜨고 끌면 너비가 바뀐다. 슬롯 정책을
+   보지도 않으므로 표준 양식에서도 막힌 적이 없다.
+   문제는 이 띠가 **3px 짜리 옅은 선**(opacity .3)으로 표 밖 14px 에 서 있어서
+   아무도 못 찾는다는 것이었다. 그래서 **쥘 수 있게 생기게** 한다 —
+   손잡이는 고른 표에만 나오므로 진해져도 화면이 시끄러워지지 않는다. */
+.trk-grip::before{content:'';position:absolute;background:#2462EB;opacity:.62;border-radius:2px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.92);transition:opacity .12s}
 .trk-grip:hover::before{opacity:1}
 /* 띠는 표 바로 옆(-14..-3), 크기 손잡이는 그보다 바깥(-20). 겹치면 하나를
    잡으려다 다른 게 잡힌다 — 2열짜리 표에서는 가운데 경계선과 n 손잡이가 같은 자리다. */
