@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 import { useBuilder } from '../state/store'
 import type { FreeEl, Page } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
+import { useAuth } from '../auth/useAuth'
+import { canPublish } from '../auth/authApi'
 import type { Tool } from '../state/canvasUI'
 import { pushSnap, popSnap, pushRedo, popRedo, pushUndoRaw, nextUndoKind, nextRedoKind, mkFreeEl } from '../canvas/model'
 
@@ -70,7 +72,11 @@ export default function Hotkeys(props: Props) {
       // ⌘S 는 메뉴가 '💾 저장 ⌘S' 로 안내하는 대로 저장이어야 한다.
       // 이북 빌드(전 페이지 PNG 캡처)는 수십 초 걸리는 무거운 작업이라 ⌘Enter 로 분리했다.
       if (mod && lower === 's') { e.preventDefault(); p.onSave(); return }
-      if (mod && k === 'Enter') { e.preventDefault(); p.onBuild(); return }
+      // **⌘Enter 도 메뉴와 같은 규칙으로 막는다**(2026-09-16). 전에는 메뉴만 가려 두고
+      // 단축키는 열려 있어서, 발행 권한이 없는 사람이 눌러도 그대로 서버까지 갔다 —
+      // 403 이 오면 화면에는 이유 없이 「실패: 」만 떴다. 보이지 않는 기능은 눌러지지도
+      // 않아야 한다.
+      if (mod && k === 'Enter') { e.preventDefault(); if (canPublish(useAuth.getState().me)) p.onBuild(); return }
       if (mod && e.shiftKey && lower === 'p') { e.preventDefault(); p.onPresent(); return }
       if (k === 'F5') { e.preventDefault(); p.onPresent(); return }
       if (k === 'F1') { e.preventDefault(); p.onHelp(); return }

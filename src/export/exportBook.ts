@@ -58,5 +58,16 @@ export async function exportBook(pages: Page[], settings: ExportSettings, projec
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: settings.title, orientation: settings.orientation, theme: settings.theme || 'light', pages: out, hotspots, project_id: projectId }),
   })
-  return res.json() as Promise<BuildResult>
+  // **거절당했으면 그 이유를 그대로 옮긴다**(2026-09-16).
+  // 예전에는 성공했을 때의 모양(`{ ok, url }`)만 읽었다. 403·500 은 `ok` 도 `error` 도
+  // 없는 `{ detail: ... }` 이라, 화면에는 이유 없이 **「실패: 」** 만 떴다.
+  // 서버는 「먼저 자료를 저장한 뒤 발행해 주세요」처럼 할 일을 말해 주는데, 그 말이
+  // 사용자에게 닿지 않고 있었다.
+  let body: unknown = null
+  try { body = await res.json() } catch { /* 본문이 JSON 이 아닐 수도 있다 */ }
+  const b = (body || {}) as { ok?: boolean; error?: string; detail?: string; url?: string }
+  if (!res.ok || b.ok === undefined) {
+    return { ok: false, error: b.error || b.detail || ('서버가 ' + res.status + ' 로 거절했습니다') } as BuildResult
+  }
+  return b as BuildResult
 }

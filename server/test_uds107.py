@@ -254,11 +254,40 @@ def test_LLM설정은_관리자만_판정():
         assert decide(a, SETTINGS_MANAGE) is False
 
 
-def test_발행은_관리자만_판정():
-    """발행하면 열람자 전원에게 공개된다. 작성자가 초안을 실수로 내보내면 되돌릴 수 없다."""
+def test_발행은_제_자료만_판정():
+    """발행 권한 — **2026-09-16 에 작성자에게 열었다**(사용자 지시: 「Lv2까진 이북발행
+    가능하게」). 그전에는 관리자 전용이었다.
+
+    **왜 이 검사를 지우지 않고 다시 쓰나.** 원래 막아 둔 이유("발행하면 열람자 전원에게
+    공개되고 되돌릴 수 없다")는 없어지지 않았다. 사라진 것은 「관리자만」이라는 **범위**뿐이고,
+    그 자리에 「제 자료만」이 들어왔다. 그래서 이 검사도 범위를 재는 검사로 바뀐다.
+
+    지켜야 할 것 셋:
+      · 작성자는 **제 자료만** 발행한다 — 남의 자료 id 를 넣어 발행할 수 없다.
+      · 열람자(L3)는 여전히 못 한다 — 제출조차 못 하는 개인 작업 공간이다(D13).
+      · 대기·비로그인도 못 한다.
+    """
+    own = Resource(owner_id=_WRITER.id)
+    other = Resource(owner_id="u_peer")
+
+    # 관리자는 그대로 전부.
     assert decide(_ADMIN, PUBLISH) is True
-    for a in (_WRITER, _VIEWER, _PEND, None):
+    assert decide(_ADMIN, PUBLISH, other) is True
+
+    # 작성자는 제 것만. **이 두 줄이 이 변경의 핵심이다.**
+    assert decide(_WRITER, PUBLISH, own) is True
+    assert decide(_WRITER, PUBLISH, other) is False
+    # 소유자를 모르면(저장 안 된 문서) 작성자는 판정할 근거가 없으므로 거부.
+    assert decide(_WRITER, PUBLISH) is False
+
+    # 열람자·대기·비로그인은 어느 자료로도 못 한다.
+    # **제 것이어도 못 한다** — 이 한 줄이 D13(열람자의 개인 스케치)을 지킨다.
+    # 「제 것이면 발행」을 역할 구분 없이 적으면 열람자의 스케치가 전원 공개된다.
+    assert decide(_VIEWER, PUBLISH, Resource(owner_id=_VIEWER.id)) is False
+    for a in (_VIEWER, _PEND, None):
         assert decide(a, PUBLISH) is False
+        assert decide(a, PUBLISH, own) is False
+        assert decide(a, PUBLISH, other) is False
 
 
 def test_AI도구는_작성자_이상():

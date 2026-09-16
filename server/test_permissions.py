@@ -187,9 +187,23 @@ def test_작성자는_본인_이북_메모만():
 
 
 def test_작성자는_관리_액션_불가():
-    for action in (USER_MANAGE, SETTINGS_MANAGE, PUBLISH):
+    # **PUBLISH 는 2026-09-16 에 여기서 빠졌다** — 작성자도 제 자료는 발행한다
+    # (사용자 지시: 「Lv2까진 이북발행 가능하게」). 아래 test_작성자는_제_자료만_발행 참조.
+    for action in (USER_MANAGE, SETTINGS_MANAGE):
         assert decide(WRITER_U, action) is False
         assert decide(WRITER_U, action, OWN) is False
+
+
+def test_작성자는_제_자료만_발행():
+    """2026-09-16 · 사용자 지시로 작성자에게 발행을 열었다.
+
+    막아 두었던 이유("발행하면 되돌릴 수 없다")는 그대로라 **범위로 좁혔다** —
+    남의 자료 id 를 넣어 발행할 수는 없다. 그게 되면 관리자 전용이던 때보다 나쁘다.
+    """
+    assert decide(WRITER_U, PUBLISH, OWN) is True
+    assert decide(WRITER_U, PUBLISH, OTHER) is False
+    # 소유자를 모르면(저장 안 된 문서) 판정할 근거가 없다 — 거부.
+    assert decide(WRITER_U, PUBLISH) is False
 
 
 def test_작성자는_소유자_불명이면_거부():

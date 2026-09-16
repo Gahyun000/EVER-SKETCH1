@@ -30,7 +30,7 @@ from server.routes_team_library import router as team_library_router
 from server.routes_folders import router as folders_router
 from server.routes_teams import router as teams_router
 from server import permissions as perm
-from server.authdeps import require_action, require_active
+from server.authdeps import require_action, require_active, require_project
 
 HERE = pathlib.Path(__file__).resolve().parent
 EBOOK_HTML = HERE.parent
@@ -88,11 +88,23 @@ def health():
 
 @app.post("/api/build")
 def build(req: BuildReq, user: dict = Depends(require_active)):
-    # 발행은 **Lv1 관리자만**. 발행하는 순간 열람자 전원에게 공개되고, 본 사람은 되돌릴 수 없다.
+    # 발행은 **관리자(L1)와 작성자(L2)**. 2026-09-16 에 작성자에게 열었다
+    # (사용자 지시: 「Lv2까진 이북발행 가능하게」). 열람자(L3)는 그대로 못 한다.
+    #
     # (2026-09-14: 여기에 등급 숫자를 뒤집기 전의 옛 표기가 남아 **역할이 반대로** 적혀 있었다.
-    #  판정은 그때도 perm.PUBLISH = 관리자 전용이라 동작은 맞았고, 글만 반대였다.
-    #  주석은 테스트가 안 잡아서 틀린 코드보다 오래 산다 — test_grade_wording.py 가 이제 잡는다.)
-    require_action(user, perm.PUBLISH)
+    #  판정은 그때도 맞았고 글만 반대였다. 주석은 테스트가 안 잡아서 틀린 코드보다
+    #  오래 산다 — test_grade_wording.py 가 이제 잡는다.)
+    #
+    # **어느 자료를 발행하는지 보고 판정한다.** 작성자는 제 자료만 발행하므로,
+    # 예전처럼 리소스 없이 물으면 「남의 자료 id 를 넣어 발행」이 열린다.
+    # 관리자는 어느 쪽 길로 가든 통과한다.
+    if req.project_id:
+        require_project(user, req.project_id, perm.PUBLISH)
+    else:
+        # 저장 안 된 문서. 관리자만 이 길로 간다 — 작성자는 판정에 쓸 소유자가 없다.
+        # 「권한이 없습니다」로만 끝내면 왜인지 알 수 없어서, 할 일을 말해 준다.
+        if not perm.decide(auth_store.actor_of(user), perm.PUBLISH, None):
+            raise HTTPException(status_code=403, detail="먼저 자료를 저장한 뒤 발행해 주세요.")
     if not GEN_PY.exists():
         return {"ok": False, "error": "generator.py 없음: %s" % GEN_PY}
     ts = time.strftime("%Y%m%d_%H%M%S")

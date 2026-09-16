@@ -27,6 +27,15 @@ export interface Me {
 export const isAdmin = (me: Me | null | undefined): boolean =>
   !!me && me.status === 'active' && me.role === 'admin' 
 
+/** **이북을 발행할 수 있는 사람** — 관리자(L1)와 작성자(L2).
+ *
+ *  2026-09-16 에 작성자에게 열었다(사용자 지시: 「Lv2까진 이북발행 가능하게」).
+ *  열람자(L3)는 제외한다 — 제출조차 못 하는 순수 개인 작업 공간이다(D13).
+ *  판정의 주인은 서버(`permissions.PUBLISH`)이고, 여기 있는 건 **눌러도 안 되는
+ *  단추를 안 보여 주기 위한 것**이다. 서버가 열어 준 것보다 넓으면 안 된다. */
+export const canPublish = (me: Me | null | undefined): boolean =>
+  !!me && me.status === 'active' && (me.role === 'admin' || me.role === 'writer')
+
 /** 서버가 준 detail 을 그대로 사용자에게 보여준다 — "HTTP 400" 보다 훨씬 쓸모 있다. */
 export class ApiError extends Error {
   status: number

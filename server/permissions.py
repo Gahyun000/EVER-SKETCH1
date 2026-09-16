@@ -70,7 +70,13 @@ FOLDER_MANAGE = "folder_manage"   # 개인 폴더 — **관리자도 남의 것�
 TEAM_MANAGE = "team_manage"       # 팀 편성 — 누가 누구 자료를 보게 되는지를 정한다 (D1)
 USER_MANAGE = "user_manage"       # 가입 승인·역할 변경·비활성화
 SETTINGS_MANAGE = "settings_manage"   # LLM 설정 — API 키를 다룬다(UDS-107 §5)
-PUBLISH = "publish"               # 이북 발행 — 열람자 전원에게 공개된다. 되돌리기 어렵다
+# 이북 발행. **2026-09-16 에 작성자(L2)에게도 열었다**(사용자 지시: 「Lv2까진 이북발행
+# 가능하게」). 그전에는 관리자 전용이었고, 이유는 「발행하면 열람자 전원에게 공개되고
+# 되돌릴 수 없다」였다. 그 걱정은 없어지지 않았으므로 **범위로 좁혔다** —
+# 작성자는 **제 자료만** 발행한다. 남의 자료를 발행할 수 있으면 「내가 만들지도 않은
+# 초안이 공개됐다」가 되고, 그건 관리자 전용이던 시절보다 나쁘다.
+# 열람자(L3)는 그대로 못 한다 — 제출조차 못 하는 순수 개인 작업 공간이다(D13).
+PUBLISH = "publish"
 AI_USE = "ai_use"                 # 챗봇·요약·계획·덱변환·docx. 작성 도구이므로 작성자 이상
 # 표준 템플릿(회사 서식)으로 새 자료를 시작한다.
 # **P2 에서 미뤄 두고 P6 에서 만든 액션이다.** P1~P5 동안에는 `WRITE` 와 언제나 같은 답을
@@ -92,7 +98,8 @@ ALL_ACTIONS = (
 )
 
 # 관리자 전용 액션. 새 관리 기능을 추가하면 여기에 넣는다.
-_ADMIN_ONLY = (DECIDE, REVISION_DECIDE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE, PUBLISH)
+# **PUBLISH 는 2026-09-16 에 여기서 나갔다** — 작성자도 제 자료는 발행한다(위 설명).
+_ADMIN_ONLY = (DECIDE, REVISION_DECIDE, TEAM_MANAGE, USER_MANAGE, SETTINGS_MANAGE)
 
 
 @dataclass(frozen=True)
@@ -160,8 +167,6 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
         return True
 
     # ── 관리 액션은 관리자 전용 ────────────────
-    # PUBLISH 가 여기 있는 이유 — 발행하면 열람자 전원에게 공개된다.
-    # 작성자가 초안을 실수로 발행하면 되돌릴 수 없다(이미 본 사람은 본 것이다).
     if action in _ADMIN_ONLY:
         return False
 
@@ -222,6 +227,11 @@ def decide(actor: Optional[Actor], action: str, res: Optional[Resource] = None) 
         # 잠기는 이유는 결재자·팀이 본 것과 작성자가 가진 것이 갈라지지 않게 하는 것이다.
         # 「반려」와 「수정 중」은 고치라고 열어 준 상태라 잠기지 않는다(`doc_state`).
         return owns and not res.locked
+    if action == PUBLISH:
+        # **본인 자료만**(2026-09-16). 열람자는 위 분기에서 이미 걸렸으므로 여기 안 온다.
+        # 잠금(`locked`)은 안 본다 — 승인되어 잠긴 자료야말로 발행할 물건이다.
+        # 「발행하면 되돌릴 수 없다」는 걱정은 그대로라, 범위를 제 것으로 묶어 둔다.
+        return owns
     if action == REVISION_REQUEST:
         # **본인 승인본만.** 「지금 승인 상태인가」는 여기서 안 본다 —
         # 그건 권한이 아니라 흐름의 조건이고, `approvals.request_revision` 이

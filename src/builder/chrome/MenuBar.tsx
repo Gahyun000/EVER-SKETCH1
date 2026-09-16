@@ -3,7 +3,7 @@ import { useBuilder } from '../../state/store'
 import { useProjects } from '../../persistence/projects'
 import { useCanvasUI } from '../../state/canvasUI'
 import { useAutosave } from '../../persistence/autosave'
-import { isAdmin } from '../../auth/authApi'
+import { canPublish, isAdmin } from '../../auth/authApi'
 import { useAuth } from '../../auth/useAuth'
 import type { Tool } from '../../state/canvasUI'
 
@@ -13,6 +13,8 @@ interface MItem {
    *  서버가 403 으로 막으므로 보안이 목적은 아니다. 눌러도 안 되는 버튼을
    *  띄워두면 사용자는 '고장 났다' 고 이해한다. */
   admin?: boolean
+  /** 발행할 수 있는 사람(관리자 + 작성자)에게만 보이는 항목. 2026-09-16. */
+  publish?: boolean
 }
 interface Menu { label: string; hwp?: boolean; items: MItem[] }
 
@@ -28,7 +30,9 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
   const saveNow = useAutosave((s) => s.saveNow)
   const [open, setOpen] = useState<number | null>(null)
   const wrap = useRef<HTMLDivElement>(null)
-  const admin = isAdmin(useAuth((s) => s.me))
+  const me = useAuth((s) => s.me)
+  const admin = isAdmin(me)
+  const pub = canPublish(me)
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(null) }
@@ -48,7 +52,9 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
       { sep: true },
       { label: '🖼 PDF로 내보내기 (이미지)', run: () => emit('ebook:export-pdf') },
       { label: '📊 PPT로 내보내기 (편집 가능)', run: () => emit('ebook:export-pptx') },
-      { label: '↧ 이북(웹) 만들기', sc: '⌘↵', run: () => emit('ebook:build'), admin: true },
+      // **작성자도 발행한다**(2026-09-16). 서버는 제 자료만 열어 주므로,
+      // 여기 보이는 것과 서버가 허락하는 것의 넓이가 같다.
+      { label: '↧ 이북(웹) 만들기', sc: '⌘↵', run: () => emit('ebook:build'), publish: true },
       { sep: true },
       { label: '▷ 슬라이드쇼 (미리 보기)', run: onPresent },
       { sep: true },
@@ -123,7 +129,7 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
       <button className="ax-lib" title="EVER-SKETCH — 라이브러리로 돌아가기" onClick={() => void backToLibrary()}>☰ EVER-SKETCH</button>
       {MENUS.map((m0, i) => {
         // 관리자 전용 항목을 뺀 뒤, 위아래가 비어버린 구분선도 함께 정리한다.
-        const kept = m0.items.filter((it) => admin || !it.admin)
+        const kept = m0.items.filter((it) => (admin || !it.admin) && (pub || !it.publish))
         const items = kept.filter((it, j) =>
           !it.sep || (j > 0 && j < kept.length - 1 && !kept[j - 1].sep))
         const m = { ...m0, items }

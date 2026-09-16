@@ -95,11 +95,20 @@ def test_머리글_편집_허용이_같다(ts_src, slot):
 
 
 def test_열_편집은_양쪽_모두_금지(ts_src):
-    """가장 중요한 제약 — 한쪽에서라도 열리면 회차 취합이 깨진다."""
+    """가장 중요한 제약 — 한쪽에서라도 열리면 회차 취합이 깨진다.
+
+    **범위를 좁혀 다시 썼다**(2026-09-16). 예전에는 `SLOT_POLICY` 뒤의 **파일 끝까지**
+    훑으며 `'col'` 이라는 글자를 찾았다. 그런데 그 뒤에 TODAY 마커 코드가 들어오면서
+    `{ kind: 'col'; col: number }` 라는 **타입 이름**이 걸려 거짓으로 실패했다.
+
+    글자를 못 찾게 코드를 비틀거나 검사를 지우는 것은 답이 아니다. 지켜야 할 것은
+    「**정책 표에** 'col' 이 없다」이지 「파일 어디에도 col 이라는 글자가 없다」가 아니다.
+    그래서 각 슬롯 항목만 떼어(`_ts_block`) 그 안을 본다 — 다른 검사들이 이미 쓰는 길이다.
+    """
     for slot, policy in T.SLOT_POLICY.items():
         assert "col" not in policy.get("edit", []), "서버 %s 가 열 편집 허용" % slot
-    body = ts_src.split("export const SLOT_POLICY")[1]
-    assert "'col'" not in body, "프런트가 열 편집을 허용합니다"
+        block = _ts_block(ts_src, slot)
+        assert "'col'" not in block, "프런트 %s 가 열 편집을 허용합니다" % slot
 
 
 def test_팔레트가_같다(ts_src):
