@@ -240,6 +240,10 @@ export interface TodayMarker {
   todayMode?: TodayMode
   /** 이 로드맵이 다루는 해. 자동 모드는 이 해에만 마커를 그린다. */
   todayYear?: number
+  /** 손으로 놓은 자리(표 왼쪽에서 잰 px). 있으면 열보다 **이쪽이 이긴다**. */
+  todayX?: number
+  /** 알약이 앉는 높이(표 위에서 잰 px). */
+  todayY?: number
   /** 머리글에서 연도를 읽기 위해서만 쓴다(옛 문서 대비). */
   cells?: string[][]
 }
@@ -283,3 +287,46 @@ export function todayColumn(el: TodayMarker, now: Date = new Date()): number | n
   if (year !== base) return null
   return ROADMAP_MONTH_COL0 + (month - 1)
 }
+
+/** 마커가 설 자리. 손으로 놓았으면 px, 아니면 열, 안 그리면 null.
+ *
+ *  **두 군데서 따로 판단하지 않는다.** 예전에 「그릴까」는 FreeLayer 가, 「지금 어디냐」는
+ *  도구줄이 각자 재다가, 한쪽만 고치면 화면과 안내 글자가 어긋났다. 한 함수가 답한다.
+ *
+ *  px 가 열보다 이긴다 — 손으로 민 자리를 자동이 도로 끌어가면 「밀었는데 튕겨 돌아온다」가
+ *  된다. 대신 「오늘」 단추가 px 를 지워서 자동으로 되돌린다(도구줄).
+ *  `off` 는 무엇보다 먼저다: 숨기라고 했으면 손으로 놓았든 말든 안 그린다. */
+export type TodayPlace =
+  | { kind: 'px'; x: number; y: number }
+  | { kind: 'col'; col: number }
+  | null
+
+export function todayPlace(el: TodayMarker, now: Date = new Date()): TodayPlace {
+  if ((el.todayMode ?? 'auto') === 'off') return null
+  if (typeof el.todayX === 'number' && isFinite(el.todayX)) {
+    return { kind: 'px', x: el.todayX, y: typeof el.todayY === 'number' && isFinite(el.todayY) ? el.todayY : 1 }
+  }
+  const col = todayColumn(el, now)
+  return col == null ? null : { kind: 'col', col }
+}
+
+/** 표 안에 붙잡아 둔다.
+ *
+ *  `.fel` 이 overflow:hidden 이라 밖으로 밀면 **마커가 사라진다** — 사용자는 자기가
+ *  지운 줄 안다. 알약 높이만큼(12px) 아래를 남겨 두어, 맨 밑으로 밀어도 딱지가
+ *  반쯤은 보이게 한다.
+ *
+ *  **왜 여기 있나.** 처음에는 FreeLayer 안의 짧은 클로저였다. 그런데 검사가
+ *  `clampX` 라는 **이름만** 있는지 봐서, 일부러 `const clampX = (v) => v` 로 바꿔도
+ *  33개 전부 통과했다(2026-09-16 파괴 검사 G). 이름이 아니라 **하는 일**을 재려면
+ *  불러 볼 수 있는 자리에 있어야 한다. */
+export function clampTodayX(v: number, w: number): number {
+  return Math.max(0, Math.min(Math.max(0, w), v))
+}
+export function clampTodayY(v: number, h: number): number {
+  return Math.max(0, Math.min(Math.max(0, h - 12), v))
+}
+
+/** 손으로 놓은 자리를 지우는 패치. 「오늘」·「이 칸에 고정」이 함께 쓴다 —
+ *  한쪽만 지우면 단추를 눌러도 마커가 안 움직여 「단추가 죽었다」가 된다. */
+export const TODAY_UNPLACED = { todayX: undefined, todayY: undefined } as const

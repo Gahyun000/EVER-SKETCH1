@@ -11,7 +11,7 @@ import { mkFreeEl, pushSnap, FCOLORS, NO_FILL } from './model'
 import { CLIPPED, SHAPE_RADIUS, dashArray, polyClip, polyPoints } from './shapePaths'
 import NoteBlocks from '../builder/NoteBlocks'
 import { coveredSet, dragTrack, mergeCovering, sizeTracks, trackSizes } from './tableOps'
-import { cellBackground, cellEditable, cellTextColor, isSlotEl, lockedRowCount, todayColumn } from '../template/slots'
+import { cellBackground, cellEditable, cellTextColor, clampTodayX, clampTodayY, isSlotEl, lockedRowCount, todayPlace } from '../template/slots'
 import { tableAnchorLabel } from '../comments/anchorLabel'
 import { isContinuation } from './tableFlow'
 import { treeShape, descendantCount, knownOf, isTreePage } from '../cards/treeOps'
@@ -158,6 +158,115 @@ function Pin({ list, el, focusId, onFocus }: {
       onPointerDown={(e) => { e.stopPropagation(); onFocus(list[0].id) }}
       onClick={(e) => e.stopPropagation()}>
       {list.length}
+    </div>
+  )
+}
+
+/**
+ * TODAY 마커 — 세로 점선 하나와 잡을 수 있는 「TODAY」 알약.
+ *
+ * **왜 여기(모듈 바깥)에 있나.** 컴포넌트를 다른 컴포넌트 **안에서** 만들면 렌더마다
+ * 새 타입이 되어 React 가 통째로 떼었다 다시 붙인다 — 끌던 손이 떨어지고 포커스가
+ * 날아간다. 오른쪽 패널이 튀던 것(`Acc`)과 같은 결함이라, `inner_component.test.mjs`
+ * 가 모든 .tsx 를 훑어 막는다.
+ *
+ * **자리 규칙은 `slots.todayPlace` 한 군데서 온다.** 기본은 자동(실제 오늘 달),
+ * 한 번 끌면 그 px 자리에 선다. 「오늘」 단추가 px 를 지워 자동으로 되돌린다.
+ * 사용자 결정 ③ㄱ(2026-09-16): 자동을 잃으면 9월에 만든 자료를 11월에 열었을 때
+ * 마커가 9월에 서 있는 옛 문제가 돌아온다.
+ */
+function TodayMark({ el, R, active, zoom, snap, patch, onPick }: {
+  el: FreeEl
+  R: number
+  active: boolean
+  zoom: (from: Element) => number
+  snap: () => void
+  patch: (p: Partial<FreeEl>) => void
+  onPick: () => void
+}) {
+  const place = todayPlace(el)
+  const lineRef = useRef<HTMLDivElement | null>(null)
+  // **:focus-visible 로는 부족하다**(2026-09-16, 화면에서 보고 알았다). 끌어 옮긴 직후에는
+  // 마우스로 포커스가 간 것이라 크롬이 `:focus-visible` 을 안 준다 — 화살표 키는 먹는데
+  // 테두리는 안 보인다. 「골라 놓고 왜 표시가 없나」가 되므로 직접 표시한다.
+  const [picked, setPicked] = useState(false)
+  if (!place) return null
+
+  // 표 밖으로는 못 나간다 — 규칙은 slots 에 있다(불러 볼 수 있어야 검사가 잰다).
+  const clampX = (v: number) => clampTodayX(v, el.w)
+  const clampY = (v: number) => clampTodayY(v, el.h)
+
+  /** 지금 서 있는 자리를 px 로 잰다.
+   *  열에 서 있을 때는 **DOM 에서 직접 읽는다.** 열 너비를 다시 계산하면 테두리
+   *  1px 이 어긋나, 손을 대는 순간 마커가 톡 튀어 옮겨 간 것처럼 보인다. */
+  const measure = (): { x: number; y: number } => {
+    if (place.kind === 'px') return { x: place.x, y: place.y }
+    const line = lineRef.current
+    const box = line ? line.parentElement : null
+    if (!line || !box) return { x: 0, y: 1 }
+    const z = zoom(line)
+    const lr = line.getBoundingClientRect(), br = box.getBoundingClientRect()
+    return { x: (lr.left - br.left) / z, y: 1 }
+  }
+
+  const onDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!active) return
+    // 멈추지 않으면 밑의 표가 같이 골라지고 **표째로 끌려간다.**
+    e.preventDefault(); e.stopPropagation()
+    const btn = e.currentTarget
+    btn.focus(); onPick()
+    const z = zoom(btn)
+    const start = measure()
+    const sx = e.clientX, sy = e.clientY
+    let did = false
+    btn.classList.add('drag')
+    btn.setPointerCapture(e.pointerId)
+    const move = (ev: PointerEvent) => {
+      // 되돌릴 자리는 **한 번 끄는 동안 한 번만** 찍는다. 매번 찍으면 ⌘Z 를
+      // 픽셀 수만큼 눌러야 원래 자리로 돌아온다.
+      if (!did) { snap(); did = true }
+      patch({ todayX: clampX(start.x + (ev.clientX - sx) / z), todayY: clampY(start.y + (ev.clientY - sy) / z) })
+    }
+    const up = () => {
+      btn.classList.remove('drag')
+      btn.removeEventListener('pointermove', move)
+      btn.removeEventListener('pointerup', up)
+    }
+    btn.addEventListener('pointermove', move)
+    btn.addEventListener('pointerup', up)
+  }
+
+  const onKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!active) return
+    const k = e.key
+    if (k === 'Escape') { e.currentTarget.blur(); return }
+    if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') return
+    // **막지 않으면 표가 움직인다.** Hotkeys 가 window 에서 같은 키로 고른 요소를
+    // 옮긴다 — TODAY 를 밀려던 손이 로드맵 표를 통째로 민다.
+    e.preventDefault(); e.stopPropagation()
+    if (!e.repeat) snap()
+    const step = e.shiftKey ? 10 : 1
+    const at = measure()
+    let x = at.x, y = at.y
+    if (k === 'ArrowLeft') x -= step
+    else if (k === 'ArrowRight') x += step
+    else if (k === 'ArrowUp') y -= step
+    else y += step
+    patch({ todayX: clampX(x), todayY: clampY(y) })
+  }
+
+  const free = place.kind === 'px'
+  return (
+    <div ref={lineRef} className={'fel-today' + (free ? ' free' : '')}
+      style={free
+        ? { left: place.x }
+        : { gridColumn: `${place.col + 1}`, gridRow: `1 / span ${R}` }}
+      aria-label="이번 달">
+      <button type="button" className={'fel-today-pill' + (picked ? ' picked' : '')} tabIndex={active ? 0 : -1}
+        style={free ? { top: place.y } : undefined}
+        title={active ? '끌어서 옮기세요 · 고른 뒤 화살표 키(Shift = 10px). 「오늘」 단추로 되돌립니다' : undefined}
+        onPointerDown={onDown} onKeyDown={onKey}
+        onFocus={() => setPicked(true)} onBlur={() => setPicked(false)}>TODAY</button>
     </div>
   )
 }
@@ -1122,16 +1231,13 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                       {/* 이동 손잡이(⠿)는 **표 밖**에 그린다 — 손잡이 겹인 아래쪽
                           overlay 에 있다. `.fel` 이 overflow:hidden 이라 여기서 밖으로
                           내보내면 잘려서 잡을 수가 없다. 2026-09-07 에 옮겼다. */}
-                      {/* Today 마커 — 기본은 실제 오늘을 따라간다(slots.todayColumn).
-                          위 도구모음에서 특정 달에 고정하거나 끌 수 있다. */}
-                      {(() => {
-                        const tc = todayColumn(el)
-                        return tc != null && tc < C ? (
-                          <div className="fel-today"
-                            style={{ gridColumn: `${tc + 1}`, gridRow: `1 / span ${R}` }}
-                            aria-label="이번 달" />
-                        ) : null
-                      })()}
+                      {/* Today 마커 — 기본은 실제 오늘을 따라가고(slots.todayPlace),
+                          끌거나 화살표 키로 밀면 그 자리에 선다. 위 도구모음의
+                          「오늘」이 다시 자동으로 되돌린다. */}
+                      <TodayMark el={el} R={R} active={active}
+                        zoom={layerZoom} snap={snap}
+                        patch={(pp) => updateEl(page.id, el.id, pp)}
+                        onPick={() => setSel(null)} />
                     </div>
                   )
                 })()

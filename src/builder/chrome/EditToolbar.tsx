@@ -13,7 +13,7 @@ import { useBuilder, type PaperType } from '../../state/store'
 import { PAPER_OPTIONS } from '../../cards/paper'
 import type { FreeEl } from '../../state/store'
 import { mergeCovering, mergeRange, setCellBgRange, unmergeAt } from '../../canvas/tableOps'
-import { CBG_LABEL, ROADMAP_MONTH_COL0, cbgPalette, cellColors, isSlotEl, slotAllows, todayColumn, type TodayMode } from '../../template/slots'
+import { CBG_LABEL, ROADMAP_MONTH_COL0, TODAY_UNPLACED, cbgPalette, cellColors, isSlotEl, slotAllows, todayColumn, type TodayMode } from '../../template/slots'
 import { tableAnchorLabel } from '../../comments/anchorLabel'
 import { cellKey } from '../../comments/anchor'
 import CommentComposer from '../../comments/CommentComposer'
@@ -415,6 +415,10 @@ function TableTools() {
   // 로드맵에만 있다. 기본은 자동(열 때마다 실제 오늘)이고, 발표용으로 특정 시점을
   // 붙잡아야 할 때만 사람이 고정한다. 어느 상태인지 글자로 같이 보여준다 —
   // 버튼 세 개만 있으면 지금 자동인지 고정인지 알 수가 없다.
+  //
+  // 2026-09-16 부터 **마커를 직접 끌어 옮길 수도 있다**(사용자 요청 ③, 결정 ㄱ).
+  // 끌면 px 자리가 생기고 그게 열보다 이긴다. 그래서 여기 단추들은 누를 때마다
+  // 그 px 자리를 **반드시 지운다** — 안 지우면 단추가 죽은 것처럼 보인다.
   // ── 채우기 ──
   //
   // **오른쪽 패널에만 두면 안 된다**(2026-09-16, 사용자 지적). 도형은 도구줄에서 바로
@@ -445,8 +449,12 @@ function TableTools() {
   const shownCol = todayColumn(table)
   const monthOf = (c: number) => c - ROADMAP_MONTH_COL0 + 1
   const pickedCol = ts ? Math.min(ts.c0, ts.c1) : null
+  // 손으로 끌어다 놓았나. 그러면 열(달)이 아니라 px 자리에 서 있으므로
+  // 「9월」 같은 안내는 **거짓말이 된다** — 그때는 그렇게 말한다.
+  const todayFree = todayMode !== 'off' && typeof table.todayX === 'number'
   const todayWhere =
-    shownCol == null
+    todayFree ? '손으로 놓음'
+    : shownCol == null
       ? (todayMode === 'off' ? '숨김'
         : todayMode === 'auto' ? '올해가 아님'
         : '자리 없음')
@@ -493,13 +501,16 @@ function TableTools() {
     {canToday ? (
       <span className="ax-grp gs">
         <span className="lab">TODAY</span>
-        <button className={'tbtn' + (todayMode === 'auto' ? ' on' : '')}
-          title="열 때마다 실제 오늘 달로 옮겨갑니다"
-          onClick={() => patch({ todayMode: 'auto' })}>오늘</button>
-        <button className={'tbtn' + (todayMode === 'fixed' ? ' on' : '')}
+        {/* **손으로 놓은 자리도 같이 지운다**(TODAY_UNPLACED). 안 지우면 px 자리가
+            열보다 이기므로, 「오늘」을 눌러도 마커가 그대로 서 있어 단추가 죽은 것처럼
+            보인다. 이 단추가 곧 「자동으로 되돌리기」다. */}
+        <button className={'tbtn' + (todayMode === 'auto' && !todayFree ? ' on' : '')}
+          title="열 때마다 실제 오늘 달로 옮겨갑니다 — 끌어다 놓은 자리도 풉니다"
+          onClick={() => patch({ todayMode: 'auto', ...TODAY_UNPLACED })}>오늘</button>
+        <button className={'tbtn' + (todayMode === 'fixed' && !todayFree ? ' on' : '')}
           title={pickedCol == null ? '고정할 달의 칸을 먼저 고르세요' : `${monthOf(pickedCol) >= 1 && monthOf(pickedCol) <= 12 ? monthOf(pickedCol) + '월' : (pickedCol + 1) + '열'}에 고정합니다`}
           disabled={pickedCol == null}
-          onClick={() => { if (pickedCol != null) patch({ todayMode: 'fixed', today: pickedCol }) }}>이 칸에 고정</button>
+          onClick={() => { if (pickedCol != null) patch({ todayMode: 'fixed', today: pickedCol, ...TODAY_UNPLACED }) }}>이 칸에 고정</button>
         <button className={'tbtn' + (todayMode === 'off' ? ' on' : '')}
           title="마커를 그리지 않습니다"
           onClick={() => patch({ todayMode: 'off' })}>숨기기</button>
