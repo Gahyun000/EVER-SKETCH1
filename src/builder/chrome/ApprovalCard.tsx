@@ -63,7 +63,16 @@ export default function ApprovalCard() {
   const setTableSel = useCanvasUI((s) => s.setTableSel)
 
   const [chip, setChip] = useState<StatusChip | undefined>(undefined)
-  const [open, setOpen] = useState(false)
+  /**
+   * **펼친 것이 기본이다**(2026-09-17 · 사용자 결정).
+   *
+   * 예전 기본은 접힘이었다. 자리를 32px 만 먹는 대신 **무엇이 비었는지 보려면 한 번
+   * 눌러야** 했고, 결재를 내려는 사람에게는 그 한 번이 늘 필요한 걸음이었다.
+   * 「빈 칸 3」은 접힌 줄에도 보이지만, **어느 칸인지**와 「그 칸으로」는 펴야 나온다.
+   *
+   * 접고 싶은 사람은 여전히 머리줄을 눌러 접는다 — 길을 없앤 것이 아니라 **처음 값**만 바꿨다.
+   */
+  const [open, setOpen] = useState(true)
   const [ask, setAsk] = useState<'submit' | 'revise' | 'end' | null>(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -98,8 +107,12 @@ export default function ApprovalCard() {
     finally { setDBusy(false) }
   }
 
-  // **펼쳤을 때만** 부른다. 접힌 카드에 사유는 어차피 안 보인다 —
-  // 접힌 채로도 부르면 반려된 자료를 열 때마다 문서 한 벌이 더 내려온다.
+  // **펼쳤을 때만** 부른다. 접힌 카드에 사유는 어차피 안 보인다.
+  //
+  // 2026-09-17 · **기본이 펼침으로 바뀌면서 이 조건의 뜻이 달라졌다.** 예전에는
+  // 「대개 안 받는다」였는데 이제는 **반려된 자료를 열면 대개 받는다**(사유에 얼어붙은
+  // 문서 한 벌이 딸려 온다 — 재 보니 14KB 남짓이라 그냥 받기로 했다).
+  // 조건은 그대로 둔다: 사람이 접어 두면 안 받는 것이 여전히 맞다.
   useEffect(() => {
     if (open && chip?.state === 'rejected' && chip.approval_id) void loadDetail()
   }, [open, chip?.approval_id, chip?.state])   // eslint-disable-line react-hooks/exhaustive-deps
