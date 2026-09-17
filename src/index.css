@@ -821,12 +821,40 @@ button{font-family:inherit;cursor:pointer}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lib-tbl tbody tr:last-child td{border-bottom:none}
 .lib-tbl tbody tr:hover td{background:#f8fafc}
-.lib-tname{display:flex;align-items:center;gap:9px;min-width:0;width:100%;border:none;
-  background:transparent;padding:0;cursor:pointer;text-align:left;font:inherit}
+/* 이름 칸 — **아이콘과 제목이 하는 일이 다르다**(2026-09-17 · 시안 v1.0).
+   📖 는 상세(결재 이력·의견), 제목은 한 번 고르기 / 두 번 열기.
+   그래서 바깥이 div 가 됐다(단추 안에 단추는 못 넣는다). */
+.lib-tname{display:flex;align-items:center;gap:9px;min-width:0;width:100%;text-align:left}
 .lib-tname .t{font-size:14px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;min-width:0}
+/* 제목을 누르는 자리. **두 번 눌러도 글자가 선택되지 않게** user-select 를 끈다 —
+   안 끄면 더블클릭마다 제목이 파랗게 드래그 선택돼 지저분하다. */
+.lib-tname-hit{flex:1;min-width:0;display:flex;align-items:center;border:none;background:transparent;
+  padding:3px 5px;margin:-3px -5px;border-radius:7px;cursor:pointer;font:inherit;text-align:left;
+  user-select:none;-webkit-user-select:none}
+.lib-tname-hit:hover{background:rgba(36,98,235,.07)}
 .lib-tico{width:28px;height:28px;flex:0 0 auto;display:grid;place-items:center;border-radius:8px;
-  background:rgba(36,98,235,.10);color:#2462EB}
+  background:rgba(36,98,235,.10);color:#2462EB;border:1px solid transparent;cursor:pointer;padding:0}
+.lib-tico:hover{background:rgba(36,98,235,.18);border-color:rgba(36,98,235,.35)}
+/* 카드 보기에서도 아이콘만 따로 눌린다. */
+.lib-ico-hit{border:none;background:transparent;padding:0;cursor:pointer;flex:0 0 auto;border-radius:10px}
+.lib-ico-hit:hover{background:rgba(36,98,235,.10)}
+
+/* **모달을 닫은 뒤 다음에 누를 곳을 가리킨다**(시안 v1.0 ㉠ 테두리 링).
+   까닭만 말하고 끝내면 「그래서 어디를 누르라고」가 남는다.
+   물결이 세 번 퍼지고 멈춘다 — 끝없이 반짝이면 그때부터는 방해다.
+   깜빡임(배경 점멸) 대신 링을 고른 이유: 빛에 민감한 사람에게 덜 부담이고,
+   표 위에 아무것도 덮지 않아 가리는 것이 없다. */
+@keyframes libPointRing{
+  0%{box-shadow:0 0 0 0 rgba(36,98,235,.55)}
+  70%{box-shadow:0 0 0 9px rgba(36,98,235,0)}
+  100%{box-shadow:0 0 0 0 rgba(36,98,235,0)}
+}
+.lib-act.lib-point{border-color:#2462EB;color:#2462EB;animation:libPointRing 1.25s ease-out 3}
+/* 움직임을 줄여 달라고 해 둔 사람에게는 **테두리만** 남긴다 — 규칙은 지키되 말은 남긴다. */
+@media (prefers-reduced-motion: reduce){
+  .lib-act.lib-point{animation:none;box-shadow:0 0 0 3px rgba(36,98,235,.28)}
+}
 /* 값이 없는 칸은 **빈 칸이 아니라 「—」**다. 비워 두면 못 받아 온 것처럼 보인다. */
 .lib-tdim{color:#cbd5e1}
 .lib-tbl td.acts{padding:4px 10px 4px 0}

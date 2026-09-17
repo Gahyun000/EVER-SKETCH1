@@ -57,6 +57,27 @@ export default function LibraryScreen() {
   const [pendingDel, setPendingDel] = useState<ProjectMeta | null>(null)
   /** 삭제가 거절당한 이유. 모달 안에 그대로 띄운다 — 창을 닫아 버리면 이유를 읽을 새가 없다. */
   const [delErr, setDelErr] = useState('')
+  /**
+   * **고른 줄**. 상세를 연 것(`sel`)과 다르다 — 제목을 한 번 누르면 여기만 바뀐다.
+   * 한 번에 상세까지 열면, 두 번 누르려고 멈춘 사람에게 패널이 깜빡였다 열렸다 한다.
+   */
+  const [pick, setPick] = useState<string | null>(null)
+  /** 잠겨서 못 연 자료. 더블클릭으로 들어가려다 막힌 것만 여기 온다. */
+  const [lockInfo, setLockInfo] = useState<ProjectMeta | null>(null)
+  /**
+   * 모달을 닫은 뒤 **다음에 누를 곳**을 잠깐 가리킨다(시안 v1.0 ㉠ 테두리 링).
+   * 까닭만 말하고 끝내면 「그래서 어디를 누르라고」가 남는다 — 그 자리를 짚어 준다.
+   * 승인된 자료만 그 단추가 줄에 있다. 결재 중은 줄에 없으므로 모달이 결재함으로 데려간다.
+   */
+  const [pointAt, setPointAt] = useState<string | null>(null)
+  useEffect(() => {
+    if (!pointAt) return
+    // **사람이 알아채면 그만둔다.** 이미 봤는데 계속 반짝이면 그때부터는 방해다.
+    const off = () => setPointAt(null)
+    const t = window.setTimeout(off, 4200)
+    window.addEventListener('pointerdown', off, true)
+    return () => { window.clearTimeout(t); window.removeEventListener('pointerdown', off, true) }
+  }, [pointAt])
   const [picking, setPicking] = useState(false)
 
   // ── 상세 칸 (②③④) ────────────────────────
@@ -254,6 +275,20 @@ export default function LibraryScreen() {
 
   if (view !== 'library') return null
 
+  /**
+   * **제목을 두 번 누르면 들어간다**(2026-09-17 · 시안 v1.0).
+   *
+   * 예전에는 제목 한 번 → 상세 → 「열기」 세 걸음이었다. 폴더는 한 번에 들어가는데
+   * 자료만 오른쪽 끝까지 마우스를 옮겨야 했다 — 같은 표 안에서 규칙이 둘이었다.
+   *
+   * **판정은 「열기」 단추와 같은 것을 쓴다**(`chips[id].locked`). 두 벌로 두면
+   * 언젠가 갈라져서, 단추로는 막히는데 더블클릭으로는 열리는 일이 생긴다.
+   */
+  const openOrExplain = (p: ProjectMeta) => {
+    if (chips[p.id]?.locked) { setLockInfo(p); return }
+    void openProject(p.id)
+  }
+
   /** 줄 오른쪽 도구. **표와 줄 목록이 같은 것을 쓴다** — 두 벌로 두면 한쪽만 고쳐진다. */
   const actionsFor = (p: ProjectMeta) => (
     <div className="lib-actions">
@@ -265,8 +300,8 @@ export default function LibraryScreen() {
       {/* **한 자리에 한 가지 일만 놓는다.** 승인된 자료에 「제출」을 띄워 두면
           눌러 보고 400 을 받는다 — 그 자리에 오는 것은 「수정 요청」이다. */}
       {canSubmit && chips[p.id]?.state === 'approved' && (
-        <button className="lib-act" title="수정 요청"
-          onClick={() => { setRevising(p); setReviseMsg(''); setAErr('') }}>
+        <button className={'lib-act' + (pointAt === p.id ? ' lib-point' : '')} title="수정 요청"
+          onClick={() => { setPointAt(null); setRevising(p); setReviseMsg(''); setAErr('') }}>
           <PenLine className="h-4 w-4" />
         </button>
       )}
@@ -588,22 +623,33 @@ export default function LibraryScreen() {
               {shown.map((p) => {
                 const c = chips[p.id]
                 return (
-                  <tr key={p.id} className={sel?.id === p.id ? 'on' : undefined}>
+                  <tr key={p.id} className={sel?.id === p.id || pick === p.id ? 'on' : undefined}>
                     <td>
-                      {/* **한 번 누르면 고른다**(②④). 편집기로는 상세의 「열기」가 간다 —
-                          한 번 누르기는 이제 상세를 여는 데 쓰인다. 사이드바 나무에서
-                          이름을 누르면 여전히 바로 열린다: 거기는 「가는 길」이고 여기는
-                          「살펴보는 곳」이다. */}
-                      <button className="lib-tname" title="이 자료 살펴보기" onClick={() => setSel(p)}>
-                        <span className="lib-tico"><BookOpen className="h-4 w-4" /></span>
-                        <span className="t">{nameCell(p)}</span>
+                      {/* 2026-09-17 · 여기 주석이 「한 번 누르면 고른다 … 편집기로는 상세의
+                          「열기」가 간다」였다. **그 세 걸음이 이번에 줄었다** — 제목을 두 번
+                          누르면 바로 들어간다. 폴더는 한 번에 들어가는데 자료만 오른쪽 끝까지
+                          마우스를 옮겨야 했고, 같은 표에서 규칙이 둘이면 손이 걸린다.
+                          사이드바 나무에서 이름을 누르면 여전히 바로 열린다(거기는 「가는 길」). */}
+                      {/* **아이콘과 제목이 하는 일이 다르다**(시안 v1.0):
+                          📖 는 상세(결재 이력·의견), 제목 두 번은 들어가기.
+                          단추 안에 단추는 못 넣으므로 바깥을 div 로 둔다. */}
+                      <div className="lib-tname">
+                        <button className="lib-tico" title="이 자료 살펴보기 (결재 이력 · 의견)"
+                          onClick={(e) => { e.stopPropagation(); setPick(p.id); setSel(p) }}><BookOpen className="h-4 w-4" /></button>
+                        {/* **한 번은 고르기, 두 번은 들어가기.** 한 번에 상세까지 열면
+                            두 번 누르려고 멈춘 사람에게 패널이 깜빡인다. */}
+                        <button className="lib-tname-hit" title="두 번 눌러 열기"
+                          onClick={() => setPick(p.id)}
+                          onDoubleClick={() => { if (editing?.id !== p.id) openOrExplain(p) }}>
+                          <span className="t">{nameCell(p)}</span>
+                        </button>
                         {/* 잠긴 자료는 **왜 안 고쳐지는지** 목록에서 바로 보인다. */}
                         {c?.locked ? (
                           <span className="lib-lock" title="결재 중이거나 승인된 자료라 잠겨 있어요">
                             <Lock className="h-3 w-3" />
                           </span>
                         ) : null}
-                      </button>
+                      </div>
                     </td>
                     {/* **파생 상태를 그린다**(P7). 상태를 짜맞추는 일은 서버가 한다.
                         칩이 아예 없으면 **결재 이력이 하나도 없다**는 뜻이고, 그건
@@ -657,9 +703,17 @@ export default function LibraryScreen() {
             </div>
           ))}
           {shown.map((p) => (
-            <div key={p.id} className={'lib-card' + (sel?.id === p.id ? ' on' : '')}>
-              <button className="lib-open-hit" title="이 자료 살펴보기" onClick={() => setSel(p)}>
+            <div key={p.id} className={'lib-card' + (sel?.id === p.id || pick === p.id ? ' on' : '')}>
+              {/* **표와 같은 규칙이다**(시안 v1.0). 창이 822px 아래로 내려가면 표가
+                  이 카드로 바뀌는데, 여기만 빼 두면 **창을 좁힌 순간 더블클릭이 사라진다** —
+                  쓰는 사람은 「아까는 됐는데」가 되고 까닭을 못 찾는다. */}
+              <button className="lib-ico-hit" title="이 자료 살펴보기 (결재 이력 · 의견)"
+                onClick={(e) => { e.stopPropagation(); setPick(p.id); setSel(p) }}>
                 <div className="lib-ico"><BookOpen className="h-5 w-5" /></div>
+              </button>
+              <button className="lib-open-hit" title="두 번 눌러 열기"
+                onClick={() => setPick(p.id)}
+                onDoubleClick={() => { if (editing?.id !== p.id) openOrExplain(p) }}>
                 <div className="lib-meta">
                   <div className="lib-name">{nameCell(p)}</div>
                   <div className="lib-sub">
@@ -749,6 +803,39 @@ export default function LibraryScreen() {
       {/* **덮개가 아니라 화면이 됐다**(셸, 2026-09-10). 여기서 띄우던 결재함·팀 공유는
           이제 왼쪽 메뉴에 자기 자리가 있다 — 편집 중에도 갈 수 있고, 주소도 남는다.
           뷰어에서 「팀 공유 열기」로 돌아오는 길(?shared=1)은 위에서 그 화면으로 보낸다. */}
+
+      {/* **왜 못 여는지 말하고, 다음에 누를 곳까지 짚는다**(2026-09-17 · 시안 v1.0).
+          까닭만 말하고 끝내면 「그래서 어디를 누르라고」가 남는다.
+
+          **두 경우의 다음 길이 다르다.** 코드를 확인하다 알았다 —
+          `doc_state.can_request_revision` 은 **승인됨일 때만** 참이다. 결재 중에는
+          수정 요청을 낼 수 없고 줄에 그 단추도 없다. 그런데 상세 패널은 결재 중일 때도
+          「수정 요청을 내세요」라고 말하고 있었다(같이 고쳤다). 결재 중에 고치는 길은
+          **결재함에서 회수**다. 줄에 짚을 것이 없으므로 여기서 데려다준다. */}
+      {lockInfo && (
+        <Modal title="열 수 없는 자료입니다" onClose={() => setLockInfo(null)} size="sm"
+          cancel={{
+            label: '알겠어요',
+            onClick: () => {
+              const id = lockInfo.id
+              const pending = chips[id]?.state === 'pending'
+              setLockInfo(null)
+              if (!pending) setPointAt(id)   // 결재 중은 줄에 짚을 것이 없다
+            },
+          }}
+          footer={chips[lockInfo.id]?.state === 'pending' ? (
+            <button className="lib-btn dark"
+              onClick={() => { setLockInfo(null); go('inbox') }}>결재함으로 가기</button>
+          ) : undefined}>
+          {chips[lockInfo.id]?.state === 'pending' ? (
+            <>🔒 <b>결재 중이라 잠겨 있어요.</b><br />
+              고치려면 <b>결재함</b>에서 먼저 <b>회수</b>하세요 — 결재 중에는 수정 요청을 낼 수 없습니다.</>
+          ) : (
+            <>🔒 <b>승인된 자료라 잠겨 있어요.</b><br />
+              고치려면 「수정 요청」을 내세요 — 닫으면 그 자리를 가리켜 드릴게요.</>
+          )}
+        </Modal>
+      )}
 
       {/* 제출 — **낸 순간 문서가 얼어붙는다.** 뒤에 고쳐도 결재본은 안 바뀐다. */}
       {submitting && (
@@ -909,8 +996,12 @@ export default function LibraryScreen() {
               {actionsFor(sel)}
               {selChip?.locked && (
                 <div className="lib-d-lock">
-                  🔒 {selChip.state === 'pending' ? '결재 중이라' : '승인된 자료라'} 잠겨 있어요 —
-                  고치려면 「수정 요청」을 내세요.
+                  {/* **결재 중에는 수정 요청을 못 낸다**(2026-09-17 발견).
+                      `doc_state.can_request_revision` 은 승인됨일 때만 참인데, 여기는
+                      두 경우에 같은 말을 하고 있었다 — 시킨 대로 하려 해도 **누를 것이 없다.** */}
+                  {selChip.state === 'pending'
+                    ? <>🔒 결재 중이라 잠겨 있어요 — 고치려면 결재함에서 <b>회수</b>하세요.</>
+                    : <>🔒 승인된 자료라 잠겨 있어요 — 고치려면 「수정 요청」을 내세요.</>}
                 </div>
               )}
             </div>

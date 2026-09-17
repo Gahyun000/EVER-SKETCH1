@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>화면시안 — 제목 더블클릭으로 들어가기 v1.0</title>
+<style>
+  :root{--blue:#2462EB;--ink:#16203a;--dim:#8a91a0;--line:#e3e6ee;--bg:#f5f6f8;
+        --warnbg:#fff3e2;--warnline:#f0d7b4;--warnink:#6b431a}
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif;word-break:keep-all}
+  .wrap{max-width:1220px;margin:0 auto;padding:26px 20px 100px}
+  h1{font-size:21px;margin:0 0 4px}
+  .sub{color:var(--dim);margin:0 0 20px;font-size:13px}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 18px}
+  h2{font-size:15px;margin:0 0 3px}
+  .why{color:var(--dim);font-size:12.5px;margin:0 0 12px}
+  .tag{display:inline-block;background:rgba(36,98,235,.1);color:var(--blue);border-radius:5px;
+    padding:1px 7px;font-size:11px;font-weight:800;margin-right:6px}
+  .note{background:#f2f5ff;border:1px solid #d9e2ff;border-radius:9px;padding:10px 12px;
+    font-size:12.5px;color:#25407f;margin:12px 0 0}
+  .note.warn{background:var(--warnbg);border-color:var(--warnline);color:var(--warnink)}
+  code{background:rgba(0,0,0,.06);border-radius:4px;padding:1px 5px;font-size:12px}
+  table.doc{border-collapse:collapse;width:100%;font-size:12.5px;margin:10px 0 0}
+  table.doc th,table.doc td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  table.doc th{background:#fafbfe;font-weight:800;width:120px}
+
+  .stage{background:var(--bg);padding:16px;border-radius:10px;display:flex;gap:14px;align-items:flex-start;position:relative}
+  .lib-tbl{flex:1;border-collapse:separate;border-spacing:0;background:#fff;
+    border:1.4px solid #e9ebf0;border-radius:14px;overflow:hidden;table-layout:fixed;font-size:13px}
+  .lib-tbl th{background:#fafbfe;text-align:left;padding:9px 12px;font-size:12px;color:var(--dim);font-weight:800}
+  .lib-tbl td{padding:8px 12px;border-top:1px solid #f0f2f7;vertical-align:middle}
+  .lib-tbl tr.on td{background:#f3f7ff}
+  .tname{display:flex;align-items:center;gap:8px;background:none;border:0;padding:4px 6px;margin:-4px -6px;
+    font:inherit;font-weight:800;color:#0f172a;cursor:pointer;border-radius:7px;text-align:left;
+    user-select:none;-webkit-user-select:none;width:100%}
+  .tname:hover{background:#eef3ff}
+  .tico{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;flex:0 0 auto;
+    background:#eaf0ff;color:var(--blue);border-radius:7px;border:1px solid transparent;cursor:pointer}
+  .tico:hover{border-color:#b9ccf7;background:#dfe9ff}
+  .st{display:inline-block;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:800}
+  .st.dr{background:#eef1f6;color:#5a6478}.st.ok{background:#e6f4ea;color:#1b7a3d}
+  .st.pd{background:#fff3e2;color:#8a5a10}.st.rj{background:#fdeaea;color:#a12b2b}
+  .acts{display:flex;gap:6px;justify-content:flex-end}
+  .act{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+    border:1px solid var(--line);border-radius:7px;color:#5a6478;background:#fff;cursor:pointer;
+    font-size:13px;position:relative}
+  .act:hover{border-color:#c9d2e6}
+  .act.danger:hover{border-color:#f0b4b4;color:#a12b2b}
+  .lock{opacity:.6;font-size:11px}
+
+  /* 상세 패널 */
+  .lib-d{width:270px;background:#fff;border:1px solid var(--line);border-radius:12px;display:none;flex-direction:column}
+  .lib-d.on{display:flex}
+  .lib-d-head{padding:10px 12px;border-bottom:1px solid var(--line);font-weight:800;font-size:13px;
+    display:flex;justify-content:space-between;align-items:center}
+  .lib-d-head button{border:0;background:none;color:var(--dim);cursor:pointer;font-size:14px}
+  .lib-d-body{padding:10px 12px 14px;font-size:12.5px}
+  dl{display:grid;grid-template-columns:50px 1fr;gap:4px 10px;margin:0 0 10px}
+  dt{color:var(--dim);font-weight:700}dd{margin:0}
+  .hist{border-top:1px solid var(--line);padding-top:9px}
+  .hist b{font-size:12px}
+  .hrow{display:flex;gap:7px;margin-top:6px;font-size:11.5px;color:#48506180}
+  .hrow .w{color:#16203a;font-weight:700}
+  .cmt{background:#f7f9fd;border-radius:7px;padding:6px 8px;margin-top:6px;font-size:11.5px}
+
+  /* 모달 */
+  .scrim{position:fixed;inset:0;background:rgba(12,18,38,.42);z-index:100;display:none;
+    align-items:center;justify-content:center}
+  .scrim.on{display:flex}
+  .modal{background:#fff;border-radius:14px;width:min(430px,92vw);box-shadow:0 24px 70px rgba(15,27,61,.3);overflow:hidden}
+  .m-h{padding:13px 16px;border-bottom:1px solid var(--line);font-weight:800;font-size:14.5px}
+  .m-b{padding:15px 16px;font-size:13px;line-height:1.65}
+  .m-f{padding:11px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 15px;
+    font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+  .btn.dark{background:#111a2e;border-color:#111a2e;color:#fff}
+
+  /* ── 세 가지 가리키기 ───────────────────────── */
+  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(36,98,235,.55)}70%{box-shadow:0 0 0 9px rgba(36,98,235,0)}100%{box-shadow:0 0 0 0 rgba(36,98,235,0)}}
+  .act.hi-ring{border-color:var(--blue);color:var(--blue);animation:ring 1.25s ease-out 3}
+  @keyframes blink{0%,100%{background:#fff}50%{background:#cfe0ff;border-color:var(--blue)}}
+  .act.hi-blink{animation:blink .55s ease-in-out 4}
+  .act .bubble{position:absolute;bottom:calc(100% + 8px);right:-4px;white-space:nowrap;
+    background:#111a2e;color:#fff;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;
+    box-shadow:0 8px 22px rgba(10,15,35,.28)}
+  .act .bubble::after{content:'';position:absolute;top:100%;right:14px;border:6px solid transparent;border-top-color:#111a2e}
+
+  .switch{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:6px 8px;position:sticky;top:10px;z-index:80;width:fit-content;
+    margin:0 0 18px;box-shadow:0 2px 10px rgba(20,30,60,.08);flex-wrap:wrap}
+  .switch b{font-size:12px;color:var(--dim);padding:0 6px;font-weight:700}
+  .sw{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;
+    font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;color:var(--ink)}
+  .sw.on{border-color:var(--blue);background:rgba(36,98,235,.08);color:var(--blue)}
+  .hint{font-size:12px;color:var(--dim);margin:10px 0 0}
+</style></head><body><div class="wrap">
+
+<h1>제목 더블클릭으로 들어가기 — 화면시안 v1.0</h1>
+<p class="sub">아래 표는 <b>진짜로 눌러 볼 수 있습니다.</b> 📖 아이콘 · 제목 한 번 · 제목 두 번을 각각 눌러 보세요.</p>
+
+<div class="switch">
+  <b>모달 닫은 뒤 가리키기</b>
+  <button class="sw on" id="h1">㉠ 테두리 링</button>
+  <button class="sw" id="h2">㉡ 반짝임</button>
+  <button class="sw" id="h3">㉢ 말풍선</button>
+  <button class="sw" id="h0">안 함</button>
+</div>
+
+<div class="panel">
+  <h2><span class="tag">1</span>손이 하는 일을 셋으로 가른다</h2>
+  <p class="why">지금은 제목을 한 번 누르면 상세가 뜨고, 상세의 「열기」로 들어갑니다. 앞으로는 이렇게 갈립니다.</p>
+  <table class="doc">
+    <tr><th>📖 책 아이콘</th><td><b>상세 패널</b>을 연다 — 속성 · <b>결재 이력</b> · <b>의견</b>을 보는 자리</td></tr>
+    <tr><th>제목 한 번</th><td><b>줄만 고른다</b>(파란 강조). 상세는 안 뜬다 — 두 번 누르려고 멈춘 것일 수 있다</td></tr>
+    <tr><th>제목 두 번</th><td><b>들어간다</b>(편집기)</td></tr>
+    <tr><th>잠긴 자료 두 번</th><td><b>모달</b>로 왜 잠겼는지 말하고, 닫으면 <b>다음에 누를 곳</b>을 가리킨다</td></tr>
+  </table>
+
+  <div class="stage" id="stage">
+    <table class="lib-tbl">
+      <colgroup><col><col style="width:92px"><col style="width:96px"><col style="width:112px"><col style="width:150px"></colgroup>
+      <tr><th>제목</th><th>상태</th><th>결재자</th><th>수정일</th><th></th></tr>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="lib-d" id="detail">
+      <div class="lib-d-head"><span id="d-title">—</span><button id="d-x">✕</button></div>
+      <div class="lib-d-body">
+        <dl>
+          <dt>상태</dt><dd id="d-st">—</dd>
+          <dt>결재자</dt><dd id="d-ap">—</dd>
+          <dt>쪽수</dt><dd>4쪽</dd>
+        </dl>
+        <div class="hist">
+          <b>결재 이력</b>
+          <div class="hrow"><span class="w">1회차</span><span>09.08 제출 → 09.10 반려</span></div>
+          <div class="cmt">「로드맵 3분기 일정이 빠졌습니다」 — 관리자</div>
+          <div class="hrow"><span class="w">2회차</span><span>09.15 제출 → 09.16 승인</span></div>
+          <div class="cmt">「확인했습니다」 — 관리자</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="hint">※ 이력·의견은 시안용 예시입니다. <b>이 패널이 있어야 하는 이유</b>가 이 부분입니다.</p>
+</div>
+
+<div class="panel">
+  <h2><span class="tag">2</span>잠긴 자료는 왜 잠겼는지에 따라 <b>다음 길이 다릅니다</b></h2>
+  <p class="why">코드를 확인하다 지금 문구가 한쪽에서 틀린 것을 찾았습니다.</p>
+  <table class="doc">
+    <tr><th>승인됨 🔒</th><td>「수정 요청」을 낸다 → 줄에 <b>그 아이콘이 있다</b>(✎). 모달 닫은 뒤 <b>그것</b>을 가리킨다</td></tr>
+    <tr><th>결재 중 🔒</th><td><b>수정 요청을 낼 수 없다</b> — <code>doc_state.can_request_revision</code> 은 <b>승인됨일 때만</b> 참이다.
+      고치려면 <b>결재함에서 회수</b>해야 한다. 줄에는 그 아이콘이 없으므로 <b>왼쪽 「결재함」</b>을 가리킨다</td></tr>
+  </table>
+  <div class="note warn"><b>지금 화면의 문구가 틀려 있습니다.</b> 상세 패널이 결재 중일 때도
+    「고치려면 <b>수정 요청</b>을 내세요」라고 합니다(<code>LibraryScreen.tsx:910</code>).
+    그런데 결재 중에는 그 길이 없습니다 — 시킨 대로 하려 해도 <b>누를 것이 없습니다.</b>
+    모달을 만드는 김에 이 문장도 상태별로 갈라 적겠습니다.</div>
+</div>
+
+<div class="panel">
+  <h2><span class="tag">3</span>모달을 닫은 뒤 — 세 가지 중</h2>
+  <p class="why">위 단추로 바꿔 가며, 아래 <b>승인됨</b> 줄의 제목을 두 번 눌러 보세요.</p>
+  <table class="doc">
+    <tr><th>㉠ 테두리 링</th><td>파란 테두리 + 물결이 <b>세 번</b> 퍼진다. 눈에 띄지만 자리를 안 차지하고, 끝나면 조용히 원래대로.</td></tr>
+    <tr><th>㉡ 반짝임</th><td>배경이 <b>네 번</b> 깜빡. 더 세게 눈에 띈다. 다만 깜빡임은 사람에 따라 거슬리고, 빛 민감한 분께 부담이 될 수 있다.</td></tr>
+    <tr><th>㉢ 말풍선</th><td>「여기서 수정 요청」이 <b>2초</b> 떴다 사라진다. 가장 분명하지만, 표 위에 뜨는 것이라
+      <b>맨 오른쪽 줄에서는 화면 밖으로 밀릴 수 있다</b>(그래서 오른쪽 끝에 맞춰 띄운다).</td></tr>
+  </table>
+  <div class="note"><b>공통</b> 어느 쪽이든 <b>마우스를 올리거나 아무 데나 누르면 즉시 멈춥니다</b> —
+    사람이 이미 알아챘는데 계속 반짝이면 그때부터는 방해입니다.</div>
+</div>
+
+<div class="scrim" id="scrim"><div class="modal">
+  <div class="m-h" id="m-h">열 수 없는 자료입니다</div>
+  <div class="m-b" id="m-b"></div>
+  <div class="m-f"><button class="btn dark" id="m-ok">알겠어요</button></div>
+</div></div>
+
+<script>
+const DATA = [
+  { id:'a', name:'2026년 9월 임원회의 — 김가현',  st:'draft',    ap:'—' },
+  { id:'b', name:'2026년 10월 임원회의 — 김가현', st:'approved', ap:'관리자' },
+  { id:'c', name:'제목 ○○',                      st:'pending',  ap:'관리자' },
+  { id:'d', name:'제목 없음',                     st:'rejected', ap:'관리자' },
+]
+const LBL = { draft:['초안','dr'], approved:['승인','ok'], pending:['결재 중','pd'], rejected:['반려','rj'] }
+const LOCKED = { approved:1, pending:1 }
+let mode = 'ring', sel = null, pend = null
+
+const rows = document.getElementById('rows')
+function draw(){
+  rows.innerHTML = ''
+  for (const p of DATA){
+    const [t,c] = LBL[p.st]
+    const tr = document.createElement('tr')
+    if (sel === p.id) tr.className = 'on'
+    tr.innerHTML = `<td>
+        <button class="tname" data-id="${p.id}">
+          <span class="tico" data-ico="${p.id}" title="이 자료 살펴보기">📖</span>
+          <span>${p.name}</span>
+          ${LOCKED[p.st] ? '<span class="lock">🔒</span>' : ''}
+        </button></td>
+      <td><span class="st ${c}">${t}</span></td><td>${p.ap}</td><td>09. 17. 14:50</td>
+      <td><div class="acts">
+        ${p.st==='approved' ? `<button class="act" data-rev="${p.id}" title="수정 요청">✎</button>` : ''}
+        ${!LOCKED[p.st] ? '<button class="act" title="결재 제출">➤</button>' : ''}
+        <button class="act" title="이름 바꾸기">✏︎</button>
+        <button class="act" title="복제">⧉</button>
+        <button class="act danger" title="삭제">🗑</button>
+      </div></td>`
+    rows.appendChild(tr)
+  }
+}
+draw()
+
+rows.addEventListener('click', (e) => {
+  const ico = e.target.closest('[data-ico]')
+  if (ico){ e.stopPropagation(); openDetail(ico.dataset.ico); return }
+  const btn = e.target.closest('.tname')
+  if (btn){ mark(btn.dataset.id); return }
+})
+rows.addEventListener('dblclick', (e) => {
+  const btn = e.target.closest('.tname')
+  if (!btn) return
+  const p = DATA.find(x => x.id === btn.dataset.id)
+  if (LOCKED[p.st]) showLock(p)
+  else flash('(시안) 편집기로 들어갑니다 — ' + p.name)
+})
+
+/** **줄을 다시 그리지 않고 강조만 바꾼다.**
+ *  시안을 만들다 실제로 밟은 함정이다(2026-09-17): 한 번 클릭에서 목록을 다시 그렸더니,
+ *  두 번째 클릭이 갈 자리(그 DOM)가 이미 사라져 **더블클릭이 아예 안 먹었다.**
+ *  구현할 때도 같은 함정이 있다 — 고르기가 줄을 통째로 바꿔 끼우면 안 된다. */
+function mark(id){
+  sel = id
+  for (const tr of rows.children) tr.classList.remove('on')
+  const b = rows.querySelector(`.tname[data-id="${id}"]`)
+  if (b) b.closest('tr').classList.add('on')
+}
+function openDetail(id){
+  const p = DATA.find(x => x.id === id)
+  mark(id)
+  document.getElementById('detail').classList.add('on')
+  document.getElementById('d-title').textContent = p.name
+  const [t] = LBL[p.st]
+  document.getElementById('d-st').textContent = t
+  document.getElementById('d-ap').textContent = p.ap
+}
+document.getElementById('d-x').onclick = () => document.getElementById('detail').classList.remove('on')
+
+function showLock(p){
+  pend = p
+  const approved = p.st === 'approved'
+  document.getElementById('m-b').innerHTML = approved
+    ? '🔒 <b>승인된 자료라 잠겨 있어요.</b><br>고치려면 「수정 요청」을 내세요.'
+    : '🔒 <b>결재 중이라 잠겨 있어요.</b><br>고치려면 <b>결재함</b>에서 먼저 <b>회수</b>하세요 — '
+      + '결재 중에는 수정 요청을 낼 수 없습니다.'
+  document.getElementById('scrim').classList.add('on')
+  document.getElementById('m-ok').focus()
+}
+document.getElementById('m-ok').onclick = () => {
+  document.getElementById('scrim').classList.remove('on')
+  if (!pend) return
+  if (pend.st === 'approved') point(document.querySelector(`[data-rev="${pend.id}"]`))
+  else flash('(시안) 왼쪽 「결재함」을 가리킵니다 — 이 시안에는 사이드바가 없어 말로 대신합니다')
+  pend = null
+}
+document.getElementById('scrim').onclick = (e) => { if (e.target.id === 'scrim') document.getElementById('m-ok').click() }
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('scrim').classList.contains('on')) document.getElementById('m-ok').click() })
+
+function point(el){
+  if (!el || mode === 'off') return
+  const stop = () => { el.classList.remove('hi-ring','hi-blink'); const b = el.querySelector('.bubble'); if (b) b.remove()
+    removeEventListener('pointerdown', stop, true); el.removeEventListener('mouseenter', stop) }
+  if (mode === 'ring') el.classList.add('hi-ring')
+  if (mode === 'blink') el.classList.add('hi-blink')
+  if (mode === 'bubble'){
+    const b = document.createElement('span'); b.className = 'bubble'; b.textContent = '여기서 수정 요청'
+    el.appendChild(b); setTimeout(stop, 2000)
+  } else setTimeout(stop, 4200)
+  addEventListener('pointerdown', stop, true)
+  el.addEventListener('mouseenter', stop)
+}
+function flash(msg){
+  const d = document.createElement('div')
+  d.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:200;'
+    + 'background:#0F1B3D;color:#fff;border-radius:12px;padding:10px 16px;font-size:13px;font-weight:600;'
+    + 'box-shadow:0 14px 40px -12px rgba(0,0,0,.5)'
+  d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 2200)
+}
+const M = { h1:'ring', h2:'blink', h3:'bubble', h0:'off' }
+for (const id of Object.keys(M)) document.getElementById(id).onclick = () => {
+  mode = M[id]
+  for (const k of Object.keys(M)) document.getElementById(k).classList.toggle('on', k === id)
+}
+</script>
+</div></body></html>
