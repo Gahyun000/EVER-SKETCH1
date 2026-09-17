@@ -92,12 +92,18 @@ ul.q>li:first-child{border-top:none;padding-top:2px}
     <li class="fix">
       <p class="h"><span class="x">✗</span>「TB 는 이름만이고 속은 TD 라 결정이 필요하다」</p>
       <p class="was">— 결정할 것이 없었습니다. 말씀하신 대로 <code>graph TB</code> 를 그냥 쓰면 됩니다.</p>
-      <div class="is"><b>TB 가 TD 로 바뀌어 사람 눈에 보이는 길이 아예 없습니다.</b>
+      <div class="is"><b>앱에서 TB 가 TD 로 바뀌는 길이 없습니다.</b>
         그렇게 될 수 있는 함수는 <code>toMermaid()</code> 하나인데
-        (<code>mermaid.ts:98</code> — 그림을 다시 머메이드 글로 뽑는 것) <b>아무 데서도 안 부릅니다.</b>
-        <code>treeSrc</code> 에 원문을 저장해 두긴 하는데 <b>그것도 다시 읽는 곳이 없습니다.</b>
+        (<code>mermaid.ts:98</code> — 그림을 다시 머메이드 글로 뽑는 것) 앱이 안 부르고,
+        <b>번들에서 아예 털려 나갑니다</b>(rollup 소스맵으로 확인).
+        <code>treeSrc</code> 에 원문을 저장해 두긴 하는데 그것도 다시 읽는 곳이 없습니다.
         <code>TD</code> 는 <code>treeEls.ts</code> 안의 타입 이름일 뿐이라 화면에 안 나옵니다.
-        → <b>표본도 TB, 이름도 TB.</b> 제가 괜한 걸 여쭸습니다.</div>
+        → <b>표본도 TB, 이름도 TB.</b>
+        <br><br><b>※ 2026-09-17 재검토로 바로잡음:</b> 처음에 「<b>아무 데서도</b> 안 부른다」고 썼는데
+        틀렸습니다. <code>tree_mermaid.test.mjs</code> 가 「글 → 그림 → 글이 같은가」로
+        파서를 자기검증하는 데 씁니다. 결론(앱에서는 안 바뀐다)은 그대로지만,
+        언젠가 「머메이드 글로 다시 뽑기」를 화면에 붙이면 <b>그때 <code>toMermaid</code> 도
+        TB 로 적게 고쳐야 합니다.</b></div>
     </li>
 
     <li class="fix">
@@ -236,12 +242,18 @@ graph TB                   graph LR
   </ul>
 
   <div class="note">
-    <b>덤으로 — 죽은 파일 셋을 찾았습니다.</b>
-    <code>src/import/deckToCards.ts</code>(아무도 안 부름) ·
-    <code>src/builder/TopBar.tsx</code>(<code>Layout</code> 이 <code>MenuBar</code>+<code>ClassicBar</code> 를 그립니다) ·
-    <code>mermaid.ts</code> 의 <code>toMermaid()</code>(안 부름).
-    <b>앞의 둘은 오늘 저를 실제로 속였습니다</b> — 이참에 같이 치울지는 말씀만 주시면 하겠습니다.
-    치운다면 「왜 지웠나」를 커밋에 남기겠습니다.
+    <b>덤으로 — 「죽은 파일 셋」이라고 썼는데, 다시 세어 보니 <u>하나</u>였습니다.</b>
+    처음에 <code>src/</code> 의 <code>.ts/.tsx</code> 만 찾아본 탓에 루트의 <code>.mjs</code> 테스트를
+    통째로 빠뜨렸습니다. 번들(rollup 소스맵)과 저장소 전체를 다시 훑은 결과는 이렇습니다.
+    <br><br>
+    · <code>deckToCards.ts</code> — <b>진짜로 아무 데서도 안 씁니다.</b> 번들에 없고, 테스트·e2e·서버·
+      스크립트 어디에도 없습니다.<br>
+    · <code>TopBar.tsx</code> — 번들에는 없지만 <b><code>manual_files.test.mjs</code> 가 읽고 세 가지를
+      잽니다</b>(「작성자 매뉴얼」 이름·Lv3 차단 없음). 지우면 그 가드가 깨집니다.<br>
+    · <code>Palette.tsx</code> — 번들에 없습니다. <code>qc_docs</code> 가 2026-08-12 에 이미
+      「미마운트」로 적어 뒀습니다. 어제 제가 붙인 가드가 읽고 있습니다.<br>
+    · <code>toMermaid()</code> — 번들에서는 털려 나가지만 <b>테스트가 파서 자기검증에 씁니다.
+      죽은 함수가 아닙니다.</b>
   </div>
 </section>
 
