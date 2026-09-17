@@ -15,6 +15,21 @@
 import { useEffect, useState } from 'react'
 import Modal from '../ui/Modal'
 
+/**
+ * **그림은 정지 캡처(PNG)다. 2026-09-17 에 GIF 에서 바꿨다.**
+ *
+ * 이유 셋.
+ *  ① 매뉴얼은 **옆에 띄워 놓고 따라 하는 것**이다. GIF 는 놓치면 다시 돌려야 하고
+ *     멈춰서 글자를 읽을 수가 없다.
+ *  ② 인쇄가 안 된다. 정지 화면이면 그대로 PDF 가 된다.
+ *  ③ 한 편이 400~600KB 라 열두 편이 3MB 였다. 지금은 절반 이하다.
+ *
+ * **그리고 그림 안에 글자를 박지 않는다.** 예전 GIF 에는 아래쪽에 설명 띠가
+ * 구워져 있었는데, 그 글이 아래 `line` 과 같은 말을 두 벌로 갖고 있었다.
+ * 그래서 규칙이 바뀌었을 때(발행이 작성자에게 열렸을 때) `line` 만 고쳐서는
+ * **그림 속 글자가 틀린 채로 남았다.** 말은 코드에만 두고 — 여기 `line` 이 유일본이다 —
+ * 그림은 화면만 담는다. 그래야 `manual_truth.test.mjs` 가 말의 옳고 그름을 잴 수 있다.
+ */
 interface Ep { no: number; title: string; file: string; line: string }
 
 /** 열두 편. **찍은 순서가 곧 배우는 순서**다 — 만들기 → 흐름 → 막히는 곳 → 물어볼 곳. */
@@ -23,27 +38,27 @@ export const EPISODES: Ep[] = [
     line: 'EVER-SKETCH 를 처음 쓰는 작성자를 위한 열두 편입니다.' },
   // 2026-09-17 · 「트리 · 머메이드」가 **머메이드 TB / 머메이드 LR** 둘로 갈렸다(registry.ts).
   // 없는 이름을 가리키는 매뉴얼은 처음 쓰는 사람을 그 자리에서 막는다.
-  { no: 2, title: '글로 뼈대 잡기', file: '02_tree.gif',
+  { no: 2, title: '글로 뼈대 잡기', file: '02_tree.png',
     line: '＋ 새 페이지 ▾ ▸ 머메이드 TB(위→아래) 또는 머메이드 LR(왼→오른). 글로 치면 그림이 되고, 그다음엔 상자를 하나씩 잡고 옮깁니다.' },
-  { no: 3, title: '세 등급', file: '03_levels.gif',
+  { no: 3, title: '세 등급', file: '03_levels.png',
     line: 'Lv1 관리자 · Lv2 작성자 · Lv3 열람자. 로그인하면 사이드바부터 다릅니다.' },
-  { no: 4, title: '자료의 일생', file: '04_lifecycle.gif',
+  { no: 4, title: '자료의 일생', file: '04_lifecycle.png',
     line: '초안 → 결재 중 → 승인 · 반려 → 수정 요청 중 → 수정 중. 이 흐름이 이 도구의 뼈대입니다.' },
-  { no: 5, title: '제출하면 잠긴다', file: '05_submit.gif',
+  { no: 5, title: '제출하면 잠긴다', file: '05_submit.png',
     line: '제출하는 순간 문서가 그대로 얼어붙습니다. 뒤에 고쳐도 결재본은 안 바뀝니다.' },
-  { no: 6, title: '세 갈래', file: '06_decide.gif',
+  { no: 6, title: '세 갈래', file: '06_decide.png',
     line: '승인 · 반려는 관리자가, 회수는 낸 사람이 합니다. 관리자가 대신 회수하면 반려와 구분이 안 됩니다.' },
-  { no: 7, title: '승인 뒤 고치기', file: '07_revise.gif',
+  { no: 7, title: '승인 뒤 고치기', file: '07_revise.png',
     line: '승인된 자료는 잠깁니다. 「수정 요청」을 내고 관리자가 「허락」하면 그때 열립니다.' },
   // 2026-09-16 · 발행이 **작성자에게도 열렸다**(permissions.py 의 PUBLISH, 단 제 자료만).
   // 「관리자만」이라고 적어 두면 작성자가 아예 안 해 본다 — 없는 기능이 되는 셈이다.
-  { no: 8, title: '공유는 둘', file: '08_share.gif',
+  { no: 8, title: '공유는 둘', file: '08_share.png',
     line: '따로 공유 단추가 없습니다 — 승인이 곧 팀 공유입니다. 발행(EVER-FOLIO)은 작성자도 제 자료는 직접 합니다.' },
-  { no: 9, title: '의견', file: '09_comment.gif',
+  { no: 9, title: '의견', file: '09_comment.png',
     line: '결재함에서 지적하고 답합니다. 이 대화는 관리자와 낸 사람만 봅니다.' },
-  { no: 10, title: 'Lv3 화면', file: '10_viewer.gif',
+  { no: 10, title: 'Lv3 화면', file: '10_viewer.png',
     line: '열람자도 제 스케치를 씁니다. 같은 팀이면 승인본도 봅니다 — 등급이 아니라 팀이 정합니다.' },
-  { no: 11, title: '막히는 곳', file: '11_blocked.gif',
+  { no: 11, title: '막히는 곳', file: '11_blocked.png',
     line: '팀 없이 제출 · 잠긴 자료 고치기 · 낸 자료 지우기. 막히는 자리마다 왜 막히는지 말해 줍니다.' },
   // 발행이 여기서도 빠졌다(2026-09-16). 남은 셋은 여전히 관리자만 한다.
   { no: 12, title: '물어볼 곳', file: '12_ask.png',
