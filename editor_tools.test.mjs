@@ -12,7 +12,7 @@
 //   ④ 메뉴의 「삽입 → 도형」이 도형 팝업을 열게 — 사각형 하나만 넣고 있었다
 //
 // 실행: node --experimental-strip-types --import ./ts_register.mjs editor_tools.test.mjs
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 
 let pass = 0, fail = 0
 const check = (cond, label, extra = '') => {
@@ -170,6 +170,39 @@ check(/disabled=\{disabled\}/.test(cp), '못 쓰는 상태를 받는다')
   const iHead = cp.indexOf('head.colors.map')
   const iPal = cp.indexOf('PALETTE.map')
   check(iHead > 0 && iPal > 0 && iHead < iPal, '앞줄이 일반 팔레트보다 위에 있다')
+}
+
+// ── ⑤ 「도움말」 메뉴를 걷어낸 자리 ──────────────────────
+//
+// 2026-09-17 · 사용자 지시로 메뉴바의 **도움말 메뉴**를 지웠다. 두 항목뿐이었고
+// 하나는 보기 메뉴·F1 에 이미 있었다. 다른 하나(30초 시연)는 여기가 유일한 입구라
+// 함께 걷어냈다.
+//
+// **지우는 일에는 두 가지 사고가 따라붙는다.** 이 칸은 그 둘을 본다.
+//   ① **너무 많이 지우기** — 도움말 창까지 못 열게 되는 것. 보기 ▸ 도움말 과 F1 이
+//      살아 있어야 한다. 지울 때 남겨야 할 것을 적어 두지 않으면 다음 사람이 마저 지운다.
+//   ② **덜 지우기** — 화면에서만 빼고 코드·CSS·prop 을 남겨 두는 것. 아무 오류도
+//      안 나고, 다음 사람은 그게 살아 있는 기능인 줄 안다.
+{
+  const lay = bare(read('./src/builder/Layout.tsx'))
+  const hk = bare(read('./src/builder/Hotkeys.tsx'))
+  const css = read('./src/index.css')
+
+  // ① 남겨야 할 길 — 여기가 무너지면 도움말을 **아예 못 연다**.
+  check(/\{ label: '도움말', run: onHelp \}/.test(menu),
+    '**보기 메뉴의 「도움말」은 남아 있다** — 도움말 창으로 가는 길이 이것과 F1 뿐이다')
+  check(/'F1'[\s\S]{0,60}onHelp\(\)/.test(hk), '**F1 도 그대로 연다**')
+  check(/<Help open=\{help\}/.test(lay), '도움말 창 자체는 살아 있다')
+
+  // ② 지운 것이 **정말로** 지워졌나
+  check(!/\{ label: '도움말', items: \[/.test(menu),
+    '메뉴바에 **「도움말」 메뉴가 없다**(항목이 아니라 메뉴)')
+  check(!/30초 시연/.test(menu), '「▶ 튜토리얼 (30초 시연)」 항목이 없다')
+  check(!/onTutorial/.test(menu) && !/onTutorial/.test(lay),
+    '**넘기던 prop 도 같이 걷었다** — 남겨 두면 안 불리는 손잡이가 신호처럼 보인다')
+  check(!/TutorialPlayer/.test(lay) && !existsSync('./src/builder/TutorialPlayer.tsx'),
+    '시연 컴포넌트가 **파일째** 없다 — 화면에서만 빼면 다음 사람은 살아 있는 줄 안다')
+  check(!/^\.tutp/m.test(css), '그 컴포넌트만 쓰던 CSS(.tutp*)도 없다')
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)

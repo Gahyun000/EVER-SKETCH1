@@ -16,7 +16,6 @@ import { autoFold } from './panelFold'
 import { pageSize } from '../cards/sizing'
 import Present from './Present'
 import TutorialCoach from './TutorialCoach'
-import TutorialPlayer from './TutorialPlayer'
 import Hotkeys from './Hotkeys'
 import SettingsPage from '../settings/SettingsPage'
 import ChatPanel from '../chat/ChatPanel'
@@ -97,7 +96,6 @@ export default function Layout() {
   const [help, setHelp] = useState(false)
   const [present, setPresent] = useState(false)
   const [tutorial, setTutorial] = useState(false)
-  const [tutorialPlay, setTutorialPlay] = useState(false)
   const [settings, setSettings] = useState(false)
   const [chat, setChat] = useState(false)
   const [demo, setDemo] = useState(false)
@@ -209,7 +207,7 @@ export default function Layout() {
       onCloseHelp={() => setHelp(false)} onCloseTutorial={() => setTutorial(false)}
     />
     <TitleBar onPresent={() => setPresent(true)} />
-    <MenuBar onHelp={() => setHelp(true)} onTutorial={() => setTutorialPlay(true)} onSettings={() => setSettings(true)} onImport={() => withSaveGuard(() => classicRef.current?.openImport(), '새 HTML을 불러오면 현재 작업 화면이 바뀔 수 있습니다.')} onPresent={() => setPresent(true)} />
+    <MenuBar onHelp={() => setHelp(true)} onSettings={() => setSettings(true)} onImport={() => withSaveGuard(() => classicRef.current?.openImport(), '새 HTML을 불러오면 현재 작업 화면이 바뀔 수 있습니다.')} onPresent={() => setPresent(true)} />
     <EditToolbar />
     <ClassicBar ref={classicRef} onSettings={() => setSettings(true)} onDemo={() => withSaveGuard(() => setDemo(true), '데모 실행 중 현재 작업 화면이 임시로 바뀔 수 있습니다.')} onAiCleanup={() => setAi(true)} />
 
@@ -242,7 +240,6 @@ export default function Layout() {
     <Help open={help} onClose={() => setHelp(false)} onStartTutorial={() => { setHelp(false); setTutorial(true) }} />
     <Present open={present} onClose={() => setPresent(false)} />
     <TutorialCoach open={tutorial} onClose={() => setTutorial(false)} />
-    <TutorialPlayer open={tutorialPlay} onClose={() => setTutorialPlay(false)} />
     {settings ? (
       <Modal title="환경설정" onClose={() => setSettings(false)} size="lg"
         scrimClassName="scrim on settings-scrim" className="settings-modal"

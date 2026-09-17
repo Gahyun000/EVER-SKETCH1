@@ -19,7 +19,7 @@ interface MItem {
 interface Menu { label: string; hwp?: boolean; items: MItem[] }
 
 // 구글 슬라이드식 드롭다운 메뉴. 실동작 가능한 항목은 연결, 미구현은 비활성 표시.
-export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPresent }: { onHelp: () => void; onTutorial: () => void; onSettings: () => void; onImport: () => void; onPresent: () => void }) {
+export default function MenuBar({ onHelp, onSettings, onImport, onPresent }: { onHelp: () => void; onSettings: () => void; onImport: () => void; onPresent: () => void }) {
   const addCard = useBuilder((s) => s.addCard)
   const backToLibrary = useProjects((s) => s.backToLibrary)
   const setPageBg = useBuilder((s) => s.setPageBg)
@@ -114,10 +114,11 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
       { label: '⚙ 환경설정', run: onSettings, admin: true },
       { label: '맞춤법 검사 켜기/끄기', run: () => { const c = useCanvasUI.getState(); c.setSpell(!c.spell) } },
     ] },
-    { label: '도움말', items: [
-      { label: '도움말 열기', run: onHelp },
-      { label: '▶ 튜토리얼 (30초 시연)', run: onTutorial },
-    ] },
+    // 2026-09-17 · **「도움말」 메뉴를 걷어냈다**(사용자 결정).
+    // 두 항목뿐이었는데 하나(「도움말 열기」)는 **보기 메뉴와 F1 에 이미 있었고**,
+    // 다른 하나(「▶ 튜토리얼 30초 시연」)는 여기가 유일한 입구였다 — 그래서 시연도
+    // 함께 걷어냈다(TutorialPlayer). 메뉴 하나를 줄이려고 **같은 것을 두 곳에 두는**
+    // 상태를 남겨 두지 않는다. 도움말 창은 보기 ▸ 도움말 과 F1 로 그대로 열린다.
   ]
 
   return (
