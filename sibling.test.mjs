@@ -27,6 +27,10 @@ const check = (c, label, extra = '') => {
 }
 const read = (p) => readFileSync(p, 'utf8')
 const strip = (s) => s
+  // **HTML 주석도 걷는다**(2026-09-17 · 부숴 보고 알았다). FOLIO 쪽은 HTML 이라
+  // `<!-- ... -->` 안에 「run.command 는 맥 파일이라 안 쓴다」는 **설명**이 들어 있다.
+  // 안 걷으면 그 설명을 위반으로 잡아 **거짓 경보**가 난다.
+  .replace(/<!--[\s\S]*?-->/g, '')
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
   .replace(/^\s*(#|rem\s|\/\/).*$/gm, '')
@@ -68,8 +72,12 @@ const CHIPS = ['./src/builder/TopBar.tsx', './src/builder/chrome/TitleBar.tsx']
   // 색으로만 말하면 색을 못 가리는 사람에게는 아무 말도 안 한 것이다(UI 표준).
   check(/\.sib-down\{[^}]*border-style:dashed/.test(css),
     '**색 말고 모양으로도 말한다**(점선) — UI 표준: 상태는 색 외 수단을 같이 쓴다')
-  check(/title=\{down[\s\S]{0,200}안 떠 있습니다/.test(sib),
-    '툴팁도 같이 바뀐다 — 안 눌러도 마우스만 올리면 안다')
+  // 문구를 박지 않는다 — 「연결 안돼있다」로 바뀐 것처럼 말은 또 바뀐다.
+  // **바뀌는지**만 본다: 살아 있을 때와 아닐 때가 다른 글이면 된다.
+  check(/title=\{down\s*\n?\s*\?/.test(sib),
+    '툴팁이 상태에 따라 갈린다 — 안 눌러도 마우스만 올리면 안다')
+  check(/title=\{down[\s\S]{0,260}\$\{runBy\}/.test(sib),
+    '툴팁에도 **띄우는 법**이 들어간다 — 마우스만 올려도 무엇을 하면 되는지 안다')
   check(/role="status"/.test(sib),
     '읽어 주는 도구에 들린다(role="status")')
   // 브라우저 기본 대화상자는 UI 표준이 금지한다.
@@ -88,7 +96,71 @@ const CHIPS = ['./src/builder/TopBar.tsx', './src/builder/chrome/TitleBar.tsx']
     // 같은 자리에 맨 `<a href={FOLIO_URL}>` 가 돌아오면 그게 되돌린 것이다.
     check(!/<a\s[^>]*href=\{FOLIO_URL\}/.test(src),
       `${f.replace('./src/', '')} 에 맨 링크가 되살아나지 않았다`)
-    check(/how="run\.command"/.test(src), `${f.replace('./src/', '')} 가 띄우는 법을 알려 준다`)
+    // 예전에는 `how="run.command"` 가 있는지 봤다. 그 값이 **맥 전용**이라 없앴으므로
+    // 이제 맞는 질문은 「직접 적지 않았는가」다 — 적으면 운영체제를 못 따라간다.
+    check(!/how=["'{]/.test(src),
+      `${f.replace('./src/', '')} 가 띄우는 법을 **직접 안 적는다**(운영체제가 고르게 둔다)`)
+  }
+}
+
+// ── ④-2 좁은 자리(표·상세 패널)는 띠로 말한다 ─────────────
+//
+// 2026-09-17 · 시안에서 **실제로 잘리는 것을 찍어 확인했다**
+// (docs/화면시안_발행본보기_끊김표시_v1.0.html). 표는 overflow:hidden(index.css),
+// 상세 패널은 overflow:auto 라 말풍선이 그 테두리에서 잘린다 — 아래쪽 줄일수록 심하다.
+// 그래서 그 두 자리는 `quiet`: 말풍선 대신 **화면 아래 띠**(position:fixed)로 한 줄.
+//
+// 실제로 재 봤다: 흐림 true · 누르면 탭 1→1(빈 탭 안 열림) · 띠 1 ·
+// **띠가 화면 안에 온전히 들어옴 true**(= 안 잘림).
+{
+  const lib = strip(read('./src/persistence/LibraryScreen.tsx'))
+  const n = (lib.match(/<SiblingLink\s/g) || []).length
+  check(n >= 2, '발행본 보기 두 자리(표 · 상세 패널)가 SiblingLink 를 쓴다', `${n}곳`)
+  check(!/<a\s[^>]*href=\{folioBookUrl\(/.test(lib),
+    '맨 링크가 되살아나지 않았다 — 되돌리면 다시 빈 탭이 열린다')
+  // **quiet 를 안 주면 말풍선이 잘린다.** 잘린 말풍선은 없느니만 못하다.
+  const bad = [...lib.matchAll(/<SiblingLink([\s\S]{0,200}?)>/g)]
+    .filter((m) => !/\bquiet\b/.test(m[1])).length
+  check(bad === 0,
+    '**두 자리 다 quiet 다** — 표·패널은 overflow 가 걸려 있어 말풍선이 잘린다', `${bad}곳 빠짐`)
+  // 찔러 보는 곳은 책 한 권이 아니라 **앱 뿌리**여야 한다. 책 주소로 재면 그 책이
+  // 지워졌을 때도 「앱이 꺼졌다」고 말하게 된다.
+  // **하나라도 빠지면 안 된다**(부숴 보고 고쳤다, 2026-09-17). 예전에는
+  // 「파일 어딘가에 probeUrl 이 있으면 통과」였다. 그래서 두 자리 중 한 곳만 빼도
+  // 나머지 한 곳에 걸려 그냥 통과했다 — 정작 뺀 그 자리가 잘못 재고 있는데도.
+  const noProbe = [...lib.matchAll(/<SiblingLink([\s\S]{0,200}?)>/g)]
+    .filter((m) => !/probeUrl=\{FOLIO_URL\}/.test(m[1])).length
+  check(noProbe === 0,
+    '**두 자리 다 앱 뿌리를 찔러 본다** — 책 주소로 재면 지워진 책을 꺼진 앱으로 오해한다',
+    `${noProbe}곳 빠짐`)
+
+  const sibq = sib
+  check(/quiet && createPortal\(/.test(sibq),
+    '띠는 **body 로 올린다**(포털) — 표 안에 그리면 그대로 잘린다')
+  check(/className="build-toast"/.test(sibq),
+    '이 앱이 이미 쓰는 띠를 쓴다 — 새 모양을 만들지 않았다')
+  check(/setTimeout\(\(\) => setAsk\(false\), \d+\)/.test(sibq),
+    '띠는 **스스로 사라진다** — 화면 아래에 남아 다음 일을 가리면 안 된다')
+  check(/quiet[\s\S]{0,80}그래도 열기|그래도 열기[\s\S]{0,200}quiet/.test(read(SRC))
+        || (sibq.match(/그래도 열기/g) || []).length >= 2,
+    '띠에서도 **길은 막지 않는다** — 「그래도 열기」가 있다')
+}
+
+// ── ④-3 띄우는 법이 운영체제에 맞는가 ─────────────────────
+//
+// 2026-09-17 · 사용자 지적: 「run.command 는 맥이고 윈도우 쓰는 사람이 더 많다」.
+// 없는 파일을 실행하라고 시키는 안내는 **안 하느니만 못하다** — 시킨 대로 했는데
+// 안 되면 그다음부터 이 화면이 하는 말을 안 믿는다.
+{
+  check(/export function launcherName\(\)/.test(sib), '실행기 이름을 고르는 자리가 있다')
+  check(/\/win\/i\.test\(/.test(sib), '**윈도우를 가려낸다**')
+  check(/'start\.bat'/.test(sib) && /'start\.command'/.test(sib),
+    '**표준 런처 이름을 쓴다**(start.bat · start.command) — 대장 §2 의 네 이름 중 둘')
+  check(!/run\.command/.test(sib),
+    '맥 전용 이름을 박아 두지 않았다')
+  for (const f of CHIPS) {
+    check(!/how="run\.command"/.test(strip(read(f))),
+      `${f.replace('./src/', '')} 가 맥 전용 이름을 넘기지 않는다`)
   }
 }
 
@@ -101,9 +173,13 @@ const CHIPS = ['./src/builder/TopBar.tsx', './src/builder/chrome/TitleBar.tsx']
     console.log('· (EVER-FOLIO 저장소가 옆에 없어 건너뜀 — ' + FOLIO + ')')
   } else {
     const h = read(FOLIO)
+    const hb = strip(h)   // 주석의 설명을 위반으로 잡지 않도록
     check(/mode:\s*'no-cors'/.test(h), 'FOLIO 쪽도 찔러 본다')
     check(/sib-down/.test(h) && /sib-pop/.test(h), 'FOLIO 쪽도 흐림과 말풍선이 있다')
     check(/그래도 열기/.test(h), 'FOLIO 쪽도 길을 막지 않는다')
+    check(/start\.bat/.test(h) && /start\.command/.test(h),
+      'FOLIO 쪽도 운영체제에 맞는 실행기 이름을 쓴다')
+    check(!/run\.command/.test(hb), 'FOLIO 쪽에 맥 전용 이름이 안 남았다(주석의 설명은 뺀다)')
     // 이쪽의 진짜 위험은 주소가 박히는 것이다. meta 한 줄에서만 와야 한다.
     check(/<meta name="sketch-url"/.test(h), 'FOLIO 쪽 주소는 meta 한 줄에서 온다')
     check(!/id="frameBtn"[^>]*href=/.test(h),

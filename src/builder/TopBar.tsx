@@ -145,7 +145,7 @@ export default function TopBar({ onHelp, onPresent, onSettings, onDemo, onAiClea
   return (<div className="top">
     <div className="brand">EVER-SKETCH<small>경영진용</small></div>
     <SiblingLink className="switch-chip" style={switchChip} url={FOLIO_URL}
-      name="EVER-FOLIO" host={FOLIO_HOST} how="run.command">↗ EVER-FOLIO</SiblingLink>
+      name="EVER-FOLIO" host={FOLIO_HOST}>↗ EVER-FOLIO</SiblingLink>
     <input className="title-in" value={title} onChange={(e) => setTitle(e.target.value)} />
     <div className="spacer" />
     <div className="seg">

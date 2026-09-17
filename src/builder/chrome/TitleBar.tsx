@@ -26,7 +26,7 @@ export default function TitleBar({ onPresent }: { onPresent: () => void }) {
       <span className="sp" />
       {/* 다른 앱(EVER-FOLIO 이북 라이브러리)으로 가는 이동 버튼 */}
       <SiblingLink className="folio-chip" style={folioChip} url={FOLIO_URL}
-        name="EVER-FOLIO" host={FOLIO_HOST} how="run.command">↗ EVER-FOLIO</SiblingLink>
+        name="EVER-FOLIO" host={FOLIO_HOST}>↗ EVER-FOLIO</SiblingLink>
       <button className="rbtn" onClick={onPresent} title="구글 슬라이드식 슬라이드쇼">▷ 슬라이드쇼</button>
       <button className="rbtn pri" onClick={() => void newProject()} title="새 이북 시작">＋ 새 이북</button>
       {/* **신원 표시는 셸 머리줄로 올라갔다**(2026-09-10).

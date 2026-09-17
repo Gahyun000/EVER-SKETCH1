@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>화면시안 — 「발행본 보기」에도 넣으면 v1.0</title>
+<style>
+  :root{--blue:#2462EB;--ink:#16203a;--dim:#8a91a0;--line:#e3e6ee;--bg:#f5f6f8;
+        --warnbg:#fff3e2;--warnline:#f0d7b4;--warnink:#6b431a}
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif;word-break:keep-all}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 90px}
+  h1{font-size:21px;margin:0 0 4px}
+  .sub{color:var(--dim);margin:0 0 20px;font-size:13px}
+  .switch{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:6px 8px;position:sticky;top:10px;z-index:80;width:fit-content;
+    margin:0 0 18px;box-shadow:0 2px 10px rgba(20,30,60,.08)}
+  .switch b{font-size:12px;color:var(--dim);padding:0 6px;font-weight:700}
+  .sw{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;
+    font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;color:var(--ink)}
+  .sw.on{border-color:var(--blue);background:rgba(36,98,235,.08);color:var(--blue)}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 18px}
+  h2{font-size:15px;margin:0 0 3px}
+  .why{color:var(--dim);font-size:12.5px;margin:0 0 12px}
+  .tag{display:inline-block;background:rgba(36,98,235,.1);color:var(--blue);border-radius:5px;
+    padding:1px 7px;font-size:11px;font-weight:800;margin-right:6px}
+  .bad{background:#fdeaea;color:#a12b2b}
+  .note{background:#f2f5ff;border:1px solid #d9e2ff;border-radius:9px;padding:10px 12px;
+    font-size:12.5px;color:#25407f;margin:12px 0 0}
+  .note.warn{background:var(--warnbg);border-color:var(--warnline);color:var(--warnink)}
+  code{background:rgba(0,0,0,.06);border-radius:4px;padding:1px 5px;font-size:12px}
+
+  /* ── 실제 자료 목록 표를 흉내 냈다 (index.css 의 값 그대로) ── */
+  .stage{background:var(--bg);padding:16px;border-radius:10px;display:flex;gap:14px;align-items:flex-start}
+  .lib-tbl{flex:1;border-collapse:separate;border-spacing:0;background:#fff;
+    border:1.4px solid #e9ebf0;border-radius:14px;overflow:hidden;table-layout:fixed;font-size:13px}
+  .lib-tbl th{background:#fafbfe;text-align:left;padding:9px 12px;font-size:12px;color:var(--dim);font-weight:800}
+  .lib-tbl td{padding:10px 12px;border-top:1px solid #f0f2f7;vertical-align:middle}
+  .lib-tbl .t{font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .st{display:inline-block;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:800}
+  .st.ok{background:#e6f4ea;color:#1b7a3d}.st.rj{background:#fdeaea;color:#a12b2b}
+  .lib-actions{display:flex;gap:6px;justify-content:flex-end}
+  .lib-act{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+    border:1px solid var(--line);border-radius:7px;color:#5a6478;text-decoration:none;
+    background:#fff;position:relative;cursor:pointer;font-size:13px}
+  .lib-act:hover{border-color:#c9d2e6}
+  /* 오른쪽 상세 패널 */
+  .lib-d{width:290px;background:#fff;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column}
+  .lib-d-head{padding:11px 13px;border-bottom:1px solid var(--line);font-weight:800;font-size:13.5px}
+  .lib-d-body{flex:1;overflow:auto;padding:11px 13px 16px;max-height:190px}
+  dl{display:grid;grid-template-columns:52px 1fr;gap:5px 10px;margin:0;font-size:12.5px}
+  dt{color:var(--dim);font-weight:700}
+  dd{margin:0}
+  dd a{color:var(--blue);font-weight:800;text-decoration:none;position:relative}
+
+  .sib-down{opacity:.5;border-style:dashed}
+  .sib-down:hover{opacity:.72}
+  .pop{width:270px;text-align:left;white-space:normal;background:var(--warnbg);
+    border:1px solid var(--warnline);color:var(--warnink);border-radius:9px;padding:9px 11px;
+    font-size:12.5px;font-weight:600;line-height:1.5;box-shadow:0 6px 20px rgba(20,30,60,.14)}
+  .pop.inline{position:absolute;top:calc(100% + 7px);right:0;z-index:5}
+  .pop.fixed{position:fixed;z-index:200}
+  .pop .row{display:flex;gap:7px;margin-top:8px}
+  .pop button{border:1px solid var(--warnline);background:#fff;color:var(--warnink);border-radius:7px;
+    padding:4px 10px;font:inherit;font-size:11.5px;font-weight:800;cursor:pointer}
+  .pop button.g{background:transparent;border-color:transparent;color:#9a7b52}
+</style></head><body><div class="wrap">
+
+<h1>「발행본 보기」에도 넣으면 어떻게 되나 — 화면시안 v1.0</h1>
+<p class="sub">칩과 달리 이 링크는 <b>표 안</b>과 <b>상세 패널 안</b>에 있습니다. 둘 다 <code>overflow</code> 가 걸려 있어서
+말풍선을 그냥 넣으면 잘립니다. 아래에서 실제로 잘리는 것을 보실 수 있습니다.</p>
+
+<div class="switch">
+  <b>EVER-FOLIO</b>
+  <button class="sw" id="up">떠 있음</button>
+  <button class="sw on" id="down">안 떠 있음</button>
+  <b style="margin-left:10px">말풍선</b>
+  <button class="sw on" id="mIn">그냥 넣기</button>
+  <button class="sw" id="mFix">고쳐 넣기</button>
+  <button class="sw" id="mNone">안 넣기</button>
+</div>
+
+<div class="panel">
+  <h2 id="ttl"><span class="tag bad">㉠</span>그냥 넣으면 — <b>잘립니다</b></h2>
+  <p class="why" id="why">표에 <code>overflow:hidden</code>(index.css:811) 이 걸려 있어, 마지막 줄의 말풍선은 표 밖으로 못 나갑니다.
+     상세 패널도 <code>overflow:auto</code>(index.css:850) 라 말풍선이 패널 안에 갇히고 스크롤이 생깁니다.</p>
+
+  <div class="stage">
+    <table class="lib-tbl">
+      <colgroup><col><col style="width:86px"><col style="width:78px"><col style="width:74px"></colgroup>
+      <tr><th>제목</th><th>상태</th><th>수정</th><th></th></tr>
+      <tr><td class="t">2026년 10월 임원회의 — 김가현</td><td><span class="st rj">반려 2회차</span></td><td>09.17</td>
+          <td><div class="lib-actions"><a class="lib-act pub" title="">↗</a></div></td></tr>
+      <tr><td class="t">2026년 9월 임원회의 — 김가현</td><td><span class="st ok">승인</span></td><td>09.08</td>
+          <td><div class="lib-actions"><a class="lib-act pub" title="">↗</a></div></td></tr>
+      <tr><td class="t">2026년 9월 임원회의 — 관리자</td><td><span class="st ok">승인</span></td><td>09.02</td>
+          <td><div class="lib-actions"><a class="lib-act pub" title="">↗</a></div></td></tr>
+    </table>
+
+    <div class="lib-d">
+      <div class="lib-d-head">2026년 10월 임원회의</div>
+      <div class="lib-d-body">
+        <dl>
+          <dt>상태</dt><dd><span class="st rj">반려 2회차</span></dd>
+          <dt>결재자</dt><dd>관리자</dd>
+          <dt>낸 날</dt><dd>09. 08. 11:33</dd>
+          <dt>수정</dt><dd>09. 17. 11:40</dd>
+          <dt>쪽수</dt><dd>4쪽</dd>
+          <dt>발행</dt><dd><a class="pub" href="#">발행본 보기 ↗</a></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="note" id="note">마지막 줄의 ↗ 를 눌러 보세요. 말풍선이 표 아래 테두리에서 잘립니다.</div>
+</div>
+
+<div class="panel">
+  <h2>세 가지 중 고르는 문제</h2>
+  <table style="border-collapse:collapse;width:100%;font-size:12.5px">
+    <tr><th style="border:1px solid var(--line);padding:7px 9px;background:#fafbfe;width:96px;text-align:left">㉠ 그냥</th>
+        <td style="border:1px solid var(--line);padding:7px 9px">코드는 한 줄. <b>말풍선이 잘립니다.</b> 표 아래쪽 줄일수록 심합니다 — 안 쓰는 게 낫습니다.</td></tr>
+    <tr><th style="border:1px solid var(--line);padding:7px 9px;background:#fafbfe;text-align:left">㉡ 고쳐서</th>
+        <td style="border:1px solid var(--line);padding:7px 9px"><b>말풍선을 화면 맨 위 층에 띄웁니다</b>(<code>position:fixed</code> + 링크 위치 계산, <code>body</code> 로 포털).
+          안 잘립니다. <b>대신</b> 스크롤하면 따라오지 않아서 <b>스크롤하면 닫는</b> 규칙이 필요합니다. 15줄쯤 늘어납니다.</td></tr>
+    <tr><th style="border:1px solid var(--line);padding:7px 9px;background:#fafbfe;text-align:left">㉢ 안 넣고</th>
+        <td style="border:1px solid var(--line);padding:7px 9px">말풍선 없이 <b>흐림 + 툴팁</b>만. 클릭은 그대로 막아서 <b>빈 탭은 안 열립니다</b> —
+          다만 <b>왜 안 열리는지</b>는 마우스를 올려야 압니다. 터치·키보드는 모릅니다. 코드는 거의 안 늡니다.</td></tr>
+  </table>
+  <div class="note warn"><b>공통</b> 어느 쪽이든 <b>찔러 보는 요청은 한 번뿐</b>입니다. 줄이 열둘이어도
+    같은 주소(EVER-FOLIO 뿌리)라 <code>siblingLink</code> 의 캐시가 묶어 줍니다 — 이미 그렇게 만들어져 있습니다.</div>
+</div>
+
+<script>
+  const LINKS = [...document.querySelectorAll('.pub')]
+  let alive = false, mode = 'in'
+  let pop = null
+  const HOST = '127.0.0.1:8811'
+  function close(){ if(pop){ pop.remove(); pop = null } }
+  function paint(){
+    close()
+    for (const a of LINKS){
+      const down = !alive && mode !== 'off'
+      a.classList.toggle('sib-down', !alive)
+      a.title = alive ? `발행본 보기(EVER-FOLIO) — ${HOST}`
+                      : `EVER-FOLIO 가 지금 안 떠 있습니다 — ${HOST} 가 대답하지 않습니다`
+    }
+    const t = document.getElementById('ttl'), w = document.getElementById('why'), n = document.getElementById('note')
+    if (mode === 'in'){
+      t.innerHTML = '<span class="tag bad">㉠</span>그냥 넣으면 — <b>잘립니다</b>'
+      w.innerHTML = '표에 <code>overflow:hidden</code>(index.css:811) 이 걸려 있어, 마지막 줄의 말풍선은 표 밖으로 못 나갑니다. 상세 패널도 <code>overflow:auto</code>(index.css:850) 라 말풍선이 갇히고 스크롤이 생깁니다.'
+      n.textContent = '마지막 줄의 ↗ 를 눌러 보세요. 말풍선이 표 아래 테두리에서 잘립니다.'
+    } else if (mode === 'fix'){
+      t.innerHTML = '<span class="tag">㉡</span>고쳐 넣으면 — 안 잘립니다 <b style="color:#2462EB">(권합니다)</b>'
+      w.innerHTML = '말풍선만 <b>화면 맨 위 층</b>으로 올립니다(<code>position:fixed</code>). 표·패널의 <code>overflow</code> 와 무관해집니다.'
+      n.textContent = '어느 줄이든 눌러 보세요. 잘리지 않습니다. 스크롤하면 닫힙니다.'
+    } else {
+      t.innerHTML = '<span class="tag">㉢</span>말풍선 없이 — 흐림과 툴팁만'
+      w.innerHTML = '클릭은 <b>그대로 막습니다</b>(빈 탭 안 열림). 다만 까닭은 마우스를 올려야 보입니다.'
+      n.textContent = '↗ 를 눌러도 아무 일이 없습니다 — 빈 탭이 안 열리는 것이 전부입니다. 까닭은 툴팁에만 있습니다.'
+    }
+  }
+  for (const a of LINKS){
+    a.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation()
+      if (alive){ return }
+      if (mode === 'off'){ return }
+      if (pop){ close(); return }
+      pop = document.createElement('div')
+      pop.className = 'pop ' + (mode === 'fix' ? 'fixed' : 'inline')
+      pop.innerHTML = `<b>EVER-FOLIO 가 안 떠 있습니다.</b><br>${HOST} 가 대답하지 않습니다. `
+        + `<b>run.command</b> 로 띄운 뒤 다시 눌러 주세요.`
+        + `<div class="row"><button>그래도 열기</button><button class="g">닫기</button></div>`
+      pop.addEventListener('click', (e2) => { e2.stopPropagation()
+        if (e2.target.tagName === 'BUTTON') close() })
+      if (mode === 'fix'){
+        document.body.appendChild(pop)
+        const r = a.getBoundingClientRect()
+        pop.style.top = (r.bottom + 7) + 'px'
+        pop.style.left = Math.max(10, Math.min(r.right - 270, innerWidth - 280)) + 'px'
+      } else {
+        a.appendChild(pop)
+      }
+    })
+  }
+  addEventListener('scroll', () => { if (pop && pop.classList.contains('fixed')) close() }, true)
+  const set = (id, fn) => document.getElementById(id).onclick = fn
+  set('up', () => { alive = true; document.getElementById('up').classList.add('on');
+                    document.getElementById('down').classList.remove('on'); paint() })
+  set('down', () => { alive = false; document.getElementById('down').classList.add('on');
+                      document.getElementById('up').classList.remove('on'); paint() })
+  const modes = { mIn:'in', mFix:'fix', mNone:'off' }
+  for (const id of Object.keys(modes)) set(id, () => {
+    mode = modes[id]
+    for (const k of Object.keys(modes)) document.getElementById(k).classList.toggle('on', k === id)
+    paint()
+  })
+  paint()
+</script>
+</div></body></html>

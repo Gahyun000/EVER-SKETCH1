@@ -22,7 +22,10 @@ import {
   LIB_COLS, LIB_SORT_DEFAULT, LIB_STATE_LABEL, folderRowsOf, nextSort, sortRows, wantsTable,
   type LibSort,
 } from './libTable'
-import { folioBookUrl } from '../ports'
+import { FOLIO_URL, FOLIO_HOST, folioBookUrl } from '../ports'
+// EVER-FOLIO 가 안 떠 있으면 빈 탭을 여는 대신 화면 아래 띠로 한 줄 말한다.
+// **표·패널은 overflow 가 걸려 있어 말풍선이 잘린다** — 그래서 quiet.
+import SiblingLink from '../siblingLink'
 
 const PAGE_SIZE = 12
 
@@ -255,7 +258,9 @@ export default function LibraryScreen() {
   const actionsFor = (p: ProjectMeta) => (
     <div className="lib-actions">
       {p.published_id ? (
-        <a className="lib-act" title="발행본 보기(EVER-FOLIO)" href={folioBookUrl(p.published_id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></a>
+        <SiblingLink className="lib-act" quiet
+          url={folioBookUrl(p.published_id)} probeUrl={FOLIO_URL}
+          name="EVER-FOLIO" host={FOLIO_HOST}><ExternalLink className="h-4 w-4" /></SiblingLink>
       ) : null}
       {/* **한 자리에 한 가지 일만 놓는다.** 승인된 자료에 「제출」을 띄워 두면
           눌러 보고 400 을 받는다 — 그 자리에 오는 것은 「수정 요청」이다. */}
@@ -861,7 +866,8 @@ export default function LibraryScreen() {
                 <dt>수정</dt><dd>{fmtKst(sel.updated_at)}</dd>
                 <dt>쪽수</dt><dd>{sel.page_count}쪽</dd>
                 <dt>발행</dt><dd>{sel.published_id
-                  ? <a href={folioBookUrl(sel.published_id)} target="_blank" rel="noreferrer">발행본 보기 ↗</a>
+                  ? <SiblingLink quiet url={folioBookUrl(sel.published_id)} probeUrl={FOLIO_URL}
+                      name="EVER-FOLIO" host={FOLIO_HOST}>발행본 보기 ↗</SiblingLink>
                   : dim}</dd>
               </dl>
             </div>
