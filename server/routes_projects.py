@@ -208,8 +208,27 @@ def projects_rename(pid: str, req: ProjectRenameIn, user: dict = Depends(require
 
 @router.delete("/api/projects/{pid}")
 def projects_delete(pid: str, user: dict = Depends(require_active)):
-    # 삭제는 관리자만. 작성자는 본인 것도 지우지 못한다(회차 자료 유실 방지).
-    require_project(user, pid, perm.DELETE)
+    # **주석이 낡아 있었다**(2026-09-17 발견). 여기에는 「삭제는 관리자만. 작성자는 본인 것도
+    # 지우지 못한다」라고 적혀 있었는데, D16(P5)에서 **결재를 한 번도 안 탄 자료는 작성자가
+    # 지우도록** 열렸다(permissions.py 의 DELETE 분기). 실제로 재 보니 초안은 지워진다.
+    # 판정을 읽지 않고 주석만 읽으면 반대로 안다 — 그래서 고쳤다.
+    #
+    # **왜 막히는지 말해 준다.** `require_project` 는 「권한이 없습니다」로만 끝내는데,
+    # 그건 이유가 아니라 결론이라 사람이 다음에 뭘 해야 할지 모른다. 작성자가 제 자료를
+    # 못 지우는 경우는 사실상 하나뿐이다 — **결재에 한 번이라도 냈을 때.** 그 경우를
+    # 먼저 짚어 이유를 말한다(발행이 「먼저 자료를 저장한 뒤…」라고 말하는 것과 같은 자리).
+    # 판정은 그대로 `require_project` 가 한다 — **이유를 말하려고 판정을 다시 짜지 않는다.**
+    # 두 벌이 되면 언젠가 한쪽만 고쳐져서, 막지 않는데 막혔다고 말하거나 그 반대가 된다.
+    # 거절을 받아서 **이유만 갈아 끼운다.** 404 를 403 보다 먼저 내는 순서도 그대로 남는다.
+    try:
+        require_project(user, pid, perm.DELETE)
+    except HTTPException as e:
+        if e.status_code == 403 and approvals_store.has_history(pid):
+            raise HTTPException(
+                status_code=403,
+                detail="한 번이라도 결재에 낸 자료는 지울 수 없습니다. "
+                       "남의 눈에 든 자료가 사라지면 결재 이력만 남기 때문입니다.") from e
+        raise
     meta = projects_store.get_project_meta(pid)
     result = projects_store.delete_project(pid)
     # 되돌릴 수 없는 작업이므로 누가 무엇을 지웠는지 반드시 남긴다(UDS-107 §4).

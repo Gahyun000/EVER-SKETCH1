@@ -52,6 +52,8 @@ export default function LibraryScreen() {
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null)
   const [pendingDel, setPendingDel] = useState<ProjectMeta | null>(null)
+  /** 삭제가 거절당한 이유. 모달 안에 그대로 띄운다 — 창을 닫아 버리면 이유를 읽을 새가 없다. */
+  const [delErr, setDelErr] = useState('')
   const [picking, setPicking] = useState(false)
 
   // ── 상세 칸 (②③④) ────────────────────────
@@ -271,7 +273,7 @@ export default function LibraryScreen() {
       )}
       <button className="lib-act" title="이름 바꾸기" onClick={() => setEditing({ id: p.id, value: p.name || '' })}><Pencil className="h-4 w-4" /></button>
       <button className="lib-act" title="복제" onClick={() => void duplicateProject(p.id)}><Copy className="h-4 w-4" /></button>
-      <button className="lib-act danger" title="삭제" onClick={() => setPendingDel(p)}><Trash2 className="h-4 w-4" /></button>
+      <button className="lib-act danger" title="삭제" onClick={() => { setDelErr(''); setPendingDel(p) }}><Trash2 className="h-4 w-4" /></button>
     </div>
   )
 
@@ -293,10 +295,27 @@ export default function LibraryScreen() {
   const commitRename = async () => { if (editing && editing.value.trim()) await renameProject(editing.id, editing.value.trim()); setEditing(null) }
   // 삭제도 응답을 기다리는 사이 창이 열려 있다 — 두 번 눌리면 두 번 간다.
   // 두 번째는 404 로 떨어지고, **이미 지워졌는데 「지우지 못했습니다」로 보인다.**
+  //
+  // **거절당하면 이유를 말한다**(2026-09-17, 사용자 지적: 「안 되는 거면 모달이 떠야지 안 되는
+  // 이유랑」). 여기에는 `catch` 가 없었다. 그래서 결재에 낸 자료를 지우려 하면 서버가
+  // 403 으로 이유까지 돌려주는데도 **창만 열린 채 아무 일도 안 일어났다** — 콘솔에만 찍혔다.
+  // 사용자 눈에는 「단추가 죽었다」로 보인다. 이 화면의 다른 자리들(fAct · 제출 · 수정 요청)은
+  // 이미 이렇게 하고 있었고, 여기만 빠져 있었다.
   const confirmDelete = async () => {
     if (!pendingDel || busy) return
-    setBusy(true)
-    try { await deleteProject(pendingDel.id); setPendingDel(null) } finally { setBusy(false) }
+    setDelErr(''); setBusy(true)
+    try {
+      await deleteProject(pendingDel.id)
+      setPendingDel(null)
+    } catch (e) {
+      // 서버가 준 말을 **그대로** 옮긴다 — 「실패했습니다」보다 「한 번이라도 결재에 낸
+      // 자료는 지울 수 없습니다」가 훨씬 쓸모 있다. 못 알아들을 때만 우리가 지어낸다.
+      //
+      // `projectApi.j()` 는 **클래스가 아니라** `status` 를 붙인 평범한 Error 를 던진다
+      // (403 이면 서버가 준 detail 이 그대로 message 에 들어 있다). 그래서 `instanceof`
+      // 로 특정 클래스를 찾으면 안 된다 — 늘 빗나가서 「지우지 못했어요.」만 뜬다.
+      setDelErr(e instanceof Error && e.message ? e.message : '지우지 못했어요.')
+    } finally { setBusy(false) }
   }
 
   /** 목록 맨 위에 붙는 폴더 줄(①ㄴ). 규칙은 libTable 이 정한다 —
@@ -802,16 +821,17 @@ export default function LibraryScreen() {
 
       {/* 이북 삭제 — **되돌릴 수 없다.** 그 말을 색이 아니라 글로 적는다. */}
       {pendingDel && (
-        <Modal title="이북 삭제" onClose={() => setPendingDel(null)} size="sm" busy={busy}
+        <Modal title="이북 삭제" onClose={() => { setPendingDel(null); setDelErr('') }} size="sm" busy={busy}
           scrimClassName="lib-confirm" className="lib-confirm-box"
           footClassName="lib-confirm-actions"
-          cancel={{ label: '취소', onClick: () => setPendingDel(null) }}
+          cancel={{ label: '취소', onClick: () => { setPendingDel(null); setDelErr('') } }}
           footer={<>
             <button className="lib-c-ok danger" disabled={busy}
               onClick={() => void confirmDelete()}>{busy ? '삭제 중…' : '삭제'}</button>
           </>}>
           ‘{pendingDel.name || '제목 없음'}’ 이북을 삭제할까요?<br />
           이 이북의 모든 슬라이드와 버전 기록이 함께 삭제되며 <b>되돌릴 수 없어요.</b>
+          {delErr && <div className="lib-delerr">{delErr}</div>}
         </Modal>
       )}
     </div>
