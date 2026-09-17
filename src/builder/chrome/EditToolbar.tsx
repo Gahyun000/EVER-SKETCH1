@@ -54,10 +54,13 @@ const SHAPES: { t: Tool; label: string }[] = SHAPE_CATS.flatMap((c) => c.items)
 
 // 도형 버튼 — PowerPoint 식. 아이콘은 항상 같은 심볼이고, 버튼 어디를 눌러도 갤러리가 열린다.
 // 셀 미리보기는 index.css 의 clip-path 를 재사용하므로 캔버스에 그려지는 모양과 동일하다.
-// 도형 무장 중이라는 신호는 버튼의 .on 하이라이트뿐 — 해제는 Esc(Hotkeys) 또는 다른 도구 선택.
+//
+// 2026-09-17 · **갤러리에서 고르면 도구를 무장하지 않고 곧바로 놓는다.** 그래서 여기에는
+// setTool 이 없다 — 있으면 「골랐는데 커서는 십자」인 옛 동작이 슬그머니 되살아난다.
+// 버튼의 .on 하이라이트는 남겨 둔다: 단축키(r·o·d)로 든 도형은 여전히 무장 상태이고,
+// 그때 지금 무엇을 들고 있는지 알려 주는 표시가 이것뿐이다.
 function ShapeTool() {
   const tool = useCanvasUI((s) => s.tool)
-  const setTool = useCanvasUI((s) => s.setTool)
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const ref = useRef<HTMLButtonElement>(null)
@@ -104,7 +107,14 @@ function ShapeTool() {
                 <div className="shp-grid">
                   {c.items.map((sh) => (
                     <button key={sh.t} className={'shp-cell' + (tool === sh.t ? ' on' : '')} title={sh.label}
-                      onClick={() => { setTool(sh.t); setOpen(false) }}>
+                      onClick={() => {
+                        // **고르면 곧바로 놓는다**(2026-09-17). 전에는 도구만 무장하고
+                        // 사람이 슬라이드를 한 번 더 눌러야 했는데, 화면에 아무 반응이 없어
+                        // 고장으로 읽혔다. 놓는 일은 캔버스가 한다 — 규칙이 한 곳이어야
+                        // 되돌리기도 가둠도 빠지지 않는다(FreeLayer 의 ebook:insert-shape).
+                        setOpen(false)
+                        window.dispatchEvent(new CustomEvent('ebook:insert-shape', { detail: { type: sh.t } }))
+                      }}>
                       {/* 미리보기도 **같은 꼭짓점**으로 오린다. 전에는 CSS 가 오렸는데,
                           그 규칙을 캔버스와 나눠 쓰다 보니 테두리를 그릴 수 없었다. */}
                       <span className={'shp-sh ' + sh.t}

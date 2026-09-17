@@ -8,6 +8,7 @@ import { useBuilder } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
 import { useProjects } from '../persistence/projects'
 import { mkFreeEl, pushSnap, FCOLORS, NO_FILL } from './model'
+import { centerSpot } from './dropSpot'
 import { CLIPPED, SHAPE_RADIUS, dashArray, polyClip, polyPoints } from './shapePaths'
 import NoteBlocks from '../builder/NoteBlocks'
 import { bandRange, coveredSet, dragTrack, growToMerges, mergeCovering, sizeTracks, trackSizes } from './tableOps'
@@ -430,6 +431,39 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     }
     window.addEventListener('ebook:insert-image', onInsert)
     return () => window.removeEventListener('ebook:insert-image', onInsert)
+  })
+
+  /**
+   * **도형 갤러리에서 고르면 곧바로 놓인다**(사용자 결정 ㄴ · 2026-09-17).
+   *
+   * 바로 위 '삽입 → 이미지' 와 **같은 까닭, 같은 방식**이다. 그때 적어 둔
+   * 「도구만 켜두면 한 번 더 클릭해야 하는 걸 모르는 사람이 아무 반응 없다고 느낀다」가
+   * 도형에도 그대로 들어맞았다. 자리는 `centerSpot` 이 정한다 — 거기에 까닭을 적어 뒀다.
+   *
+   * **놓는 규칙은 여기 한 곳에만 둔다.** 도구줄이 직접 `addEl` 을 부르면 캔버스 밖에서
+   * 요소가 생기는 길이 하나 더 생기고, 그 길은 되돌리기(snap)도 가둠(penIn)도 안 거친다.
+   * 그래서 도구줄은 「이 모양을 놓아 달라」고 말만 하고, 놓는 일은 캔버스가 한다.
+   *
+   * **클릭해서 놓는 길은 그대로 남긴다.** 단축키(r·o·d)로 도구를 든 사람은 여전히
+   * 원하는 자리를 찍어서 놓는다 — 자리를 정확히 잡고 싶을 때의 길이다.
+   */
+  useEffect(() => {
+    if (!interactive) return
+    const onShape = (ev: Event) => {
+      const type = (ev as CustomEvent<{ type?: string }>).detail?.type
+      // 모르는 이름이 오면 **아무 일도 하지 않는다.** mkFreeEl 은 모르는 갈래를
+      // 조용히 네모(DEFS.box)로 바꾸므로, 안 막으면 오타가 네모로 둔갑해서 나온다.
+      if (!type || ADDABLE.indexOf(type) < 0) return
+      const el = mkFreeEl(type, 0, 0)
+      const at = centerSpot(page.els, el.w, el.h, W, H)
+      el.x = at.x; el.y = at.y
+      snap()
+      addEl(page.id, el)
+      setSel(el.id)
+      setTool('select')
+    }
+    window.addEventListener('ebook:insert-shape', onShape)
+    return () => window.removeEventListener('ebook:insert-shape', onShape)
   })
 
   // 편집 중일 때, 편집 중인 요소 "밖"을 누르면 값을 저장하고 편집을 끝낸다.
