@@ -824,7 +824,13 @@ button{font-family:inherit;cursor:pointer}
 /* 이름 칸 — **아이콘과 제목이 하는 일이 다르다**(2026-09-17 · 시안 v1.0).
    📖 는 상세(결재 이력·의견), 제목은 한 번 고르기 / 두 번 열기.
    그래서 바깥이 div 가 됐다(단추 안에 단추는 못 넣는다). */
-.lib-tname{display:flex;align-items:center;gap:9px;min-width:0;width:100%;text-align:left}
+/* **버튼 기본 모양은 계속 지워 둔다.** 2026-09-17 에 자료 줄이 button → div 로
+   바뀌면서 이 줄들을 지웠는데, **폴더 줄은 아직 button 이다**(폴더는 한 번에 들어가니
+   그대로 두는 게 맞다). 그래서 폴더 이름에 브라우저 기본 테두리·배경·안여백이
+   되살아나 네모 상자가 생겼다 — 사용자가 「폴더 테두리 뭐야?」로 잡아 줬다.
+   한 클래스를 button 과 div 가 같이 쓰는 한, 이 줄들은 있어야 한다. */
+.lib-tname{display:flex;align-items:center;gap:9px;min-width:0;width:100%;border:none;
+  background:transparent;padding:0;cursor:pointer;text-align:left;font:inherit}
 .lib-tname .t{font-size:14px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;min-width:0}
 /* 제목을 누르는 자리. **두 번 눌러도 글자가 선택되지 않게** user-select 를 끈다 —

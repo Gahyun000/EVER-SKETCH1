@@ -141,6 +141,34 @@ const py = read('./server/doc_state.py')
   check(/승인된 자료라[\s\S]{0,80}수정 요청/.test(lock), '승인됨에는 수정 요청을 말한다')
 }
 
+// ── ④-2 한 클래스를 button 과 div 가 같이 쓴다 ─────────────
+//
+// 2026-09-17 · **사용자가 잡아 준 회귀다.** 「폴더 테두리 뭐야?」
+//
+// 자료 줄의 이름 칸을 `button` → `div` 로 바꾸면서(안에 단추 둘을 넣어야 해서)
+// `.lib-tname` 의 버튼 기본값 지우개(border:none 등)를 **필요 없다고 보고 지웠다.**
+// 그런데 **폴더 줄은 아직 button 이다** — 폴더는 한 번에 들어가는 게 맞아서 그대로 뒀다.
+// 그래서 폴더 이름에 브라우저 기본 테두리·배경·안여백이 되살아나 네모 상자가 생겼다.
+//
+// tsc 도 테스트도 다 통과했다. **보이는 것만 틀렸다.** 그래서 여기서 잰다.
+{
+  const usedByButton = /<button className="lib-tname"/.test(lib)
+  const usedByDiv = /<div className="lib-tname">/.test(lib)
+  check(usedByButton && usedByDiv,
+    '`.lib-tname` 을 button(폴더)과 div(자료)가 **같이 쓴다** — 이 전제가 아래 줄의 이유다')
+  if (usedByButton) {
+    const m = css.match(/\n\.lib-tname\{([\s\S]{0,240}?)\}/)
+    const rule = m ? m[1] : ''
+    for (const [prop, why] of [
+      ['border:none', '테두리'], ['background:transparent', '배경'],
+      ['padding:0', '안여백'], ['font:inherit', '글꼴'],
+    ]) {
+      check(rule.includes(prop),
+        `버튼 기본 ${why}를 지워 둔다(${prop}) — 폴더 줄이 button 이라 안 지우면 네모 상자가 생긴다`)
+    }
+  }
+}
+
 // ── ⑤ 가리키기가 **끝나는가** ───────────────────────────
 // 끝없이 반짝이면 그때부터는 방해다. 사람이 알아채면 그만둬야 한다.
 {
