@@ -297,6 +297,25 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   const tshape = interactive && isTreePage(page) ? treeShape(page.els, page.conns, knownOf(page)) : null
 
   const tool = useCanvasUI((s) => s.tool)
+  /**
+   * **지금 무언가를 놓는 중인가**(도형·글상자·표·아이콘…).
+   *
+   * 2026-09-17 · 사용자 지적: 「텍스트 상자랑 맞물리면 도형이 생성이 안 돼.
+   * 사용자 입장에선 왜 안 되지? 라고 생각이 될 수 있잖아.」 — 맞았다.
+   *
+   * 빈 곳을 누르면 그려지는데 **기존 요소 위를 누르면 아무 일도 안 일어났다.**
+   * 커서는 십자 그대로고, 엉뚱하게 그 요소가 골라진다. 아무 말도 없다.
+   * (매뉴얼 그림을 찍을 때 내가 이걸 밟고는, 고치는 대신 「빈 곳을 고르라」고
+   *  매뉴얼에 적어 뒀다. 적을 게 아니라 고쳤어야 할 일이었다.)
+   *
+   * **막을 까닭이 없다.** 파워포인트도 키노트도 도형 도구를 든 채로는 기존 개체
+   * 위에 그냥 그려진다 — 겹쳐 놓는 것이 잘못이 아니기 때문이다.
+   *
+   * 그래서 이 값을 **세 자리가 같이 본다**(레이어 · 요소 · 표 칸). 한 곳만 고치면
+   * 「글상자 위에는 되는데 표 위에는 안 되는」 식으로 갈라진다.
+   * 연결선·펜·형광펜·지우개는 요소 위 클릭이 **뜻이 있으므로** 여기 안 넣는다.
+   */
+  const adding = ADDABLE.indexOf(tool) >= 0
   const setTool = useCanvasUI((s) => s.setTool)
   const selEl = useCanvasUI((s) => s.selEl)
   const selEls = useCanvasUI((s) => s.selEls)
@@ -698,7 +717,9 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
 
   function onLayerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (!active) return
-    if (e.target !== e.currentTarget) return
+    // 이 줄은 원래 **요소를 끌 때 마퀴 선택이 같이 시작되는 것**을 막으려고 있다.
+    // 무언가를 놓는 중일 때는 그 걱정이 없다 — 위에 그리는 것이 맞는 동작이다.
+    if (e.target !== e.currentTarget && !adding) return
     const rect = e.currentTarget.getBoundingClientRect()
     const z = zoomOf(rect)
     const x = (e.clientX - rect.left) / z, y = (e.clientY - rect.top) / z
@@ -768,6 +789,9 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       return
     }
     if (tool === 'pen' || tool === 'highlighter' || tool === 'eraser') { e.stopPropagation(); return }
+    // **놓는 중이면 손대지 않는다.** 여기서 stopPropagation 하면 레이어가 못 받아
+    // 도형이 안 생긴다 — 그게 「왜 안 되지」의 정체였다.
+    if (adding) return
     e.preventDefault(); e.stopPropagation()
     // 다른 요소를 편집 중이었으면 값을 저장하고 끝낸다(안 그러면 편집 모드가 계속 남아 Delete 가 먹통).
     if (editRef.current && editRef.current.id !== el.id) endEditing()
@@ -1205,6 +1229,9 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                               if (e.key === 'Tab') { to(r, e.shiftKey ? Math.max(0, c - 1) : Math.min(C - 1, c + 1)) }
                             } : undefined}
                             onPointerDown={(e) => {
+                              // 표 칸도 마찬가지다. 여기만 빼 두면 「글상자 위에는
+                              // 그려지는데 표 위에는 안 되는」 반쪽이 된다.
+                              if (adding) return
                               if (editingThis) { e.stopPropagation(); return }
                               // Shift+클릭은 요소 다중 선택에 쓴다 — 표가 아직 안 골라졌으면 흘려보낸다.
                               if (e.shiftKey && !tableActive) return
