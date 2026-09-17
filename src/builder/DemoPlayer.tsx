@@ -21,8 +21,10 @@ interface Ep { no: number; title: string; file: string; line: string }
 export const EPISODES: Ep[] = [
   { no: 1, title: '이 매뉴얼', file: '01_cover.png',
     line: 'EVER-SKETCH 를 처음 쓰는 작성자를 위한 열두 편입니다.' },
+  // 2026-09-17 · 「트리 · 머메이드」가 **머메이드 TB / 머메이드 LR** 둘로 갈렸다(registry.ts).
+  // 없는 이름을 가리키는 매뉴얼은 처음 쓰는 사람을 그 자리에서 막는다.
   { no: 2, title: '글로 뼈대 잡기', file: '02_tree.gif',
-    line: '＋ 새 페이지 ▾ ▸ 트리 · 머메이드. 글로 치면 그림이 되고, 그다음엔 상자를 하나씩 잡고 옮깁니다.' },
+    line: '＋ 새 페이지 ▾ ▸ 머메이드 TB(위→아래) 또는 머메이드 LR(왼→오른). 글로 치면 그림이 되고, 그다음엔 상자를 하나씩 잡고 옮깁니다.' },
   { no: 3, title: '세 등급', file: '03_levels.gif',
     line: 'Lv1 관리자 · Lv2 작성자 · Lv3 열람자. 로그인하면 사이드바부터 다릅니다.' },
   { no: 4, title: '자료의 일생', file: '04_lifecycle.gif',
@@ -33,16 +35,19 @@ export const EPISODES: Ep[] = [
     line: '승인 · 반려는 관리자가, 회수는 낸 사람이 합니다. 관리자가 대신 회수하면 반려와 구분이 안 됩니다.' },
   { no: 7, title: '승인 뒤 고치기', file: '07_revise.gif',
     line: '승인된 자료는 잠깁니다. 「수정 요청」을 내고 관리자가 「허락」하면 그때 열립니다.' },
+  // 2026-09-16 · 발행이 **작성자에게도 열렸다**(permissions.py 의 PUBLISH, 단 제 자료만).
+  // 「관리자만」이라고 적어 두면 작성자가 아예 안 해 본다 — 없는 기능이 되는 셈이다.
   { no: 8, title: '공유는 둘', file: '08_share.gif',
-    line: '따로 공유 단추가 없습니다 — 승인이 곧 팀 공유입니다. 발행(EVER-FOLIO)은 관리자만 합니다.' },
+    line: '따로 공유 단추가 없습니다 — 승인이 곧 팀 공유입니다. 발행(EVER-FOLIO)은 작성자도 제 자료는 직접 합니다.' },
   { no: 9, title: '의견', file: '09_comment.gif',
     line: '결재함에서 지적하고 답합니다. 이 대화는 관리자와 낸 사람만 봅니다.' },
   { no: 10, title: 'Lv3 화면', file: '10_viewer.gif',
     line: '열람자도 제 스케치를 씁니다. 같은 팀이면 승인본도 봅니다 — 등급이 아니라 팀이 정합니다.' },
   { no: 11, title: '막히는 곳', file: '11_blocked.gif',
     line: '팀 없이 제출 · 잠긴 자료 고치기 · 낸 자료 지우기. 막히는 자리마다 왜 막히는지 말해 줍니다.' },
+  // 발행이 여기서도 빠졌다(2026-09-16). 남은 셋은 여전히 관리자만 한다.
   { no: 12, title: '물어볼 곳', file: '12_ask.png',
-    line: '팀 편성 · 승인 · 발행은 Lv1 관리자가 합니다. 막히면 관리자에게.' },
+    line: '팀 편성 · 승인 · 계정 관리는 Lv1 관리자가 합니다. 막히면 관리자에게.' },
 ]
 
 export const MANUAL_DIR = '/manual/'
