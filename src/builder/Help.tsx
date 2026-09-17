@@ -15,7 +15,7 @@ const SHORTCUTS: { k: string; d: string }[] = [
   { k: '⌘/Ctrl + ⇧ + P · F5', d: '발표 시작' },
 ]
 
-export default function Help({ open, onClose, onStartTutorial }: { open: boolean; onClose: () => void; onStartTutorial: () => void }) {
+export default function Help({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null
   // 예전에는 손으로 그린 덮개였다 — Esc 는 Hotkeys 가 따로 받아 주고 있었지만
   // 포커스 가두기·되돌리기·배경 스크롤 잠금은 없었다. 껍데기를 쓰면 다 따라온다.
@@ -30,11 +30,13 @@ export default function Help({ open, onClose, onStartTutorial }: { open: boolean
         <li>다 되면 <b>이북 만들기</b> 한 번.</li>
       </ol>
       <p className="help-tip">못 채운 칸이 있어도 이북은 만들어집니다. 편하게 시작하세요.</p>
-      <div className="help-tut">
-        <div className="help-tut-t">자유 캔버스가 처음이신가요?</div>
-        <div className="help-tut-d">도형·화살표·펜을 직접 해보며 배우는 짧은 튜토리얼이 있어요.</div>
-        <button className="help-tut-btn" onClick={onStartTutorial}>▶ 자유 캔버스 튜토리얼 시작</button>
-      </div>
+      {/* 2026-09-17 · **「▶ 자유 캔버스 튜토리얼 시작」을 걷어냈다**(사용자 결정).
+          그 튜토리얼(TutorialCoach)은 `[data-tut="tool-box"]` 같은 표를 찾아 반짝였는데
+          **저장소 어디에도 그 표를 다는 곳이 없었다.** 그래서 「반짝이는 네모 버튼을
+          누르세요」라고 말하면서 반짝이는 것도 그 단추도 없었다. 게다가 가르치던
+          「단추 누르고 캔버스 클릭」 두 걸음은 같은 날 도형이 바로 놓이도록 바뀌면서
+          사실도 아니게 됐다. 고쳐 쓰는 대신 지운다 — 보기 ▸ 작성자 매뉴얼(45걸음)과
+          ▶ 튜토리얼(30초 시연)이 같은 일을, 맞는 내용으로 한다. */}
       <div className="help-keys">
         <div className="help-keys-t">⌨ 키보드 단축키 <small>(마우스로도 다 됩니다)</small></div>
         <table className="kbd-tbl"><tbody>

@@ -172,20 +172,28 @@ check(/disabled=\{disabled\}/.test(cp), '못 쓰는 상태를 받는다')
   check(iHead > 0 && iPal > 0 && iHead < iPal, '앞줄이 일반 팔레트보다 위에 있다')
 }
 
-// ── ⑤ 「도움말」 메뉴를 걷어낸 자리 ──────────────────────
+// ── ⑤ 도움말 메뉴를 걷은 자리 · 튜토리얼 둘의 갈림 ──────
 //
-// 2026-09-17 · 사용자 지시로 메뉴바의 **도움말 메뉴**를 지웠다. 두 항목뿐이었고
-// 하나는 보기 메뉴·F1 에 이미 있었다. 다른 하나(30초 시연)는 여기가 유일한 입구라
-// 함께 걷어냈다.
+// 2026-09-17 · 두 걸음으로 정리됐다. **이 파일도 지우지 않고 고쳐 쓴다** — 앞 결정이
+// 무엇이었고 왜 바뀌었는지가 여기 남아야 다음 사람이 되돌리지 않는다.
+//   1) 메뉴바의 **도움말 메뉴**를 걷었다. 「도움말 열기」는 보기 메뉴·F1 에 이미 있었다.
+//      그때는 30초 시연도 함께 걷었다 — 그 메뉴가 유일한 입구였기 때문이다.
+//   2) 사용자가 다시 정했다: **시연은 보기 메뉴로 옮겨 살린다.** 대신 도움말 창의
+//      「▶ 자유 캔버스 튜토리얼 시작」(TutorialCoach)을 **지운다.**
 //
-// **지우는 일에는 두 가지 사고가 따라붙는다.** 이 칸은 그 둘을 본다.
-//   ① **너무 많이 지우기** — 도움말 창까지 못 열게 되는 것. 보기 ▸ 도움말 과 F1 이
-//      살아 있어야 한다. 지울 때 남겨야 할 것을 적어 두지 않으면 다음 사람이 마저 지운다.
-//   ② **덜 지우기** — 화면에서만 빼고 코드·CSS·prop 을 남겨 두는 것. 아무 오류도
-//      안 나고, 다음 사람은 그게 살아 있는 기능인 줄 안다.
+// **튜토리얼이 둘이었다는 것이 이 일의 핵심이다.** 이름이 비슷해서 나도 한 번 헷갈렸다.
+//   · TutorialPlayer — public/tutorial.html 을 전체 화면으로 **보여 주기만** 한다. 멀쩡하다.
+//   · TutorialCoach  — 화면의 단추를 **가리키며** 따라 하게 한다. 그런데 가리킬 표
+//     (`data-tut="tool-box"` 등)를 **저장소 어디에서도 달지 않는다.** 「반짝이는 네모
+//     버튼을 누르세요」라고 말하면서 반짝이는 것도 그 단추도 없었다. 게다가 가르치던
+//     「단추 누르고 캔버스 클릭」은 같은 날 도형이 바로 놓이도록 바뀌면서 사실도 아니게 됐다.
+//
+// 그래서 이 칸은 셋을 본다. ① 남겨야 할 길 ② 옮긴 것이 **정말 갔는가**
+// ③ 지운 것이 **덜 지워지지 않았는가**(화면에서만 빼면 다음 사람은 살아 있는 줄 안다).
 {
   const lay = bare(read('./src/builder/Layout.tsx'))
   const hk = bare(read('./src/builder/Hotkeys.tsx'))
+  const help = bare(read('./src/builder/Help.tsx'))
   const css = read('./src/index.css')
 
   // ① 남겨야 할 길 — 여기가 무너지면 도움말을 **아예 못 연다**.
@@ -193,16 +201,40 @@ check(/disabled=\{disabled\}/.test(cp), '못 쓰는 상태를 받는다')
     '**보기 메뉴의 「도움말」은 남아 있다** — 도움말 창으로 가는 길이 이것과 F1 뿐이다')
   check(/'F1'[\s\S]{0,60}onHelp\(\)/.test(hk), '**F1 도 그대로 연다**')
   check(/<Help open=\{help\}/.test(lay), '도움말 창 자체는 살아 있다')
-
-  // ② 지운 것이 **정말로** 지워졌나
   check(!/\{ label: '도움말', items: \[/.test(menu),
-    '메뉴바에 **「도움말」 메뉴가 없다**(항목이 아니라 메뉴)')
-  check(!/30초 시연/.test(menu), '「▶ 튜토리얼 (30초 시연)」 항목이 없다')
-  check(!/onTutorial/.test(menu) && !/onTutorial/.test(lay),
-    '**넘기던 prop 도 같이 걷었다** — 남겨 두면 안 불리는 손잡이가 신호처럼 보인다')
-  check(!/TutorialPlayer/.test(lay) && !existsSync('./src/builder/TutorialPlayer.tsx'),
-    '시연 컴포넌트가 **파일째** 없다 — 화면에서만 빼면 다음 사람은 살아 있는 줄 안다')
-  check(!/^\.tutp/m.test(css), '그 컴포넌트만 쓰던 CSS(.tutp*)도 없다')
+    '메뉴바에 **「도움말」 메뉴는 없다**(항목이 아니라 메뉴)')
+
+  // ② 30초 시연이 **보기 메뉴 안**으로 옮겨졌나
+  const vi = menu.indexOf("{ label: '보기', items: [")
+  const view = vi < 0 ? '' : menu.slice(vi, menu.indexOf('] },', vi))
+  check(vi > 0, '보기 메뉴가 있다')
+  check(/30초 시연[\s\S]{0,40}run: onTutorial/.test(view),
+    '**「▶ 튜토리얼 (30초 시연)」이 보기 메뉴 안에 있다** — 옮긴다고 하고 안 옮기면 그대로 사라진다')
+  check(/작성자 매뉴얼[\s\S]*30초 시연/.test(view),
+    '「작성자 매뉴얼」 바로 다음이다 — 보기만 하는 것 둘이 나란히 선다')
+  check(/onTutorial=\{\(\) => setTutorialPlay\(true\)\}/.test(lay), '그 손잡이가 실제로 이어져 있다')
+  check(/<TutorialPlayer open=\{tutorialPlay\}/.test(lay) && existsSync('./src/builder/TutorialPlayer.tsx'),
+    '시연 재생기가 살아 있다')
+  check(/^\.tutp\{/m.test(css), '그 재생기의 CSS(.tutp*)도 살아 있다 — 지우면 검은 전체화면만 남는다')
+
+  // **Esc 로 닫히는가.** 재 보니 ✕ 는 되는데 Esc 가 안 됐다(오래된 결함).
+  // `onClose` 는 렌더마다 새로 만들어지는 화살표라 deps 에 있으면 이 리스너가
+  // **키가 퍼지는 도중에** 떼였다 붙는다 — DOM 규칙상 그렇게 떼인 리스너는 안 불린다.
+  // 등록은 돼 있는데 한 번도 안 불리는, 눈에 안 보이는 모양이다.
+  const tp = bare(read('./src/builder/TutorialPlayer.tsx'))
+  check(/\}, \[open\]\)/.test(tp),
+    '**Esc 리스너가 붙었다 떼졌다 하지 않는다**(deps 는 open 뿐) — 렌더마다 다시 붙으면 Esc 가 통째로 안 먹는다')
+  check(/closeRef\.current\(\)/.test(tp),
+    '닫는 함수는 ref 로 본다 — deps 에서 뺀 값을 그냥 쓰면 옛 함수를 부른다')
+  check(/tutp-x/.test(tp), '✕ 닫기 단추도 그대로 있다 — 키가 안 통하는 자리에서 유일한 출구다')
+
+  // ③ 코치는 **통째로** 갔나. 화면에서만 빼면 다음 사람은 살아 있는 줄 안다.
+  check(!existsSync('./src/builder/TutorialCoach.tsx'), '**코치가 파일째 없다**')
+  check(!/TutorialCoach/.test(lay) && !/onStartTutorial/.test(lay) && !/onStartTutorial/.test(help),
+    '넘기던 prop 도 같이 걷었다 — 남겨 두면 안 불리는 손잡이가 신호처럼 보인다')
+  check(!/자유 캔버스 튜토리얼 시작/.test(help), '도움말 창에 그 단추가 없다')
+  check(!/tutorialOpen|onCloseTutorial/.test(hk), '단축키 쪽 갈래도 없다')
+  check(!/^\.coach|^\.tut-ring|^\.help-tut/m.test(css), '코치만 쓰던 CSS(.coach* · .tut-ring · .help-tut*)도 없다')
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)

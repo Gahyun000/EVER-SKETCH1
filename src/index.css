@@ -236,27 +236,6 @@ button{font-family:inherit;cursor:pointer}
 .pnav button{border:none;background:rgba(255,255,255,.14);color:#fff;width:44px;height:44px;border-radius:50%;font-size:18px;cursor:pointer}
 .pnav button:hover{background:rgba(255,255,255,.26)}
 .pidx{font-size:13px;color:#c7cdda;min-width:64px;text-align:center;font-weight:600}
-/* help tutorial launcher */
-.help-tut{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
-.help-tut-t{font-size:13.5px;font-weight:800}
-.help-tut-d{font-size:12.5px;color:var(--muted);margin:4px 0 10px}
-.help-tut-btn{border:none;background:linear-gradient(90deg,#7a3ff2,#2f6df6);color:#fff;border-radius:9px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer}
-/* tutorial coach */
-.coach{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);width:400px;max-width:92vw;background:#14161d;color:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 18px 50px rgba(0,0,0,.45);z-index:45}
-.coach-x{position:absolute;top:10px;right:12px;border:none;background:transparent;color:#8b93a5;font-size:14px;cursor:pointer}
-.coach-step{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:800;color:#7aa2ff;letter-spacing:.06em}
-.coach-badge{display:inline-block;font-size:11px;font-weight:800;background:#1e6f4a;color:#c7f3d8;border-radius:999px;padding:3px 10px;margin-bottom:6px}
-.coach-title{font-size:16px;font-weight:800;margin:4px 0 4px}
-.coach-instr{font-size:13px;color:#c7cdda;line-height:1.5}
-.coach-checks{display:flex;flex-direction:column;gap:3px;margin:12px 0 6px}
-.coach-checks .ck{font-size:12px;color:#6b7280}
-.coach-checks .ck.on{color:#7ee0a6;font-weight:700}
-.coach-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
-.coach-actions button{border:none;background:#23262f;color:#c7cdda;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
-.coach-actions .coach-primary{background:var(--blue);color:#fff}
-/* tutorial spotlight ring */
-@keyframes tutpulse{0%{box-shadow:0 0 0 3px rgba(122,162,255,.5)}70%{box-shadow:0 0 0 12px rgba(122,162,255,0)}100%{box-shadow:0 0 0 3px rgba(122,162,255,0)}}
-.tut-ring{position:fixed;border:2.5px solid #7aa2ff;border-radius:12px;pointer-events:none;z-index:60;animation:tutpulse 1.25s infinite}
 /* connector handle + hint */
 .conn-handle{position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid #8b93a5;transform:translate(-50%,-50%);cursor:move;z-index:5}
 .conn-handle:hover{border-color:var(--blue)}
@@ -677,7 +656,14 @@ button{font-family:inherit;cursor:pointer}
 }
 .chat-notice button:hover{color:#7a5312}
 
-/* 도움말 > 튜토리얼 — 전체 화면 시연 재생기 */
+/* 보기 > 튜토리얼 — 전체 화면 시연 재생기 */
+.tutp{position:fixed;inset:0;z-index:100;background:#0f121a;display:flex;flex-direction:column}
+.tutp-bar{flex:none;display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;background:#171b25;border-bottom:1px solid rgba(255,255,255,.10)}
+.tutp-t{font-size:13px;font-weight:800;color:#fff}
+.tutp-d{font-size:12px;color:#9aa4b5}
+.tutp-x{margin-left:auto;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#dbe1ea;border-radius:8px;padding:6px 12px;font-weight:700;font-size:12.5px;cursor:pointer}
+.tutp-x:hover{background:rgba(255,255,255,.16)}
+.tutp-frame{flex:1;width:100%;border:0;background:#eceef2}
 
 /* ── 새 자료 만들기 창 (표준 양식 / 빈 슬라이드) ── */
 .np-modal .ui-modal-foot{display:flex;justify-content:flex-end;gap:8px}

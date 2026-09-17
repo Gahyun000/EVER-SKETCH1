@@ -8,9 +8,9 @@ import type { Tool } from '../state/canvasUI'
 import { pushSnap, popSnap, pushRedo, popRedo, pushUndoRaw, nextUndoKind, nextRedoKind, mkFreeEl } from '../canvas/model'
 
 interface Props {
-  presentOpen: boolean; helpOpen: boolean; tutorialOpen: boolean
+  presentOpen: boolean; helpOpen: boolean
   onBuild: () => void; onPresent: () => void; onHelp: () => void; onSave: () => void
-  onCloseHelp: () => void; onCloseTutorial: () => void
+  onCloseHelp: () => void
 }
 
 // 컴포넌트 밖 모듈 스코프 클립보드(복사/붙여넣기용)
@@ -60,7 +60,6 @@ export default function Hotkeys(props: Props) {
       // 발표/도움말/튜토리얼이 열려 있으면 그쪽이 키를 처리 (발표는 자체 핸들러)
       if (p.presentOpen) return
       if (p.helpOpen) { if (e.key === 'Escape') { e.preventDefault(); p.onCloseHelp() } return }
-      if (p.tutorialOpen) { if (e.key === 'Escape') { e.preventDefault(); p.onCloseTutorial() } return }
 
       const target = e.target as HTMLElement | null
       const typing = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
