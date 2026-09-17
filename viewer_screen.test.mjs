@@ -102,7 +102,12 @@ check(/\.tl-peek:hover \.tl-peek-veil/.test(css) && /focus-visible/.test(css),
 // 닫고 돌아갈 앞 창이 아예 없다 — 이 탭이 전부다.
 const lib = read('./src/persistence/LibraryScreen.tsx')
 const libCode = bare(lib)
-check(/팀 공유 열기/.test(viewer), '뷰어에 「팀 공유 열기」가 있다')
+// 2026-09-17 · **이 줄은 한 번 헛돌았다.** 예전엔 `/팀 공유 열기/.test(viewer)` 였는데,
+// 그날 그 단추를 ✕ 로 바꾸면서 **글자는 주석에만 남았고 가드는 그대로 통과했다.**
+// (`viewer` 는 주석을 안 걷은 원본이다.) 나가는 길이 통째로 사라져도 모를 뻔했다.
+// 그래서 **주석을 걷은 쪽(viewerCode)에서 실제 단추**를 본다.
+check(/className="es-mini tv-x"/.test(viewerCode),
+  '뷰어에 나가는 단추(✕)가 있다 — 모양이 바뀌어도 「나갈 자리」는 있어야 한다')
 check(/window\.location\.href = '\/\?shared=1'/.test(viewerCode),
   '`/` 가 아니라 **팀 공유로** 보낸다 (방금까지 보던 것이 팀 자료다)')
 check(/wantsSharedFromSearch\(window\.location\.search\)/.test(libCode),

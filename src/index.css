@@ -551,6 +551,77 @@ button{font-family:inherit;cursor:pointer}
 .man-gif{display:block;width:100%;border-radius:9px;background:#eceef3;border:1px solid #e6e9f0}
 .man-line{margin:11px 2px 0;font-size:13px;line-height:1.65;color:#3a4356}
 .man-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+
+/* ── 매뉴얼 · 두 갈래 탭(2026-09-17) ───────────────────────────────
+   「① 만들기」는 손으로 하는 법, 「② 제도」는 결재 흐름이다. */
+.man-tabs{display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid #eef0f4;
+  background:#fafbfc}
+.man-tab{border:1px solid #e3e6ee;background:#fff;border-radius:999px;padding:6px 14px;font:inherit;
+  font-size:12.5px;font-weight:700;color:#4b566b;cursor:pointer}
+.man-tab:hover{border-color:#c9d6f5}
+.man-tab.on{border-color:#2462EB;background:rgba(36,98,235,.07);color:#2462EB}
+.man-tc{font-size:10.5px;font-weight:700;color:#8a91a0;margin-left:5px}
+.man-tab.on .man-tc{color:#2462EB;opacity:.75}
+.man-print-btn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;border:1px solid #2462EB;
+  background:#2462EB;color:#fff;border-radius:8px;padding:6px 13px;font:inherit;font-size:12px;
+  font-weight:800;cursor:pointer}
+.man-print-btn:hover{background:#1b4dbb}
+
+/* 만들기 쪽 목록 — 장으로 묶는다. 서른일곱을 그냥 늘어놓으면 어디쯤인지 모른다. */
+.man-grp{margin:0 0 6px}
+.man-gh{font-size:10.5px;font-weight:800;color:#9aa2b1;padding:7px 8px 4px}
+.man-sub{list-style:none;margin:0;padding:0}
+.man-sh{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:800;color:#16203a;
+  margin:0 2px 9px}
+.man-sn{flex:0 0 auto;padding:1px 7px;border-radius:6px;background:#2462EB;color:#fff;
+  font-size:11px;font-weight:800}
+.man-tip{margin:9px 2px 0;background:#f6f8fc;border:1px solid #e8edf6;border-radius:9px;
+  padding:9px 11px;font-size:12.2px;line-height:1.7;color:#4b566b}
+.man-tip b{display:inline-block;font-size:10px;font-weight:800;color:#2462EB;
+  background:rgba(36,98,235,.09);border-radius:4px;padding:1px 6px;margin-right:6px;vertical-align:1px}
+.man-tip.warn{background:#fff3e2;border-color:#f0d7b4;color:#6b431a}
+.man-tip.warn b{color:#8a5a10;background:rgba(217,138,42,.16)}
+
+/* ── 인쇄 ────────────────────────────────────────────────────────
+   **화면은 한 걸음씩, 종이는 전부.** 종이로 뽑는 사람이 원하는 건 한 벌 전체다.
+   그래서 모든 걸음을 펼친 판(.man-print)을 따로 그려 두고 평소엔 숨긴다.
+   그 판은 `document.body` 바로 아래에 붙어 있다 — 모달 안에 두면 아래 규칙이
+   모달째 감출 때 같이 사라진다. */
+.man-print{display:none}
+@media print{
+  /* body 의 **직계 자식** 중 인쇄판만 남긴다. 앱 전체가 여기 걸린다. */
+  body > *:not(.man-print){display:none !important}
+  .man-print{display:block !important}
+  @page{margin:13mm 11mm}
+  .man-print{font:10.5pt/1.55 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif;
+    color:#16203a;word-break:keep-all}
+  .man-print h1{font-size:15pt;margin:0 0 2mm}
+  .mp-sub{color:#8a91a0;font-size:9.5pt;margin:0 0 6mm}
+  .mp-ch{break-before:page}
+  .mp-ch:first-of-type{break-before:auto}
+  .mp-ch h2{font-size:12.5pt;margin:0 0 1.5mm;padding-bottom:1.5mm;border-bottom:2px solid #2462EB}
+  .mp-lead{color:#4b566b;font-size:9.5pt;margin:0 0 3mm}
+  /* 한 걸음이 쪽 경계에서 잘리면 글과 그림이 갈라진다. */
+  .mp-step{break-inside:avoid;page-break-inside:avoid;border:1px solid #ccd3e2;border-radius:2mm;
+    padding:3mm 4mm;margin:0 0 3mm}
+  .mp-step h3{font-size:11pt;margin:0 0 2mm;display:flex;gap:2.5mm;align-items:baseline}
+  .mp-no{background:#2462EB;color:#fff;border-radius:1.5mm;padding:0.4mm 2mm;font-size:8.5pt}
+  .mp-body{display:flex;gap:5mm;align-items:flex-start}
+  .mp-txt{flex:1 1 52%;min-width:0}
+  .mp-txt p{margin:0 0 2mm;font-size:9.8pt;color:#4b566b}
+  /* **그림에 천장을 준다.** 없으면 폭에 맞춰 커져서 한 걸음이 한 쪽을 다 먹는다. */
+  .mp-body img{flex:0 1 46%;min-width:0;max-height:52mm;object-fit:contain;object-position:top;
+    border:1px solid #e3e6ee;border-radius:1.5mm}
+  .mp-tip,.mp-warn{background:#f6f8fc;border:1px solid #e8edf6;border-radius:1.5mm;padding:2mm 3mm;
+    font-size:9.2pt;line-height:1.5}
+  .mp-warn{background:#fff3e2;border-color:#f0d7b4}
+  .mp-tip b,.mp-warn b{color:#2462EB}
+  .mp-tb{width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:2mm}
+  .mp-tb td{border:1px solid #e3e6ee;padding:2mm 2.5mm;vertical-align:top}
+  .mp-tb tr{break-inside:avoid}
+  .mp-mono{background:#16203a;color:#dbe4f7;border-radius:2mm;padding:3mm;font-size:9pt;
+    white-space:pre;line-height:1.7}
+}
 .man-btn{border:1px solid #d4dae6;background:#fff;border-radius:8px;padding:6px 13px;
   font:inherit;font-size:12.5px;font-weight:700;color:#26324a;cursor:pointer}
 .man-btn:hover:not(:disabled){background:#eaf2fd;border-color:#2a78d6;color:#184f95}
