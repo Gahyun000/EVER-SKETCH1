@@ -22,9 +22,9 @@ import {
   LIB_COLS, LIB_SORT_DEFAULT, LIB_STATE_LABEL, folderRowsOf, nextSort, sortRows, wantsTable,
   type LibSort,
 } from './libTable'
+import { folioBookUrl } from '../ports'
 
 const PAGE_SIZE = 12
-const FOLIO_URL = 'http://127.0.0.1:8811'
 
 // KST 24시간 표기(표준: 한국 표준시·24h).
 function fmtKst(ts?: number): string {
@@ -255,7 +255,7 @@ export default function LibraryScreen() {
   const actionsFor = (p: ProjectMeta) => (
     <div className="lib-actions">
       {p.published_id ? (
-        <a className="lib-act" title="발행본 보기(EVER-FOLIO)" href={`${FOLIO_URL}/ebooks/${p.published_id}/index.html`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></a>
+        <a className="lib-act" title="발행본 보기(EVER-FOLIO)" href={folioBookUrl(p.published_id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-4 w-4" /></a>
       ) : null}
       {/* **한 자리에 한 가지 일만 놓는다.** 승인된 자료에 「제출」을 띄워 두면
           눌러 보고 400 을 받는다 — 그 자리에 오는 것은 「수정 요청」이다. */}
@@ -861,7 +861,7 @@ export default function LibraryScreen() {
                 <dt>수정</dt><dd>{fmtKst(sel.updated_at)}</dd>
                 <dt>쪽수</dt><dd>{sel.page_count}쪽</dd>
                 <dt>발행</dt><dd>{sel.published_id
-                  ? <a href={`${FOLIO_URL}/ebooks/${sel.published_id}/index.html`} target="_blank" rel="noreferrer">발행본 보기 ↗</a>
+                  ? <a href={folioBookUrl(sel.published_id)} target="_blank" rel="noreferrer">발행본 보기 ↗</a>
                   : dim}</dd>
               </dl>
             </div>

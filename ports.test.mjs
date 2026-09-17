@@ -22,7 +22,7 @@
 //      통과한다. 가드가 아니라 메아리가 된다.
 //
 // 실행: node --experimental-strip-types --import ./ts_register.mjs ports.test.mjs
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 
 let pass = 0, fail = 0
 const check = (c, label, extra = '') => {
@@ -112,6 +112,61 @@ const PORTS = JSON.parse(read('./ports.json'))
     check(!taken.has(PORTS.backend),
       '**우리 포트를 다른 프로젝트가 안 잡고 있다**', taken.get(PORTS.backend) || '')
   }
+}
+
+// ── ③-2 **화면도 ports.json 을 읽는가** ──────────────────
+//
+// 2026-09-17 · **이 칸이 이 파일에 뚫려 있던 구멍이다.** 처음 쓸 때 실행기 넷만 재고
+// `src/` 를 안 봤다. 그래서 「포트를 한 곳으로 모았다」고 말한 그날에도 화면 세 파일이
+// (`LibraryScreen`·`TopBar`·`TitleBar`) 저마다 `http://127.0.0.1:8811` 을 들고 있었다.
+// 실행기만 모으고 화면은 그대로였는데 가드가 통과 도장을 찍어 줬다 — **가드가 거짓말을
+// 거들었다.** 사용자가 물어봐서 알았지, 이 파일은 끝까지 몰랐을 것이다.
+//
+// 재는 방식이 중요하다. 「4자리 숫자」를 찾으면 안 된다 — `BOOT_STEP_MS = 8000` 같은
+// 멀쩡한 값이 줄줄이 걸린다. 문제는 아무 숫자가 아니라 **박아 넣은 주소**다.
+{
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(`${dir}/${e.name}`)
+      : /\.(ts|tsx)$/.test(e.name) ? [`${dir}/${e.name}`] : [])
+  const files = walk('./src')
+  check(files.length > 50, 'src 를 훑었다', `${files.length}개 파일`)
+
+  const ADDR = /(?:127\.0\.0\.1|localhost):\d{2,5}/g
+  const offenders = []
+  for (const f of files) {
+    if (f === './src/ports.ts') continue        // 여기가 주소를 **만드는** 자리다
+    for (const line of strip(read(f)).split('\n')) {
+      // **딱 한 가지만 봐준다 — 입력칸 예시(placeholder).**
+      // `LlmSettingsCard` 가 「http://localhost:8004/v1」을 힌트로 보여 준다. 8004 는
+      // 표준지침의 LLM 게이트웨이이고 **사람이 고쳐 넣는 값**이라, 우리 포트가 아니다.
+      //
+      // 예외는 **그 속성값 안에서만** 듣는다. 처음엔 「줄에 placeholder= 가 있으면 넘김」
+      // 이었는데, 부숴 보니 주석에 `// placeholder=` 만 달아도 그 줄이 통째로 숨었다
+      // (2026-09-17). 예외를 줄 단위로 주면 그 예외가 곧 뒷문이 된다.
+      const bare = line.replace(/placeholder=(["'])[^"']*\1/g, '')
+                       .replace(/placeholder=\{`[^`]*`\}/g, '')
+      const hit = bare.match(ADDR)
+      if (hit) offenders.push(`${f.replace('./src/', '')}: ${hit.join(' ')}`)
+    }
+  }
+  check(offenders.length === 0,
+    '**화면 어디에도 주소를 박아 두지 않았다** — 숫자는 ports.json 에서만 온다',
+    offenders.join(' · '))
+
+  // 주소를 만드는 자리는 **정본을 읽어야** 한다. 여기서 제 숫자를 쓰면 한 곳으로
+  // 모은 게 아니라 **모으는 척하는 네 번째 사본**이 된다.
+  check(existsSync('./src/ports.ts'), 'src/ports.ts 가 있다')
+  const pt = strip(read('./src/ports.ts'))
+  check(/import ports from ['"]\.\.\/ports\.json['"]/.test(pt),
+    '**src/ports.ts 가 ports.json 을 읽는다**')
+  check(!ADDR.test(pt),
+    'src/ports.ts 도 제 숫자를 안 들고 있다 — 값은 넣고 모양만 만든다')
+
+  // 만들어 두고 아무도 안 쓰면 옛 상수가 그대로 살아 있다는 뜻이다.
+  const users = files.filter((f) => /from ['"][./]*ports['"]/.test(read(f)))
+  check(users.length >= 3,
+    '**형제 앱 칩이 전부 이 자리를 쓴다** — 하나라도 빠지면 그 칩만 옛 주소로 남는다',
+    `${users.length}곳`)
 }
 
 // ── ④ 표준 런처 네 이름이 있는가 ─────────────────────────

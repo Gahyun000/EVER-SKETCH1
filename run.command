@@ -52,8 +52,29 @@ source server/.venv/bin/activate
 pip install -q --upgrade pip
 pip install -q fastapi "uvicorn[standard]" pillow python-docx beautifulsoup4 pymupdf python-multipart
 
+# 2.4) 포트를 정한다 — **EVER-FOLIO 보다 먼저**
+#
+# **포트는 ports.json 한 곳에서 온다**(2026-09-17). 예전에는 여기·run.cmd·
+# vite.config.ts 세 군데에 8820 이 따로 적혀 있었고, 대장·레지스트리는 8808 로
+# 예약돼 있었다 — 넷이 다 달랐는데 아무도 몰랐다. 흩어진 값은 반드시 갈라진다.
+# node 는 바로 위에서 npm 을 쓰므로 이미 있다. 못 읽으면 멈춘다 — 조용히 옛 값으로
+# 되돌아가면 또 남의 포트를 물고 뜬다(8820 은 DataBuilder 것이다).
+#
+# **여기로 옮긴 이유**(2026-09-17): 원래 3절에 있었는데, EVER-FOLIO 를 띄우는 2.5 절이
+# 그보다 앞이라 그때는 PORT 가 아직 비어 있었다. FOLIO 에 우리 포트를 넘겨주려면
+# 먼저 정해져 있어야 한다. 넘기는 값이 빈 문자열이면 FOLIO 쪽은 조용히 기본값을 쓴다.
+PORT_DEFAULT="$(node -p "require('./ports.json').backend" 2>/dev/null || true)"
+if ! printf '%s' "${PORT_DEFAULT}" | grep -Eq '^[0-9]+$'; then
+  echo "[X] ports.json 에서 backend 포트를 못 읽었습니다. 이 파일이 정본입니다." >&2
+  exit 1
+fi
+PORT="${PORT:-${PORT_DEFAULT}}"
+
 # 2.5) EVER-FOLIO (uniever_ebook 이북 라이브러리) 같이 기동 — 8811
-#      형제 앱. EVER-SKETCH 상단바의 'EVER-FOLIO' 칩이 http://127.0.0.1:8811 로 연결된다.
+#      형제 앱. EVER-SKETCH 상단바의 'EVER-FOLIO' 칩이 이 포트로 연결된다.
+#      **SKETCH_PORT 로 우리 포트를 같이 넘긴다** — 저쪽 상단바의 'EVER-SKETCH' 칩이
+#      그 값으로 돌아온다. 안 넘기면 저쪽은 제 파일에 적힌 기본값을 쓰고, 우리가
+#      포트를 옮긴 날 그 칩만 조용히 죽는다(2026-09-17 에 실제로 그럴 뻔했다).
 FOLIO_PORT="$(node -p "require('./ports.json').folio" 2>/dev/null || echo 8811)"
 FOLIO_DIR="$(cd ../uniever_ebook/ebook-generator 2>/dev/null && pwd || true)"
 if [ -n "$FOLIO_DIR" ] && [ -f "$FOLIO_DIR/serve.py" ]; then
@@ -66,9 +87,9 @@ if [ -n "$FOLIO_DIR" ] && [ -f "$FOLIO_DIR/serve.py" ]; then
       [ -d .venv ] || python3 -m venv .venv >/dev/null 2>&1 || true
       if [ -x .venv/bin/python ]; then
         .venv/bin/pip install -q --upgrade pip pillow >/dev/null 2>&1 || true
-        EBOOK_PORT="${FOLIO_PORT}" .venv/bin/python serve.py >/tmp/everfolio.log 2>&1 &
+        EBOOK_PORT="${FOLIO_PORT}" SKETCH_PORT="${PORT}" .venv/bin/python serve.py >/tmp/everfolio.log 2>&1 &
       else
-        EBOOK_PORT="${FOLIO_PORT}" python3 serve.py >/tmp/everfolio.log 2>&1 &
+        EBOOK_PORT="${FOLIO_PORT}" SKETCH_PORT="${PORT}" python3 serve.py >/tmp/everfolio.log 2>&1 &
       fi
     )
   fi
@@ -82,12 +103,7 @@ fi
 # 예약돼 있었다 — 넷이 다 달랐는데 아무도 몰랐다. 흩어진 값은 반드시 갈라진다.
 # node 는 바로 위에서 npm 을 쓰므로 이미 있다. 못 읽으면 멈춘다 — 조용히 옛 값으로
 # 되돌아가면 또 남의 포트를 물고 뜬다(8820 은 DataBuilder 것이다).
-PORT_DEFAULT="$(node -p "require('./ports.json').backend" 2>/dev/null || true)"
-if ! printf '%s' "${PORT_DEFAULT}" | grep -Eq '^[0-9]+$'; then
-  echo "[X] ports.json 에서 backend 포트를 못 읽었습니다. 이 파일이 정본입니다." >&2
-  exit 1
-fi
-PORT="${PORT:-${PORT_DEFAULT}}"
+# (PORT 는 2.4 절에서 이미 정했다 — EVER-FOLIO 에 넘겨줘야 해서 앞으로 옮겼다)
 # 바인딩 주소 — 기본 0.0.0.0(같은 망의 다른 PC에서 접속 가능).
 # 내 PC에서만 쓰려면: HOST=127.0.0.1 ./run.command
 HOST="${HOST:-0.0.0.0}"

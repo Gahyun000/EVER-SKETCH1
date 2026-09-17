@@ -1,9 +1,11 @@
 import type { CSSProperties } from 'react'
 import { useBuilder } from '../../state/store'
 import { useProjects } from '../../persistence/projects'
+// EVER-FOLIO(형제 앱) 주소. **숫자는 ports.json 에서만 온다** — 예전엔 여기 박혀 있었다.
+import { FOLIO_URL, FOLIO_HOST } from '../../ports'
+// 안 떠 있으면 빈 탭을 여는 대신 까닭을 말한다(시안 v1.0 ㉡).
+import SiblingLink from '../../siblingLink'
 
-// EVER-FOLIO(uniever_ebook 이북 라이브러리) — 형제 앱. run.command 가 8811 로 같이 띄운다.
-const FOLIO_URL = 'http://127.0.0.1:8811'
 const folioChip: CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', flex: '0 0 auto',
   border: '1.4px solid rgba(36,98,235,.45)', background: 'rgba(36,98,235,.10)', color: '#2462EB',
@@ -23,8 +25,8 @@ export default function TitleBar({ onPresent }: { onPresent: () => void }) {
       <input className="ttl" style={{ width: w + 'em' }} value={title} onChange={(e) => setTitle(e.target.value)} aria-label="문서 제목" />
       <span className="sp" />
       {/* 다른 앱(EVER-FOLIO 이북 라이브러리)으로 가는 이동 버튼 */}
-      <a className="folio-chip" style={folioChip} href={FOLIO_URL} target="_blank" rel="noreferrer"
-         title="EVER-FOLIO(이북 라이브러리) 열기 — 127.0.0.1:8811">↗ EVER-FOLIO</a>
+      <SiblingLink className="folio-chip" style={folioChip} url={FOLIO_URL}
+        name="EVER-FOLIO" host={FOLIO_HOST} how="run.command">↗ EVER-FOLIO</SiblingLink>
       <button className="rbtn" onClick={onPresent} title="구글 슬라이드식 슬라이드쇼">▷ 슬라이드쇼</button>
       <button className="rbtn pri" onClick={() => void newProject()} title="새 이북 시작">＋ 새 이북</button>
       {/* **신원 표시는 셸 머리줄로 올라갔다**(2026-09-10).

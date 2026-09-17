@@ -22,7 +22,17 @@ call "server\.venv\Scripts\activate.bat" || goto :err
 python -m pip install -q --upgrade pip
 python -m pip install -q fastapi "uvicorn[standard]" pillow python-docx beautifulsoup4 pymupdf python-multipart || goto :err
 
-rem 2.5) EVER-FOLIO (8811) — 형제 앱, 있으면 별도 창으로 기동
+rem 2.4) 포트를 정한다 — EVER-FOLIO 보다 먼저.
+rem      FOLIO 에 SKETCH_PORT 로 우리 포트를 넘겨야 해서, 그전에 정해져 있어야 한다.
+for /f "delims=" %%p in ('node -p "require('./ports.json').backend"') do set "PORT_DEFAULT=%%p"
+if not defined PORT_DEFAULT (
+  echo [X] ports.json 에서 backend 포트를 못 읽었습니다. 이 파일이 정본입니다.
+  goto :err
+)
+if not defined PORT set "PORT=%PORT_DEFAULT%"
+
+rem 2.5) EVER-FOLIO — 형제 앱, 있으면 별도 창으로 기동.
+rem      SKETCH_PORT 로 우리 포트를 같이 넘긴다 — 저쪽 상단바의 EVER-SKETCH 칩이 그 값으로 돌아온다.
 for /f "delims=" %%p in ('node -p "require('./ports.json').folio"') do set "FOLIO_PORT=%%p"
 if not defined FOLIO_PORT set "FOLIO_PORT=8811"
 set "FOLIO_DIR=..\uniever_ebook\ebook-generator"
@@ -31,7 +41,7 @@ if exist "%FOLIO_DIR%\serve.py" (
     echo . EVER-FOLIO 이미 실행 중 ^(%FOLIO_PORT%^)
   ) || (
     echo . EVER-FOLIO 기동 ^(uniever_ebook 라이브러리 · %FOLIO_PORT%^)
-    start "EVER-FOLIO" cmd /c "cd /d %FOLIO_DIR% && (if not exist .venv python -m venv .venv) && call .venv\Scripts\activate.bat && python -m pip install -q --upgrade pip pillow && set EBOOK_PORT=%FOLIO_PORT% && python serve.py"
+    start "EVER-FOLIO" cmd /c "cd /d %FOLIO_DIR% && (if not exist .venv python -m venv .venv) && call .venv\Scripts\activate.bat && python -m pip install -q --upgrade pip pillow && set EBOOK_PORT=%FOLIO_PORT% && set SKETCH_PORT=%PORT% && python serve.py"
   )
 ) else (
   echo . ^(EVER-FOLIO 폴더를 못 찾아 건너뜀 — ..\uniever_ebook\ebook-generator^)
@@ -39,12 +49,7 @@ if exist "%FOLIO_DIR%\serve.py" (
 
 rem 3) 서버 실행 (프론트 dist + /api 동시 서빙)
 rem    포트는 ports.json 한 곳에서 온다 (run.command 와 같은 정본)
-for /f "delims=" %%p in ('node -p "require('./ports.json').backend"') do set "PORT_DEFAULT=%%p"
-if not defined PORT_DEFAULT (
-  echo [X] ports.json 에서 backend 포트를 못 읽었습니다. 이 파일이 정본입니다.
-  goto :err
-)
-if not defined PORT set "PORT=%PORT_DEFAULT%"
+rem (PORT 는 2.4 절에서 이미 정했다 — EVER-FOLIO 에 넘겨줘야 해서 앞으로 옮겼다)
 rem 바인딩 주소 - 기본 0.0.0.0(같은 망의 다른 PC에서 접속 가능). 내 PC 전용: set HOST=127.0.0.1
 if not defined HOST set "HOST=0.0.0.0"
 set "URL=http://127.0.0.1:%PORT%"

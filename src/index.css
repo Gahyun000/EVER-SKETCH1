@@ -874,3 +874,12 @@ button{font-family:inherit;cursor:pointer}
 /* 고른 줄 */
 .lib-tbl tbody tr.on td{background:#EAF1FE}
 .lib-card.on{border-color:#2462EB;background:#EAF1FE}
+
+/* ── 형제 앱 칩이 끊겼을 때 (시안 v1.0 ㉡ · 2026-09-17) ──────────────
+   상대 앱이 안 떠 있어도 칩은 똑같이 빈 탭을 열었다. 안 띄운 것과 포트가
+   어긋난 것을 구분할 길이 없었다. 이제 흐려지고, 누르면 까닭을 말한다.
+   **색으로만 말하지 않는다** — 점선 테두리를 같이 준다(UI 표준: 상태는
+   색 말고 글자·모양으로도). 머리줄에 경고색을 상시로 앉히지 않으려고
+   주황 대신 흐림+점선을 골랐다. */
+.sib-down{opacity:.5;border-style:dashed}
+.sib-down:hover{opacity:.72}

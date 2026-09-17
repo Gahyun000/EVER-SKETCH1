@@ -11,9 +11,11 @@ import { parseHtml } from '../import/htmlImport'
 import type { ImportedDoc } from '../import/htmlImport'
 import { deckIrToPages } from '../import/deckToPages'
 import { paginate } from '../import/paginate'
+// EVER-FOLIO(형제 앱) 주소. **숫자는 ports.json 에서만 온다** — 예전엔 여기 박혀 있었다.
+import { FOLIO_URL, FOLIO_HOST } from '../ports'
+// 안 떠 있으면 빈 탭을 여는 대신 까닭을 말한다(시안 v1.0 ㉡).
+import SiblingLink from '../siblingLink'
 
-// EVER-FOLIO(uniever_ebook 이북 라이브러리) — 형제 앱. run.command 가 8811 로 같이 띄운다.
-const FOLIO_URL = 'http://127.0.0.1:8811'
 const switchChip: CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
   border: '1.4px solid #cfe0ff', background: '#eef4ff', color: '#2462EB',
@@ -142,8 +144,8 @@ export default function TopBar({ onHelp, onPresent, onSettings, onDemo, onAiClea
 
   return (<div className="top">
     <div className="brand">EVER-SKETCH<small>경영진용</small></div>
-    <a className="switch-chip" style={switchChip} href={FOLIO_URL} target="_blank" rel="noreferrer"
-       title="EVER-FOLIO(이북 라이브러리) 열기 — 127.0.0.1:8811">↗ EVER-FOLIO</a>
+    <SiblingLink className="switch-chip" style={switchChip} url={FOLIO_URL}
+      name="EVER-FOLIO" host={FOLIO_HOST} how="run.command">↗ EVER-FOLIO</SiblingLink>
     <input className="title-in" value={title} onChange={(e) => setTitle(e.target.value)} />
     <div className="spacer" />
     <div className="seg">
