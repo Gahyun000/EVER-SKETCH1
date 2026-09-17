@@ -54,7 +54,7 @@ pip install -q fastapi "uvicorn[standard]" pillow python-docx beautifulsoup4 pym
 
 # 2.5) EVER-FOLIO (uniever_ebook 이북 라이브러리) 같이 기동 — 8811
 #      형제 앱. EVER-SKETCH 상단바의 'EVER-FOLIO' 칩이 http://127.0.0.1:8811 로 연결된다.
-FOLIO_PORT=8811
+FOLIO_PORT="$(node -p "require('./ports.json').folio" 2>/dev/null || echo 8811)"
 FOLIO_DIR="$(cd ../uniever_ebook/ebook-generator 2>/dev/null && pwd || true)"
 if [ -n "$FOLIO_DIR" ] && [ -f "$FOLIO_DIR/serve.py" ]; then
   if curl -s -o /dev/null --max-time 1 "http://127.0.0.1:${FOLIO_PORT}/"; then
@@ -77,7 +77,17 @@ else
 fi
 
 # 3) 서버 실행 (프론트 dist + /api/build 동시 서빙)
-PORT="${PORT:-8820}"
+# **포트는 ports.json 한 곳에서 온다**(2026-09-17). 예전에는 여기·run.cmd·
+# vite.config.ts 세 군데에 8820 이 따로 적혀 있었고, 대장·레지스트리는 8808 로
+# 예약돼 있었다 — 넷이 다 달랐는데 아무도 몰랐다. 흩어진 값은 반드시 갈라진다.
+# node 는 바로 위에서 npm 을 쓰므로 이미 있다. 못 읽으면 멈춘다 — 조용히 옛 값으로
+# 되돌아가면 또 남의 포트를 물고 뜬다(8820 은 DataBuilder 것이다).
+PORT_DEFAULT="$(node -p "require('./ports.json').backend" 2>/dev/null || true)"
+if ! printf '%s' "${PORT_DEFAULT}" | grep -Eq '^[0-9]+$'; then
+  echo "[X] ports.json 에서 backend 포트를 못 읽었습니다. 이 파일이 정본입니다." >&2
+  exit 1
+fi
+PORT="${PORT:-${PORT_DEFAULT}}"
 # 바인딩 주소 — 기본 0.0.0.0(같은 망의 다른 PC에서 접속 가능).
 # 내 PC에서만 쓰려면: HOST=127.0.0.1 ./run.command
 HOST="${HOST:-0.0.0.0}"
@@ -85,7 +95,15 @@ URL="http://127.0.0.1:${PORT}"
 
 # 포트 충돌 확인 (UDS-105 §6): 이미 사용 중이면 명확히 안내하고 중단
 if curl -s -o /dev/null --max-time 1 "${URL}/"; then
-  echo "[!] 포트 ${PORT} 이(가) 이미 사용 중입니다. 기존 서버를 종료하거나 다른 포트로 실행하세요. 예: PORT=8830 ./run.command"
+  # **아무 번호나 권하지 않는다**(2026-09-17). 예전에는 「예: PORT=8830」이라고 적혀 있었는데,
+  # 8830 은 아무도 예약한 적 없는 번호다 — 바로 옆 8831 은 Uni_SR, 8832 는 DataBuilder 것이다.
+  # port-governance 는 「예약 없이 포트를 집지 말라」고 못박아 두었는데, 우리 안내문이
+  # 그 반대를 시키고 있었다. 급하면 임시로 쓰라는 말은 남겨 두되, 정본에 되먹이라고 적는다.
+  echo "[!] 포트 ${PORT} 이(가) 이미 사용 중입니다."
+  echo "    · 우리 서버가 이미 떠 있는 것이면: ./stop.command"
+  echo "    · 남이 쓰고 있으면: 그 프로세스를 먼저 세우세요 (lsof -nP -iTCP:${PORT})"
+  echo "    · 이 프로젝트의 포트를 바꿔야 하면 대장에서 먼저 예약하고 ports.json 에 옮겨 적으세요."
+  echo "      (PORT=<번호> ./run.command 로 한 번만 띄워 볼 수는 있지만, 예약 없이 굳히지 마세요)"
   exit 1
 fi
 

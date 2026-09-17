@@ -66,13 +66,13 @@
   <h3>원클릭</h3>
   <pre><span class="c"># Finder에서 더블클릭 (Gatekeeper가 막으면 우클릭 → 열기)</span>
 ebook_html/run.command
-<span class="c"># 최초 1회만 npm install + pip install (인터넷 필요), 이후 브라우저 자동 오픈 http://127.0.0.1:8820</span></pre>
+<span class="c"># 최초 1회만 npm install + pip install (인터넷 필요), 이후 브라우저 자동 오픈 http://127.0.0.1:8808</span></pre>
   <h3>수동</h3>
   <pre>cd ~/Desktop/git/ebook_html
 npm install &amp;&amp; npm run build
 python3 -m venv server/.venv &amp;&amp; source server/.venv/bin/activate
 pip install fastapi "uvicorn[standard]" pillow
-python -m uvicorn server.app:app --host 127.0.0.1 --port 8820</pre>
+python -m uvicorn server.app:app --host 127.0.0.1 --port 8808</pre>
   <h3>자동 검증(스모크 19종)</h3>
   <pre>npm i            <span class="c"># playwright 포함</span>
 npx playwright install chromium   <span class="c"># 최초 1회</span>

@@ -1,0 +1,11 @@
+{
+  "_": "포트는 여기 한 곳에만 적는다. run.command · run.cmd · vite.config.ts · 진단.command 가 전부 이 파일을 읽는다.",
+  "_왜": "2026-09-17 에 대장·레지스트리는 8808 로 예약해 두었는데 실행기는 8820 으로 돌고 있었다. 값이 네 군데 흩어져 있어서, 한 곳을 고쳐도 나머지가 옛 값으로 남고 아무도 몰랐다. 흩어진 값은 반드시 갈라진다.",
+  "_정본": "유니에버 에이전트대장 / dev-standard-control-tower 의 agent-port-registry.json · EVER-SKETCH = FE 5207(미사용) / BE 8808. 바꾸려면 거기서 먼저 예약하고 여기에 옮겨 적는다 — 반대 순서로 하면 또 어긋난다.",
+  "backend": 8808,
+  "_backend": "이 앱. uvicorn 이 API 와 dist 를 같은 포트에서 서빙한다.",
+  "folio": 8811,
+  "_folio": "형제 앱 EVER-FOLIO(uniever_ebook). 대장 164행과 같은 값이다.",
+  "frontend": null,
+  "_frontend": "따로 없다. 레지스트리에 5207 이 잡혀 있지만 vite dev 서버는 개발할 때만 뜨고 접속점이 아니라서 쓰지 않는다. null 은 「없음」이지 「아직 안 정함」이 아니다."
+}
