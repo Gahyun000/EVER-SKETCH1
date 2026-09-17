@@ -28,7 +28,11 @@ const THUMBS: Record<string, string> = {
   roadmap: `<rect x="4" y="12" width="8" height="6" rx="1" ${B}/><rect x="16" y="12" width="8" height="6" rx="1" ${B}/><rect x="28" y="12" width="8" height="6" rx="1" ${B}/><line x1="12" y1="15" x2="16" y2="15" ${S}/><line x1="24" y1="15" x2="28" y2="15" ${S}/>`,
   market: `<rect x="6" y="8" width="12" height="14" rx="2" ${S}/><rect x="22" y="8" width="12" height="14" rx="2" ${S}/>`,
   flow: `<rect x="12" y="3" width="16" height="6" rx="2" ${BX}/><rect x="12" y="12" width="16" height="6" rx="2" ${BX}/><rect x="12" y="21" width="16" height="6" rx="2" ${BX}/><line x1="20" y1="9" x2="20" y2="12" ${S}/><line x1="20" y1="18" x2="20" y2="21" ${S}/>`,
-  tree: `<rect x="3" y="12" width="10" height="6" rx="1" fill="#16203a"/><rect x="18" y="4" width="10" height="6" rx="1" ${B}/><rect x="18" y="20" width="10" height="6" rx="1" ${B}/><rect x="30" y="20" width="8" height="6" rx="1" ${B}/><path d="M13 15 H16 V7 H18 M16 15 V23 H18 M28 23 H30" ${S}/>`,
+  // **방향이 그림으로 보여야 한다**(2026-09-17). 예전엔 「트리 · 머메이드」 하나뿐이라
+  // 어느 쪽으로 뻗는지는 넣어 봐야 알았다. 뿌리를 진하게 칠하고 가지를 한쪽으로만 뻗어,
+  // 두 그림이 **같은 그림을 돌려 놓은 것**으로 보이게 했다 — 그래야 짝이라는 게 읽힌다.
+  mmTB: `<rect x="14" y="2" width="12" height="6" rx="1.5" fill="#16203a"/><rect x="4" y="12" width="12" height="6" rx="1.5" ${B}/><rect x="24" y="12" width="12" height="6" rx="1.5" ${B}/><rect x="24" y="22" width="12" height="6" rx="1.5" ${B}/><path d="M20 8 V10 M10 10 H30 M10 10 V12 M30 10 V12 M30 18 V25 H24" ${S}/>`,
+  mmLR: `<rect x="2" y="12" width="12" height="6" rx="1.5" fill="#16203a"/><rect x="18" y="3" width="12" height="6" rx="1.5" ${B}/><rect x="18" y="21" width="12" height="6" rx="1.5" ${B}/><rect x="30" y="12" width="8" height="6" rx="1.5" ${B}/><path d="M14 15 H16 M16 6 V24 M16 6 H18 M16 24 H18 M30 24 H33 V18" ${S}/>`,
   mindmap: `<circle cx="20" cy="15" r="3" fill="#2462EB"/><line x1="20" y1="15" x2="7" y2="7" ${S}/><line x1="20" y1="15" x2="33" y2="7" ${S}/><line x1="20" y1="15" x2="7" y2="23" ${S}/><line x1="20" y1="15" x2="33" y2="23" ${S}/>`,
   sticky: `<rect x="7" y="8" width="11" height="11" rx="1" fill="#fdf3b6" stroke="#e6d688"/><rect x="22" y="10" width="11" height="11" rx="1" fill="#d7f0d0" stroke="#a9d39b"/>`,
   board: `<rect x="6" y="7" width="9" height="7" fill="#fdf3b6" stroke="#e6d688"/><rect x="18" y="12" width="9" height="7" fill="#d7e6ff" stroke="#b9ccf5"/><rect x="28" y="8" width="8" height="7" fill="#f6d7e6" stroke="#e6a9c8"/>`,
@@ -38,12 +42,28 @@ const DEF = `<rect x="7" y="6" width="26" height="18" rx="2" ${S}/>`
 const thumb = (k: string) => `<svg viewBox="0 0 40 30" width="100%" height="100%">${THUMBS[k] || DEF}</svg>`
 
 /** 처음 여는 사람이 **고쳐 쓰기 좋은** 표본. 빈 칸을 주면 무엇을 써야 할지 모른다. */
-const SAMPLE = `graph LR
+const BODY = `
   A[기획] --> B[설계]
   B --> C[개발]
   C --> D{검수}
   D -->|통과| E[배포]
   D -->|반려| B`
+
+/**
+ * **머메이드로 들어가는 문 둘.** 카드는 하나(`tree`)다 — registry.ts 에 왜 안 쪼갰는지 적어 뒀다.
+ *
+ * 방향은 카드가 아니라 **글 첫 줄**이 정한다(`parseMermaid`). 그래서 이 둘이 하는 일은
+ * 표본 글의 첫 줄을 다르게 채워 주는 것뿐이고, 사람이 그 줄을 고치면 **고친 대로 간다.**
+ * 그게 맞다: 이름은 어느 쪽으로 시작할지를 고르는 것이지, 글을 못 고치게 하는 것이 아니다.
+ *
+ * **`TB` 라고 쓴다.** 파서가 `TB`·`TD`·`BT` 를 다 위→아래로 읽고(mermaid.ts),
+ * 쓴 글을 되돌려 쓰는 곳이 없어서 `TB` 가 `TD` 로 바뀌어 보이는 일이 없다.
+ * 안쪽 타입 이름만 `TreeDir='TD'` 인데 그건 화면에 안 나온다.
+ */
+const MM_DOORS: { id: string; label: string; dir: 'TB' | 'LR'; src: string }[] = [
+  { id: 'mmTB', label: '머메이드 TB', dir: 'TB', src: 'graph TB' + BODY },
+  { id: 'mmLR', label: '머메이드 LR', dir: 'LR', src: 'graph LR' + BODY },
+]
 
 export default function CardPicker() {
   const addCard = useBuilder((s) => s.addCard)
@@ -57,7 +77,9 @@ export default function CardPicker() {
   /** 트리는 **넣기 전에 머메이드를 받는다.** 빈 트리를 놓고 하나씩 그리게 하면
    *  마인드맵보다 손이 훨씬 많이 간다 — 글로 뼈대를 잡는 게 이 기능의 값이다. */
   const [askTree, setAskTree] = useState(false)
-  const [mm, setMm] = useState(SAMPLE)
+  /** 어느 문으로 들어왔나 — 제목에 쓴다. 판정에는 안 쓴다(방향은 아래 글이 정한다). */
+  const [door, setDoor] = useState(MM_DOORS[0])
+  const [mm, setMm] = useState(MM_DOORS[0].src)
   const orientation = useBuilder((s) => s.orientation)
   const btnRef = useRef<HTMLButtonElement>(null)
 
@@ -71,9 +93,13 @@ export default function CardPicker() {
   function close() { setOpen(false); setQ(''); setAskBranches(false); setAskTree(false) }
   function pick(key: string) {
     if (key === 'mindmap') { setAskBranches(true); return }
-    if (key === 'tree') { setAskTree(true); return }
+    // **머메이드로 새는 길을 막는다.** 목록 타일은 pickMermaid 로 가지만, 다른 데서 'tree' 가
+    // 이리로 들어오면 빈 글로 펼쳐져 **상자 하나 없는 쪽**이 생긴다. 여기서 문으로 돌린다.
+    if (key === 'tree') { pickMermaid(MM_DOORS[0]); return }
     addCard(key); close()
   }
+  /** 머메이드 문. **표본을 늘 새로 채운다** — 안 그러면 TB 를 눌렀는데 아까 LR 글이 남아 있다. */
+  function pickMermaid(d: typeof MM_DOORS[number]) { setDoor(d); setMm(d.src); setAskTree(true) }
 
   /* **이건 모달이 아니라 드롭다운이다** — 버튼에 붙어 뜨므로 ui/Modal 로 옮기지 않는다.
      그런데 나가는 길이 **바깥 누르기 하나뿐이었다.** 버튼도 없고 Esc 도 안 먹어서,
@@ -91,7 +117,9 @@ export default function CardPicker() {
   }, [open])
 
   const term = q.trim()
-  const match = (label: string, key: string) => !term || label.includes(term) || key.includes(term)
+  const lc = term.toLowerCase()
+  const match = (label: string, key: string) =>
+    !term || label.toLowerCase().includes(lc) || key.toLowerCase().includes(lc)
 
   return (
     <div className="cardpick">
@@ -110,7 +138,7 @@ export default function CardPicker() {
               const over = got.rows > Math.max(1, Math.floor(cap.slots / bands))
               const narrow = orientation === 'portrait'
               return (<>
-                <div className="cpk-grp">트리 · 머메이드로 뼈대 잡기</div>
+                <div className="cpk-grp">{door.label} — 글로 뼈대 잡기</div>
                 <textarea className="cpk-mm" value={mm} spellCheck={false}
                   onChange={(e) => setMm(e.target.value)} />
                 {/* **못 읽은 줄은 버리지 않는다.** 조용히 무시하면 제 오타를 못 찾는다. */}
@@ -153,21 +181,30 @@ export default function CardPicker() {
               <button className="cpk-back" onClick={() => setAskBranches(false)}>← 카드 고르기로</button>
             </>) : (<>
             <div className="cpk-quick">
+              {/* **「＋ 덱 섹션」은 여기 있었다**(2026-09-17 제거). 없앤 자리를 비워 두지 않고
+                  빈 슬라이드가 폭을 다 쓴다 — 단추가 하나인데 반만 차 있으면 빠진 것처럼 보인다. */}
               <button className="cpk-q" onClick={() => pick('slide')}>＋ 빈 슬라이드</button>
-              <button className="cpk-q alt" onClick={() => pick('dsection')}>＋ 덱 섹션</button>
             </div>
-            <input className="cpk-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="카드 검색 (예: 플로우, KPI)" aria-label="카드 검색" autoFocus />
+            <input className="cpk-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="카드 검색 (예: 머메이드, 메모)" aria-label="카드 검색" autoFocus />
             {GROUPS.map((g) => {
-              const items = CARD_REGISTRY.filter((c) => c.group === g.key && c.key !== 'dsection' && match(c.label, c.key))
-              if (!items.length) return null
+              /* **감춘 카드는 여기서 걸러진다.** 등록에는 남아 있다 — 지우면 그 카드로 만들어 둔
+                 쪽이 조용히 비기 때문이다(registry.ts 의 `hidden` 에 적어 뒀다).
+                 예전에는 덱 섹션만 `key !== 'dsection'` 으로 빼고 있었는데, 그 특례가 이 표시로 합쳐졌다. */
+              const items = CARD_REGISTRY.filter((c) => c.group === g.key && !c.hidden)
+              /* 머메이드 한 장이 **타일 둘**로 펼쳐진다. 여기서만 갈라지고 카드키는 하나다. */
+              const tiles = items.flatMap((c) => c.key === 'tree'
+                ? MM_DOORS.map((d) => ({ id: d.id, label: d.label, thumb: d.id, run: () => pickMermaid(d) }))
+                : [{ id: c.key, label: c.label, thumb: c.key, run: () => pick(c.key) }])
+                .filter((t) => match(t.label, t.id))
+              if (!tiles.length) return null
               return (
                 <div key={g.key}>
                   <div className="cpk-grp">{g.label}</div>
                   <div className="cpk-grid">
-                    {items.map((c) => (
-                      <button key={c.key} className={'cpk-tile' + (g.key === 'viz' ? ' hot' : '')} onClick={() => pick(c.key)} title={c.label}>
-                        <span className="cpk-thumb" dangerouslySetInnerHTML={{ __html: thumb(c.key) }} />
-                        <span className="cpk-nm">{c.label}</span>
+                    {tiles.map((t) => (
+                      <button key={t.id} className={'cpk-tile' + (g.key === 'viz' ? ' hot' : '')} onClick={t.run} title={t.label}>
+                        <span className="cpk-thumb" dangerouslySetInnerHTML={{ __html: thumb(t.thumb) }} />
+                        <span className="cpk-nm">{t.label}</span>
                       </button>
                     ))}
                   </div>

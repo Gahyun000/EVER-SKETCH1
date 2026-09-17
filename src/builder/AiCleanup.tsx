@@ -7,11 +7,13 @@ import Modal from '../ui/Modal'
 export default function AiCleanup({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pages = useBuilder((s) => s.pages)
   const polishAll = useBuilder((s) => s.polishAll)
-  const setCard = useBuilder((s) => s.setCard)
   if (!open) return null
 
   const plan = analyzeCleanup(pages)
-  const nothing = plan.polishCount === 0 && plan.kpi.length === 0
+  // **「제안 없음」 판정도 같이 고쳐야 한다.** KPI 항목만 지우고 이 줄을 두면,
+  // KPI 후보가 있는 자료에서 `nothing` 이 거짓이라 「없어요」도 안 뜨고 보일 것도 없는
+  // **빈 상자**가 된다 — 지우는 것보다 나쁜 상태다.
+  const nothing = plan.polishCount === 0
 
   return (
     <Modal title="✨ AI로 정리" onClose={onClose} size="sm"
@@ -25,12 +27,6 @@ export default function AiCleanup({ open, onClose }: { open: boolean; onClose: (
             <button className="ai-apply" onClick={() => polishAll()}>적용</button>
           </div>
         )}
-        {plan.kpi.map((k) => (
-          <div className="ai-item" data-sug="kpi" key={k.pageId}>
-            <div className="ai-txt"><b>카드타입 제안 · 성과(KPI)</b><div className="ai-desc">“{k.title}” — 지표 {k.kv.length}개를 KPI 카드로</div></div>
-            <button className="ai-apply" onClick={() => setCard(k.pageId, 'kpi', { title: k.title, k1: k.kv[0] || '', k2: k.kv[1] || '', k3: k.kv[2] || '' })}>적용</button>
-          </div>
-        ))}
     </Modal>
   )
 }

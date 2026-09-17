@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 · 카드 목록 정리 v1.1</title>
+<style>
+:root{--ink:#16203a;--sub:#4b566b;--muted:#8a91a0;--line:#e3e6ee;--blue:#2462EB;--plane:#f6f8fc}
+*{box-sizing:border-box}
+body{margin:0;background:#eef1f6;color:var(--ink);
+  font:14px/1.75 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;
+  word-break:keep-all}
+.wrap{max-width:980px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:21px;margin:0 0 4px;letter-spacing:-.4px}
+.sub{color:var(--sub);font-size:13px;margin:0 0 22px}
+.tag{display:inline-block;background:#fff3e2;border:1px solid #f0d7b4;color:#7a4412;
+  border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:800;margin-left:6px;vertical-align:2px}
+section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:0 0 18px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04)}
+h2{font-size:15.5px;margin:0 0 4px;letter-spacing:-.3px}
+h2 .n{color:var(--blue);margin-right:7px}
+.lead{color:var(--sub);font-size:12.8px;margin:0 0 16px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.8px;
+  background:#eef1f6;border-radius:4px;padding:1px 5px;color:#33405c}
+
+/* 정정 카드 */
+.fixes{margin:0;padding:0;list-style:none}
+.fix{border:1px solid #f3c9c6;background:#fdeceb;border-radius:11px;padding:13px 15px;margin:0 0 10px}
+.fix .h{font-size:13px;font-weight:800;color:#8d211b;margin:0 0 4px;display:flex;gap:8px;align-items:baseline}
+.fix .h .x{flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:#c0392b;color:#fff;
+  font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.fix .was{color:#8d211b;font-size:12.4px;margin:0 0 6px;padding-left:26px}
+.fix .is{color:#1d5c34;background:#eaf6ee;border:1px solid #c3e2ce;border-radius:8px;
+  padding:9px 11px;font-size:12.6px;margin-left:26px}
+.fix .is b{color:#124524}
+
+/* 표 */
+table.ev{width:100%;border-collapse:collapse;font-size:12.4px;margin-top:12px}
+table.ev th,table.ev td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+table.ev th{background:var(--plane);font-size:11.4px;color:var(--muted);font-weight:800}
+table.ev td.ok{background:#f2faf5;color:#1d5c34}
+table.ev td.bad{background:#fdf4f3;color:#8d211b}
+table.ev tr.live td{background:#fff8ec}
+
+/* 갈림길 */
+ul.q{margin:0;padding:0;list-style:none}
+ul.q>li{border-top:1px solid var(--line);padding:16px 0}
+ul.q>li:first-child{border-top:none;padding-top:2px}
+.qh{font-size:13.5px;font-weight:800;margin:0 0 5px;display:flex;gap:8px;align-items:baseline}
+.qh .no{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--blue);color:#fff;
+  font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.qb{color:var(--sub);font-size:12.7px;margin:0 0 9px;padding-left:28px}
+.opts{display:flex;gap:8px;flex-wrap:wrap;padding-left:28px}
+.opt{border:1.4px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12.2px;background:#fff;
+  cursor:pointer;font-family:inherit;color:var(--sub);text-align:left;flex:1 1 230px;min-width:0}
+.opt:hover{border-color:var(--blue)}
+.opt.on{border-color:var(--blue);background:rgba(36,98,235,.06);box-shadow:0 0 0 1px var(--blue) inset}
+.opt .k{display:block;font-weight:800;color:var(--ink);font-size:12.5px}
+.opt .d{display:block;font-size:11.4px;color:var(--muted);margin-top:3px;font-weight:400;line-height:1.6}
+
+.note{background:var(--plane);border:1px solid #e8edf6;border-radius:10px;padding:12px 14px;
+  font-size:12.6px;color:var(--sub);line-height:1.75;margin:14px 0 0}
+.note b{color:var(--ink)}
+.good{background:#eaf6ee;border-color:#c3e2ce;color:#1d5c34}
+.good b{color:#124524}
+.done{display:flex;gap:10px;align-items:flex-start;border:1px solid #c3e2ce;background:#f2faf5;
+  border-radius:10px;padding:11px 13px;margin:0 0 8px;font-size:12.7px;color:#245c39;line-height:1.7}
+.done .c{flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:#2e8b57;color:#fff;font-size:11px;
+  font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:3px}
+.done b{color:#124524}
+.two{display:flex;gap:14px;flex-wrap:wrap}
+.two>div{flex:1 1 300px;min-width:280px;border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.two h3{font-size:12.5px;margin:0 0 7px;color:var(--muted);font-weight:800}
+.two p{margin:0;font-size:12.6px;color:var(--sub);line-height:1.75}
+.two b{color:var(--ink)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.6px;background:var(--plane);
+  border:1px solid #e8edf6;border-radius:8px;padding:9px 11px;color:#33405c;white-space:pre;overflow:auto;
+  line-height:1.7;margin:8px 0 0}
+.foot{color:var(--muted);font-size:11.8px;text-align:center;margin-top:24px;line-height:1.8}
+</style></head><body>
+<div class="wrap">
+
+<h1>화면시안 · 카드 목록 정리 <span style="color:var(--muted);font-weight:400">v1.1</span>
+<span class="tag">코드는 안 건드렸습니다</span></h1>
+<p class="sub">두 가지 물으신 것을 따라가 보니 <b>v1.0 에서 제가 말씀드린 것 중 셋이 틀렸습니다.</b>
+정정부터 하고, 그래서 남은 갈림길이 넷에서 <b>둘</b>로 줄어든 이야기를 드립니다.</p>
+
+<!-- ─────────── 정정 ─────────── -->
+<section>
+  <h2><span class="n">①</span>먼저 정정</h2>
+  <p class="lead">세 가지 다 「그럴 것이다」로 적었던 것이고, 물으시니 실제로 찾아보고서야 알았습니다.</p>
+
+  <ul class="fixes">
+    <li class="fix">
+      <p class="h"><span class="x">✗</span>「TB 는 이름만이고 속은 TD 라 결정이 필요하다」</p>
+      <p class="was">— 결정할 것이 없었습니다. 말씀하신 대로 <code>graph TB</code> 를 그냥 쓰면 됩니다.</p>
+      <div class="is"><b>TB 가 TD 로 바뀌어 사람 눈에 보이는 길이 아예 없습니다.</b>
+        그렇게 될 수 있는 함수는 <code>toMermaid()</code> 하나인데
+        (<code>mermaid.ts:98</code> — 그림을 다시 머메이드 글로 뽑는 것) <b>아무 데서도 안 부릅니다.</b>
+        <code>treeSrc</code> 에 원문을 저장해 두긴 하는데 <b>그것도 다시 읽는 곳이 없습니다.</b>
+        <code>TD</code> 는 <code>treeEls.ts</code> 안의 타입 이름일 뿐이라 화면에 안 나옵니다.
+        → <b>표본도 TB, 이름도 TB.</b> 제가 괜한 걸 여쭸습니다.</div>
+    </li>
+
+    <li class="fix">
+      <p class="h"><span class="x">✗</span>「HTML 덱 가져오기가 덱 섹션을 만든다」</p>
+      <p class="was">— <code>deckToCards.ts:44</code> 을 보고 그렇게 적었는데, <b>그 파일을 부르는 곳이 없습니다.</b></p>
+      <div class="is"><b>죽은 파일입니다.</b> 실제로 도는 가져오기는 <code>deckToPages.ts</code> 이고,
+        그건 <b>자유 슬라이드</b>(<code>cardKey:'slide'</code> + 자유 요소)를 만듭니다 — 덱 섹션이 아닙니다.
+        같은 이름의 파일이 둘 있어서 제가 속았습니다. <b>덱 섹션을 만드는 길은 지금 「＋ 덱 섹션」 단추와
+        메뉴 2곳뿐</b>이고, 그건 이번에 다 없앨 것들입니다.</div>
+    </li>
+
+    <li class="fix">
+      <p class="h"><span class="x">✗</span>「등록에서 지우면 저장된 자료가 안 열린다」</p>
+      <p class="was">— 안 열리지 않습니다. 터지지도 않습니다. 그런데 <b>더 조용히 나쁩니다.</b></p>
+      <div class="is">등록에 없으면 <code>PageView</code> 의 맨 끝 갈래로 떨어져
+        <b>제목만 남고 본문이 안 그려집니다</b>(<code>PageView.tsx:374</code>).
+        글은 <code>page.fields</code> 에 <b>그대로 남아 있고</b>, 등록을 되돌리면 도로 보입니다 — 잃는 건 아닙니다.
+        다만 화면에서만 조용히 비는 거라 <b>사람이 「지워졌다」고 생각하기 딱 좋습니다.</b></div>
+    </li>
+  </ul>
+</section>
+
+<!-- ─────────── 덱 섹션이 뭔가 ─────────── -->
+<section>
+  <h2><span class="n">②</span>덱 섹션은 표준 양식과 아무 관계가 없습니다</h2>
+  <p class="lead">물어보신 「표준양식 불러오는 건가」 — 아닙니다. 아예 다른 갈래입니다.</p>
+  <div class="two">
+    <div>
+      <h3>표준 양식</h3>
+      <p><b>서버가 심어 주는 월간 임원보고 양식</b>입니다. SLOT-A · B · C 표 세 덩어리가 계약이고
+        (<code>src/template/slots.ts</code> · <code>server/template_guard.py</code>),
+        새 자료를 만들 때 서버가 넣어 줍니다. 칸 잠금·진행 표시·넘침 이어그리기가 전부 여기 붙어 있습니다.</p>
+    </div>
+    <div>
+      <h3>덱 섹션</h3>
+      <p><b>옛 deck_builder 의 「섹션 표지」 슬라이드 모양을 흉내 낸 카드 한 장</b>입니다.
+        번호 + 제목 + 부제 + 2~3열 카드 격자(<code>c1</code>~<code>c6</code>, 각 「제목|설명」).
+        표준 양식도, 가져오기도 아니고 <b>그냥 카드 종류 하나</b>입니다.</p>
+    </div>
+  </div>
+  <div class="note">
+    <b>HTML 가져오기 자체는 아직 살아 있습니다.</b> 메뉴 「📄 HTML 가져오기 · Alt+O」 →
+    <code>Layout.tsx:212</code> → <code>ClassicBar</code> 의 파일 고르기 → 미리보기 모달 → 「메인 캔버스로」.
+    없어진 걸로 알고 계셨다면 <b>그것부터 따로 이야기해 볼 만합니다</b> — 안 쓰는 기능이 메뉴에 있는 셈이니까요.
+    이번 정리와는 별건이라 여기서는 건드리지 않겠습니다.
+  </div>
+</section>
+
+<!-- ─────────── 실제로 뭐가 딸려 있나 ─────────── -->
+<section>
+  <h2><span class="n">③</span>그래서 실제로 딸려 있는 건 <b>하나</b>뿐입니다</h2>
+  <p class="lead">없앨 여섯을 하나씩 다시 세어 봤습니다. 노란 줄이 진짜로 걸리는 것입니다.</p>
+  <table class="ev">
+    <tr><th>카드</th><th>등록에서 지우면</th><th>지금 이걸 만들어 내는 길</th><th>저장된 자료</th></tr>
+    <tr><td>덱 섹션 <code>dsection</code></td>
+        <td class="ok">그대로 잘 그려집니다 — <code>page.cardKey</code> 로 직접 갈라서 등록을 안 봅니다</td>
+        <td>「＋ 덱 섹션」 단추 · 메뉴 2곳 <b>— 다 없앨 것</b><br><span style="color:var(--muted)">(<code>deckToCards.ts</code> 는 죽은 파일)</span></td>
+        <td>2건</td></tr>
+    <tr class="live"><td>성과·KPI <code>kpi</code></td>
+        <td class="bad">지표 3줄이 <b>안 그려집니다</b> — <code>card.kpi</code> 로 갈라서</td>
+        <td><b>「✨ AI로 정리」의 「적용」 — 살아 있습니다</b><br><code>AiCleanup.tsx:31</code></td>
+        <td>1건</td></tr>
+    <tr><td>프로세스 <code>flow</code></td>
+        <td class="bad">단계 상자가 <b>안 그려집니다</b> — <code>card.viz</code> 로 갈라서</td>
+        <td>카드 고르기뿐</td><td>2건</td></tr>
+    <tr><td>한 줄 요약 · 로드맵 · 시장·경쟁</td>
+        <td class="bad">제목만 남고 <b>본문이 안 그려집니다</b> — 본문을 <code>card.fields</code> 로 그려서</td>
+        <td>카드 고르기뿐</td><td>2건</td></tr>
+  </table>
+  <div class="note good">
+    <b>저장된 자료 6건은 전부 이 개발 DB 안, 가현 님 계정의 작업 문서입니다</b>
+    (<span style="font-family:ui-monospace;font-size:11.5px">2026년 10월 임원회의 — 김가현</span> 8쪽,
+    <span style="font-family:ui-monospace;font-size:11.5px">제목 ㅇㅇ</span> 6쪽).
+    남의 자료가 아니라 <b>가현 님이 직접 쓰신 것</b>이라, 없애기 전에 그 두 자료를 어떻게 하실지만
+    정하시면 됩니다. v1.0 에서 제가 「저장된 자료가 있으니 위험하다」고 한 것보다는 훨씬 가벼운 이야기입니다.
+  </div>
+</section>
+
+<!-- ─────────── 정해진 것 ─────────── -->
+<section>
+  <h2><span class="n">④</span>이건 그냥 이대로 하면 됩니다</h2>
+  <p class="lead">정정하고 나니 물어볼 것이 없어진 것들입니다.</p>
+  <div class="done"><span class="c">✓</span><div><b>머메이드 TB · 머메이드 LR</b> — 이름도 TB/LR,
+    표본 글 첫 줄만 다르게. 파서·타입·저장값은 손 안 댑니다.</div></div>
+  <div class="mono">머메이드 TB                    머메이드 LR
+─────────────────────      ─────────────────────
+graph TB                   graph LR
+  A[기획] --> B[설계]          A[기획] --> B[설계]
+  B --> C[개발]               B --> C[개발]
+  C --> D{검수}               C --> D{검수}
+  D -->|통과| E[배포]          D -->|통과| E[배포]
+  D -->|반려| B               D -->|반려| B</div>
+  <div class="done" style="margin-top:12px"><span class="c">✓</span><div><b>「＋ 덱 섹션」 단추와 메뉴 2곳</b> — 없앱니다.
+    그러면 덱 섹션을 새로 만드는 길이 하나도 안 남습니다.</div></div>
+  <div class="done"><span class="c">✓</span><div><b>한 줄 요약 · 로드맵 · 시장·경쟁 · 프로세스</b> — 목록에서 뺍니다.
+    이것들도 만드는 길이 카드 고르기뿐이라, 빼면 끝입니다.</div></div>
+  <div class="done"><span class="c">✓</span><div><b>서버 사본</b>(<code>server/intent/card_catalog.py</code>)도 같이 고칩니다 —
+    <code>test_card_catalog.py</code> 가 둘이 어긋나면 실패시킵니다.</div></div>
+</section>
+
+<!-- ─────────── 남은 갈림길 ─────────── -->
+<section>
+  <h2><span class="n">⑤</span>남은 갈림길은 둘</h2>
+  <p class="lead">골라 주시면 그대로 만들겠습니다.</p>
+  <ul class="q">
+    <li>
+      <p class="qh"><span class="no">1</span>목록에서 <b>빼기만</b> 할까요, <b>아주 지울</b>까요?</p>
+      <p class="qb">등록에 줄은 남겨 두고 고르는 화면·검색·메뉴에서만 감추는 것(<code>hidden: true</code>)과,
+        등록에서 아예 지우는 것의 차이입니다. 위 표대로 지우면 가현 님 두 자료의 <b>여섯 쪽에서 본문이 조용히 빕니다</b>
+        — 글은 안 없어지니 되살릴 수는 있습니다.</p>
+      <div class="opts" data-q="1">
+        <button class="opt on"><span class="k">ㄱ · 숨기기 <span style="color:var(--blue)">(권합니다)</span></span>
+          <span class="d">화면에서는 완전히 사라지고, 쓰시던 두 자료는 지금 그대로 열립니다.
+            나중에 마음이 바뀌면 한 줄로 되돌아옵니다. 대신 죽은 줄이 등록표에 6개 남습니다</span></button>
+        <button class="opt"><span class="k">ㄴ · 지우기 + 두 자료 먼저 정리</span>
+          <span class="d">그 여섯 쪽을 <b>먼저</b> 다른 카드로 옮기거나 지우고 나서 등록을 지웁니다.
+            등록표가 깨끗해집니다. 대신 제가 그 쪽들을 어떻게 옮길지 한 번 더 여쭙게 됩니다</span></button>
+      </div>
+    </li>
+
+    <li>
+      <p class="qh"><span class="no">2</span>「✨ AI로 정리」의 <b>KPI 제안</b>은 어떻게 할까요?</p>
+      <p class="qb">이게 진짜로 딸린 하나입니다. AI 정리가 「이 쪽을 성과(KPI) 카드로 바꿔 드릴까요」를 권하고,
+        누르면 그 쪽이 <code>kpi</code> 카드가 됩니다. KPI 를 목록에서 빼는데 <b>AI 는 계속 권하면</b>
+        고르는 화면에 없는 카드가 생기는 이상한 상태가 됩니다.</p>
+      <div class="opts" data-q="2">
+        <button class="opt on"><span class="k">ㄱ · 제안도 같이 뺀다 <span style="color:var(--blue)">(권합니다)</span></span>
+          <span class="d">KPI 카드가 빈 화면이나 다름없다고 보신 거라면, 그걸 권하는 쪽도 같이 빠지는 게 맞습니다.
+            AI 정리에는 「문구 다듬기」가 남습니다</span></button>
+        <button class="opt"><span class="k">ㄴ · 제안은 남긴다</span>
+          <span class="d">직접 고를 수는 없지만 AI 가 권하면 만들어진다. 「이건 왜 목록에 없지」가 생깁니다</span></button>
+        <button class="opt"><span class="k">ㄷ · KPI 는 아예 안 뺀다</span>
+          <span class="d">넷 중 KPI 만 살려 둔다. 「경영 보고 보강」 묶음이 한 칸짜리로 남습니다</span></button>
+      </div>
+    </li>
+  </ul>
+
+  <div class="note">
+    <b>덤으로 — 죽은 파일 셋을 찾았습니다.</b>
+    <code>src/import/deckToCards.ts</code>(아무도 안 부름) ·
+    <code>src/builder/TopBar.tsx</code>(<code>Layout</code> 이 <code>MenuBar</code>+<code>ClassicBar</code> 를 그립니다) ·
+    <code>mermaid.ts</code> 의 <code>toMermaid()</code>(안 부름).
+    <b>앞의 둘은 오늘 저를 실제로 속였습니다</b> — 이참에 같이 치울지는 말씀만 주시면 하겠습니다.
+    치운다면 「왜 지웠나」를 커밋에 남기겠습니다.
+  </div>
+</section>
+
+<p class="foot">EVER-SKETCH · 화면시안 v1.1 · 2026-09-17<br>
+v1.0 의 「정해야 할 것 ②」는 취소, 「④」는 근거가 틀려서 다시 썼습니다. 앱 코드는 아직 한 줄도 안 바꿨습니다.</p>
+</div>
+<script>
+document.querySelectorAll('.opts').forEach(g=>g.addEventListener('click',e=>{
+ const b=e.target.closest('.opt'); if(!b)return;
+ g.querySelectorAll('.opt').forEach(o=>o.classList.remove('on')); b.classList.add('on');}));
+</script>
+</body></html>

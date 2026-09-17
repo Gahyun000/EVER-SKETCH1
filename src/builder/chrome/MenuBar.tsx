@@ -83,7 +83,6 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
       { label: '🅰  Word Art (글맵시)', run: () => tool('wordart') },
       { sep: true },
       { label: '＋ 새 슬라이드', sc: '⌘M', run: () => addCard('slide') },
-      { label: '＋ 덱 섹션 카드', run: () => addCard('dsection') },
     ] },
     { label: '서식', items: [
       { label: '굵게 (선택 요소)', run: () => emit('ebook:fmt-bold') },
@@ -97,7 +96,6 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
       { label: '▷ 슬라이드쇼', run: onPresent },
       { sep: true },
       { label: '＋ 새 슬라이드', sc: '⌘M', run: () => addCard('slide') },
-      { label: '＋ 덱 섹션 카드', run: () => addCard('dsection') },
       { label: '⧉ 슬라이드 복제', run: () => { if (selId != null) duplicatePage(selId) } },
       { label: '🗑 슬라이드 삭제', run: () => { if (selId != null) removePage(selId) } },
       { sep: true },

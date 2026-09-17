@@ -270,7 +270,19 @@ const SAMPLE = `graph LR
   check(/isTreePage\(p\)/.test(fp), '트리인지는 **쪽에 적힌 명단**으로 가른다 — 마인드맵과 섞이지 않게')
 
   const cp = bare(read('./src/builder/CardPicker.tsx'))
-  check(/setAskTree\(true\); return/.test(cp), '트리를 고르면 **넣기 전에 머메이드를 받는다**')
+  // **2026-09-17 에 다시 썼다 — 지운 게 아니다.**
+  // 이 줄은 `setAskTree(true); return` 이라는 **코드 모양**을 박아 뒀다. 머메이드를 TB·LR
+  // 두 문으로 가르면서 그 일이 `pickMermaid` 라는 함수로 옮겨 갔고, 하는 일은 그대로인데
+  // (넣기 전에 글을 받는다) 모양만 달라져서 깨졌다. 재던 것은 「고르자마자 넣어 버리지
+  // 않는가」이므로 **그 성질을 직접** 잰다 — 이름이 또 바뀌어도 이번에는 안 깨진다.
+  const mi = cp.indexOf('function pickMermaid')
+  const door = cp.slice(mi, cp.indexOf('\n', cp.indexOf('setAskTree', mi)))
+  check(mi > 0 && /setAskTree\(true\)/.test(door) && !/addCard\(/.test(door),
+    '머메이드는 고르자마자 안 넣는다 — **글 받는 화면을 먼저 연다**')
+  check(/run: \(\) => pickMermaid\(d\)/.test(cp),
+    '목록의 머메이드 타일이 그 문으로 간다 — addCard 로 바로 가면 빈 트리가 생긴다')
+  check(/if \(key === 'tree'\) \{ pickMermaid\(MM_DOORS\[0\]\); return \}/.test(cp),
+    '다른 데서 tree 가 들어와도 문으로 돌린다 — 빈 글로 펼치면 상자 하나 없는 쪽이 된다')
   check(/addCard\('tree', undefined, mm\)/.test(cp), '쓴 글을 그대로 넘긴다')
   check(/g\.errors\.length > 0/.test(cp), '못 읽은 줄을 화면이 보여 준다')
   check(/cpk-mmwarn/.test(cp) && /세로 종이는 트리가/.test(cp),

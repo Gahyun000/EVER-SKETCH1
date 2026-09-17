@@ -31,6 +31,10 @@ class CatCard:
     kind: Optional[str] = None    # cover | back | toc
     viz: Optional[str] = None     # flow | mindmap | sticky | board | note
     kpi: bool = False
+    # 사람이 고르는 목록에서 감춘 카드(registry.ts 의 `hidden` 과 같은 값).
+    # **그리기는 살아 있고 새로 만드는 길만 막힌 상태**다 — 왜 지우지 않았는지는 registry.ts 에 있다.
+    # 여기서 쓰는 곳은 `catalog_for_prompt()` 하나다: 감춘 카드는 AI 에게 안 권한다.
+    hidden: bool = False
 
 
 def _f(key: str, label: str, example: str = "") -> CatField:
@@ -45,18 +49,18 @@ CATALOG: tuple[CatCard, ...] = (
     CatCard("note", "빈 페이지(블록·토글)", "새 페이지", "frame", viz="note", fields=()),
     CatCard("closing", "마무리", "함께 시작합시다", "frame", kind="back",
             fields=(_f("title", "한 줄 메시지", "지금이 가장 잘 시작할 수 있는 때입니다"), _f("sub", "연락/링크(선택)"))),
-    CatCard("summary", "한 줄 요약", "핵심 요약", "extra",
+    CatCard("summary", "한 줄 요약", "핵심 요약", "extra", hidden=True,
             fields=(_f("title", "제목", "핵심 요약"), _f("body", "한 문장", "현장 데이터로 품질을 바꾸는 AX 사업"))),
-    CatCard("kpi", "성과·KPI", "기대 성과", "extra", kpi=True,
+    CatCard("kpi", "성과·KPI", "기대 성과", "extra", hidden=True, kpi=True,
             fields=(_f("title", "제목", "기대 성과"), _f("k1", "지표 1 (이름:값)", "불량률:-30%"),
                     _f("k2", "지표 2", "검사시간:-40%"), _f("k3", "지표 3", "ROI:14개월"))),
-    CatCard("roadmap", "로드맵", "로드맵", "extra",
+    CatCard("roadmap", "로드맵", "로드맵", "extra", hidden=True,
             fields=(_f("title", "제목", "로드맵"), _f("p1", "단계 (이름:시기)", "PoC : 1분기"),
                     _f("p2", "단계", "확산 : 3분기"))),
-    CatCard("market", "시장·경쟁", "시장과 경쟁", "extra",
+    CatCard("market", "시장·경쟁", "시장과 경쟁", "extra", hidden=True,
             fields=(_f("title", "제목", "시장과 경쟁"), _f("p1", "시장 한 줄", "국내 품질SW 3천억"),
                     _f("p2", "우위", "현장 특화 데이터"))),
-    CatCard("flow", "프로세스(플로우)", "도입 프로세스", "viz", viz="flow",
+    CatCard("flow", "프로세스(플로우)", "도입 프로세스", "viz", hidden=True, viz="flow",
             fields=(_f("title", "제목", "도입 프로세스"), _f("s1", "단계 1", "데이터 연결"),
                     _f("s2", "단계 2", "AI 학습"), _f("s3", "단계 3", "현장 적용"),
                     _f("s4", "단계 4 (선택)", "성과 검증"))),
@@ -64,7 +68,9 @@ CATALOG: tuple[CatCard, ...] = (
     # 그래도 registry.ts 목록에는 있으므로 **여기 순서에도 같이 있어야 한다** —
     # 2026-09-14 트리를 넣고 pytest 를 안 돌려서 이 줄이 빠진 채 나흘 갔다.
     # `fields` 는 비어 있다: 내용은 머메이드 원문에서 온다.
-    CatCard("tree", "트리 · 머메이드", "흐름도", "viz", viz="flow", fields=()),
+    # 고르는 화면에서는 이 한 장이 「머메이드 TB」·「머메이드 LR」 두 타일로 보인다.
+    # 방향은 카드가 아니라 머메이드 글 첫 줄이 정하므로 **카드는 그대로 하나다**(registry.ts).
+    CatCard("tree", "머메이드", "흐름도", "viz", viz="flow", fields=()),
     CatCard("mindmap", "마인드맵", "AX 추진 영역", "viz", viz="mindmap",
             fields=(_f("title", "제목", "AX 추진 영역"), _f("center", "중심 주제", "유니에버 AX"),
                     _f("b1", "가지 1", "품질"), _f("b2", "가지 2", "생산"), _f("b3", "가지 3", "물류"),
@@ -82,7 +88,7 @@ CATALOG: tuple[CatCard, ...] = (
                     _f("n2", "메모 2", "리스크"), _f("n3", "메모 3", "다음 액션"),
                     _f("n4", "메모 4", "질문"), _f("n5", "메모 5 (선택)"), _f("n6", "메모 6 (선택)"))),
     # 덱-섹션(P1) — deck_builder 섹션 슬라이드처럼 렌더되는 편집형 카드. c1~c6 = "제목|설명".
-    CatCard("dsection", "덱 섹션", "섹션", "extra",
+    CatCard("dsection", "덱 섹션", "섹션", "extra", hidden=True,
             fields=(_f("markN", "번호", "01"), _f("title", "제목", "제조 현장의 활용 분야"),
                     _f("sub", "부제", "현장 데이터를 하나의 흐름으로 모읍니다."), _f("cols", "열 수 (2/3)", "3"),
                     _f("c1", "카드 1 (제목|설명)", "품질|찾고·보고·판정합니다"),
@@ -109,26 +115,43 @@ def fields_of(key: str) -> list[str]:
     return [f.key for f in c.fields] if c else []
 
 
+def hint_of(c: CatCard) -> Optional[str]:
+    """이 카드를 LLM 에게 설명할 때 덧붙일 주의. 카탈로그에 있는 카드면 감췄어도 계산된다 —
+    감추는 것과 「어떻게 쓰는 카드인가」는 다른 이야기이고, 가드가 이걸 따로 잰다."""
+    if c.viz == "note":
+        return "자유 텍스트 블록 페이지(필드 없음). 제목/문단은 본문 블록으로 채움"
+    if c.kind == "toc":
+        return "목차는 자동 생성(필드 없음)"
+    if c.kpi:
+        return "지표는 '이름:값' 형식(예 불량률:-30%). 근거 없는 수치는 만들지 말 것"
+    if c.key == "dsection":
+        return "덱 섹션 — 제목/부제 + 카드 c1~c6(각 '제목|설명'). 가져온 문서 섹션 편집용"
+    if c.viz:
+        return f"다이어그램({c.viz}) — 각 항목은 짧은 명사구"
+    return None
+
+
 def catalog_for_prompt() -> list[dict]:
-    """플래너 LLM 프롬프트에 넣을 압축 카탈로그(설명·필드·예시). G3에서 소비."""
+    """플래너 LLM 프롬프트에 넣을 압축 카탈로그(설명·필드·예시). G3에서 소비.
+
+    **감춘 카드는 안 넣는다**(2026-09-17). 사람이 고르는 목록에서 뺀 카드를 AI 가 계속
+    권하면, 목록에 없는 것이 만들어져서 「이건 어디서 나왔지」를 아무도 못 푼다.
+    같은 날 화면 쪽에서 「AI로 정리」의 KPI 전환 제안을 뺀 것과 같은 이유다.
+
+    **`is_card()`·`fields_of()` 는 안 거른다.** 그 둘은 「이 카드가 뭐냐」를 묻는 자리이고
+    (editor.py 가 **이미 있는 쪽**을 고칠 때 쓴다), 거기서 감춘 카드를 모른다고 하면
+    예전에 만든 쪽을 AI 로 못 고치게 된다. 막을 것은 **새로 권하는 길**뿐이다.
+    """
     out: list[dict] = []
     for c in CATALOG:
-        hint = None
-        if c.viz == "note":
-            hint = "자유 텍스트 블록 페이지(필드 없음). 제목/문단은 본문 블록으로 채움"
-        elif c.kind == "toc":
-            hint = "목차는 자동 생성(필드 없음)"
-        elif c.kpi:
-            hint = "지표는 '이름:값' 형식(예 불량률:-30%). 근거 없는 수치는 만들지 말 것"
-        elif c.key == "dsection":
-            hint = "덱 섹션 — 제목/부제 + 카드 c1~c6(각 '제목|설명'). 가져온 문서 섹션 편집용"
-        elif c.viz:
-            hint = f"다이어그램({c.viz}) — 각 항목은 짧은 명사구"
+        if c.hidden:
+            continue
         entry = {
             "cardKey": c.key,
             "설명": c.label,
             "fields": [{"key": f.key, "label": f.label, "example": f.example} for f in c.fields],
         }
+        hint = hint_of(c)
         if hint:
             entry["note"] = hint
         out.append(entry)
