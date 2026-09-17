@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Lock, History, X, Users } from 'lucide-react'
+import { Lock, History, X } from 'lucide-react'
 import SlideViewer from '../approvals/SlideViewer'
 import { STATUS_LABEL } from '../approvals/approvalApi'
 import { TeamLibraryError, apiTeamApproval, apiTeamHistory, type LibItem } from './teamLibraryApi'
@@ -97,13 +97,38 @@ export default function ApprovalViewer({ aid }: { aid: string }) {
         <button className="es-mini" onClick={() => void openHistory()}>
           <History className="h-4 w-4" /> 지난 승인본
         </button>
-        {/* **돌아가는 길.** 이게 없으면 링크를 받은 사람은 문서 한 장을 보고 끝이다 —
-            그 사람에게는 닫고 돌아갈 앞 창이 아예 없다(새 탭이 아니라 이 탭이 전부다).
-            `/` 가 아니라 팀 공유로 보내는 이유: 방금까지 보던 것이 팀 자료였다.
-            그냥 `/` 로 보내면 「내 서랍」에 내리고, 제 자료가 없는 열람자에게는
-            그게 빈 화면이다. */}
-        <button className="es-mini primary" onClick={() => { window.location.href = '/?shared=1' }}>
-          <Users className="h-4 w-4" /> 팀 공유 열기
+        {/* **나가는 길 — 닫기.**
+            2026-09-17 사용자 판단: 「여기서 팀 공유 열기보다 X 버튼이 더 좋을 것 같은데」.
+            맞다. 이 화면은 팀 공유의 **「새 탭에서 크게 보기」로 열린다**(TeamLibraryPanel).
+            즉 **앞 탭에 팀 공유가 그대로 남아 있는데**, 예전 단추는 이 탭을 팀 공유로
+            바꿔 버려서 **같은 화면이 두 탭**이 됐다. 사람은 결국 하나를 손으로 닫았다 —
+            단추가 시킨 일이 사람이 원한 일이 아니었다.
+
+            **파란색(primary)도 뗐다.** 파란 단추는 「여기서 할 가장 중요한 일」이라는 뜻인데,
+            이 화면에서 할 일은 **읽는 것**이다. 닫기는 기능이 아니라 창틀이라 조용해야 한다.
+
+            **그런데 닫기가 늘 되지는 않는다.** 브라우저는 스크립트가 연 탭만 스크립트로
+            닫게 해 준다. 두 경우를 실제로 재 봤다(2026-09-17, Chromium):
+              · 「새 탭에서 크게 보기」로 열린 탭 → **닫힌다**(탭이 2→1). 거의 모든 경우가 이것.
+              · 사람이 주소를 직접 연 탭      → **안 닫힌다.** 아무 일도 안 일어난다.
+            **`window.opener` 로는 못 가린다** — `noopener` 로 열기 때문에 둘 다 없다고 나온다.
+            눌러 보기 전에는 알 수 없다.
+
+            그래서 **닫아 보고, 그래도 여기 있으면 팀 공유로 보낸다.** 예전 단추가 하던 일이
+            이 뒤로 들어온 것이지 없어진 게 아니다 — 링크를 받은 사람에게는 닫고 돌아갈 앞 창이
+            아예 없으니, 이 길이 끊기면 그 사람은 **막다른 화면에 갇힌다.**
+            `/` 가 아니라 팀 공유인 이유도 그대로다: 방금까지 보던 것이 팀 자료였고,
+            제 자료가 없는 열람자에게 `/` 는 빈 화면이다.
+
+            **못 닫았다고 말하지 않는다**(사용자 결정). 사람은 「닫혔다」고 느끼면 그만이고,
+            「이 탭은 닫을 수 없어서…」는 알 필요 없는 사정을 설명하는 것이다. */}
+        <button className="es-mini tv-x" title="닫기" aria-label="닫기"
+          onClick={() => {
+            window.close()
+            // 닫혔으면 이 타이머는 영영 안 돈다. 살아 있다는 건 못 닫았다는 뜻이다.
+            window.setTimeout(() => { window.location.href = '/?shared=1' }, 150)
+          }}>
+          <X className="h-4 w-4" />
         </button>
       </div>
 
