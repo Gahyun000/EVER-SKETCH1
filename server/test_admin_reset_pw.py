@@ -110,16 +110,44 @@ def test_중지된_계정도_풀면서_초기화한다():
 
 
 # ── 막는 일 ─────────────────────────────────────
-def test_자기_자신은_초기화하지_않는다():
-    """본인 것을 무작위로 날리면 화면에 뜬 글자를 놓치는 순간 관리자가 스스로 잠긴다.
-    본인은 「비밀번호 변경」(옛 비밀번호를 아는 채로 바꾸기)을 쓴다."""
+def test_자기_자신도_초기화한다():
+    """**2026-09-18 에 뒤집힌 규칙.** 지우지 않고 고쳐 쓴다 — 왜 막았는지가 왜 여는지의 배경이다.
+
+    막았던 이유는 「본인 것을 무작위로 날리면 화면에 뜬 글자를 놓치는 순간 관리자가
+    스스로 잠긴다」였다. 잠기는 까닭은 세션이 끊기면서 **화면이 로그인으로 튕겨 임시
+    비밀번호 창까지 함께 사라진다**는 것이었는데, 사용자가 되물었다 —
+    「모달이 뜨고 닫기를 누르면 로그인 화면으로 가게 설정하면 되잖아.」
+    **튕기는 시점은 화면이 정할 수 있다.** 서버는 열어 주고, 화면이 창 닫을 때 나간다
+    (src/auth/session.ts 의 holdUnauthorized).
+    """
     app, admin, apw, w = ctx()
     c = login(app, "admin", apw)
     r = c.post("/api/auth/users/%s/reset-pw" % admin["id"])
-    assert r.status_code == 400
-    assert "본인" in r.json()["detail"]
-    # 정말로 안 바뀌었는지 — 원래 비밀번호가 그대로 통해야 한다
-    auth_store.login("admin", apw)
+    assert r.status_code == 200, r.text
+    pw = r.json()["password"]
+    assert isinstance(pw, str) and len(pw) >= 12
+    # 새 값으로 들어가지고, 옛 값은 막힌다
+    tok, u = auth_store.login("admin", pw)
+    assert u["login_id"] == "admin"
+    with pytest.raises(auth_store.AuthError):
+        auth_store.login("admin", apw)
+
+
+def test_내_것을_초기화하면_내_세션도_끊긴다():
+    """끊지 않으면 열어 둔 다른 기기가 옛 비밀번호로 계속 산다."""
+    app, admin, apw, w = ctx()
+    other = login(app, "admin", apw)          # 다른 기기
+    c = login(app, "admin", apw)
+    assert c.post("/api/auth/users/%s/reset-pw" % admin["id"]).status_code == 200
+    assert other.get("/api/auth/me").json()["user"] is None
+
+
+def test_내_것을_초기화하면_최초_로그인에서_또_바꾸게_한다():
+    """남의 것과 같아야 한다 — 관리자가 아는 값은 한 번 쓰고 폐기된다."""
+    app, admin, apw, w = ctx()
+    c = login(app, "admin", apw)
+    c.post("/api/auth/users/%s/reset-pw" % admin["id"])
+    assert auth_store.get_user(admin["id"])["must_change_pw"] is True
 
 
 def test_작성자는_남의_비밀번호를_초기화하지_못한다():
