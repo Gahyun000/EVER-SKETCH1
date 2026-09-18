@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useBuilder } from '../../state/store'
 import { useProjects } from '../../persistence/projects'
 import { useCanvasUI } from '../../state/canvasUI'
+import { useKey } from '../../ui/keyLabel'
 import { useAutosave } from '../../persistence/autosave'
 import { canPublish, isAdmin } from '../../auth/authApi'
 import { useAuth } from '../../auth/useAuth'
@@ -41,6 +42,8 @@ export default function MenuBar({ onHelp, onTutorial, onNotes, onSettings, onImp
   }, [])
 
   const emit = (n: string) => window.dispatchEvent(new CustomEvent(n))
+  // 단축키 글자는 **보는 사람 키보드에 있는 것**으로 적는다(ui/keyLabel).
+  const K = useKey()
   const tool = (t: Tool) => setTool(t)
   /** 캔버스에 「이걸 놓아 달라」고 알린다 — 놓는 일은 캔버스가 한다(FreeLayer 의 ebook:place). */
   const place = (t: Tool) => window.dispatchEvent(new CustomEvent('ebook:place', { detail: { type: t } }))
@@ -48,26 +51,26 @@ export default function MenuBar({ onHelp, onTutorial, onNotes, onSettings, onImp
 
   const MENUS: Menu[] = [
     { label: '파일', items: [
-      { label: '📄 HTML 가져오기', sc: 'Alt+O', run: onImport },
+      { label: '📄 HTML 가져오기', sc: K('alt+O'), run: onImport },
       { sep: true },
-      { label: '💾 저장', sc: '⌘S', run: () => { void saveNow() } },
+      { label: '💾 저장', sc: K('mod+S'), run: () => { void saveNow() } },
       { sep: true },
       { label: '🖼 PDF로 내보내기 (이미지)', run: () => emit('ebook:export-pdf') },
       { label: '📊 PPT로 내보내기 (편집 가능)', run: () => emit('ebook:export-pptx') },
       // **작성자도 발행한다**(2026-09-16). 서버는 제 자료만 열어 주므로,
       // 여기 보이는 것과 서버가 허락하는 것의 넓이가 같다.
-      { label: '↧ 이북(웹) 만들기', sc: '⌘↵', run: () => emit('ebook:build'), publish: true },
+      { label: '↧ 이북(웹) 만들기', sc: K('mod+enter'), run: () => emit('ebook:build'), publish: true },
       { sep: true },
       { label: '▷ 슬라이드쇼 (미리 보기)', run: onPresent },
       { sep: true },
       { label: '⚙ 환경설정', run: onSettings, admin: true },
     ] },
     { label: '수정', items: [
-      { label: '실행취소', sc: '⌘Z', run: () => emit('ebook:undo') },
-      { label: '재실행', sc: '⌘Y', run: () => emit('ebook:redo') },
+      { label: '실행취소', sc: K('mod+Z'), run: () => emit('ebook:undo') },
+      { label: '재실행', sc: K('mod+Y'), run: () => emit('ebook:redo') },
       { sep: true },
-      { label: '선택 요소 복제', sc: '⌘D', run: () => emit('ebook:dup') },
-      { label: '선택 요소 삭제', sc: 'Del', run: () => emit('ebook:del') },
+      { label: '선택 요소 복제', sc: K('mod+D'), run: () => emit('ebook:dup') },
+      { label: '선택 요소 삭제', sc: K('del'), run: () => emit('ebook:del') },
     ] },
     // 2026-09-17 · 「▶ 튜토리얼 (30초 시연)」이 여기로 왔다(사용자 결정).
     // 원래는 도움말 메뉴에만 있었는데 그 메뉴를 걷으면서 갈 곳이 없어졌다. 보기 메뉴가
@@ -91,7 +94,7 @@ export default function MenuBar({ onHelp, onTutorial, onNotes, onSettings, onImp
       { label: '╱  선', run: () => tool('pen') },
       { label: '🅰  Word Art (글맵시)', run: () => place('wordart') },
       { sep: true },
-      { label: '＋ 새 슬라이드', sc: '⌘M', run: () => addCard('slide') },
+      { label: '＋ 새 슬라이드', run: () => addCard('slide') },
     ] },
     { label: '서식', items: [
       { label: '굵게 (선택 요소)', run: () => emit('ebook:fmt-bold') },
@@ -104,7 +107,7 @@ export default function MenuBar({ onHelp, onTutorial, onNotes, onSettings, onImp
     { label: '슬라이드', items: [
       { label: '▷ 슬라이드쇼', run: onPresent },
       { sep: true },
-      { label: '＋ 새 슬라이드', sc: '⌘M', run: () => addCard('slide') },
+      { label: '＋ 새 슬라이드', run: () => addCard('slide') },
       { label: '⧉ 슬라이드 복제', run: () => { if (selId != null) duplicatePage(selId) } },
       { label: '🗑 슬라이드 삭제', run: () => { if (selId != null) removePage(selId) } },
       { sep: true },

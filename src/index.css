@@ -306,6 +306,11 @@ button{font-family:inherit;cursor:pointer}
  * 머리에 알약을 넣는 안(ㄱ)은 실제 폭에서 깨졌다 — 챗봇 머리는 안 줄었을 때 404px 가
  * 필요한데 쓸 수 있는 자리가 S 338 · M 458 이라, 알약이 제목을 S 에서 140px 밀어냈다.
  * 탭은 **제 줄을 써서** 폭과 다투지 않는다. 대신 세로를 한 줄 먹는다. */
+/* 도움말 · 단축키 표기 고르기(자동 · 맥 · 윈도우) — 2026-09-18 */
+.help-keys-os{float:right;display:inline-flex;align-items:center;gap:3px}
+.help-keys-os button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 8px;font:inherit;font-size:11px;font-weight:800;color:#8a93a5;cursor:pointer}
+.help-keys-os button.on{background:var(--blue-soft,#eaf0ff);border-color:#c9d8ff;color:var(--blue)}
+.help-keys-os em{font-style:normal;font-size:10.5px;color:#9aa3b2;margin-left:4px}
 .side-tabs{display:flex;flex:none;border-bottom:1px solid var(--line);background:#fafbfd}
 .side-tabs button{flex:1;border:none;background:transparent;padding:8px 4px 9px;font-size:12.5px;font-weight:800;color:#8a93a5;cursor:pointer;border-bottom:2px solid transparent;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit}
 .side-tabs button:hover{color:#3a4150}

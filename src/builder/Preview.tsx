@@ -6,6 +6,7 @@ import { useBuilder } from '../state/store'
 import PageWithCanvas from '../cards/PageWithCanvas'
 import { pageSize, ratioLabel } from '../cards/sizing'
 import { tocItems } from './util'
+import { useKey } from '../ui/keyLabel'
 
 /**
  * 미리보기(작업창).
@@ -17,6 +18,7 @@ import { tocItems } from './util'
  * 배율을 좌표에 섞어 저장하면 창 크기에 따라 문서가 달라진다.
  */
 export default function Preview() {
+  const K = useKey()
   const pages = useBuilder((s) => s.pages)
   const selId = useBuilder((s) => s.selectedPageId)
   const orientation = useBuilder((s) => s.orientation)
@@ -146,11 +148,11 @@ export default function Preview() {
       {/* 배율은 여태 **보여만 주고** 바꿀 수단이 없었다(그것도 100% 미만일 때만).
           이제 여기서 바꾼다. 「맞춤」은 창에 맞추는 자동 상태로 되돌린다. */}
       <span className="pv-zoom">
-        <button title="축소 (⌘/Ctrl −)" onClick={() => zoomBy(1 / ZSTEP)}>−</button>
+        <button title={`축소 (${K('mod')} −)`} onClick={() => zoomBy(1 / ZSTEP)}>−</button>
         <span className="v" title="화면 배율">{pct}%</span>
-        <button title="확대 (⌘/Ctrl +)" onClick={() => zoomBy(ZSTEP)}>+</button>
+        <button title={`확대 (${K('mod')} +)`} onClick={() => zoomBy(ZSTEP)}>+</button>
         <button className={'fitb' + (userZoom === null ? ' on' : '')}
-          title="창에 맞추기 (⌘/Ctrl 0)" onClick={() => setUserZoom(null)}>맞춤</button>
+          title={`창에 맞추기 (${K('mod')} 0)`} onClick={() => setUserZoom(null)}>맞춤</button>
       </span>
       {' · '}{font === 'auto' ? '자동 폰트' : '커스텀 폰트'} · 크기 {size === 's' ? '작게' : size === 'l' ? '크게' : '보통'}
     </div>

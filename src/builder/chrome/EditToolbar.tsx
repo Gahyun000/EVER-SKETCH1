@@ -1,4 +1,5 @@
 import { useCanvasUI } from '../../state/canvasUI'
+import { useKey } from '../../ui/keyLabel'
 import { pushSnap, NO_FILL } from '../../canvas/model'
 import { SHAPE_RADIUS, polyClip } from '../../canvas/shapePaths'
 import type { Tool } from '../../state/canvasUI'
@@ -535,6 +536,7 @@ function TableTools() {
 }
 
 export default function EditToolbar() {
+  const K = useKey()
   // 표준 양식 자료인가 — 서버가 심어 둔 표시. 연결 도구를 감출지 여기서 갈린다.
   const isTemplateDoc = !!useProjects((s) => s.template)
   const tool = useCanvasUI((s) => s.tool)
@@ -622,8 +624,8 @@ export default function EditToolbar() {
        문서가 움직여서, 칸을 끌던 사람이 한 줄 아래까지 고르게 된다. */
     <div className="ax-tb">
      <div className="ax-tbrow">
-      <button className="ib" title="실행취소 (⌘/Ctrl+Z)" onClick={() => emit('ebook:undo')}>↺</button>
-      <button className="ib" title="다시실행 (⌘/Ctrl+Shift+Z)" onClick={() => emit('ebook:redo')}>↻</button>
+      <button className="ib" title={`실행취소 (${K('mod+Z')})`} onClick={() => emit('ebook:undo')}>↺</button>
+      <button className="ib" title={`다시실행 (${K('mod+shift+Z')})`} onClick={() => emit('ebook:redo')}>↻</button>
       <button className={'ib save-tb state-' + saveStatus + (flash ? ' flash' : '')} title={saveTitle} aria-label="지금 저장" onClick={doSave}>
         <svg className="save-ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
       </button>

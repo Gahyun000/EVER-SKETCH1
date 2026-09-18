@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Modal from '../ui/Modal'
+import { useKey } from '../ui/keyLabel'
 
 /**
  * 검토 의견 쓰기 창.
@@ -20,6 +21,7 @@ export default function CommentComposer({
   onSubmit: (body: string) => Promise<void>
   onClose: () => void
 }) {
+  const K = useKey()
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -54,7 +56,7 @@ export default function CommentComposer({
         placeholder={'무엇이 왜 문제인지 적어 주세요.\n예) 3~5월 구간이 앞 장과 다릅니다. 어느 쪽이 맞는지 확인 부탁드립니다.'}
         onChange={(e) => setBody(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void send() }} />
-      <p className="cmt-compose-hint">⌘/Ctrl + Enter 로도 보낼 수 있어요.</p>
+      <p className="cmt-compose-hint">{K('mod+enter')} 로도 보낼 수 있어요.</p>
     </Modal>
   )
 }

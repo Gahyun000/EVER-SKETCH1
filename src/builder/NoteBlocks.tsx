@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { newBlock } from '../state/store'
 import type { Block, BlockType } from '../state/store'
+import { useKey } from '../ui/keyLabel'
 
 const TYPES: { t: BlockType; label: string; icon: string; child?: boolean }[] = [
   { t: 'text', label: '텍스트', icon: '¶', child: true },
@@ -24,6 +25,7 @@ const nextColor = (c?: string) => TEXT_COLORS[(TEXT_COLORS.indexOf(c || '#111318
 // 주의: 행(row)은 컴포넌트(<Row/>)가 아니라 함수(renderRow)로 그린다 — 매 렌더마다
 // 새 컴포넌트 타입이 만들어져 textarea 가 언마운트되며 타이핑 중 포커스가 빠지는 것을 막기 위함.
 export default function NoteBlocks({ blocks, onChange, compact }: { blocks: Block[]; onChange: (next: Block[]) => void; compact?: boolean }) {
+  const K = useKey()
   const [menuFor, setMenuFor] = useState<number | null>(null)
   const [menuQ, setMenuQ] = useState('')
   const [focusId, setFocusId] = useState<number | null>(null)
@@ -135,7 +137,7 @@ export default function NoteBlocks({ blocks, onChange, compact }: { blocks: Bloc
           onFocus={() => setActiveId(b.id)}
         />
         {!compact ? <div className="be-tools">
-          <button className={'be-tool' + (b.bold ? ' on' : '')} title="굵게 (⌘/Ctrl+B)" onClick={() => updateAt(ti, ci, { bold: !b.bold })}>B</button>
+          <button className={'be-tool' + (b.bold ? ' on' : '')} title={`굵게 (${K('mod+B')})`} onClick={() => updateAt(ti, ci, { bold: !b.bold })}>B</button>
           <button className={'be-tool' + ((b.align || 'left') === 'left' ? ' on' : '')} title="왼쪽 정렬" onClick={() => updateAt(ti, ci, { align: 'left' })}>⇤</button>
           <button className={'be-tool' + (b.align === 'center' ? ' on' : '')} title="가운데 정렬" onClick={() => updateAt(ti, ci, { align: 'center' })}>⇔</button>
           <button className={'be-tool' + (b.align === 'right' ? ' on' : '')} title="오른쪽 정렬" onClick={() => updateAt(ti, ci, { align: 'right' })}>⇥</button>

@@ -7,6 +7,7 @@ import ApprovalCard from './ApprovalCard'
 import { useBuilder } from '../../state/store'
 import type { PaperType } from '../../state/store'
 import { useCanvasUI } from '../../state/canvasUI'
+import { useKey } from '../../ui/keyLabel'
 import { useSelEl } from '../useSelEl'
 import Editor from '../Editor'
 import ColorPicker from './ColorPicker'
@@ -95,6 +96,7 @@ const DEFAULT_OPEN: Record<Tab, boolean> = {
 
 // 우측 인스펙터 — PPT/키노트식. 요소 선택 시 스타일/텍스트/정렬 3탭, 미선택 시 페이지 설정.
 export default function RightPanel() {
+  const K = useKey()
   const pages = useBuilder((s) => s.pages)
   const selId = useBuilder((s) => s.selectedPageId)
   const orientation = useBuilder((s) => s.orientation)
@@ -503,7 +505,7 @@ export default function RightPanel() {
                     {elFolded ? '▸ 펴기' : '▾ 접기'}</button>
                 ) : null}
               </div>
-              <span style={cap}>붙이면 트리가 <b>다시 앉습니다</b> — 자리가 곧 구조라서요. ⌘Z 로 한 번에 돌아갑니다.
+              <span style={cap}>붙이면 트리가 <b>다시 앉습니다</b> — 자리가 곧 구조라서요. {K('mod+Z')} 로 한 번에 돌아갑니다.
                 {elKids > 0 ? <> 접은 것은 <b>편집 화면에서만</b> 숨고, 결재·내보내기에는 다 펴져 나갑니다.</> : null}</span>
             </>) : null}
             {el.echoOf != null ? (<>
@@ -845,7 +847,7 @@ export default function RightPanel() {
               </button>
             </div>
             <span style={cap}>가지를 하나씩 옮기고 크기를 바꿀 수 있게 됩니다.
-              대신 오른쪽 칸으로 한 번에 고치는 건 그때부터 안 돼요 — 잘못 눌렀으면 ⌘Z 로 되돌립니다.</span>
+              대신 오른쪽 칸으로 한 번에 고치는 건 그때부터 안 돼요 — 잘못 눌렀으면 {K('mod+Z')} 로 되돌립니다.</span>
           </>) : null}
 
           {/* **＋ 새 뿌리**(①ㄷ). 아무것도 안 골랐을 때 여기 있다 —
