@@ -52,6 +52,9 @@ const SHAPE_CATS: { cat: string; items: { t: Tool; label: string }[] }[] = [
 ]
 const SHAPES: { t: Tool; label: string }[] = SHAPE_CATS.flatMap((c) => c.items)
 
+/** **고르면 바로 놓는 것.** 고르기·연결선은 여기 없다 — 그 둘은 누를 자리가 뜻이 있다. */
+const PLACE_TOOLS: Tool[] = ['text', 'table', 'wordart']
+
 // 도형 버튼 — PowerPoint 식. 아이콘은 항상 같은 심볼이고, 버튼 어디를 눌러도 갤러리가 열린다.
 // 셀 미리보기는 index.css 의 clip-path 를 재사용하므로 캔버스에 그려지는 모양과 동일하다.
 //
@@ -111,9 +114,9 @@ function ShapeTool() {
                         // **고르면 곧바로 놓는다**(2026-09-17). 전에는 도구만 무장하고
                         // 사람이 슬라이드를 한 번 더 눌러야 했는데, 화면에 아무 반응이 없어
                         // 고장으로 읽혔다. 놓는 일은 캔버스가 한다 — 규칙이 한 곳이어야
-                        // 되돌리기도 가둠도 빠지지 않는다(FreeLayer 의 ebook:insert-shape).
+                        // 되돌리기도 가둠도 빠지지 않는다(FreeLayer 의 ebook:place).
                         setOpen(false)
-                        window.dispatchEvent(new CustomEvent('ebook:insert-shape', { detail: { type: sh.t } }))
+                        window.dispatchEvent(new CustomEvent('ebook:place', { detail: { type: sh.t } }))
                       }}>
                       {/* 미리보기도 **같은 꼭짓점**으로 오린다. 전에는 CSS 가 오렸는데,
                           그 규칙을 캔버스와 나눠 쓰다 보니 테두리를 그릴 수 없었다. */}
@@ -629,8 +632,14 @@ export default function EditToolbar() {
 
       <span className="ax-grp gs">
         <span className="lab">구글 슬라이드</span>
+        {/* **글상자 · 표 · 글맵시도 고르면 곧바로 놓인다**(2026-09-18 · 사용자 결정 ㄷ).
+            도형이 그렇게 바뀐 뒤로 이 줄에서 **옆 단추끼리 동작이 달랐다** — 도형은 놓이고
+            그 왼쪽 T 는 커서만 십자로 바뀌었다. 고르기·연결선은 그대로 도구다(누를 자리가 뜻이 있다). */}
         {gsTools.map((g) => (
-          <button key={g.t} className={'ib' + (tool === g.t ? ' on' : '')} title={g.title} onClick={() => setTool(tool === g.t ? 'select' : g.t)}>{g.icon}</button>
+          <button key={g.t} className={'ib' + (tool === g.t ? ' on' : '')} title={g.title}
+            onClick={() => (PLACE_TOOLS.indexOf(g.t) >= 0
+              ? window.dispatchEvent(new CustomEvent('ebook:place', { detail: { type: g.t } }))
+              : setTool(tool === g.t ? 'select' : g.t))}>{g.icon}</button>
         ))}
         <ShapeTool />
         <button className="ib" title="이모지·아이콘·이미지" onClick={openPicker}>😀</button>

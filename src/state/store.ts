@@ -13,6 +13,7 @@ import type { ImportedDoc } from '../import/htmlImport'
 import { polish } from '../builder/polish'
 import { dropHistory, hasDocUndo, popDocRedo, popDocSnap, pushDocRedo, pushDocSnap, pushDocUndoRaw } from '../canvas/history'
 import type { ThemeName } from '../design/tokens'
+import { slideSpot } from './pageOrder'
 export type Orientation = 'portrait' | 'landscape'
 export type SizePreset = 's' | 'm' | 'l'
 export type PaperType = 'blank' | 'lined' | 'lined-narrow' | 'dotted' | 'grid'
@@ -248,7 +249,18 @@ export const useBuilder = create<BuilderState>((set, get) => ({
     // 슬라이드 = 빈 캔버스 편집 페이지(구글 슬라이드식). 블록편집기 없이 요소로 직접 편집.
     if (cardKey === 'slide') {
       const sp: Page = { id: uid++, cardKey: 'slide', fields: {}, free: true, els: [], conns: [], strokes: [], blocks: [], bg: '' }
-      return { pages: [...s.pages, sp], selectedPageId: sp.id }
+      /**
+       * **고른 쪽 바로 뒤에 끼운다**(2026-09-18 · 사용자 결정).
+       *
+       * 전에는 늘 **맨 끝**에 붙었다. 재 보니 2장짜리 보고서 가운데(2번째)를 골라 놓고
+       * 「＋ 슬라이드」를 눌러도 **4번째**로 갔다 — 만들고 나서 손으로 끌어 올려야 했다.
+       * 파워포인트·키노트가 고른 것 바로 뒤에 넣는 것과 같게 맞춘다.
+       *
+       * **슬라이드만 그렇게 한다.** 마인드맵·트리 같은 다른 「새 페이지」는 맨 끝 그대로다
+       * (사용자 결정). 그것들은 한 장을 통째로 펼치는 것이라 성격이 다르다.
+       */
+      const next = slideSpot(s.pages, s.selectedPageId)
+      return { pages: [...s.pages.slice(0, next), sp, ...s.pages.slice(next)], selectedPageId: sp.id }
     }
     // 마인드맵은 **카드로 두지 않고 그 자리에서 요소로 펼친다.**
     // 카드로 두면 그림이 SVG 한 덩어리라 가지 하나를 잡을 수가 없다 — 임원진이

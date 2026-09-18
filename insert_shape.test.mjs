@@ -1,4 +1,8 @@
-// **도형은 고르는 즉시 놓인다 — 그리고 포개지지 않는다.**
+// **고르는 즉시 놓인다 — 그리고 포개지지 않는다.**
+//
+// 2026-09-18 · 글상자·표·글맵시도 같은 길로 들어왔다. 그래서 알림 이름을
+// `ebook:insert-shape` → **`ebook:place`** 로 바꿨다 — 이름이 하는 일과 어긋나면
+// 다음 사람이 「도형 말고 다른 걸 놓으려면 딴 길이 있겠지」 하고 길을 하나 더 판다.
 //
 // 2026-09-17 · 사용자 영상과 한 줄: 「현재는 슬라이드를 클릭해야 도형이 뜨는데?」
 // 도형 갤러리에서 모양을 골라도 화면에는 아무 변화가 없었다. 팝업이 닫히고 커서가
@@ -92,8 +96,8 @@ const box = (x, y, bw = w, bh = h) => ({ x, y, w: bw, h: bh })
   const i = tb.indexOf("className={'shp-cell'")
   const cell = i < 0 ? '' : tb.slice(i, i + 700)
   check(i > 0, '도형 갤러리의 칸이 있다')
-  check(/ebook:insert-shape[\s\S]{0,120}type: sh\.t/.test(cell),
-    '**고른 모양을 캔버스에 알린다**(ebook:insert-shape)')
+  check(/ebook:place[\s\S]{0,120}type: sh\.t/.test(cell),
+    '**고른 모양을 캔버스에 알린다**(ebook:place)')
   check(!/setTool\(/.test(cell),
     '**무장하지 않는다** — setTool 이 돌아오면 「골랐는데 커서만 십자」인 옛 동작이 되살아난다')
   // ③ 놓는 규칙은 캔버스 한 곳에만. 도구줄이 직접 만들면 snap 도 penIn 도 안 거친다.
@@ -104,9 +108,9 @@ const box = (x, y, bw = w, bh = h) => ({ x, y, w: bw, h: bh })
 {
   const raw = read('./src/canvas/FreeLayer.tsx')
   const fl = strip(raw)
-  const i = fl.indexOf("'ebook:insert-shape'")
+  const i = fl.indexOf("'ebook:place'")
   check(i > 0, '캔버스가 그 말을 듣는다')
-  const j = fl.indexOf('const onShape')
+  const j = fl.indexOf('const onPlace')
   const body = j < 0 ? '' : fl.slice(j, j + 900)
   check(/centerSpot\(page\.els/.test(body), '자리는 **centerSpot 한 곳**이 정한다')
   check(/ADDABLE\.indexOf\(type\) < 0\) return/.test(body),
@@ -115,8 +119,42 @@ const box = (x, y, bw = w, bh = h) => ({ x, y, w: bw, h: bh })
   check(/setSel\(el\.id\)/.test(body), '놓자마자 골라 준다 — 바로 색·크기를 만질 수 있다')
   check(/setTool\('select'\)/.test(body), '놓고 나면 손을 놓는다')
   // 하나 놓을 때 하나만 생겨야 한다. 안 그러면 쪽마다 하나씩 생긴다.
-  check(/if \(!interactive\) return/.test(body.slice(0, 200)) || /if \(!interactive\) return[\s\S]{0,200}const onShape/.test(fl),
+  check(/if \(!interactive\) return/.test(body.slice(0, 200)) || /if \(!interactive\) return[\s\S]{0,200}const onPlace/.test(fl),
     '편집 중인 쪽에서만 받는다 — 아니면 쪽 수만큼 생긴다')
+}
+
+// ── ③-2 글상자·표·글맵시도 **같은 길**로 (2026-09-18) ──────
+//
+// 도형이 바뀐 뒤로 도구줄 한 줄에서 **옆 단추끼리 동작이 달랐다** — 도형은 놓이고
+// 그 왼쪽 T 는 커서만 십자로 바뀌었다. 재 보니 글상자는 **세 걸음**이었다:
+// 고르기 → 캔버스 찍기 → **두 번 눌러** 편집. 그러고도 상자에는 「텍스트」만 적혀 있었다.
+{
+  const tb = strip(read('./src/builder/chrome/EditToolbar.tsx'))
+  const menu = strip(read('./src/builder/chrome/MenuBar.tsx'))
+  const fl = strip(read('./src/canvas/FreeLayer.tsx'))
+
+  check(/const PLACE_TOOLS: Tool\[\] = \['text', 'table', 'wordart'\]/.test(tb),
+    '**놓는 것 셋을 한 곳에 적는다** — 단추마다 따로 적으면 하나가 빠진다')
+  check(/PLACE_TOOLS\.indexOf\(g\.t\) >= 0[\s\S]{0,140}ebook:place/.test(tb),
+    '도구줄의 그 셋이 같은 길로 간다')
+  // 고르기·연결선까지 놓아 버리면 **고를 수가 없어진다.**
+  check(!/PLACE_TOOLS[^\n]*'select'/.test(tb) && !/PLACE_TOOLS[^\n]*'connect'/.test(tb),
+    '고르기·연결선은 그대로 도구다 — 누를 자리가 뜻이 있다')
+  const placed = (menu.match(/run: \(\) => place\('/g) || []).length
+  check(placed === 3, '삽입 메뉴의 셋도 같은 길이다(글상자·표·글맵시)', `${placed}개`)
+  check(/const place = \(t: Tool\) => window\.dispatchEvent/.test(menu),
+    '메뉴가 직접 만들지 않고 캔버스에 알린다')
+  check(/run: \(\) => tool\('pen'\)/.test(menu), '「선」은 그대로 도구다 — 그어야 생긴다')
+
+  // **커서까지 넣어 준다.** 이게 빠지면 「텍스트」라고 적힌 빈 상자만 늘어난다.
+  check(/if \(type === 'text' \|\| type === 'wordart'\) startEditing\(el\.id\)/.test(fl),
+    '**글을 담는 것은 놓자마자 커서가 들어간다** — 빠지면 두 번 더 눌러야 써진다')
+  // 좌표를 주면 그 자리에 커서만 놓인다. 안 주어야 기본 글자가 **통째로** 골라져
+  // 그냥 치면 덮어써진다(키노트·파워포인트와 같은 손놀림).
+  check(/startEditing\(el\.id\)\n/.test(fl) || /startEditing\(el\.id\)$/m.test(fl),
+    '좌표 없이 부른다 — 그래야 기본 글자가 통째로 골라진다')
+  // 표는 넣지 않는다. 칸이 여럿이라 「어느 칸」을 정할 수 없다.
+  check(!/type === 'table'\) startEditing/.test(fl), '표는 커서를 안 넣는다 — 어느 칸일지 정할 수 없다')
 }
 
 // ── ④ **찍어서 놓는 길은 그대로다** ────────────────────────

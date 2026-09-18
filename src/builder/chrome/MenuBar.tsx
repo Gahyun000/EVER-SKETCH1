@@ -42,6 +42,8 @@ export default function MenuBar({ onHelp, onTutorial, onNotes, onSettings, onImp
 
   const emit = (n: string) => window.dispatchEvent(new CustomEvent(n))
   const tool = (t: Tool) => setTool(t)
+  /** 캔버스에 「이걸 놓아 달라」고 알린다 — 놓는 일은 캔버스가 한다(FreeLayer 의 ebook:place). */
+  const place = (t: Tool) => window.dispatchEvent(new CustomEvent('ebook:place', { detail: { type: t } }))
   const curBg = (d: boolean) => { if (selId != null) setPageBg(selId, d ? '#0e1c30' : '') }
 
   const MENUS: Menu[] = [
@@ -77,15 +79,17 @@ export default function MenuBar({ onHelp, onTutorial, onNotes, onSettings, onImp
       { label: '도움말', run: onHelp },
     ] },
     { label: '삽입', items: [
-      { label: 'T  텍스트 상자', run: () => tool('text') },
+      // **여기 셋도 고르면 바로 놓인다**(2026-09-18). 도구줄과 같은 길을 쓴다 —
+      // 메뉴와 도구줄이 다른 길을 쓰면 한쪽만 고쳐지는 날이 온다.
+      { label: 'T  텍스트 상자', run: () => place('text') },
       { label: '🖼  이미지', run: () => emit('ebook:insert-image') },
       // **도구줄의 도형 팝업을 연다**(2026-09-16). 전에는 사각형 하나를 무장시켰는데,
       // 팝업에는 스무 가지가 있어서 같은 이름이 두 곳에서 다른 말을 했다.
       // 목록을 여기에도 적지 않는다 — 두 벌이 되면 한쪽만 는다.
       { label: '◇  도형…', run: () => emit('ebook:pick-shape') },
-      { label: '▦  표', run: () => tool('table') },
+      { label: '▦  표', run: () => place('table') },
       { label: '╱  선', run: () => tool('pen') },
-      { label: '🅰  Word Art (글맵시)', run: () => tool('wordart') },
+      { label: '🅰  Word Art (글맵시)', run: () => place('wordart') },
       { sep: true },
       { label: '＋ 새 슬라이드', sc: '⌘M', run: () => addCard('slide') },
     ] },

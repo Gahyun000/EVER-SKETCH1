@@ -437,7 +437,11 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   })
 
   /**
-   * **도형 갤러리에서 고르면 곧바로 놓인다**(사용자 결정 ㄴ · 2026-09-17).
+   * **고르면 곧바로 놓인다**(사용자 결정 · 2026-09-17 도형, 2026-09-18 글상자·표·글맵시).
+   *
+   * 이름이 `ebook:insert-shape` 였는데 도형만이 아니게 되어 `ebook:place` 로 바꿨다 —
+   * 이름이 하는 일과 어긋나면 다음 사람이 「도형 말고 다른 걸 놓으려면 딴 길이 있겠지」
+   * 하고 길을 하나 더 판다.
    *
    * 바로 위 '삽입 → 이미지' 와 **같은 까닭, 같은 방식**이다. 그때 적어 둔
    * 「도구만 켜두면 한 번 더 클릭해야 하는 걸 모르는 사람이 아무 반응 없다고 느낀다」가
@@ -452,7 +456,7 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
    */
   useEffect(() => {
     if (!interactive) return
-    const onShape = (ev: Event) => {
+    const onPlace = (ev: Event) => {
       const type = (ev as CustomEvent<{ type?: string }>).detail?.type
       // 모르는 이름이 오면 **아무 일도 하지 않는다.** mkFreeEl 은 모르는 갈래를
       // 조용히 네모(DEFS.box)로 바꾸므로, 안 막으면 오타가 네모로 둔갑해서 나온다.
@@ -464,9 +468,15 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
       addEl(page.id, el)
       setSel(el.id)
       setTool('select')
+      // **글을 담는 것은 커서까지 넣어 준다**(2026-09-18). 도형은 놓아 두기만 해도 뜻이 있지만
+      // 글상자는 「텍스트」라고 적힌 빈 상자일 뿐이다 — 재 보니 지금은 여기서 **두 번 더**
+      // 눌러야 글이 써졌다(고르기 → 캔버스 찍기 → 두 번 눌러 편집, 세 걸음).
+      // 메모(note)가 이미 이렇게 한다. `startEditing` 을 좌표 없이 부르면 기본 글자가
+      // **통째로 골라져서**, 그냥 치면 덮어써진다(키노트·파워포인트와 같은 손놀림).
+      if (type === 'text' || type === 'wordart') startEditing(el.id)
     }
-    window.addEventListener('ebook:insert-shape', onShape)
-    return () => window.removeEventListener('ebook:insert-shape', onShape)
+    window.addEventListener('ebook:place', onPlace)
+    return () => window.removeEventListener('ebook:place', onPlace)
   })
 
   // 편집 중일 때, 편집 중인 요소 "밖"을 누르면 값을 저장하고 편집을 끝낸다.
