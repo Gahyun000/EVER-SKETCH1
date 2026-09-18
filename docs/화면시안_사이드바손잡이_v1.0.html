@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 사이드바 손잡이 v1.0</title>
+<style>
+  :root{
+    --ink:#1a1f2b; --muted:#6b7488; --line:#e2e6ee; --bg:#f4f6fa;
+    --blue:#2462EB; --blue-soft:#EAF1FE; --navy:#0F1B3D; --red:#d04a4a; --ok:#27794e;
+    --shline:#E6E8EE; --shtext:#5B6270;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 20px 80px}
+  h1{font-size:23px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:12px 15px;font-size:13px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:0 2px 10px rgba(20,25,40,.04);margin-top:16px}
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;
+    background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:3px 10px;margin-bottom:8px}
+  .tag.warn{background:#fdecec;color:var(--red)}
+  code{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:4px;padding:1px 5px}
+
+  .bar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0;align-items:center}
+  .bar .lb{font-size:12px;font-weight:800;color:var(--muted);margin-right:2px}
+  .bar button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;
+    font-size:13px;font-weight:800;color:#3a4150;cursor:pointer;font-family:inherit}
+  .bar button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* ── 앱 모형 — 실제 값 그대로 ─────────────────── */
+  .stage{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(20,25,40,.08);background:#fff}
+  .sh{display:flex;flex-direction:column;height:360px}
+  .sh-head{height:46px;border-bottom:1px solid var(--shline);display:flex;align-items:center;
+    gap:10px;padding:0 14px;flex:0 0 auto}
+  .sh-brand{display:flex;align-items:center;gap:7px;font-weight:800;color:var(--navy);font-size:14px}
+  .sh-brand .lg{width:22px;height:22px;border-radius:7px;background:var(--navy);color:#fff;
+    display:grid;place-items:center;font-size:12px}
+  .sh-crumb{font-size:12px;color:var(--muted);margin-left:8px}
+  .sh-body{position:relative;display:grid;grid-template-columns:214px 1fr;flex:1;min-height:0;
+    transition:grid-template-columns .16s}
+  .sh-body.shut{grid-template-columns:60px 1fr}
+  .sh-side{background:#fff;border-right:1px solid var(--shline);overflow:hidden;padding:11px 9px}
+  .sh-nav{display:flex;align-items:center;gap:10px;border-radius:10px;padding:9px 11px;
+    font-size:13px;font-weight:700;color:var(--shtext);white-space:nowrap;margin-bottom:3px}
+  .sh-nav.on{background:var(--blue-soft);color:var(--blue)}
+  .sh-nav .ic{flex:0 0 18px;text-align:center;font-size:13px}
+  .shut .sh-nav{justify-content:center;padding:9px 0}
+  .shut .sh-nav .lbl{display:none}
+  .sh-main{background:#fff;padding:14px 18px;min-width:0;overflow:hidden}
+  .fake-h{font-size:14px;font-weight:800;color:var(--navy);margin:0 0 10px}
+  .fake-row{height:11px;background:#eef1f6;border-radius:4px;margin:8px 0}
+  .fake-row.s{width:62%} .fake-row.m{width:84%}
+  .fake-chip{display:inline-block;height:26px;border:1px solid var(--line);border-radius:8px;
+    width:150px;margin-right:8px;vertical-align:middle}
+
+  /* ── ㄱ 지금 그대로(진하게만) ───────────────── */
+  .edge-a{position:absolute;top:14px;width:22px;height:22px;border-radius:50%;
+    background:#fff;border:1px solid var(--shline);color:#9aa3b2;font-size:12px;line-height:1;
+    display:grid;place-items:center;cursor:col-resize;z-index:5;padding:0;
+    box-shadow:0 1px 3px rgba(16,24,40,.14);transition:left .16s,opacity .14s}
+  /* ── ㄴ 안쪽 알약 ────────────────────────── */
+  .edge-b{position:absolute;top:14px;width:15px;height:46px;border-radius:8px 0 0 8px;
+    background:#fff;border:1px solid var(--shline);border-right:none;color:#6b7488;font-size:11px;
+    display:grid;place-items:center;cursor:col-resize;z-index:5;padding:0;
+    box-shadow:-2px 1px 4px rgba(16,24,40,.07);transition:left .16s,background .12s,color .12s,width .12s}
+  /* ── ㄷ 경계 띠 + 손잡이 ─────────────────── */
+  .edge-c-strip{position:absolute;top:0;bottom:0;width:5px;z-index:4;cursor:col-resize;
+    background:transparent;transition:left .16s,background .12s;border:none;padding:0}
+  .edge-c{position:absolute;top:12px;width:20px;height:34px;border-radius:7px;
+    background:#fff;border:1px solid #d6dbe6;color:#5B6270;font-size:11px;
+    display:grid;place-items:center;cursor:pointer;z-index:6;padding:0;
+    box-shadow:0 2px 6px rgba(16,24,40,.13);transition:left .16s,background .12s,color .12s}
+  /* ── ㄹ 머리줄 단추 ─────────────────────── */
+  .edge-d{position:absolute;top:13px;width:24px;height:24px;border-radius:7px;
+    background:transparent;border:none;color:#7d8699;font-size:13px;
+    display:grid;place-items:center;cursor:pointer;z-index:5;padding:0;transition:left .16s,background .12s}
+  .edge-d:hover{background:#F0F2F6;color:var(--navy)}
+
+  /* **색은 자리와 따로 고른다.** 「눈에 띄게」는 자리를 옮겨서도 되고 색을 올려서도 된다 —
+     둘을 한 단추에 묶어 두면 「ㄴ 이 좋은데 색은 지금이 낫다」를 고를 수 없다. */
+  .col-blue .edge-a,.col-blue .edge-b,.col-blue .edge-c{
+    background:#EAF1FE;border-color:#BFD3FB;color:var(--blue)}
+  .col-blue .edge-d{color:var(--blue)}
+  .col-blue.hov-edge .edge-a,.col-blue.hov-edge .edge-b,.col-blue.hov-edge .edge-c{
+    background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* 마우스 상태 흉내 */
+  .hov-shell .edge-a{opacity:1}
+  .hov-none .edge-a{opacity:1}          /* ㄱ 은 「늘 진하게」가 제안이므로 둘 다 1 */
+  .hov-edge .edge-a{color:var(--blue);border-color:var(--blue)}
+  .hov-edge .edge-b{background:var(--blue-soft);color:var(--blue);width:17px}
+  .hov-edge .edge-c{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .hov-shell .edge-c-strip,.hov-edge .edge-c-strip{background:#dfe7f8}
+  .hov-edge .edge-d{background:#F0F2F6;color:var(--navy)}
+  .now-edge-c-strip-drag{background:var(--blue)!important}
+
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;font-size:12.5px;align-items:center}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;
+    font-weight:800;font-size:12px;background:#f0f2f6;color:#5b6270}
+  .pill.ok{background:#e6f5ec;color:var(--ok)}
+  .pill.bad{background:#fdecec;color:var(--red)}
+  b.num{font-variant-numeric:tabular-nums}
+
+  table.t{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  table.t td,table.t th{border-bottom:1px solid var(--line);padding:8px 9px;text-align:left;
+    vertical-align:top}
+  table.t th{color:var(--muted);font-weight:800;font-size:11.5px}
+  table.t td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  ul.pt{margin:10px 0 0;padding-left:18px;font-size:13px;color:#3a4150}
+  ul.pt li{margin:6px 0}
+  ul.pt b{color:var(--ink)}
+  .good::marker{color:var(--ok)} .bad::marker{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>사이드바 손잡이 — <b>늘 보이고, 눈에 띄게</b></h1>
+  <p class="sub">2026-09-18 · 「커서 안 올려도 계속 뜨고 눈에 띄게」.
+     <b>아래 앱 모형은 실제로 눌립니다</b> — 손잡이를 누르면 접히고, 위 단추로 마우스 상태를 바꿔 봅니다.</p>
+
+  <div class="why">
+    <b>지금은 <code>opacity: .22</code> 입니다.</b> 셸에 마우스가 들어와야 1 이 됩니다.
+    그렇게 둔 이유가 주석에 적혀 있습니다 — <b>손잡이가 본문 위로 11px 걸치기 때문</b>입니다.
+    그러니 「늘 진하게」만 하면 <b>가리는 자리도 늘 보이게</b> 됩니다. 아래 넷은 그 맞바꿈을 서로 다르게 푼 것입니다.
+  </div>
+
+  <div class="bar">
+    <span class="lb">고르기</span>
+    <button data-o="a" class="on">ㄱ 지금 그대로 · 늘 진하게</button>
+    <button data-o="b">ㄴ 안쪽 알약</button>
+    <button data-o="c">ㄷ 경계 띠 + 손잡이</button>
+    <button data-o="d">ㄹ 머리줄 단추</button>
+  </div>
+  <div class="bar">
+    <span class="lb">색</span>
+    <button data-c="grey" class="on">조용한 회색 (지금 색)</button>
+    <button data-c="blue">파란 강조</button>
+    <span class="lb" style="margin-left:14px">마우스</span>
+    <button data-h="none" class="on">안 올렸을 때</button>
+    <button data-h="shell">셸 위</button>
+    <button data-h="edge">손잡이 위</button>
+    <span class="lb" style="margin-left:14px">사이드바</span>
+    <button data-s="open" class="on">펴짐 214px</button>
+    <button data-s="shut">접힘 60px</button>
+  </div>
+
+  <div class="stage">
+    <div class="sh">
+      <div class="sh-head">
+        <div class="sh-brand"><span class="lg">ℓ</span>EVER-SKETCH</div>
+        <div class="sh-crumb">내 자료 › 2026년 9월 임원회의</div>
+      </div>
+      <div class="sh-body" id="body">
+        <div class="sh-side">
+          <div class="sh-nav on"><span class="ic">🗂</span><span class="lbl">내 자료</span></div>
+          <div class="sh-nav"><span class="ic">✉</span><span class="lbl">결재함</span></div>
+          <div class="sh-nav"><span class="ic">👥</span><span class="lbl">팀 공유</span></div>
+        </div>
+        <div class="sh-main">
+          <p class="fake-h">내 자료</p>
+          <div><span class="fake-chip"></span><span class="fake-chip"></span></div>
+          <div class="fake-row m"></div><div class="fake-row"></div><div class="fake-row s"></div>
+          <div class="fake-row m"></div><div class="fake-row s"></div>
+        </div>
+        <!-- 손잡이는 여기에 꽂힙니다 -->
+      </div>
+    </div>
+  </div>
+
+  <div class="readout">
+    <span>보이게 가리는 넓이 <b class="num" id="r1">–</b></span>
+    <span>누르기를 가로채는 넓이 <b class="num" id="r4">–</b></span>
+    <span>잡히는 넓이 <b class="num" id="r2">–</b></span>
+    <span>메뉴 줄에 얹힘 <b class="num" id="r5">–</b></span>
+    <span>메뉴 글자를 가림 <b class="num" id="r6">–</b></span>
+    <span id="r3" class="pill">–</span>
+    <span class="hint" style="margin:0" id="tip"></span>
+  </div>
+
+  <div class="card">
+    <span class="tag">넷을 견준 표 — 숫자는 이 문서가 스스로 잽니다</span>
+    <table class="t">
+      <thead><tr><th>안</th><th>안 올렸을 때</th><th class="n">보이게 가림</th><th class="n">누르기 가로챔</th><th class="n">잡히는 넓이</th><th class="n">메뉴 줄에 얹힘</th><th class="n">글자 가림</th><th>맞바꾼 것</th></tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <span class="tag warn">고르기 전에 짚을 것</span>
+    <ul class="pt">
+      <li class="good"><b>지금 손잡이는 두 가지 일을 합니다</b> — <b>누르면 접히고, 끌면 폭이 바뀝니다.</b>
+        「접기 단추 따로, 끄는 띠 따로」를 일부러 피한 설계입니다(코드 주석에 그렇게 적혀 있습니다).
+        <b>ㄹ 은 그 원칙을 깹니다</b> — 머리줄로 올리면 끄는 자리는 경계선에 따로 남습니다.</li>
+      <li class="good"><b>ㄴ 은 본문을 아예 안 가립니다.</b> 손잡이가 사이드바 안쪽으로 완전히 들어가서,
+        「늘 진하게」의 대가를 치르지 않습니다. 세로로 길어 <b>「이 선을 민다」가 모양으로 읽히고</b>, 잡기도 쉽습니다.</li>
+      <li class="good"><b>ㄷ 은 잡기가 제일 쉽습니다</b> — 경계선 전체가 끄는 자리가 됩니다(VS Code·노션 방식).
+        손잡이는 누르는 일만 맡아 <b>뜻이 둘로 갈리지 않습니다.</b></li>
+      <li class="bad"><b>ㄹ 은 놓을 자리가 없습니다 — 꽂아 보고 알았습니다.</b>
+        이 사이드바에는 <b>머리줄이 없습니다.</b> 첫 줄이 곧 「내 자료」라, 오른쪽 위 구석에 단추를 놓으면
+        그 줄을 덮습니다(위 표의 「메뉴 줄 겹침」이 잰 값입니다). 자리를 만들려면 머리줄을 새로 두어야 하고,
+        그건 <b>세로 34px 을 영영 내주는 일</b>입니다 — 경계선 손잡이가 세로 자리를 안 쓰려고 고른 자리였는데요.</li>
+      <li class="bad"><b>접혔을 때(60px)를 꼭 같이 보세요.</b> 위 「접힘 60px」을 눌러 보시면 됩니다 —
+        ㄴ 의 알약은 접힌 칸 안에서 아이콘 옆에 바짝 붙습니다.</li>
+      <li class="bad"><b>모양만 바꾸면 반쪽입니다.</b> 어느 안이든 <code>opacity:.22</code> 를 없애고,
+        손가락으로 쓰는 화면에서 이미 <code>opacity:1</code> 이던 예외 규칙(<code>@media (hover:none)</code>)도
+        같이 정리해야 합니다 — 안 그러면 규칙 둘이 같은 말을 하게 됩니다.</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+const BODY = document.getElementById('body')
+const OPT = {
+  a: { name: 'ㄱ 지금 그대로 · 늘 진하게', still: '흰 동그라미 ⌀22 (지금은 흐림 .22)',
+       trade: '본문 위 11px 겹침이 늘 보인다' },
+  b: { name: 'ㄴ 안쪽 알약', still: '세로 알약 15×46, 사이드바 안쪽',
+       trade: '접혔을 때 60px 칸이 빠듯하다' },
+  c: { name: 'ㄷ 경계 띠 + 손잡이', still: '띠 5px + 손잡이 20×34',
+       trade: '띠가 늘 한 줄 보인다(마우스 오면 진해짐)' },
+  d: { name: 'ㄹ 머리줄 단추', still: '납작 단추 24×24, 사이드바 머리',
+       trade: '끄는 자리와 접는 자리가 갈라진다' },
+}
+let opt = 'a', hov = 'none', shut = false, col = 'grey'
+
+/** 손잡이를 실제 DOM 으로 꽂는다 — **재는 것과 보는 것을 같은 물건으로** 한다.
+ *  숫자를 손으로 적어 두면 모양을 고칠 때 표만 옛말이 된다. */
+function mount() {
+  ;[...BODY.querySelectorAll('[data-edge]')].forEach((n) => n.remove())
+  const W = shut ? 60 : 214
+  const add = (cls, style, html) => {
+    const b = document.createElement('button')
+    b.className = cls; b.dataset.edge = '1'; b.style.cssText = style; b.innerHTML = html
+    b.onclick = () => { shut = !shut; sync() }
+    BODY.appendChild(b); return b
+  }
+  const ch = shut ? '›' : '‹'
+  if (opt === 'a') add('edge-a', `left:${W - 11}px`, ch)
+  if (opt === 'b') add('edge-b', `left:${W - 15}px`, ch)
+  if (opt === 'c') { add('edge-c-strip', `left:${W - 2}px`, ''); add('edge-c', `left:${W - 10}px`, ch) }
+  if (opt === 'd') add('edge-d', `left:${W - 31}px`, shut ? '›' : '⇤')
+}
+
+/** 화면에서 잰다(가정이 아니라 측정). 셋을 갈라 잰다:
+ *
+ *   · `cover` — **눈에 보이게** 본문을 덮는 넓이. 바탕이 비치는 조각(ㄷ 의 띠)은 뺀다.
+ *   · `steal` — 본문 **누르기를 가로채는** 넓이. 안 보여도 손가락은 막힌다.
+ *   · `grab`  — 손잡이로 **잡히는** 넓이. 클수록 겨누기 쉽다.
+ *
+ *  보이는 것과 가로채는 것을 한 숫자로 묶으면 ㄷ 이 억울하게 나쁘게 나온다 —
+ *  그 띠는 평소 **투명**이라 아무것도 안 가리면서 3px 을 가로챌 뿐이다. */
+function measure() {
+  const main = document.querySelector('.sh-main').getBoundingClientRect()
+  let cover = 0, steal = 0, grab = 0
+  for (const n of BODY.querySelectorAll('[data-edge]')) {
+    const r = n.getBoundingClientRect()
+    grab += Math.round(r.width) * Math.round(r.height)
+    const ox = Math.max(0, Math.min(r.right, main.right) - Math.max(r.left, main.left))
+    const oy = Math.max(0, Math.min(r.bottom, main.bottom) - Math.max(r.top, main.top))
+    const a = Math.round(ox) * Math.round(oy)
+    steal += a
+    // **보이는가**는 물어보고 정한다 — 어느 조각이 투명인지 여기 적어 두면 모양을 고칠 때 거짓말이 된다.
+    const cs = getComputedStyle(n)
+    const bg = cs.backgroundColor || ''
+    const clear = /rgba\(.*,\s*0\s*\)/.test(bg) || bg === 'transparent'
+    if (!clear) cover += a
+  }
+  // **사이드바 안에 놓는 안은 제 식구와 부딪힌다.** ㄹ 을 꽂아 보고서야 알았다 —
+  // 이 사이드바에는 **머리줄이 없다.** 첫 줄이 곧 「내 자료」라, 오른쪽 위 구석에
+  // 단추를 놓으면 그 줄을 덮는다. 글로 적지 않고 여기서 잰다.
+  //
+  // **둘을 갈라 잰다.** 줄 위에 얹히는 것과 글자를 가리는 것은 다른 일이다 —
+  // 메뉴 줄의 오른쪽 끝은 원래 비어 있어서, 거기 얹히는 건 봐줄 만하다.
+  // 글자를 덮으면 그건 못 봐준다.
+  const over = (a, b) => {
+    if (!a || !b) return 0
+    const ox = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+    const oy = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+    return Math.round(ox) * Math.round(oy)
+  }
+  let hit = 0, text = 0
+  const nr = document.querySelector('.sh-nav')?.getBoundingClientRect()
+  const lr = document.querySelector('.sh-nav .lbl')?.getBoundingClientRect()
+  for (const n of BODY.querySelectorAll('[data-edge]')) {
+    const r = n.getBoundingClientRect()
+    hit += over(r, nr); text += over(r, lr)
+  }
+  return { cover: Math.round(cover), steal: Math.round(steal), grab: Math.round(grab),
+    hit: Math.round(hit), text: Math.round(text) }
+}
+
+function sync() {
+  BODY.className = 'sh-body' + (shut ? ' shut' : '')
+  document.querySelector('.stage').className = 'stage hov-' + hov + ' col-' + col
+  mount()
+  // **전환이 끝난 뒤에 잰다.** 처음에는 requestAnimationFrame 한 번만 두고 쟀는데,
+  // `.sh-body` 의 `transition: grid-template-columns .16s` 가 아직 도는 중이라
+  // **접힘으로 바꾼 직후에도 본문이 214px 자리에 있었다** — 그래서 네 안 모두
+  // 「가림 0」이라는 거짓 결과가 나왔다. 재는 순간과 보는 순간이 달랐던 것이다.
+  clearTimeout(sync._t)
+  sync._t = setTimeout(() => {
+    const m = measure()
+    document.getElementById('r1').textContent = m.cover + 'px²'
+    document.getElementById('r4').textContent = m.steal + 'px²'
+    document.getElementById('r2').textContent = m.grab + 'px²'
+    document.getElementById('r5').textContent = m.hit ? m.hit + 'px²' : '없음'
+    document.getElementById('r6').textContent = m.text ? m.text + 'px²' : '없음'
+    const r3 = document.getElementById('r3')
+    r3.className = 'pill ' + (m.cover === 0 ? 'ok' : m.cover > 300 ? 'bad' : '')
+    r3.textContent = m.cover === 0 ? '본문을 안 가림' : '본문을 가림'
+    document.getElementById('tip').textContent =
+      hov === 'none' ? '← 지금 보시는 것이 **마우스를 안 올렸을 때**입니다.'.replace(/\*\*/g, '')
+        : hov === 'shell' ? '셸 어딘가에 마우스가 있을 때.' : '손잡이에 마우스를 올렸을 때.'
+    fillTable()
+  }, 230)
+}
+
+/** 네 안을 차례로 **실제로 꽂았다 빼면서** 잰다. 표의 숫자는 그 결과다. */
+function fillTable() {
+  const keep = opt, rows = []
+  for (const k of ['a', 'b', 'c', 'd']) {
+    opt = k; mount()
+    const m = measure()
+    rows.push(`<tr${k === keep ? ' style="background:#f7f9ff"' : ''}>
+      <td><b>${OPT[k].name}</b></td><td>${OPT[k].still}</td>
+      <td class="n">${m.cover ? m.cover + 'px²' : '<b style="color:#27794e">0</b>'}</td>
+      <td class="n">${m.steal ? m.steal + 'px²' : '<b style="color:#27794e">0</b>'}</td>
+      <td class="n">${m.grab}px²</td>
+      <td class="n">${m.hit ? m.hit + 'px²' : '<b style="color:#27794e">없음</b>'}</td>
+      <td class="n">${m.text ? '<b style="color:#d04a4a">' + m.text + 'px²</b>' : '<b style="color:#27794e">없음</b>'}</td>
+      <td>${OPT[k].trade}</td></tr>`)
+  }
+  opt = keep; mount()
+  document.getElementById('tb').innerHTML = rows.join('')
+}
+
+document.querySelectorAll('.bar button').forEach((b) => b.onclick = () => {
+  const g = b.dataset.o ? 'o' : b.dataset.h ? 'h' : b.dataset.c ? 'c' : 's'
+  document.querySelectorAll(`.bar button[data-${g}]`).forEach((x) => x.classList.remove('on'))
+  b.classList.add('on')
+  if (g === 'o') opt = b.dataset.o
+  if (g === 'h') hov = b.dataset.h
+  if (g === 'c') col = b.dataset.c
+  if (g === 's') shut = b.dataset.s === 'shut'
+  sync()
+})
+sync()
+</script>
+</body>
+</html>
