@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 메모 · 챗봇 한 패널 v1.0</title>
+<style>
+  :root{
+    --ink:#1a1f2b; --muted:#6b7488; --line:#e2e6ee; --bg:#f4f6fa;
+    --blue:#2462EB; --blue-soft:#eaf0ff; --blue-line:#c9d8ff;
+    --red:#d04a4a; --warn-bg:#fdf6e6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1240px;margin:0 auto;padding:34px 20px 80px}
+  h1{font-size:23px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:17px;font-weight:800;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 24px}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:12px 15px;font-size:13px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  .note{background:var(--warn-bg);border:1px solid #f0e0b8;border-radius:10px;
+    padding:12px 15px;font-size:13px;color:#6b5320;margin:14px 0}
+  .kbd{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:5px;padding:1px 5px}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:8px}
+  @media (max-width:1060px){.cols{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:0 2px 10px rgba(20,25,40,.04)}
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;
+    background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:3px 10px;margin-bottom:8px}
+  .tag.grey{background:#f0f2f6;color:#6b7488}
+
+  /* ── 패널 모형 ───────────────────────────── */
+  .stage{background:#eceff5;border:1px solid var(--line);border-radius:12px;
+    padding:30px 14px 14px;margin:12px 0 0;position:relative}
+  .stage-lbl{position:absolute;left:13px;top:9px;font-size:11px;color:#8a93a5;font-weight:800}
+  .stage-flag{position:absolute;right:13px;top:8px;font-size:11px;font-weight:800;
+    border-radius:999px;padding:2px 9px}
+  .flag-ok{background:#e6f5ec;color:#27794e}
+  .flag-no{background:#fdecec;color:var(--red)}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    box-shadow:0 12px 30px rgba(10,12,20,.13);margin-left:auto}
+  .phead{display:flex;align-items:center;gap:7px;padding:10px 11px;border-bottom:1px solid #eef1f6;
+    overflow:hidden}
+  .plogo{width:21px;height:21px;border-radius:6px;background:#1c2536;color:#fff;flex:none;
+    display:grid;place-items:center;font-size:11px}
+  .ptitle{font-size:13.5px;font-weight:800;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .pacts{margin-left:auto;display:flex;align-items:center;gap:5px;flex:none}
+  .seg{display:inline-flex;gap:2px}
+  .seg button{width:22px;height:21px;border:1px solid var(--line);background:#fff;border-radius:6px;
+    font-size:10px;font-weight:800;color:#8a93a5;cursor:pointer;padding:0}
+  .seg button.on{background:var(--blue-soft);border-color:var(--blue-line);color:var(--blue)}
+  .ib{width:23px;height:23px;border:none;background:transparent;border-radius:6px;color:#8a93a5;
+    cursor:pointer;font-size:13px;display:grid;place-items:center;padding:0;flex:none}
+  .ib:hover{background:#f0f2f6;color:#3a4150}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+    background:#fff;border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:800;
+    color:#3a4150;cursor:pointer;white-space:nowrap;flex:none}
+  .pill:hover{border-color:var(--blue-line);background:var(--blue-soft);color:var(--blue)}
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block}
+
+  .tabs{display:flex;border-bottom:1px solid #eef1f6;background:#fafbfd}
+  .tabs button{flex:1;border:none;background:transparent;padding:8px 4px 9px;font-size:12.5px;
+    font-weight:800;color:#8a93a5;cursor:pointer;border-bottom:2px solid transparent;
+    display:inline-flex;align-items:center;justify-content:center;gap:5px}
+  .tabs button.on{color:var(--blue);border-bottom-color:var(--blue)}
+  .tabs .dot{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+
+  .pbody{height:250px;min-height:0;display:flex;flex-direction:column;background:#fff;overflow:hidden}
+
+  .splash{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:5px;padding:10px 12px}
+  .splash .mark{width:44px;height:44px;border-radius:13px;background:#1c2536;color:#fff;
+    display:grid;place-items:center;font-size:19px}
+  .splash .nm{font-size:13.5px;font-weight:800}
+  .splash .ds{font-size:11px;color:var(--muted)}
+  .chips{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;margin-top:5px}
+  .chips span{border:1px solid var(--line);border-radius:8px;padding:6px;font-size:11px;
+    text-align:center;color:#3a4150}
+  .cinput{flex:none;border-top:1px solid #eef1f6;padding:9px;display:flex;gap:7px;align-items:center}
+  .cinput i{flex:1;border:1px solid var(--line);border-radius:9px;padding:7px 9px;
+    font-style:normal;font-size:11.5px;color:#9aa3b2;white-space:nowrap;overflow:hidden}
+  .cinput b{width:29px;height:29px;border-radius:9px;background:#e9edf4;color:#9aa3b2;flex:none;
+    display:grid;place-items:center;font-size:12px}
+
+  .ntool{display:flex;gap:6px;padding:9px 10px 5px}
+  .ntool .srch{flex:1;border:1px solid var(--line);border-radius:8px;padding:5px 8px;
+    font-size:11.5px;color:#9aa3b2}
+  .ntool .sel{border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:11px;color:#3a4150}
+  .nnew{margin:2px 10px 6px;border:1px dashed var(--blue-line);background:#f7f9fc;border-radius:9px;
+    padding:7px;font-size:12px;font-weight:700;color:var(--blue);text-align:center}
+  .nlist{flex:1;min-height:0;overflow:hidden;padding:0 8px}
+  .nitem{display:flex;gap:7px;padding:8px 9px;border-radius:9px;border:1px solid transparent}
+  .nitem:nth-child(odd){background:#f6f8fc;border-color:#eef1f6}
+  .nitem .t{font-size:12px;font-weight:700}
+  .nitem .p{font-size:11px;color:var(--muted);margin-top:1px}
+  .nitem .pin{margin-left:auto;color:#c2c9d6;font-size:11px}
+
+  .fab{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);
+    border-radius:999px;box-shadow:0 8px 22px rgba(20,25,40,.16);padding:7px 12px;
+    font-size:12px;font-weight:800;color:#3a4150}
+  .gone{opacity:.42;filter:grayscale(1);position:relative}
+  .gone::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:2px;
+    background:var(--red);transform:rotate(-6deg)}
+
+  .menubar{display:flex;gap:2px;background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:5px 7px;font-size:12px;color:#3a4150;width:max-content}
+  .menubar span{padding:3px 7px;border-radius:6px}
+  .menubar span.on{background:var(--blue-soft);color:var(--blue);font-weight:800}
+  .mdrop{margin:6px 0 0 172px;width:190px;background:#fff;border:1px solid var(--line);
+    border-radius:10px;box-shadow:0 12px 30px rgba(10,12,20,.14);padding:5px;font-size:12px}
+  .mdrop div{padding:6px 9px;border-radius:7px;color:#3a4150}
+  .mdrop div.new{background:var(--blue-soft);color:var(--blue);font-weight:800}
+
+  ul.pt{margin:10px 0 0;padding-left:18px;font-size:13px;color:#3a4150}
+  ul.pt li{margin:5px 0}
+  ul.pt b{color:var(--ink)}
+  .good::marker{color:#2e9b63}
+  .bad::marker{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>메모와 챗봇을 <b>한 패널</b>로 — ㄱ · ㄷ 두 안</h1>
+  <p class="sub">2026-09-18 · 「왼쪽 메모 / 오른쪽 챗봇, 너무 과한 것 같아서」에서 나온 시안입니다.
+     아래 <b>알약과 탭은 실제로 눌립니다.</b> 폭은 실제 값 그대로입니다 —
+     챗봇 <span class="kbd">S 340 · M 460 · L 640</span>, 메모 <span class="kbd">S 320 · M 430 · L 620</span>.</p>
+
+  <div class="why">
+    <b>둘은 이미 쌍둥이입니다.</b> 머리 짜임이 같고(제목 · S M L · 닫기), 「늘 닫힌 채로 시작한다」는 규칙도 같습니다.
+    <code>notes.css</code> 첫 줄에는 아예 <b>「챗봇식 왼쪽 슬라이드 패널」</b>이라고 적혀 있습니다 —
+    원래 하나였어야 할 것이 둘로 자란 모양입니다.
+  </div>
+
+  <div class="note" id="verdict">
+    <b>실제 폭으로 그려 보니 갈리는 데가 나왔습니다 — 좁은 폭(S).</b>
+    <span id="verdictTx">재는 중…</span>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <span class="tag">ㄱ 안 · 전환 알약</span>
+      <h2>머리에 알약 하나, 눌러서 바뀐다</h2>
+      <p class="hint">S M L 왼쪽에 <b>글자 붙은 알약</b>. 지금 무엇을 보는지는 제목이, 어디로 갈지는 알약이 말합니다.</p>
+      <div id="colA"></div>
+      <ul class="pt">
+        <li class="good"><b>한 줄도 안 늘어납니다.</b> 지금 머리에 알약 하나만 붙습니다.</li>
+        <li class="good"><b>파란 점이 살아납니다.</b> 적어 둔 메모가 있으면 알약에 점이 붙습니다 — 왼쪽 아래 단추가 하던 일입니다.</li>
+        <li class="bad"><b>좁은 폭(S)에서 머리가 넘칩니다.</b> 위 S 모형을 보세요. 지금도 ＋ · ? · 닫기 셋이 들어차 있어 자리가 없습니다.</li>
+        <li class="bad">메모를 보는 동안 「챗봇이 있다」는 표시가 <b>알약 하나뿐</b>입니다.</li>
+      </ul>
+      <div class="note" style="margin-top:12px">
+        <b>S 를 살리려면</b> 둘 중 하나가 따라옵니다 —
+        ① 좁을 때는 알약의 <b>글자를 빼고 아이콘만</b>(무슨 뜻인지 다시 감춰집니다), 또는
+        ② <b>＋ · ? 를 ☰ 안으로</b> 접기(지금 한 번이면 되던 일이 두 번이 됩니다).
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="tag">ㄷ 안 · 탭 둘</span>
+      <h2>머리 아래 탭 두 칸</h2>
+      <p class="hint">둘이 있다는 사실이 <b>늘 보입니다.</b> 대신 패널이 한 줄만큼 짧아집니다.</p>
+      <div id="colB"></div>
+      <ul class="pt">
+        <li class="good"><b>좁은 폭에서도 멀쩡합니다.</b> 탭은 제 줄을 쓰니 머리와 자리를 다투지 않습니다.</li>
+        <li class="good"><b>둘 다 늘 보입니다.</b> 「메모 어디 갔지」가 안 생깁니다.</li>
+        <li class="good">지금 어디에 서 있는지 <b>밑줄</b>로 한눈에 보입니다.</li>
+        <li class="bad"><b>세로를 한 줄 먹습니다</b>(약 35px). 좁게 쓰는 사람에게는 목록이 그만큼 줄어듭니다.</li>
+        <li class="bad">가로줄이 둘(머리 + 탭)이라 조금 무거워 보입니다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 style="margin-top:30px">두 안이 <b>함께</b> 바꾸는 것</h2>
+  <p class="hint">여기는 ㄱ·ㄷ 어느 쪽을 골라도 같습니다.</p>
+
+  <div class="cols" style="margin-top:12px">
+    <div class="card">
+      <span class="tag grey">① 떠 있는 단추는 하나로</span>
+      <div style="display:flex;gap:14px;align-items:center;margin:14px 0 6px">
+        <span class="fab gone">🗒 메모 <span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span></span>
+        <span style="color:var(--muted);font-size:18px">→</span>
+        <span class="fab" style="background:#1c2536;color:#fff;border-color:#1c2536">💬 챗봇</span>
+      </div>
+      <p class="hint">왼쪽 아래 메모 단추가 사라집니다. 오른쪽 아래 챗봇 단추 하나가 두 가지를 다 엽니다.</p>
+      <div class="note"><b>여기서 잃는 게 있습니다 — 발견성.</b>
+        챗봇을 안 여는 사람은 메모장이 있는 줄 모르게 됩니다. 지금은 글자 붙은 단추가 늘 보입니다.
+        그래서 ②가 <b>딸려 와야</b> 합니다.</div>
+    </div>
+
+    <div class="card">
+      <span class="tag grey">② 도구 메뉴에 메모장</span>
+      <div class="menubar" style="margin-top:12px">
+        <span>파일</span><span>수정</span><span>보기</span><span>삽입</span>
+        <span>서식</span><span>슬라이드</span><span>정렬</span><span class="on">도구</span>
+      </div>
+      <div class="mdrop">
+        <div>⚙ 환경설정</div>
+        <div>맞춤법 검사 켜기/끄기</div>
+        <div class="new">🗒 메모장</div>
+      </div>
+      <p class="hint" style="margin-top:12px"><b>메뉴가 「찾는 사람」의 길을 맡습니다.</b>
+        구글 문서도 곁패널 메모장을 <b>도구 ▸ Keep 메모장</b>에 둡니다.
+        이웃인 「맞춤법 검사」도 문서를 바꾸는 게 아니라 옆에서 돕는 곁것이라 성격이 맞습니다.</p>
+    </div>
+  </div>
+
+  <div class="cols" style="margin-top:20px">
+    <div class="card">
+      <span class="tag grey">③ 메모가 오른쪽으로 이사</span>
+      <p style="font-size:13px;color:#3a4150;margin:10px 0 0">
+        지금 메모는 <b>왼쪽에 꽉 찬 기둥</b>(<span class="kbd">left:0</span> · 위아래 끝까지),
+        챗봇은 <b>오른쪽 둥근 카드</b>(<span class="kbd">right:12px</span>)입니다.
+        합치면 메모가 챗봇 모양을 따라 오른쪽 카드가 됩니다.</p>
+      <p class="hint">왼쪽 가장자리에는 쪽 목록과 그 접기 손잡이가 이미 있어서, 오른쪽이 덜 붐빕니다.</p>
+    </div>
+    <div class="card">
+      <span class="tag grey">④ S M L 은 모드마다 따로 기억</span>
+      <p style="font-size:13px;color:#3a4150;margin:10px 0 0">
+        지금도 각자 따로 저장합니다 — <span class="kbd">notepad-size</span> ·
+        <span class="kbd">agentic-pm-chat-size</span>. <b>그대로 둡니다.</b></p>
+      <p class="hint">메모는 넓게(L), 챗봇은 좁게(S) 쓰는 사람이 많습니다.
+        하나로 합치면 모드를 바꿀 때마다 폭이 튀어서, 아낀 것보다 성가신 게 큽니다.</p>
+    </div>
+  </div>
+
+  <div class="why" style="margin-top:22px">
+    <b>나란히 못 보는 건 문제가 안 됩니다.</b> 챗봇 답변을 메모로 저장하는 길이 이미 있습니다
+    (<code>title: '챗봇 답변'</code>). 그래서 둘을 나란히 놓고 옮겨 적을 일이 없습니다.
+  </div>
+
+  <p class="hint" style="margin-top:16px">머리의 <b>＋(새 대화)</b> · <b>?(질문 가이드)</b> · <b>☰(대화 목록)</b>은
+    챗봇 것이라 메모로 바꾸면 빠집니다 — 위 모형에서 직접 눌러 확인해 보세요.</p>
+
+</div>
+
+<script>
+const CHAT = `
+  <div class="splash">
+    <div class="mark">✎</div>
+    <div class="nm">EVER-SKETCH</div>
+    <div class="ds">AI 스케치 챗봇</div>
+    <div class="ds" style="margin-top:3px">이렇게 말해보세요</div>
+    <div class="chips">
+      <span>사각형 3개 넣어줘</span><span>세모 하나 그려줘</span>
+      <span>표지 카드 추가</span><span>다크 배경으로 바꿔줘</span>
+    </div>
+  </div>
+  <div class="cinput"><i>무엇이든 물어보세요</i><b>➤</b></div>`;
+
+const MEMO = `
+  <div class="ntool"><div class="srch">🔍 메모 검색</div><div class="sel">최근순</div></div>
+  <div class="nnew">＋ 새 메모</div>
+  <div class="nlist">
+    <div class="nitem"><div><div class="t">9월 임원회의 — 할 말</div><div class="p">투입 M/M 근거 먼저…</div></div><span class="pin">📌</span></div>
+    <div class="nitem"><div><div class="t">이슈 초안</div><div class="p">협력사 납기 2주 지연</div></div></div>
+    <div class="nitem"><div><div class="t">챗봇 답변</div><div class="p">로드맵 병합 방법</div></div></div>
+  </div>`;
+
+// 실제 값. 여기를 손으로 안 적고 코드에서 가져온다 — 두 벌이 되면 시안이 거짓말을 한다.
+const W = { S: 340, M: 460 };
+
+function panelHTML(kind, sz){
+  const head = `
+    <div class="phead">
+      <button class="ib js-chatonly">☰</button>
+      <span class="plogo">✎</span>
+      <span class="ptitle js-title">EVER-SKETCH 챗봇</span>
+      <span class="pacts">
+        ${kind === 'pill' ? `<button class="pill js-pill"><span class="js-pilltx">🗒 메모</span><span class="dot js-dot"></span></button>` : ``}
+        <span class="seg">
+          <button class="${sz==='S'?'on':''}">S</button>
+          <button class="${sz==='M'?'on':''}">M</button><button>L</button>
+        </span>
+        <button class="ib js-chatonly">＋</button>
+        <button class="ib js-chatonly">?</button>
+        <button class="ib">⤡</button>
+      </span>
+    </div>`;
+  const tabs = kind === 'tabs' ? `
+    <div class="tabs">
+      <button class="on js-t1">💬 챗봇</button>
+      <button class="js-t2">🗒 메모 <span class="dot"></span></button>
+    </div>` : ``;
+  return `
+    <div class="stage" data-sz="${sz}">
+      <span class="stage-lbl">${sz} · ${W[sz]}px</span>
+      <span class="stage-flag"></span>
+      <div class="panel" style="width:${W[sz]}px">${head}${tabs}<div class="pbody js-body"></div></div>
+    </div>`;
+}
+
+function wire(root, kind){
+  let memo = false;
+  const body = root.querySelector('.js-body');
+  const title = root.querySelector('.js-title');
+  const only = [...root.querySelectorAll('.js-chatonly')];
+  function paint(){
+    body.innerHTML = memo ? MEMO : CHAT;
+    title.textContent = memo ? '메모장' : 'EVER-SKETCH 챗봇';
+    only.forEach(b => b.style.display = memo ? 'none' : '');
+    if (kind === 'pill'){
+      root.querySelector('.js-pilltx').textContent = memo ? '💬 챗봇' : '🗒 메모';
+      // 파란 점은 「적어 둔 메모가 있다」는 신호다 — 메모를 보고 있으면 할 말이 없다.
+      root.querySelector('.js-dot').style.display = memo ? 'none' : '';
+    } else {
+      root.querySelector('.js-t1').classList.toggle('on', !memo);
+      root.querySelector('.js-t2').classList.toggle('on', memo);
+    }
+    measure(root);
+  }
+  if (kind === 'pill') root.querySelector('.js-pill').addEventListener('click', () => { memo = !memo; paint(); });
+  else {
+    root.querySelector('.js-t1').addEventListener('click', () => { memo = false; paint(); });
+    root.querySelector('.js-t2').addEventListener('click', () => { memo = true; paint(); });
+  }
+  paint();
+}
+
+// **눈대중 대신 실측으로 잰다.**
+//
+// 시험 서버에서 실제 챗봇 머리를 재 왔다(2026-09-18 · Chromium):
+//   머리가 안 줄어들었을 때 필요한 폭 = 제목 묶음 193 + 오른쪽 단추 묶음 183 + 좌우 여백 28 = **404px**
+//   쓸 수 있는 폭(테두리 뺀 안쪽) = S 338 · M 458 · L 638
+// 곧 **S 에서는 지금도 66px 모자라** 제목이 이미 줄어든 채로 뜬다.
+const NEED = 404;
+const ROOM = { S: 338, M: 458, L: 638 };
+
+function measure(stage){
+  const flag = stage.querySelector('.stage-flag');
+  const sz = stage.dataset.sz;
+  const pill = stage.querySelector('.js-pill');
+  const extra = pill ? Math.round(pill.getBoundingClientRect().width) + 5 : 0;  // 알약 + 사이 여백
+  const short = (NEED + extra) - ROOM[sz];
+  flag.className = 'stage-flag ' + (short > 0 ? 'flag-no' : 'flag-ok');
+  flag.textContent = short > 0 ? `제목이 ${short}px 잘린다` : `${-short}px 남음`;
+  return short > 0 ? { sz, short, pill: !!pill } : null;
+}
+
+for (const [id, kind] of [['colA','pill'], ['colB','tabs']]){
+  const host = document.getElementById(id);
+  host.innerHTML = ['S','M'].map(sz => panelHTML(kind, sz)).join('');
+  host.querySelectorAll('.stage').forEach(st => wire(st, kind));
+}
+
+// 결론 한 줄도 재서 쓴다 — 손으로 적으면 숫자가 바뀔 때 시안만 옛말을 한다.
+(function(){
+  const bad = [...document.querySelectorAll('#colA .stage, #colB .stage')]
+    .map(measure).filter(Boolean);
+  const a = bad.filter(b => b.pill).map(b => `${b.sz} 에서 ${b.short}px`);
+  document.getElementById('verdictTx').innerHTML =
+    `ㄱ 의 알약은 <b>제목을 밀어냅니다</b> — ${a.join(' · ')}. ` +
+    `그런데 ㄱ 에서 「지금 메모인가 챗봇인가」를 말해 주는 것이 바로 그 제목입니다. ` +
+    `ㄷ 의 탭은 제 줄을 써서 폭과 상관이 없고, 어디에 서 있는지도 탭이 말합니다. ` +
+    `(S 는 알약이 없어도 이미 66px 모자라 제목이 줄어든 채로 뜹니다 — 이건 지금도 그렇습니다.)`;
+})();
+</script>
+</body>
+</html>
