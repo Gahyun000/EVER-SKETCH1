@@ -247,7 +247,7 @@ export default function ApprovalCard() {
             )}
             {shape === 'draft' && (
               <div className="apc-ms"><span className="frz">내면 지금 문서가 그대로 얼어붙습니다.</span>
-                {' '}뒤에 고쳐도 결재본은 안 바뀝니다.</div>
+                {' '}반려 시 수정 가능(승인되면 수정 요청 해야함).</div>
             )}
             <div className="apc-chk">
               <div className={dirty ? 'no' : saving ? 'wait' : 'ok'}>
