@@ -22,6 +22,8 @@ export default function Filmstrip() {
   const removePage = useBuilder((s) => s.removePage)
   const items = tocItems(pages)
 
+  const addCard = useBuilder((st) => st.addCard)
+
   const listRef = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
@@ -94,8 +96,57 @@ export default function Filmstrip() {
   const scale = miniW / W
   const miniH = H * scale
 
+  /**
+   * **슬라이드 목록에서 키보드로 움직인다**(2026-09-18 · 사용자 결정).
+   *
+   * 파워포인트 영상에서 나온 일이다 — 「슬라이드 누르고 엔터 누르면 빈 슬라이드가 하나
+   * 생성되고, 키보드로 밑에 슬라이드로 넘어가는 기능」. 재 보니 우리는 썸네일이 그냥
+   * `div` 라 **포커스를 못 받았고**(눌러도 focus 가 body 에 남았다), 엔터도 방향키도
+   * 아무 일이 없었다.
+   *
+   * **전역 단축키로 만들지 않는다.** ↑↓ 는 이미 「고른 도형 1px 옮기기」다(Hotkeys).
+   * 전역으로 걸면 둘이 정면으로 부딪힌다 — 파워포인트도 **초점이 어디 있느냐**로 가른다.
+   * 그래서 이 목록 안에서만 듣고, 처리한 키는 `stopPropagation` 으로 캔버스까지 안 보낸다.
+   *
+   * 엔터로 만든 슬라이드는 **고른 것 바로 뒤**에 들어간다(store 의 slideSpot).
+   *
+   * 삭제(Delete)는 **아직 안 넣었다.** 되돌리기가 쪽 단위로 따로 관리돼서(`snapDoc`),
+   * 실수로 한 장을 날렸을 때 어떻게 돌아오는지 먼저 확인해야 한다.
+   */
+  const go = (i: number) => {
+    const t = pages[Math.max(0, Math.min(pages.length - 1, i))]
+    if (t) selectPage(t.id)
+  }
+  function onKey(e: React.KeyboardEvent<HTMLDivElement>) {
+    const at = pages.findIndex((p) => p.id === sel)
+    const eat = () => { e.preventDefault(); e.stopPropagation() }
+    if (e.key === 'ArrowDown') { eat(); go(at + 1); return }
+    if (e.key === 'ArrowUp') { eat(); go(at - 1); return }
+    if (e.key === 'Home') { eat(); go(0); return }
+    if (e.key === 'End') { eat(); go(pages.length - 1); return }
+    if (e.key === 'Enter') { eat(); addCard('slide'); return }
+  }
+
+  /**
+   * **초점이 고른 쪽을 따라간다.**
+   *
+   * 「지금 고른 것」이 눈에는 파랗게 보이는데 초점은 딴 데 있으면, 다음 ↑ 가 엉뚱한 데서
+   * 출발한다. 다만 **이미 목록 안에 초점이 있을 때만** 옮긴다 — 안 그러면 캔버스에서
+   * 글을 치는 도중에 초점을 빼앗아 간다.
+   */
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || !list.contains(document.activeElement)) return
+    const cur = list.querySelector<HTMLElement>('.axth.on')
+    if (cur && cur !== document.activeElement) {
+      cur.focus()
+      cur.scrollIntoView({ block: 'nearest' })
+    }
+  }, [sel, pages.length])
+
   return (
-    <div className={'axth-list' + (drag ? ' dragging' : '')} ref={listRef}>
+    <div className={'axth-list' + (drag ? ' dragging' : '')} ref={listRef}
+      role="listbox" aria-label="슬라이드 목록" onKeyDown={onKey}>
       {pages.map((p, i) => {
         const cls = 'axth'
           + (p.id === sel ? ' on' : '')
@@ -103,7 +154,10 @@ export default function Filmstrip() {
           + (drag && drag.dropAt === i ? ' dropbefore' : '')
           + (drag && drag.dropAt === pages.length && i === pages.length - 1 ? ' dropafter' : '')
         return (
+          // **고른 것만 Tab 으로 들어온다**(roving tabindex). 쪽이 서른이면 Tab 을 서른 번
+          // 눌러야 목록을 지나치게 되는데, 그건 키보드로 쓰는 사람에게 벽이다.
           <div key={p.id} data-idx={i} className={cls} onClick={() => selectPage(p.id)}
+            role="option" aria-selected={p.id === sel} tabIndex={p.id === sel ? 0 : -1}
             onPointerDown={(e) => onDragStart(e, i)}>
             <span className="axth-no" title="끌어서 순서 바꾸기">{i + 1}</span>
             <div className="axth-mini" style={{ width: miniW, height: miniH }}>

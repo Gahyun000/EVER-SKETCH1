@@ -137,6 +137,11 @@
 .axth-list{display:flex;flex-direction:column;gap:10px;padding:6px 10px 12px;flex:1 1 auto;min-height:0;overflow:auto}
 .axth{display:flex;gap:8px;align-items:flex-start;cursor:pointer;border-radius:8px;padding:3px}
 .axth:hover{background:var(--ax-plane)}
+/* **키보드로 들어왔을 때 어디에 서 있는지.** 2026-09-18 에 이 목록이 포커스를 받게 되면서
+   필요해졌다 — 고른 표시(파란 테두리)와 초점은 다른 것이다. 같이 보여야
+   「지금 ↑ 를 누르면 어디서 출발하나」가 읽힌다. 마우스로 누를 때는 안 뜬다(:focus-visible). */
+.axth:focus{outline:none}
+.axth:focus-visible{background:var(--ax-plane);box-shadow:0 0 0 2px rgba(42,120,214,.55)}
 .axth-no{font-size:11px;color:var(--ax-muted);width:14px;text-align:right;padding-top:16px;font-variant-numeric:tabular-nums;flex:0 0 auto}
 .axth-mini{position:relative;border:1px solid var(--ax-line);border-radius:6px;overflow:hidden;background:#fff;flex:0 0 auto}
 .axth.on .axth-mini{outline:2px solid var(--ax-blue);border-color:var(--ax-blue)}
