@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 결재 제출 확인 v1.0</title>
+<style>
+  :root{
+    --ink:#1a1f2b; --muted:#6b7488; --line:#e2e6ee; --bg:#f4f6fa;
+    --blue:#2462EB; --blue-soft:#eaf0ff; --blue-line:#c9d8ff;
+    --navy:#16234a; --red:#d04a4a; --warn-bg:#fdf6e6; --warn-line:#f0e0b8;
+    --ok:#27794e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1220px;margin:0 auto;padding:34px 20px 80px}
+  h1{font-size:23px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:17px;font-weight:800;margin:28px 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:12px 15px;font-size:13px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  .note{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:10px;
+    padding:12px 15px;font-size:13px;color:#6b5320;margin:14px 0}
+  .kbd{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:5px;padding:1px 5px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:0 2px 10px rgba(20,25,40,.04)}
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;
+    background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:3px 10px;margin-bottom:8px}
+  .tag.grey{background:#f0f2f6;color:#6b7488}
+  .tag.warn{background:#fdecec;color:var(--red)}
+
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
+  @media (max-width:1100px){.cols{grid-template-columns:1fr}}
+
+  /* ── 창 모형 ── */
+  .stage{background:#dfe3ea;border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;
+    min-height:360px;display:flex;align-items:flex-start;justify-content:center}
+  .dlg{width:100%;max-width:420px;background:#fff;border-radius:14px;padding:18px 20px 20px;
+    box-shadow:0 24px 70px rgba(15,27,61,.28);font-size:13px;line-height:1.65;color:#5b6270}
+  .dlg h3{margin:0 0 12px;font-size:16.5px;font-weight:800;color:var(--navy);line-height:1.35}
+  .dlg b{color:#1c2433}
+  .dlg .in{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-top:12px;
+    font:inherit;font-size:12.5px;color:#9aa3b2;background:#fff}
+  .dlg .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .btn{border:1.4px solid var(--line);background:#fff;color:#334155;font-weight:800;font-size:13px;
+    border-radius:9px;padding:8px 16px;cursor:pointer;font-family:inherit}
+  .btn.dark{border:none;background:var(--navy);color:#fff}
+  .btn.dark:disabled{background:#98a0b2;cursor:progress}
+  .btn.danger{border:none;background:#b4232a;color:#fff}
+  .yellow{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:9px;
+    padding:8px 11px;margin-top:11px;font-size:12.2px;color:#6b5320}
+  .yellow.flash{animation:fl .9s steps(1) infinite}
+  @keyframes fl{0%,60%{opacity:1}61%,100%{opacity:0}}
+  .danger-box{background:#fdf1f1;border:1px solid #f2cdcd;border-left:3px solid #b4232a;
+    border-radius:0 9px 9px 0;padding:10px 12px;margin:12px 0 0;font-size:12.6px;color:#6b2020}
+  .danger-box b{color:#8c1a1a}
+  .ok-box{background:#eef7f1;border:1px solid #cfe6d9;border-radius:9px;padding:10px 12px;
+    margin-top:12px;font-size:12.6px;color:#215c3f}
+  .ok-box b{color:#17462f}
+  .mini{max-width:340px}
+  .tick{font-size:11px;color:var(--muted);text-align:center;margin-top:8px}
+
+  .steps{display:flex;gap:6px;margin-top:10px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+  .steps span{background:#f0f2f6;border-radius:999px;padding:2px 9px;font-weight:800}
+  .steps span.on{background:var(--blue-soft);color:var(--blue)}
+
+  ul.pt{margin:10px 0 0;padding-left:18px;font-size:13px;color:#3a4150}
+  ul.pt li{margin:5px 0}
+  ul.pt b{color:var(--ink)}
+  .good::marker{color:var(--ok)} .bad::marker{color:var(--red)}
+  table.t{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left}
+  table.t th{color:var(--muted);font-weight:800;font-size:11.5px}
+  code{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:4px;padding:1px 5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>결재 제출 — <b>확인을 어떻게 받을까</b></h1>
+  <p class="sub">2026-09-18 · 「제출을 눌렀을 때 제출하시겠습니까? 모달 뜨고 확인을 누르면 제출이 돼야지」에서 나온 시안입니다.
+     아래 <b>세 창은 실제로 눌립니다.</b> 「취소」로 처음으로 돌아옵니다.</p>
+
+  <!-- ── 먼저 고쳐야 하는 것 ── -->
+  <div class="card">
+    <span class="tag warn">어느 길을 고르든 — 먼저 고쳐야 하는 것</span>
+    <h2 style="margin-top:4px">누르는 순간 <b>노란 경고가 25ms 깜빡입니다</b></h2>
+    <p class="hint">시험 서버에서 20ms 간격으로 재 봤습니다. <b>저장이 다 된 자료인데도</b> 이렇게 됩니다.</p>
+    <table class="t">
+      <tbody>
+        <tr><td><code>+21ms</code></td><td>단추 「제출」</td><td>아직 안 쓴 자리가 3군데…</td></tr>
+        <tr><td><code>+40ms</code></td><td>단추 「제출 중…」</td><td><b style="color:#b4232a">저장 안 된 변경이 있습니다 — 저장한 뒤에 냅니다</b></td></tr>
+        <tr><td><code>+65ms</code></td><td>단추 「제출 중…」</td><td>(사라짐)</td></tr>
+        <tr><td><code>+100ms</code></td><td colspan="2">창 닫힘</td></tr>
+      </tbody>
+    </table>
+    <p class="hint">까닭은 한 줄입니다 — <code>unsaved = status === 'dirty' || 'saving' || 'error'</code>.
+      <b>「지금 저장 중」을 「아직 저장 안 됨」과 한 덩어리로</b> 묶어 놨는데, 제출은 반드시 저장을 거치므로
+      <b>누를 때마다 반드시</b> 그 상태를 지납니다. 보내 주신 영상의 두 번째 장면이 그 순간입니다.</p>
+    <div class="note"><b>고치는 법</b> — 「저장 중」을 따로 가릅니다. 저장 중일 때는 단추가 이미 「제출 중…」이라
+      따로 말할 필요가 없고, 카드 본문도 「저장 안 된 변경이 있습니다」가 아니라 <b>「저장 중…」</b>으로 적습니다.</div>
+  </div>
+
+  <h2>세 가지 길</h2>
+  <div class="cols">
+
+    <!-- ㄱ -->
+    <div class="card">
+      <span class="tag">ㄱ · 한 번 더 묻는다</span>
+      <h3 style="margin:0;font-size:15px">지금 창 + 「제출하시겠습니까?」</h3>
+      <div class="steps" id="stepsA"></div>
+      <div class="stage"><div id="a"></div></div>
+      <ul class="pt">
+        <li class="good">말씀하신 그대로입니다. <b>엉겁결에 눌러도 한 번 더 막힙니다.</b></li>
+        <li class="bad"><b>확인이 두 번입니다.</b> 창 하나를 지나 또 창이 뜨면, 사람은 두 번째를 <b>읽지 않고 누릅니다</b> — 안전장치가 오히려 약해집니다.</li>
+        <li class="bad">두 번째 창에는 <b>적을 말이 별로 없습니다.</b> 되돌릴 수 없다는 얘기는 이미 앞 창에서 했습니다.</li>
+      </ul>
+    </div>
+
+    <!-- ㄴ -->
+    <div class="card">
+      <span class="tag">ㄴ · 이 창을 확인 창답게</span>
+      <h3 style="margin:0;font-size:15px">창 하나로 끝낸다</h3>
+      <div class="steps" id="stepsB"></div>
+      <div class="stage"><div id="b"></div></div>
+      <ul class="pt">
+        <li class="good"><b>무서운 문장이 눈에 들어옵니다.</b> 지금은 회색 본문에 묻혀 있습니다.</li>
+        <li class="good">단추가 <b>「예, 제출합니다」</b>라 무엇을 누르는지가 단추에 적혀 있습니다.</li>
+        <li class="good">「전달할 말」을 위로 올려서, <b>이 창이 입력 창이 아니라 확인 창</b>으로 읽힙니다.</li>
+        <li class="bad">여전히 <b>창 하나</b>입니다 — 한 번 더 막히길 원하시면 모자랍니다.</li>
+      </ul>
+    </div>
+
+    <!-- ㄷ -->
+    <div class="card">
+      <span class="tag">ㄷ · ㄴ + 되돌릴 길</span>
+      <h3 style="margin:0;font-size:15px">낸 뒤에 「회수」를 알려 준다</h3>
+      <div class="steps" id="stepsC"></div>
+      <div class="stage"><div id="c"></div></div>
+      <ul class="pt">
+        <li class="good"><b>엉겁결에 눌러도 실제로 복구됩니다.</b> 관리자가 결정하기 전이면 회수할 수 있습니다.</li>
+        <li class="good">회수가 있다는 걸 <b>여기서 처음 아는 사람이 많을</b> 겁니다 — 지금은 결재함에 들어가야 보입니다.</li>
+        <li class="bad">회수해도 <b>이력에는 남습니다.</b> 그래서 안내에 그 말을 같이 적어야 합니다 — 안 적으면 「없던 일로 되는구나」로 읽힙니다.</li>
+        <li class="bad">창이 하나 더 늘진 않지만 <b>낸 뒤 한 번 더 읽을 것</b>이 생깁니다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="why">
+    <b>되돌릴 수 있는지 서버에서 확인했습니다 — 반쯤입니다.</b>
+    관리자가 결정하기 전이면 <b>회수</b>할 수 있습니다(<code>server/approvals.py</code>).
+    다만 회수해도 <b>이력에는 남고</b>, 「한 번이라도 결재를 탄 자료는 못 지운다」는 풀리지 않습니다(D16).
+    그러니 제출은 <b>완전히 돌이킬 수 없는 일도, 가벼운 일도 아닙니다.</b>
+  </div>
+
+</div>
+
+<script>
+const TITLE = 'EVER-SKETCH 기획 · 설계 사상'
+const GAP = '아직 안 쓴 자리가 3군데 있습니다. 그대로 내셔도 됩니다.'
+
+const esc = (s) => s
+const body = () => `<b>${TITLE}</b> 을(를) 관리자에게 제출합니다.<br><br>
+  <b>지금 이 문서가 그대로 얼어붙습니다.</b> 제출한 뒤에 고쳐도 결재본은 바뀌지 않습니다.<br>
+  한 번이라도 제출하면 <b>이 자료는 지울 수 없습니다.</b>`
+
+// ── ㄱ : 지금 창 그대로 + 확인 창 하나 더 ──────────────
+const A = {
+  steps: ['결재 제출', '제출하시겠습니까?', '냈습니다'],
+  view(i, go) {
+    if (i === 0) return `<div class="dlg">
+      <h3>결재 제출</h3>${body()}
+      <div class="yellow">${GAP}</div>
+      <div class="in">전달할 말 (선택)</div>
+      <div class="foot"><button class="btn" data-go="0">취소</button>
+        <button class="btn dark" data-go="1">제출</button></div></div>`
+    if (i === 1) return `<div class="dlg mini">
+      <h3>제출하시겠습니까?</h3>
+      되돌릴 수 없습니다.
+      <div class="foot"><button class="btn" data-go="0">취소</button>
+        <button class="btn dark" data-go="2">확인</button></div></div>`
+    return done(false)
+  },
+}
+
+// ── ㄴ : 창 하나, 확인 창답게 ─────────────────────────
+const Bv = {
+  steps: ['정말 제출할까요?', '냈습니다'],
+  view(i) {
+    if (i === 0) return `<div class="dlg">
+      <h3>정말 제출할까요?</h3>
+      <b>${TITLE}</b> 을(를) 관리자에게 제출합니다.
+      <div class="in">전달할 말 (선택)</div>
+      <div class="danger-box">
+        <b>지금 이 문서가 그대로 얼어붙습니다.</b> 뒤에 고쳐도 결재본은 안 바뀝니다.<br>
+        한 번이라도 내면 <b>이 자료는 지울 수 없습니다.</b>
+      </div>
+      <div class="yellow">${GAP}</div>
+      <div class="foot"><button class="btn" data-go="0">취소</button>
+        <button class="btn dark" data-go="1">예, 제출합니다</button></div></div>`
+    return done(false)
+  },
+}
+
+// ── ㄷ : ㄴ + 낸 뒤 회수 안내 ─────────────────────────
+const C = {
+  steps: ['정말 제출할까요?', '냈습니다 · 회수 안내'],
+  view(i) {
+    if (i === 0) return Bv.view(0)
+    return done(true)
+  },
+}
+
+function done(withUndo) {
+  return `<div class="dlg mini">
+    <h3>냈습니다</h3>
+    <b>${TITLE}</b> 이(가) 관리자에게 갔습니다. 이제 <b>결재 중</b>입니다.
+    ${withUndo ? `<div class="ok-box">
+      마음이 바뀌면 <b>결재함에서 회수</b>할 수 있습니다 — 관리자가 결정하기 전까지요.<br>
+      <span style="opacity:.8">회수해도 <b>이력에는 남습니다.</b></span>
+    </div>
+    <div class="foot"><button class="btn" data-go="0">닫기</button>
+      <button class="btn dark" data-go="0">결재함으로</button></div>`
+    : `<div class="foot"><button class="btn dark" data-go="0">닫기</button></div>`}
+  </div>`
+}
+
+function mount(id, spec, stepsId) {
+  let i = 0
+  const host = document.getElementById(id)
+  const steps = document.getElementById(stepsId)
+  function paint() {
+    host.innerHTML = spec.view(i)
+    steps.innerHTML = spec.steps.map((t, k) =>
+      `<span class="${k === Math.min(i, spec.steps.length - 1) ? 'on' : ''}">${k + 1}. ${t}</span>`).join('')
+    host.querySelectorAll('[data-go]').forEach((b) => b.onclick = () => { i = +b.dataset.go; paint() })
+  }
+  paint()
+}
+mount('a', A, 'stepsA')
+mount('b', Bv, 'stepsB')
+mount('c', C, 'stepsC')
+</script>
+</body>
+</html>
