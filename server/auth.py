@@ -592,6 +592,55 @@ def set_name(actor_id: str, target_id: str, name: str) -> dict:
     return result
 
 
+def set_own_password(user_id: str, new_pw: str) -> None:
+    """**관리자가 제 비밀번호를 옛 값 없이 바꾼다**(2026-09-18 · 사용자 결정).
+
+    ── 무엇을 푸는가 ──
+    관리자가 **한 명**인 조직에서 그 사람이 비밀번호를 잊으면, 화면으로는 길이 없었다.
+    `reset_password` 는 본인을 막고(아래 참고), `change_password` 는 옛 값을 묻는다.
+    남는 길은 서버에 들어가 `admin_cli reset-pw` 를 치는 것뿐이었다.
+
+    ── 왜 「초기화」가 아니라 「직접 정하기」인가 ──
+    본인 초기화를 여는 쪽이 말은 쉬운데, **그 길은 사람을 가둔다.** 초기화는 세션을
+    끊으므로 내 창이 그 자리에서 로그인 화면으로 튕기고, **한 번만 보이는 임시
+    비밀번호가 그 화면과 함께 사라진다**(시험 서버에서 재 봤다 — 남의 것을 초기화하자
+    그 창이 「로그인이 만료되어…」로 바뀌었다). 관리자가 한 명이면 그 순간 갇힌다.
+    본인이 값을 **직접 정하면** 놓칠 글자가 없다.
+
+    ── 한계 ──
+    이건 「**로그인은 살아 있는데 비밀번호가 기억 안 나는**」 경우만 푼다. 이미
+    로그아웃됐다면 눌러야 할 단추가 로그인 안에 있으므로 여전히 `admin_cli` 뿐이다.
+    그래서 매뉴얼은 **관리자를 둘 이상 두라**고 먼저 권한다.
+
+    ── 무엇을 내주는가 ──
+    옛 비밀번호 확인은 **자리를 비운 사이 누가 계정을 가져가는 것**을 막던 장치였다.
+    그걸 관리자에 한해 뺀다. 이미 그 사람은 열린 관리자 세션으로 무엇이든 할 수
+    있지만, 「잠깐의 세션」이 「계속 쓰는 자격」으로 바뀌는 것은 다른 일이다.
+    그래서 **감사로그에 다른 이름으로 남긴다**(`change_pw_noold`) — 평범한 변경과
+    섞이면 나중에 무엇이 있었는지 못 가린다.
+
+    **관리자인지는 여기서 안 본다.** 부르는 쪽(라우터)이 `USER_MANAGE` 로 막는다 —
+    권한 판단을 두 곳에 두면 한쪽만 바뀌는 날이 온다.
+    """
+    if not new_pw or len(new_pw) < 8:
+        raise AuthError("새 비밀번호는 8자 이상이어야 합니다.")
+    c = _conn()
+    try:
+        r = c.execute("SELECT pw_hash FROM Users WHERE id=?", (user_id,)).fetchone()
+        if not r:
+            raise AuthError("사용자를 찾을 수 없습니다.")
+        if verify_pw(new_pw, r[0]):
+            raise AuthError("쓰던 비밀번호와 다르게 정해 주세요.")
+        c.execute("UPDATE Users SET pw_hash=?, must_change_pw=0 WHERE id=?",
+                  (hash_pw(new_pw), user_id))
+        c.commit()
+    finally:
+        c.close()
+    # 바꿨으면 다른 기기의 세션은 모두 끊는다 — change_password 와 같게 맞춘다.
+    _kill_sessions(user_id)
+    audit(user_id, "change_pw_noold", user_id)
+
+
 def change_password(user_id: str, old_pw: str, new_pw: str) -> None:
     if not new_pw or len(new_pw) < 8:
         raise AuthError("새 비밀번호는 8자 이상이어야 합니다.")

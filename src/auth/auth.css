@@ -61,6 +61,21 @@
 .es-msg.err { background: #fdf0f0; border: 1px solid #f0d6d6; color: #7d2027; }
 .es-msg.ok { background: #E9F5EF; border: 1px solid #cfe9dd; color: #215c46; }
 .es-msg.info { background: var(--tint); border: 1px solid #c6d5ff; color: #1a4fc4; }
+/* **무엇을 내주는지 적는 칸**(2026-09-18). 옛 비밀번호 확인을 빼는 자리에 쓴다 —
+   err(빨강)는 「잘못됐다」이고 이건 「알고 하는 것」이라 색이 달라야 한다. */
+.es-msg.warn { background: #FFF4E3; border: 1px solid #f0dcbb; color: #7a4f0c; }
+.es-msg.warn b { color: #5c3a05; }
+
+/* 글처럼 생긴 단추. `.es-inline` 은 이미 「입력칸 + 작은 단추」 묶음이 쓰고 있어
+   그 이름을 뺏지 않는다 — 한 이름이 두 모양을 하면 한쪽을 고칠 때 다른 쪽이 깨진다. */
+.es-link { display: inline; border: none; background: none; padding: 0; font: inherit;
+  font-size: 12.5px; font-weight: 700; color: #2462EB; cursor: pointer; text-decoration: underline; }
+.es-link:hover { color: #1b4dbb; }
+.es-msg.warn .es-link { display: block; margin-top: 7px; color: #8a5a12; }
+/* 「기억나지 않습니다」 — 단추 아래, 작고 조용하게. 평소 길은 위의 큰 단추다. */
+.es-forgot { display: block; margin: 12px auto 0; font-size: 12px; color: #6b7488;
+  font-weight: 700; text-decoration: underline; }
+.es-forgot:hover { color: #2462EB; }
 
 /* 승인 대기 */
 .es-wait-ico {

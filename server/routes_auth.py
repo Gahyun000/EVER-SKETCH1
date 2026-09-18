@@ -118,6 +118,30 @@ def change_password(req: ChangePwIn, response: Response, user: dict = Depends(re
     return {"ok": True, "message": "비밀번호를 바꿨습니다. 다시 로그인해 주세요."}
 
 
+class SetOwnPwIn(BaseModel):
+    new_password: str
+
+
+@router.post("/password/force")
+def set_own_password(req: SetOwnPwIn, response: Response, user: dict = Depends(require_login)):
+    """**관리자가 제 비밀번호를 옛 값 없이 정한다.** 대상은 언제나 부른 사람 자신이다.
+
+    **길을 따로 낸 이유.** `/password` 에 「옛 값은 생략 가능」을 얹는 쪽이 짧지만,
+    그러면 화면이 실수로 빈 문자열을 보냈을 때 **옛 값 확인이 조용히 통과한다.**
+    길이 다르면 그런 식으로는 못 샌다.
+
+    `USER_MANAGE` 로 막는 것은 이 동작이 사용자 관리라서가 아니라, **관리자 표시**로
+    이 저장소가 줄곧 쓰는 것이 이것이기 때문이다(_ADMIN_ONLY).
+    """
+    require_action(user, perm.USER_MANAGE)
+    try:
+        auth_store.set_own_password(user["id"], req.new_password)
+    except auth_store.AuthError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    clear_session_cookie(response)
+    return {"ok": True, "message": "비밀번호를 바꿨습니다. 다시 로그인해 주세요."}
+
+
 # ── 사용자 관리 (관리자 전용) ─────────────────────────────
 @router.get("/users")
 def list_users(status: Optional[str] = None, user: dict = Depends(require_login)):

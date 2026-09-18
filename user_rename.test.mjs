@@ -41,7 +41,14 @@ check(/apiSetName\(u\.id/.test(ui), '사용자 관리 화면이 그걸 부른다
 
 // ── 값을 거른다 ─────────────────────────────────────
 {
-  const fn = auth.slice(auth.indexOf('def set_name'), auth.indexOf('def change_password'))
+  // **다음 함수까지만 자른다.** 원래는 `def change_password` 를 끝 표지로 삼았는데,
+  // 2026-09-18 에 그 사이로 `def set_own_password` 가 들어오면서 **남의 함수 본문까지
+  // 같이 잘렸고**, 거기 있는 `_kill_sessions` 때문에 「이름을 바꿨다고 쫓아내지 않는다」가
+  // 거짓으로 실패했다. 규칙이 깨진 것이 아니라 자르는 자리가 깨진 것이었다 —
+  // 이웃 이름을 표지로 쓰면 이웃이 바뀔 때마다 이런다.
+  const _i = auth.indexOf('def set_name')
+  const _j = auth.indexOf('\ndef ', _i + 1)
+  const fn = auth.slice(_i, _j < 0 ? auth.length : _j)
   check(/name = \(name or ""\)\.strip\(\)/.test(fn), '앞뒤 공백을 턴다')
   check(/if not name:/.test(fn), '빈 이름을 막는다')
   check(/len\(name\) > MAX_NAME/.test(fn),

@@ -105,6 +105,14 @@ export async function apiChangePassword(old_password: string, new_password: stri
   })
 }
 
+/** **관리자가 제 비밀번호를 옛 값 없이 정한다.** 길이 따로인 이유는 서버 주석 참고 —
+ *  `/password` 에 「옛 값 생략」을 얹으면 빈 문자열 하나로 확인이 조용히 통과한다. */
+export async function apiSetOwnPassword(new_password: string): Promise<{ message: string }> {
+  return req<{ ok: boolean; message: string }>('/password/force', {
+    method: 'POST', body: JSON.stringify({ new_password }),
+  })
+}
+
 // ── 사용자 관리 (L3) ──
 export async function apiListUsers(status?: string): Promise<Me[]> {
   const q = status ? `?status=${encodeURIComponent(status)}` : ''
