@@ -166,16 +166,16 @@ def approve(uid: str, req: ApproveIn, user: dict = Depends(require_login)):
 
 
 @router.post("/users/{uid}/reset-pw")
-def reset_password(uid: str, response: Response, user: dict = Depends(require_login)):
+def reset_password(uid: str, user: dict = Depends(require_login)):
     """비밀번호 초기화 — 관리자 전용.
 
     **본문을 받지 않는다.** 관리자가 값을 고를 수 있으면 그 값이 관리자 머릿속에 남고,
     그 계정을 사칭할 수 있는 창이 열린 채로 남는다. 서버가 무작위로 발급하고
     화면은 그것을 한 번 보여주기만 한다.
 
-    **본인 것도 된다**(2026-09-18). 그때는 방금 내 세션이 끊긴 것이므로 **쿠키도 지운다** —
-    안 지우면 죽은 쿠키를 들고 다니며 요청마다 401 을 받는다. 화면은 임시 비밀번호 창을
-    닫을 때 로그인으로 간다(`session.holdUnauthorized`).
+    **본인은 안 된다.** 본인은 「비밀번호 변경」을 쓴다 — 잊었으면 그 창의
+    「지금 비밀번호가 기억나지 않습니다」로 새 값을 직접 정한다(`/password/force`).
+    한 번 열었다 닫은 줄이라, 왜 닫았는지는 `auth.admin_reset_password` 에 적어 뒀다.
     """
     require_action(user, perm.USER_MANAGE)
     if not auth_store.get_user(uid):
@@ -184,8 +184,6 @@ def reset_password(uid: str, response: Response, user: dict = Depends(require_lo
         pw = auth_store.admin_reset_password(user["id"], uid)
     except auth_store.AuthError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    if uid == user["id"]:
-        clear_session_cookie(response)
     return {"ok": True, "password": pw}
 
 

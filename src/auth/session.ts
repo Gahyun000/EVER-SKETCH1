@@ -15,36 +15,18 @@ export function setSessionLostHandler(fn: Handler | null): void {
   handler = fn
 }
 
-/**
- * **끊긴 것을 아는 시점을 미룬다**(2026-09-18 · 사용자 지시).
- *
- * 관리자가 **제 비밀번호를 초기화**하면 그 순간 제 세션이 끊긴다. 그대로 두면
- * 다음 요청의 401 이 곧바로 로그인 화면으로 밀어내고, **한 번만 보이는 임시 비밀번호
- * 창이 그것과 함께 사라진다.** 사용자가 되물은 대로 — 「모달이 뜨고 닫기를 누르면
- * 로그인 화면으로 가게 설정하면 되잖아」 — **튕기는 시점은 화면이 정하면 된다.**
- *
- * 그래서 잡아 두는 동안 온 401 은 **버리지 않고 기억**했다가 풀 때 한 번에 알린다.
- * 버리면 「세션이 끊겼는데 아무 일도 안 일어나는」 화면이 되고, 그건 처음에 이 배선을
- * 만든 이유(「저장이 안 되는데 이유를 모르는 상태」)로 그대로 돌아가는 것이다.
- *
- * **잡아 두는 자리는 한 곳뿐이어야 한다.** 여러 곳에서 잡으면 누가 풀어 줄 차례인지
- * 아무도 모른다 — 그래서 세는 것이 아니라 켜고 끄는 한 값이다.
- */
-let held = false
-let pending = false
-
-export function holdUnauthorized(on: boolean): void {
-  held = on
-  if (!on && pending) { pending = false; if (handler) handler() }
-}
+// **끊긴 것을 아는 시점을 미루는 장치가 잠깐 있었다**(2026-09-18, 같은 날 걷었다).
+//
+// 관리자가 **제 비밀번호를 초기화**하는 길을 열면서, 그 순간 끊기는 제 세션 때문에
+// 임시 비밀번호 창이 사라지지 않도록 401 을 잡아 두는 `holdUnauthorized` 를 뒀었다.
+// 그 길을 걷으면서(사용자 결정 「2번보다 3만 있으면 되겠다」) **잡아 둘 일도 없어졌다.**
+// 안 쓰는 장치를 남겨 두면 「어딘가 쓰이나」 싶어 다음 사람이 붙들고 있게 된다.
+//
+// 다시 필요해지면 그때 다시 만든다 — 어렵지 않다(켜고 끄는 값 하나 + 밀린 것 한 번 알리기).
 
 export function notifyUnauthorized(): void {
-  if (held) { pending = true; return }
   if (handler) handler()
 }
-
-/** 시험에서 쓰는 되돌리기. 잡아 둔 채로 다음 시험이 시작되면 그 시험이 조용히 이상해진다. */
-export function _resetHold(): void { held = false; pending = false }
 
 /** fetch 응답을 보고 401 이면 세션 만료를 알린다. 응답 자체는 그대로 돌려준다. */
 export function checkAuth(res: Response): Response {

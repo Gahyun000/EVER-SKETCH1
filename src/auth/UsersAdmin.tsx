@@ -3,7 +3,6 @@ import { Search } from 'lucide-react'
 import { ApiError, apiApprove, apiListUsers, apiResetPassword, apiSetName, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
 import { useAuth } from './useAuth'
 import { filterUsers } from './userSearch'
-import { holdUnauthorized } from './session'
 import Modal from '../ui/Modal'
 
 type Tab = 'pending' | 'active' | 'all'
@@ -16,8 +15,6 @@ const TAB_LABEL: Record<Tab, string> = { pending: '승인 대기', active: '사�
  *  자기가 그 화면이다. 그래서 스크림도, 「닫기」도 없다. 닫을 데가 없으니까. */
 export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void; embedded?: boolean }) {
   const me = useAuth((s) => s.me)
-  /** 내 것을 초기화하면 세션이 이미 끊긴다 — 창을 닫을 때 이 길로 나간다. */
-  const logout = useAuth((s) => s.logout)
   const [tab, setTab] = useState<Tab>('pending')
   const [users, setUsers] = useState<Me[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,42 +79,18 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
     }
   }
 
-  /**
-   * 비밀번호 초기화. **본인 것일 때 두 가지가 달라진다**(2026-09-18 · 사용자 지시).
-   *
-   * 내 것을 초기화하면 그 순간 **내 세션이 끊긴다.** 그대로 두면 곧바로 오는 401 이
-   * 로그인 화면으로 밀어내고, **한 번만 보이는 임시 비밀번호 창이 함께 사라진다.**
-   * 사용자가 되물은 대로 — 「모달이 뜨고 닫기를 누르면 로그인 화면으로 가게 하면 되잖아」 —
-   * 튕기는 시점은 화면이 정하면 된다.
-   *
-   *   1. **끊긴 것을 아는 시점을 창 닫을 때까지 미룬다**(`holdUnauthorized`).
-   *      「아무것도 안 부르면 되지 않나」로는 모자란다 — 나중에 누가 이 화면에 무엇을
-   *      하나 더 붙이는 날 조용히 다시 튕긴다. 잡아 두면 그 날에도 안 튕긴다.
-   *   2. **목록을 다시 안 받는다.** 그 요청이 곧 401 이고, 어차피 이 창을 닫으면 나간다.
-   */
+  /** 비밀번호 초기화 — **남의 것만.** 본인은 「비밀번호 변경」을 쓴다(아래 단추 주석 참고). */
   const resetPw = async (u: Me) => {
-    const self = u.id === me?.id
     setBusyId(u.id); setErr('')
-    if (self) holdUnauthorized(true)
     try {
       const password = await apiResetPassword(u.id)
       setIssued({ user: u, password }); setCopied(false)
-      // 상태(중지→사용 중)가 바뀔 수 있어 목록을 다시 받는다 — 남의 것일 때만.
-      if (!self) await load()
+      await load()          // 상태(중지→사용 중)가 바뀔 수 있어 목록을 다시 받는다
     } catch (e) {
-      if (self) holdUnauthorized(false)
       setErr(e instanceof ApiError ? e.message : '초기화하지 못했어요.')
     } finally {
       setBusyId('')
     }
-  }
-
-  /** 임시 비밀번호 창을 닫는다. **내 것이었으면 여기서 로그인 화면으로 간다** —
-   *  이미 끊긴 세션이라 남아 있어 봐야 누르는 것마다 실패한다. */
-  const closeIssued = () => {
-    const self = issued?.user.id === me?.id
-    setIssued(null)
-    if (self) { holdUnauthorized(false); void logout() }
   }
 
   const pendingCount = users.filter((u) => u.status === 'pending').length
@@ -251,14 +224,14 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
                           onClick={() => setConfirm({ kind: 'disable', user: u })}>중지</button>
                       )}
                       {/* 이 제품에는 비밀번호 찾기가 없다 — 잊으면 관리자만 풀어줄 수 있다.
-                          **본인 것도 된다**(2026-09-18 · 사용자 지시로 뒤집혔다). 예전에는 막았고,
-                          이유는 「본인 것을 무작위로 날리면 화면에 뜬 글자를 놓치는 순간 관리자가
-                          스스로 잠긴다」였다. 잠기는 까닭은 세션이 끊기면서 화면이 로그인으로
-                          튕겨 임시 비밀번호 창까지 사라진다는 것이었는데 — **튕기는 시점은 화면이
-                          정하면 된다.** 이제 창을 닫을 때 간다(resetPw · closeIssued 참고). */}
-                      <button className="es-mini" disabled={busy || u.status === 'pending'}
-                        title={u.status === 'pending' ? '가입을 먼저 승인해 주세요'
-                          : self ? '내 비밀번호를 초기화합니다 — 임시 비밀번호를 받고 다시 로그인합니다' : ''}
+                          **본인은 제외한다.** 2026-09-18 에 한 번 열었다가 같은 날 닫았다:
+                          열어 보니 같은 자리를 푸는 길이 둘이 됐고, 사용자가 골랐다
+                          (「2번보다 3만 있으면 되겠다」). 본인은 「비밀번호 변경」을 쓴다 —
+                          잊었으면 그 창의 「지금 비밀번호가 기억나지 않습니다」로
+                          **새 값을 직접 정한다.** 초기화보다 걸음이 하나 짧고 놓칠 글자도 없다. */}
+                      <button className="es-mini" disabled={self || busy || u.status === 'pending'}
+                        title={self ? '본인은 「비밀번호 변경」을 쓰세요 — 잊었다면 그 창의 「지금 비밀번호가 기억나지 않습니다」'
+                          : u.status === 'pending' ? '가입을 먼저 승인해 주세요' : ''}
                         onClick={() => setConfirm({ kind: 'resetPw', user: u })}>비밀번호 초기화</button>
                     </td>
                   </tr>
@@ -290,17 +263,6 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
               </button>
             </>}>
             {confirm.kind === 'resetPw' ? (
-              confirm.user.id === me?.id ? (
-                <>
-                  <b>내 비밀번호</b>를 초기화합니다.
-                  <br /><br />
-                  <b>임시 비밀번호를 한 번만 보여드립니다.</b> 복사해 두고 창을 닫으면
-                  <b> 로그인 화면으로</b> 갑니다. 그 값으로 들어가 <b>새 비밀번호를 정하게</b> 됩니다.
-                  <br /><br />
-                  {/* 왜 굳이 적나: 「초기화」라는 말만 보고 누르면, 하던 일이 끊기는 줄 모른다. */}
-                  지금 열어 둔 다른 기기도 <b>함께 로그아웃</b>됩니다.
-                </>
-              ) : (
               <>
                 <b>{confirm.user.name}({confirm.user.login_id})</b> 님의 비밀번호를 초기화합니다.
                 <br /><br />
@@ -309,7 +271,6 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
                 <br /><br />
                 지금 접속 중이라면 <b>즉시 로그아웃</b>되고, 예전 비밀번호는 더 이상 쓸 수 없습니다.
               </>
-              )
             ) : confirm.kind === 'grantAdmin' ? (
               <>
                 <b>{confirm.user.name}({confirm.user.login_id})</b> 님에게 <b>Lv1 관리자</b> 권한을 부여합니다.
@@ -334,12 +295,11 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
             실수로 한 번 누르면 되돌릴 길이 「한 번 더 초기화」밖에 없고,
             그건 당사자를 또 로그아웃시킨다. */}
         {issued && (
-          <Modal title="임시 비밀번호" onClose={closeIssued} size="sm"
+          <Modal title="임시 비밀번호" onClose={() => setIssued(null)} size="sm"
             scrimClassName="es-confirm" className="es-confirm-box"
             footClassName="es-confirm-actions"
             dismissible={false}
-            cancel={{ label: issued.user.id === me?.id ? '닫고 로그인 화면으로' : '닫기',
-              onClick: closeIssued }}
+            cancel={{ label: '닫기', onClick: () => setIssued(null) }}
             footer={
               <button className="es-mini primary"
                 onClick={() => {
@@ -347,18 +307,9 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
                     .then(() => setCopied(true)).catch(() => setCopied(false))
                 }}>{copied ? '복사했습니다' : '복사'}</button>
             }>
-            {issued.user.id === me?.id ? (<>
-              {/* **내 것을 초기화했다.** 이미 세션이 끊겼으므로 창을 닫으면 로그인으로 간다 —
-                  그 말을 단추에도 적어 둔다(「닫고 로그인 화면으로」). */}
-              <b>내 비밀번호를 초기화했습니다.</b> 아래 값으로 다시 로그인한 뒤,
-              그 자리에서 <b>새 비밀번호를 정하게</b> 됩니다.
-              <br />
-              <b>먼저 복사해 두세요.</b> 이 창을 닫으면 다시 볼 수 없고, 닫는 순간 로그인 화면으로 갑니다.
-            </>) : (<>
-              <b>{issued.user.name}({issued.user.login_id})</b> 님에게 아래 비밀번호를 전달해 주세요.
-              <br />
-              <b>이 창을 닫으면 다시 볼 수 없습니다.</b> 다시 필요하면 한 번 더 초기화해야 합니다.
-            </>)}
+            <b>{issued.user.name}({issued.user.login_id})</b> 님에게 아래 비밀번호를 전달해 주세요.
+            <br />
+            <b>이 창을 닫으면 다시 볼 수 없습니다.</b> 다시 필요하면 한 번 더 초기화해야 합니다.
             <div style={{
               marginTop: 12, padding: '11px 13px', background: '#f6f8fc',
               border: '1px solid #e6e8ee', borderRadius: 7,

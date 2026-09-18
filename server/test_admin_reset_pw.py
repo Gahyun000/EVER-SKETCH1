@@ -110,44 +110,35 @@ def test_중지된_계정도_풀면서_초기화한다():
 
 
 # ── 막는 일 ─────────────────────────────────────
-def test_자기_자신도_초기화한다():
-    """**2026-09-18 에 뒤집힌 규칙.** 지우지 않고 고쳐 쓴다 — 왜 막았는지가 왜 여는지의 배경이다.
+def test_자기_자신은_초기화하지_않는다():
+    """**하루 사이에 열렸다 닫힌 규칙**(2026-09-18). 지우지 않고 고쳐 쓴다.
 
-    막았던 이유는 「본인 것을 무작위로 날리면 화면에 뜬 글자를 놓치는 순간 관리자가
-    스스로 잠긴다」였다. 잠기는 까닭은 세션이 끊기면서 **화면이 로그인으로 튕겨 임시
-    비밀번호 창까지 함께 사라진다**는 것이었는데, 사용자가 되물었다 —
-    「모달이 뜨고 닫기를 누르면 로그인 화면으로 가게 설정하면 되잖아.」
-    **튕기는 시점은 화면이 정할 수 있다.** 서버는 열어 주고, 화면이 창 닫을 때 나간다
-    (src/auth/session.ts 의 holdUnauthorized).
+    처음 막은 이유는 「본인 것을 무작위로 날리면 화면에 뜬 글자를 놓치는 순간 관리자가
+    스스로 잠긴다」였다. 사용자가 「창을 닫을 때 로그인으로 가게 하면 되잖아」라고 물어
+    한 번 **열었고** — 그 말이 맞았다, 튕기는 시점은 화면이 정할 수 있다 — 붙여 놓고 보니
+    **같은 자리를 푸는 길이 둘**이 됐다. 사용자가 골랐다: 「2번보다 3만 있으면 되겠다.」
+
+    남은 길(3)은 「비밀번호 변경」의 **「지금 비밀번호가 기억나지 않습니다」**다
+    (`/password/force`, 관리자만). 초기화는 무작위 값을 **한 번만** 보여 주고 들어가서
+    **또 바꾸게** 하지만, 직접 정하기는 그 자리에서 내 값으로 끝난다 — 걸음이 하나 짧고
+    놓칠 글자가 없다.
     """
     app, admin, apw, w = ctx()
     c = login(app, "admin", apw)
     r = c.post("/api/auth/users/%s/reset-pw" % admin["id"])
-    assert r.status_code == 200, r.text
-    pw = r.json()["password"]
-    assert isinstance(pw, str) and len(pw) >= 12
-    # 새 값으로 들어가지고, 옛 값은 막힌다
-    tok, u = auth_store.login("admin", pw)
-    assert u["login_id"] == "admin"
-    with pytest.raises(auth_store.AuthError):
-        auth_store.login("admin", apw)
+    assert r.status_code == 400
+    assert "본인" in r.json()["detail"]
+    # **막혔다고 적히고 실제로는 바뀌는** 일이 없도록, 원래 값이 그대로 통하는지 본다.
+    auth_store.login("admin", apw)
 
 
-def test_내_것을_초기화하면_내_세션도_끊긴다():
-    """끊지 않으면 열어 둔 다른 기기가 옛 비밀번호로 계속 산다."""
-    app, admin, apw, w = ctx()
-    other = login(app, "admin", apw)          # 다른 기기
-    c = login(app, "admin", apw)
-    assert c.post("/api/auth/users/%s/reset-pw" % admin["id"]).status_code == 200
-    assert other.get("/api/auth/me").json()["user"] is None
-
-
-def test_내_것을_초기화하면_최초_로그인에서_또_바꾸게_한다():
-    """남의 것과 같아야 한다 — 관리자가 아는 값은 한 번 쓰고 폐기된다."""
+def test_막을_때_어디로_가라고_말해_준다():
+    """「안 됩니다」만 하면 관리자는 다음에 무엇을 눌러야 할지 모른다."""
     app, admin, apw, w = ctx()
     c = login(app, "admin", apw)
-    c.post("/api/auth/users/%s/reset-pw" % admin["id"])
-    assert auth_store.get_user(admin["id"])["must_change_pw"] is True
+    d = c.post("/api/auth/users/%s/reset-pw" % admin["id"]).json()["detail"]
+    assert "비밀번호 변경" in d
+    assert "기억나지 않습니다" in d, d
 
 
 def test_작성자는_남의_비밀번호를_초기화하지_못한다():
