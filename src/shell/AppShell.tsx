@@ -15,7 +15,7 @@
 // 편집은 필름스트립 + 캔버스 + 오른쪽 패널로 이미 꽉 차 있어서, 214px 를 더 얹으면
 // 방금 C에서 아낀 자리를 도로 내주는 셈이 된다. 60px 아이콘 줄이면 갈 곳은 있고
 // 자리는 덜 먹는다.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/useAuth'
 import UserBar from '../auth/UserBar'
 import { apiListApprovals } from '../approvals/approvalApi'
@@ -73,7 +73,6 @@ export default function AppShell({ view, onView, crumb, children }: {
   /** **끌고 난 뒤에는 누른 것으로 치지 않는다.**
    *  손잡이를 끌면 `pointerup` 다음에 `click` 이 한 번 더 온다 — 브라우저가 원래 그렇다.
    *  이걸 안 막으면 **폭을 넓히자마자 접힌다**(2026-09-14, 실제로 그랬다). */
-  const dragged = useRef(false)
   const [pending, setPending] = useState(0)
   /** 가입 승인을 기다리는 사람 수. **UserBar 에서 옮겨 온 신호다** — 「사용자 관리」
    *  링크를 머리줄에서 빼면서 이 배지까지 같이 사라질 뻔했다. 관리자가 승인을
@@ -150,10 +149,14 @@ export default function AppShell({ view, onView, crumb, children }: {
     else { setFolded(v); rememberShellFolded(v) }
   }
 
-  /** 경계선을 끌어 폭을 맞춘다(ㄹ).
+  /** 경계선을 끌어 폭을 맞춘다.
    *
-   *  **손잡이가 곧 끄는 자리다.** 접기 단추를 따로 두고 끄는 띠를 또 두면
-   *  같은 경계에 장치가 둘이 된다 — 누르면 접히고, 끌면 넓어진다.
+   *  **2026-09-18 · 끄는 일과 누르는 일을 갈랐다**(사용자 결정 ㄷ ·
+   *  docs/화면시안_사이드바손잡이_v1.0.html). 예전에는 손잡이 하나가 둘을 겸했다 —
+   *  「같은 경계에 장치가 둘이면 안 된다」는 뜻이었는데, 겸하게 두니 **누르려다
+   *  4px 만 흔들려도 접기가 안 먹었다**(움직였으면 click 을 버리는 코드가 있다).
+   *  이제 경계선 **전체**가 끄는 자리이고(`.sh-rail`), 손잡이는 **누르기만** 한다.
+   *  장치가 둘로 는 것이 아니라, **한 경계 안에서 일이 갈린 것**이다.
    *
    *  `SIDE_MIN` 보다 좁게 끌면 **접는다.** 끌어서 없앨 수 있다는 뜻이라
    *  「최소 폭에서 더 안 줄어드는」 벽에 부딪히는 느낌이 안 생긴다. */
@@ -163,10 +166,9 @@ export default function AppShell({ view, onView, crumb, children }: {
     setDragging(true)
     const startX = e.clientX, startW = width
     let moved = false
-    dragged.current = false
     const move = (ev: PointerEvent) => {
       const w = startW + (ev.clientX - startX)
-      if (Math.abs(ev.clientX - startX) > 3) { moved = true; dragged.current = true }
+      if (Math.abs(ev.clientX - startX) > 3) moved = true
       if (w < SIDE_MIN - 28) { setWidth(SIDE_MIN) ; return }
       setWidth(Math.min(SIDE_MAX, Math.max(SIDE_MIN, w)))
     }
@@ -174,7 +176,9 @@ export default function AppShell({ view, onView, crumb, children }: {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       setDragging(false)
-      // 끝까지 좁게 끌었으면 접는다. 안 움직였으면 그냥 누른 것이다 — 그건 onClick 이 받는다.
+      // 끝까지 좁게 끌었으면 접는다. 안 움직였으면 아무 일도 없다 —
+      // **접는 일은 손잡이가 맡는다.** 띠를 톡 눌렀다고 접히면, 본문 왼쪽 끝을
+      // 짚으려다 사이드바가 사라진다.
       if (moved && ev.clientX - startX < -(startW - SIDE_MIN) - 28) fold(true)
       else if (moved) rememberShellWidth(startW + (ev.clientX - startX))
     }
@@ -276,21 +280,29 @@ export default function AppShell({ view, onView, crumb, children }: {
         ) : null}
         <main className="sh-main">{children}</main>
 
-        {/* **경계선 위 손잡이**(사용자 결정 ㄴ+ㄹ).
-            세로 자리를 하나도 안 쓰고, **움직이는 그 경계에 붙어** 있어
-            「이 선이 왼쪽으로 간다」가 모양으로 읽힌다. 접히면 손잡이가 따라가므로
+        {/* **경계선 전체가 끄는 자리다**(2026-09-18 · 사용자 결정 ㄷ).
+            5px 띠라 겨누지 않아도 잡힌다 — 잡히는 넓이가 484px² 에서 2250px² 로 늘었다.
+            평소에는 **투명**이다. 아무것도 안 가리면서 본문 왼쪽 3px 만 가로챈다.
+
+            **접혀 있을 때는 아예 안 그린다.** 60px 은 줄일 폭이 없어서, 띠를 남겨 두면
+            `col-resize` 커서가 「끌 수 있다」고 거짓말을 한다. */}
+        {!shut && (
+          <div className="sh-rail" style={{ left: width - 2 + 'px' }}
+            onPointerDown={onDragStart}
+            onDoubleClick={() => { setWidth(SIDE_DEFAULT); rememberShellWidth(SIDE_DEFAULT) }}
+            aria-hidden="true" />
+        )}
+        {/* **손잡이는 누르기만 한다.** 세로 자리를 하나도 안 쓰고, 움직이는 그 경계에
+            붙어 있어 「이 선이 왼쪽으로 간다」가 모양으로 읽힌다. 접히면 따라가므로
             편 상태와 접힌 상태가 **같은 물건**이다.
-            누르면 접히고 끌면 넓어진다 — 한 자리에 한 물건. */}
-        <button className="sh-edge" style={{ left: (shut ? 60 : width) - 11 + 'px' }}
-          onPointerDown={onDragStart}
-          onClick={() => {
-            // 끌고 난 직후의 click 은 버린다 — 안 그러면 넓히자마자 접힌다.
-            if (dragged.current) { dragged.current = false; return }
-            fold(!shut)
-          }}
-          onDoubleClick={() => { setWidth(SIDE_DEFAULT); rememberShellWidth(SIDE_DEFAULT) }}
+
+            **늘 보인다**(사용자 지시 2026-09-18 「커서 안 올려도 계속 뜨고 눈에 띄게」).
+            예전에는 `opacity: .22` 였고 셸에 마우스가 들어와야 드러났다 —
+            본문 위로 걸치는 것이 싫어서였는데, **안 보이는 단추는 없는 단추다.** */}
+        <button className="sh-edge" style={{ left: (shut ? 60 : width) - 10 + 'px' }}
+          onClick={() => fold(!shut)}
           aria-label={shut ? '메뉴 펴기' : '메뉴 접기'}
-          title={shut ? '펴기' : '접기 · 끌어서 폭 조절'}>
+          title={shut ? '펴기' : '접기 · 경계선을 끌면 폭 조절'}>
           {shut ? '›' : '‹'}
         </button>
       </div>

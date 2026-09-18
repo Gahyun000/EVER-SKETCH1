@@ -29,20 +29,33 @@
 .sh-body.drag { transition: none; }
 .sh-body.drag * { user-select: none; }
 
-/* 경계선 위 손잡이 — 접기(누름) + 폭 조절(끎)이 **한 자리에 한 물건**.
-   세로 자리를 안 쓰고, 움직이는 그 경계에 붙어 있어 뜻이 모양으로 읽힌다.
-   **평소에는 흐리게.** 본문 위로 11px 걸치므로 늘 진하면 거슬린다 —
-   셸에 마우스가 오거나, 탭으로 짚이거나, 끄는 중일 때만 드러낸다. */
-.sh-edge { position: absolute; top: 14px; width: 22px; height: 22px; border-radius: 50%;
-  background: #fff; border: 1px solid #E6E8EE; color: #9aa3b2; font-size: 12px; line-height: 1;
-  display: grid; place-items: center; cursor: col-resize; z-index: 5; padding: 0;
-  box-shadow: 0 1px 3px rgba(16,24,40,.14); opacity: .22;
-  transition: left .16s, opacity .14s, color .14s, border-color .14s; }
-.sh:hover .sh-edge { opacity: 1; }
-.sh-edge:hover, .sh-edge:focus-visible { opacity: 1; color: #2462EB; border-color: #2462EB; }
-.sh-body.drag .sh-edge { opacity: 1; color: #2462EB; border-color: #2462EB; transition: none; }
-/* 끄는 것은 마우스 이야기다. 키보드·손가락으로는 **누르면 접힌다**(그게 본래 일이다). */
-@media (hover: none) { .sh-edge { opacity: 1; cursor: pointer; } }
+/* ── 경계선: 끄는 띠 + 누르는 손잡이 ─────────────────────────
+   2026-09-18 · 사용자 결정 ㄷ + 파란 강조(docs/화면시안_사이드바손잡이_v1.0.html).
+
+   **왜 갈랐나.** 예전에는 손잡이 하나가 누르기와 끌기를 겸했다. 그래서 누르려다
+   4px 만 흔들려도 접기가 안 먹었다 — 움직였으면 click 을 버리는 코드가 있어서다.
+   이제 끄는 일은 경계선 전체가, 누르는 일은 손잡이가 맡는다.
+
+   **왜 늘 보이나.** 예전 기본은 `opacity: .22` 였고 셸에 마우스가 들어와야 1 이 됐다.
+   본문 위로 걸치는 것이 싫어서였는데, **안 보이는 단추는 없는 단추다**(사용자 지시).
+   대신 걸치는 폭을 11px 에서 10px 로 줄이고, 띠는 평소 투명으로 둔다. */
+
+/* 끄는 띠 — 평소 **투명**이라 아무것도 안 가린다. 본문 왼쪽 3px 만 가로챈다.
+   마우스가 오면 연하게, 끄는 중에는 파랗게 — 지금 무엇이 움직이는지가 보인다. */
+.sh-rail { position: absolute; top: 0; bottom: 0; width: 5px; z-index: 4; cursor: col-resize;
+  background: transparent; transition: left .16s, background .12s; }
+.sh-rail:hover { background: #DFE7F8; }
+.sh-body.drag .sh-rail { background: #2462EB; transition: none; }
+
+/* 누르는 손잡이 — **늘 보인다.** 파란 강조라 회색 테두리에 묻히지 않는다. */
+.sh-edge { position: absolute; top: 12px; width: 20px; height: 34px; border-radius: 7px;
+  background: #EAF1FE; border: 1px solid #BFD3FB; color: #2462EB; font-size: 11px; line-height: 1;
+  display: grid; place-items: center; cursor: pointer; z-index: 6; padding: 0;
+  box-shadow: 0 2px 6px rgba(16,24,40,.13);
+  transition: left .16s, background .12s, color .12s, border-color .12s; }
+.sh-edge:hover, .sh-edge:focus-visible { background: #2462EB; border-color: #2462EB; color: #fff; }
+/* 끄는 중에도 손잡이가 같이 진해진다 — 띠와 손잡이가 **한 물건**으로 읽혀야 한다. */
+.sh-body.drag .sh-edge { background: #2462EB; border-color: #2462EB; color: #fff; transition: none; }
 /* **두 켜다.** 바깥(.sh-side)은 칸이고, 안(.sh-navs)이 갈 곳 목록이다.
    목록이 길어지면 **그 안에서만** 구르고 계정 줄은 맨 아래에 붙어 안 밀린다. */
 .sh-side { background: #fff; border-right: 1px solid #E6E8EE; display: flex; flex-direction: column;
