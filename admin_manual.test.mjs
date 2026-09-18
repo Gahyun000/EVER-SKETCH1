@@ -53,6 +53,14 @@ const RAW = readFileSync('./src/builder/manualAdmin.ts', 'utf8')
     '글에 **단축키 기호가 없다** — 그림이 실물 캡처라 글만 바꾸면 그림과 어긋난다',
     prose.find((t) => /[⌘⇧⌥↵⌫]/.test(t)) || '')
   check(/그림은 전부 실물 캡처다/.test(RAW), '「그림은 전부 실물 캡처」 규칙이 파일 머리에 적혀 있다')
+  // **가린 곳이 있으면 글이 그렇게 말해야 한다**(2026-09-18). 실물 캡처라고 해 놓고 말없이
+  // 덮어 두면, 읽는 사람은 실제 화면에도 회색 칸이 뜨는 줄 안다.
+  const masked = ADMIN_CHAPTERS.flatMap((c) => c.steps).filter((s) =>
+    /덮어 뒀|가렸|가려/.test((s.tip || '') + (s.warn || '') + s.body))
+  check(masked.length === 1 && masked[0].n === '2-4',
+    '가렸다고 말하는 걸음은 **2-4 하나뿐**이다', masked.map((s) => s.n).join(',') || '없음')
+  check(/칸은 남기고 값만/.test(RAW),
+    '무엇을 어떻게 가렸는지가 파일 머리에 적혀 있다 — 칸까지 지우면 어디에 뜨는지가 안 보인다')
 }
 
 // ── ② 작성자 매뉴얼과 **같은 뼈대** ─────────────────
