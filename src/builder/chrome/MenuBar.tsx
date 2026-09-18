@@ -19,7 +19,7 @@ interface MItem {
 interface Menu { label: string; hwp?: boolean; items: MItem[] }
 
 // 구글 슬라이드식 드롭다운 메뉴. 실동작 가능한 항목은 연결, 미구현은 비활성 표시.
-export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPresent }: { onHelp: () => void; onTutorial: () => void; onSettings: () => void; onImport: () => void; onPresent: () => void }) {
+export default function MenuBar({ onHelp, onTutorial, onNotes, onSettings, onImport, onPresent }: { onHelp: () => void; onTutorial: () => void; onNotes: () => void; onSettings: () => void; onImport: () => void; onPresent: () => void }) {
   const addCard = useBuilder((s) => s.addCard)
   const backToLibrary = useProjects((s) => s.backToLibrary)
   const setPageBg = useBuilder((s) => s.setPageBg)
@@ -115,7 +115,13 @@ export default function MenuBar({ onHelp, onTutorial, onSettings, onImport, onPr
       { label: '페이지 중앙 배치', run: () => emit('ebook:el-center') },
       { label: '회전 (+15°)', run: () => emit('ebook:el-rotate') },
     ] },
+    // 2026-09-18 · **메모장이 여기로 들어왔다.** 떠 있던 왼쪽 아래 단추를 없앴으니
+    // 「찾는 사람」의 길이 하나 있어야 한다 — 없으면 챗봇을 안 여는 사람은 메모장이
+    // 있는 줄도 모른다. 구글 문서도 곁패널 메모장을 도구 ▸ Keep 메모장에 둔다.
+    // 이웃인 「맞춤법 검사」도 문서를 바꾸는 게 아니라 옆에서 돕는 곁것이라 성격이 맞는다.
     { label: '도구', items: [
+      { label: '🗒 메모장', run: onNotes },
+      { sep: true },
       { label: '⚙ 환경설정', run: onSettings, admin: true },
       { label: '맞춤법 검사 켜기/끄기', run: () => { const c = useCanvasUI.getState(); c.setSpell(!c.spell) } },
     ] },

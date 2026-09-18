@@ -97,7 +97,13 @@ export default function Layout() {
   const [present, setPresent] = useState(false)
   const [tutorialPlay, setTutorialPlay] = useState(false)
   const [settings, setSettings] = useState(false)
-  const [chat, setChat] = useState(false)
+  /**
+   * **오른쪽 곁자리에 무엇을 띄울까** — 하나만 고른다(2026-09-18 · 시안 ㄷ).
+   *
+   * 전에는 챗봇과 메모장이 각자 열림 상태를 들고 각자 단추를 띄웠다. 둘이 동시에
+   * 뜨면 안 되는데 각자 들고 있으면 언젠가 겹친다. 그래서 여기 한 곳에 둔다.
+   */
+  const [side, setSide] = useState<null | 'chat' | 'notes'>(null)
   const [demo, setDemo] = useState(false)
   const [ai, setAi] = useState(false)
   const [confirmSave, setConfirmSave] = useState<ConfirmSaveRequest | null>(null)
@@ -207,7 +213,7 @@ export default function Layout() {
       onCloseHelp={() => setHelp(false)}
     />
     <TitleBar onPresent={() => setPresent(true)} />
-    <MenuBar onHelp={() => setHelp(true)} onTutorial={() => setTutorialPlay(true)} onSettings={() => setSettings(true)} onImport={() => withSaveGuard(() => classicRef.current?.openImport(), '새 HTML을 불러오면 현재 작업 화면이 바뀔 수 있습니다.')} onPresent={() => setPresent(true)} />
+    <MenuBar onHelp={() => setHelp(true)} onTutorial={() => setTutorialPlay(true)} onNotes={() => setSide('notes')} onSettings={() => setSettings(true)} onImport={() => withSaveGuard(() => classicRef.current?.openImport(), '새 HTML을 불러오면 현재 작업 화면이 바뀔 수 있습니다.')} onPresent={() => setPresent(true)} />
     <EditToolbar />
     <ClassicBar ref={classicRef} onSettings={() => setSettings(true)} onDemo={() => withSaveGuard(() => setDemo(true), '데모 실행 중 현재 작업 화면이 임시로 바뀔 수 있습니다.')} onAiCleanup={() => setAi(true)} />
 
@@ -247,9 +253,11 @@ export default function Layout() {
         <SettingsPage />
       </Modal>
     ) : null}
-    {!chat ? <button className="chat-fab" onClick={() => setChat(true)}>💬 챗봇</button> : null}
-    <ChatPanel isOpen={chat} onClose={() => setChat(false)} screenContext={{ page: 'builder' }} onUiAction={applyUiAction} />
-    <NotesPanel />
+    {/* 떠 있는 단추는 **하나뿐**이다. 메모장으로 가는 길은 이 안의 탭과 도구 메뉴다. */}
+    {!side ? <button className="chat-fab" onClick={() => setSide('chat')}>💬 챗봇</button> : null}
+    <ChatPanel isOpen={side === 'chat'} onClose={() => setSide(null)} onNotes={() => setSide('notes')}
+      screenContext={{ page: 'builder' }} onUiAction={applyUiAction} />
+    <NotesPanel open={side === 'notes'} onClose={() => setSide(null)} onChat={() => setSide('chat')} />
     <CommentsPanel />
     <DemoPlayer open={demo} onClose={() => setDemo(false)} />
     <InsertPicker />

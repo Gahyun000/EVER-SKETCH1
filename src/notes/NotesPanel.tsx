@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus, Search, Pin, PinOff, Trash2, Copy, Send, X, ChevronLeft, StickyNote } from 'lucide-react'
+import SideTabs, { useNoteCount } from '../ui/SideTabs'
 import { useProjects } from '../persistence/projects'
 import { useBuilder, newBlock } from '../state/store'
 import type { Block } from '../state/store'
@@ -8,7 +9,16 @@ import { listNotes, saveNote, deleteNoteApi } from './notesApi'
 import type { Note } from './notesApi'
 import './notes.css'
 
-const SIZES = { S: 320, M: 430, L: 620 } as const
+/**
+ * **챗봇과 같은 눈금을 쓴다**(2026-09-18). 전에는 320 · 430 · 620 이었는데, 챗봇은
+ * 340 · 460 · 640 이었다. 둘이 한 자리를 나눠 쓰게 되면서 **같은 「M」인데 폭이 30px
+ * 다른** 꼴이 됐다 — 탭을 누를 때마다 패널이 덜컥 움직인다(시험 서버 실측: 460 → 430).
+ *
+ * 기억은 여전히 **따로** 한다(`notepad-size` · `agentic-pm-chat-size`). 메모는 넓게,
+ * 챗봇은 좁게 쓰는 사람이 있어서다. 다만 **같은 글자는 같은 폭**이어야, 둘 다 M 으로
+ * 두고 쓰는 대부분의 사람에게는 움직임이 아예 없다.
+ */
+const SIZES = { S: 340, M: 460, L: 640 } as const
 type Size = keyof typeof SIZES
 
 // 블록 id를 새로 매겨 편집기·다른 노트와 충돌 방지(서버에서 온 id 재사용 금지).
@@ -30,7 +40,16 @@ function todoStats(bs: Block[]): { done: number; total: number } {
 }
 function genId(): string { return 'n' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36) }
 
-export default function NotesPanel() {
+/**
+ * 메모장 — **챗봇과 한 자리를 나눠 쓴다**(2026-09-18 · 시안 ㄷ).
+ *
+ * 전에는 제 열림 상태를 스스로 들고, 왼쪽 아래에 제 단추를 따로 띄웠다. 이제는
+ * 바깥(Layout)이 「지금 이 자리에 무엇을 띄울까」를 하나로 들고 있다 — 둘이 동시에
+ * 뜨는 일이 없어야 하는데, 각자 들고 있으면 언젠가 겹친다.
+ */
+export default function NotesPanel({ open, onClose, onChat }: {
+  open: boolean; onClose: () => void; onChat: () => void
+}) {
   const activeId = useProjects((s) => s.activeId)
   const addCard = useBuilder((s) => s.addCard)
   const setBlocks = useBuilder((s) => s.setBlocks)
@@ -40,7 +59,6 @@ export default function NotesPanel() {
   const [view, setView] = useState<'list' | 'editor'>('list')
   const [q, setQ] = useState('')
   const [sortBy, setSortBy] = useState<'updated' | 'title' | 'created'>('updated')
-  const [open, setOpenState] = useState(false)
   const [size, setSize] = useState<Size>(() => {
     try { const v = localStorage.getItem('notepad-size'); if (v === 'S' || v === 'M' || v === 'L') return v } catch { /* noop */ }
     return 'M'
@@ -48,7 +66,6 @@ export default function NotesPanel() {
   const width = SIZES[size]
   const timers = useRef<Record<string, number>>({})
 
-  function setOpen(v: boolean) { setOpenState(v); if (activeId) { try { localStorage.setItem('notepad-open-' + activeId, v ? '1' : '0') } catch { /* noop */ } } }
   function pickSize(s: Size) { setSize(s); try { localStorage.setItem('notepad-size', s) } catch { /* noop */ } }
 
   // 프로젝트 전환 시: 그 이북 메모를 불러오고 **패널은 닫아 둔다.**
@@ -60,14 +77,13 @@ export default function NotesPanel() {
   //
   // 챗봇과 같은 규칙으로 맞춘다 — 항상 닫힌 채로 시작하고, 필요한 사람이 연다.
   useEffect(() => {
-    if (!activeId) { setNotes([]); setOpenState(false); return }
+    if (!activeId) { setNotes([]); return }
     let alive = true
     void (async () => {
       const list = await listNotes(activeId)
       if (!alive) return
       setNotes(list.map((n) => ({ ...n, blocks: normalizePlain(reid(n.blocks || [])) })))
     })()
-    setOpenState(false)
     setView('list'); setCurrentId(null); setQ('')
     return () => { alive = false }
   }, [activeId])
@@ -107,6 +123,11 @@ export default function NotesPanel() {
     if (pid != null) setBlocks(pid, blocks)
   }
 
+  // **적어 둔 게 있다**는 신호를 바깥으로 넘긴다. 없애 버린 왼쪽 아래 단추의 파란 점이
+  // 하던 일이다 — 챗봇을 보고 있는 사람에게 「메모에 뭔가 있다」를 말해 줄 것이 필요하다.
+  const setNoteCount = useNoteCount((s) => s.setN)
+  useEffect(() => { setNoteCount(notes.length) }, [notes.length, setNoteCount])
+
   const cur = notes.find((n) => n.id === currentId) || null
   const filtered = notes.filter((n) => {
     if (!q.trim()) return true
@@ -119,16 +140,16 @@ export default function NotesPanel() {
     return (b.updatedAt || 0) - (a.updatedAt || 0)
   })
 
-  if (!activeId) return null
-  if (!open) return (<button className="np-fab" title="메모장 열기" onClick={() => setOpen(true)}><StickyNote size={16} /> 메모{notes.length ? <span className="np-fab-dot" /> : null}</button>)
+  if (!activeId || !open) return null
 
   return (
     <div className="np-panel" style={{ width }}>
       <div className="np-head">
         <StickyNote size={16} /><b>메모장</b>
         <span className="np-sizes">{(['S', 'M', 'L'] as Size[]).map((s) => <button key={s} className={size === s ? 'on' : ''} onClick={() => pickSize(s)}>{s}</button>)}</span>
-        <button className="np-x" title="닫기" onClick={() => setOpen(false)}><X size={16} /></button>
+        <button className="np-x" title="닫기" onClick={onClose}><X size={16} /></button>
       </div>
+      <SideTabs mode="notes" onChat={onChat} onNotes={() => { /* 이미 여기다 */ }} />
 
       {view === 'list' ? (
         <div className="np-body">

@@ -4,6 +4,7 @@ import { API_BASE } from './config';
 import MarkdownView from './MarkdownView';
 import { getBookState } from './bookState';
 import { copyText } from '../lib/copyText';
+import SideTabs from '../ui/SideTabs';
 
 // 채팅 답변을 DOCX 로 내려받는다(백엔드 /export/docx, 인증 포함 blob).
 async function downloadAnswerDocx(content: string) {
@@ -40,6 +41,8 @@ export interface ChatUiAction {
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  // 2026-09-18 — 메모장과 **한 자리를 나눠 쓴다**(시안 ㄷ). 머리 아래 탭으로 오간다.
+  onNotes: () => void;
   // 2026-05-27 — 현재 화면 문맥(계획 v2 §3). 채팅엔진의 대상 추론·grounding 에 사용(서버에서 재검증).
   screenContext?: ChatScreenContext;
   // 계획 v3 §5 — auto_apply ui_action 을 실제 화면 전환에 반영(확인 필요/미등록은 호출 안 됨).
@@ -136,7 +139,7 @@ type ChatSize = keyof typeof SIZE_PRESETS;
 const SIZE_KEY = 'agentic-pm-chat-size';
 const SESSION_KEY = 'agentic-pm-chat-session';
 
-const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose, screenContext, onUiAction }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose, onNotes, screenContext, onUiAction }) => {
   const [size, setSize] = useState<ChatSize>(() => {
     try {
       const v = localStorage.getItem(SIZE_KEY);
@@ -469,6 +472,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose, screenContext, o
           <button onClick={onClose} title="닫기"><PanelRightClose className="h-5 w-5" /></button>
         </div>
       </header>
+      {/* **열려 있을 때만 그린다.** 이 패널은 닫혀도 사라지지 않고 화면 밖으로
+          밀려나 있을 뿐이라(transform), 그냥 두면 메모장을 보는 동안에도 탭이
+          **한 벌 더** DOM 에 남는다. 눈에는 안 보이지만 읽어 주는 도구에는 두 벌로
+          들리고, 「챗봇 탭」이 두 개가 되어 어느 것을 눌러야 할지 알 수 없게 된다.
+          (시험 서버에서 실제로 네 칸이 잡혔다: 챗봇·메모·챗봇·메모) */}
+      {isOpen ? <SideTabs mode="chat" onChat={() => { /* 이미 여기다 */ }} onNotes={onNotes} /> : null}
 
       {notice && (
         <div className="chat-notice" role="status">

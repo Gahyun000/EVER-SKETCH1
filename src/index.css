@@ -301,6 +301,16 @@ button{font-family:inherit;cursor:pointer}
 @keyframes sp{to{transform:rotate(360deg)}}
 
 /* ───────── 채팅 패널 — Agentic-PM 이식(ebook_html 토큰으로 재작성) ───────── */
+/* 곁패널의 두 칸 — 챗봇 · 메모 (2026-09-18 · 시안 ㄷ · src/ui/SideTabs.tsx)
+ *
+ * 머리에 알약을 넣는 안(ㄱ)은 실제 폭에서 깨졌다 — 챗봇 머리는 안 줄었을 때 404px 가
+ * 필요한데 쓸 수 있는 자리가 S 338 · M 458 이라, 알약이 제목을 S 에서 140px 밀어냈다.
+ * 탭은 **제 줄을 써서** 폭과 다투지 않는다. 대신 세로를 한 줄 먹는다. */
+.side-tabs{display:flex;flex:none;border-bottom:1px solid var(--line);background:#fafbfd}
+.side-tabs button{flex:1;border:none;background:transparent;padding:8px 4px 9px;font-size:12.5px;font-weight:800;color:#8a93a5;cursor:pointer;border-bottom:2px solid transparent;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit}
+.side-tabs button:hover{color:#3a4150}
+.side-tabs button.on{color:var(--blue);border-bottom-color:var(--blue)}
+.side-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block}
 .chat-fab{position:fixed;right:20px;bottom:20px;z-index:35;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--ink);color:#fff;border-radius:var(--pill);padding:10px 15px;font-weight:800;font-size:13px;box-shadow:0 6px 18px rgba(20,25,40,.22)}
 .chat-panel{position:fixed;top:12px;right:12px;bottom:12px;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 18px 50px rgba(10,12,20,.20);display:flex;flex-direction:column;transform:translateX(calc(100% + 24px));transition:transform .22s ease;z-index:40}
 .chat-panel.open{transform:none}
