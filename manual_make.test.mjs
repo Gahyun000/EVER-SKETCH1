@@ -97,8 +97,13 @@ const STEPS = MAKE_CHAPTERS.flatMap((c) => c.steps)
 // ── ④ 인쇄 단추 ────────────────────────────────────────
 {
   check(/window\.print\(\)/.test(dp), '인쇄 단추가 브라우저 인쇄를 부른다')
-  check(/tab === 'make' && \(\s*<button className="man-print-btn"/.test(dp),
-    '**만들기 쪽에서만 낸다** — 제도 열두 편은 종이로 들고 따라 할 것이 아니다')
+  // 2026-09-18 · **이 칸은 옛 결정을 지키고 있었다.** 원래 문구는
+  //   「**만들기 쪽에서만 낸다** — 제도 열두 편은 종이로 들고 따라 할 것이 아니다」
+  // 였는데, 그 전제가 틀렸다. 제도(등급·흐름·막히는 곳)야말로 종이로 돌려 보는 쪽이고,
+  // ② 를 보던 사람에게는 인쇄라는 길이 **아예 없었다**. 지우지 않고 뒤집어 적는다 —
+  // 무엇이 왜 바뀌었는지가 남아야 다음 사람이 되돌리지 않는다.
+  check(!/tab === 'make' && \(\s*<button className="man-print-btn"/.test(dp),
+    '**인쇄 단추가 갈래를 안 가린다**(옛 결정 뒤집음) — 아래 ⑦ 에 지금 규칙이 있다')
   // 「PDF」라고만 적어 두면 누르고 나서 **인쇄 대화상자**가 떠 당황한다.
   check(/title="[^"]*PDF로 저장[^"]*"/.test(dp),
     '무엇이 뜨는지 미리 말해 준다(인쇄 창에서 「PDF로 저장」)')
@@ -122,7 +127,8 @@ const STEPS = MAKE_CHAPTERS.flatMap((c) => c.steps)
     '머메이드 표도 종이에 같이 간다 — 처음 쓰는 사람이 제일 막히는 자리다')
   check(/aria-hidden="true"/.test(ps),
     '읽어 주는 도구에는 안 들린다 — 같은 내용이 두 번 읽히면 못 쓴다')
-  check(/<PrintSheet \/>/.test(dp), '창에 실제로 놓여 있다')
+  // 2026-09-18 · 인쇄판이 갈래를 받게 되면서 `<PrintSheet />` 가 `<PrintSheet tab={tab} />` 이 됐다.
+  check(/<PrintSheet tab=\{tab\} \/>/.test(dp), '창에 실제로 놓여 있다(보는 갈래를 넘기면서)')
 }
 
 // ── ⑥ 인쇄 규칙 ────────────────────────────────────────
@@ -220,6 +226,45 @@ const STEPS = MAKE_CHAPTERS.flatMap((c) => c.steps)
     '걸음을 넘기면 **맨 위부터** 보여 준다 — 안 그러면 새 걸음이 제목도 없이 한복판부터 뜬다')
   check(/\}, \[mi, i, tab\]\)/.test(dp),
     '걸음·편·갈래가 바뀔 때 **모두** 되돌린다 — 하나만 빼도 그 길에서만 가운데부터 뜬다')
+}
+
+// ── 둘 다 종이로 나오는가 (2026-09-18 · 사용자 결정) ──────────
+//
+// 전에는 **① 만들기에만** 인쇄 단추가 있었고, 인쇄판도 ① 한 벌만 그렸다.
+// ② 제도를 보던 사람에게는 인쇄라는 길이 **아예 없었다** — 「읽고 나면 끝」이라 여겼는데,
+// 등급·흐름·막히는 곳은 오히려 종이로 돌려 보는 쪽이다.
+//
+// 고른 방식: **단추는 늘 보이고, 누르면 지금 보는 갈래를 낸다.**
+// 「① · ② · 둘 다」를 고르게 하는 안도 있었지만, 한 벌이 40쪽을 넘고 무엇보다
+// 「보던 것이 그대로 나온다」가 고를 것 없는 가장 단순한 약속이라 이쪽을 골랐다.
+{
+  const dp = bare(read('./src/builder/DemoPlayer.tsx'))
+  const css = read('./src/index.css').replace(/\/\*[\s\S]*?\*\//g, '')
+
+  // ① 단추가 갈래를 안 가린다
+  check(!/tab === 'make' && \(\s*<button className="man-print-btn"/.test(dp)
+        && !/\{tab === 'make' &&[\s\S]{0,80}man-print-btn/.test(dp),
+    '**인쇄 단추가 갈래에 따라 사라지지 않는다** — ② 를 보던 사람에게 길이 없었다')
+  check(/className="man-print-btn"/.test(dp), '인쇄 단추가 있다')
+
+  // ② 어느 갈래가 나오는지 **화면이** 말한다. title 은 눌러 보기 전엔 안 보인다.
+  check(/man-print-of[\s\S]{0,90}tab === 'make' \? '① 만들기' : '② 제도'/.test(dp),
+    '**단추가 어느 갈래를 내는지 말한다** — 두 갈래가 생긴 뒤로 「인쇄」만으로는 모자란다')
+  check(/\.man-print-of\{/.test(css), '그 꼬리표의 모양이 있다')
+
+  // ③ 인쇄판이 **갈래를 따라간다**. 이게 어긋나면 ② 를 보며 눌렀는데 ① 이 나온다 —
+  //    종이를 다 뽑고 나서야 안다.
+  check(/function PrintSheet\(\{ tab \}/.test(dp), '인쇄판이 갈래를 받는다')
+  check(/<PrintSheet tab=\{tab\} \/>/.test(dp), '보고 있는 갈래를 그대로 넘긴다')
+  const i = dp.indexOf("if (tab === 'flow') return createPortal")
+  check(i > 0, '제도용 인쇄판이 따로 있다')
+  const flow = i < 0 ? '' : dp.slice(i, dp.indexOf('document.body,', i))
+  check(/EPISODES\.map/.test(flow), '제도 인쇄판이 **열두 편을 모두** 편다 — 화면은 한 편씩이지만 종이는 한 벌이다')
+  check(/MANUAL_DIR \+ e\.file/.test(flow), '그 편의 그림도 같이 낸다')
+  // 두 판이 **동시에** 뜨면 인쇄 CSS 가 둘 다 살려서 한 벌이 두 겹으로 나온다.
+  const sheets = (dp.match(/className="man-print"/g) || []).length
+  check(sheets === 2 && /if \(tab === 'flow'\) return/.test(dp),
+    '두 판 중 **하나만** 그린다 — 둘 다 그리면 종이가 두 겹으로 나온다', `${sheets}판`)
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)

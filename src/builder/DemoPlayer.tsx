@@ -83,7 +83,31 @@ const FLAT = MAKE_CHAPTERS.flatMap((c) => c.steps.map((st) => ({ ...st, ch: c })
  * **`document.body` 바로 아래에 붙인다**(포털). 인쇄 CSS 가 「이것만 빼고 다 감춘다」로
  * 동작하는데, 모달 안에 있으면 모달째 감춰지면서 같이 사라진다.
  */
-function PrintSheet() {
+function PrintSheet({ tab }: { tab: 'make' | 'flow' }) {
+  // **보고 있는 갈래를 낸다**(2026-09-18 · 사용자 결정). 전에는 ① 만들기 한 벌만 그렸고
+  // ② 제도에는 인쇄 단추조차 없었다 — 읽고 끝나는 글이라 여겼는데, 종이로 돌려 보는 건
+  // 오히려 이쪽이다(등급·흐름·막히는 곳).
+  //
+  // **둘을 한 번에 내지 않는다.** 한 벌이 40쪽을 넘어가고, 무엇보다 「지금 보던 것이
+  // 그대로 나온다」가 고를 것 없는 가장 단순한 약속이다.
+  if (tab === 'flow') return createPortal(
+    <div className="man-print" aria-hidden="true">
+      <h1>EVER-SKETCH 작성자 매뉴얼 — ② 제도</h1>
+      <p className="mp-sub">결재가 어떻게 도는가 · {EPISODES.length}편</p>
+      <section className="mp-ch">
+        {EPISODES.map((e) => (
+          <article key={e.no} className="mp-step">
+            <h3><span className="mp-no">{String(e.no).padStart(2, '0')}</span>{e.title}</h3>
+            <div className="mp-body">
+              <div className="mp-txt"><p>{e.line}</p></div>
+              <img src={MANUAL_DIR + e.file} alt="" />
+            </div>
+          </article>
+        ))}
+      </section>
+    </div>,
+    document.body,
+  )
   return createPortal(
     <div className="man-print" aria-hidden="true">
       <h1>EVER-SKETCH 작성자 매뉴얼 — ① 만들기</h1>
@@ -172,14 +196,14 @@ export default function DemoPlayer({ open, onClose }: { open: boolean; onClose: 
         <button className={'man-tab' + (tab === 'flow' ? ' on' : '')} onClick={() => setTab('flow')}>
           ② 제도 <span className="man-tc">{EPISODES.length}편</span>
         </button>
-        {/* 인쇄는 **만들기 쪽만** 낸다 — 종이로 들고 따라 하는 건 이쪽이다.
-            제도는 읽고 나면 끝이라 인쇄할 일이 없다. */}
-        {tab === 'make' && (
-          <button className="man-print-btn" onClick={() => window.print()}
-            title="브라우저 인쇄로 내보냅니다 — 저장할 곳에서 「PDF로 저장」을 고르세요">
-            <Printer className="h-4 w-4" /> 인쇄 · PDF
-          </button>
-        )}
+        {/* **늘 보이고, 누르면 지금 보는 갈래를 낸다**(2026-09-18 · 사용자 결정).
+            전에는 ① 에서만 보여서, ② 를 보던 사람에게는 인쇄라는 길이 아예 없었다.
+            어느 갈래가 나오는지는 단추가 **직접 말한다** — 귀띔(title)은 눌러 보기 전엔 안 보인다. */}
+        <button className="man-print-btn" onClick={() => window.print()}
+          title="브라우저 인쇄로 내보냅니다 — 저장할 곳에서 「PDF로 저장」을 고르세요">
+          <Printer className="h-4 w-4" /> 인쇄 · PDF
+          <span className="man-print-of">{tab === 'make' ? '① 만들기' : '② 제도'}</span>
+        </button>
       </div>
 
       {tab === 'flow' ? (
@@ -247,7 +271,7 @@ export default function DemoPlayer({ open, onClose }: { open: boolean; onClose: 
         </div>
       </div>
       )}
-      <PrintSheet />
+      <PrintSheet tab={tab} />
     </Modal>
   )
 }
