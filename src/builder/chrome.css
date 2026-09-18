@@ -511,6 +511,9 @@
 .apc-chk .i{width:13px;text-align:center;font-size:10px;flex:0 0 13px}
 .apc-chk .ok{color:#24724b} .apc-chk .ok .i{color:#3E9E6E}
 .apc-chk .no{color:#8a5a12} .apc-chk .no .i{color:#D98A2A}
+/* 「저장 중」 — **경고가 아니다.** 노랑을 쓰면 제출을 누르는 모든 사람에게
+   25ms 짜리 거짓 경고가 스친다(ApprovalCard 의 dirty/saving 주석 참고). */
+.apc-chk .wait{color:#5B6270} .apc-chk .wait .i{color:#9aa3b2}
 .apc-chk .go{margin-left:auto;font-size:9.5px;color:#2462EB;font-weight:800;
   border:none;background:none;cursor:pointer;padding:0;font-family:inherit;white-space:nowrap}
 .apc-chk .go:hover{text-decoration:underline}
@@ -529,6 +532,28 @@
 .apc-note{margin-top:10px;background:#FFF4E3;border:1px solid #f0dcbb;border-radius:7px;
   padding:7px 9px;font-size:11.5px;color:#8a5a12;line-height:1.6}
 .apc-note b{color:#0F1B3D}
+
+/* ── 결재 제출 창의 두 걸음(2026-09-18 · 시안 v2.2) ──────────
+   ① 은 **읽는 자리**, ② 는 **묻는 자리**다. 색을 달리한 이유가 그것이다. */
+/* ① 빨간 칸 — 「얼어붙는다·지울 수 없다」. 여태 회색 본문에 묻혀 있어서
+   창에서 제일 눈에 띄는 것이 「전달할 말」 입력 칸이었다. */
+.apc-danger{margin-top:12px;background:#FDF1F1;border:1px solid #f2cdcd;
+  border-left:3px solid #b4232a;border-radius:0 7px 7px 0;padding:8px 11px;
+  font-size:11.5px;color:#6b2020;line-height:1.6}
+.apc-danger b{color:#8c1a1a}
+/* ② 초록 칸 — 회수 안내. **내기 전에** 말해야 마음이 놓인다. */
+.apc-ok{margin-top:12px;background:#EEF7F1;border:1px solid #cfe6d9;border-radius:7px;
+  padding:8px 11px;font-size:11.5px;color:#215c3f;line-height:1.6}
+.apc-ok b{color:#17462f}
+.apc-ok .dim{opacity:.85}
+/* **두 걸음의 높이를 맞춘다**(사용자 결정 ㉡).
+   ① 을 잰 값을 ② 에 min-height 로 물리고, ② 는 남는 자리를 위아래로 나눠 갖는다.
+   그래야 「제출」을 누른 손가락 밑에 「확인」이 **그 자리 그대로** 선다 —
+   창이 줄면서 단추가 위로 100px 뛰면, 확인을 누르려다 취소를 누른다. */
+.apc-ask.fix{display:flex;flex-direction:column;justify-content:center}
+/* 세로 flex 는 **맨 글자도 조각으로 만든다** — 감싸지 않으면 한 문장이 줄마다 갈린다.
+   ② 의 본문을 이 한 덩어리에 넣어 두는 이유다(실물에서 찢어진 것을 보고 고쳤다). */
+.apc-ask-in{display:block}
 
 /* 「무엇을 골랐는가」 — 탭 바로 위. 도구가 늘어선 자리라
    정작 어느 것을 고치는 중인지는 화면 가운데를 봐야 알 수 있었다. */

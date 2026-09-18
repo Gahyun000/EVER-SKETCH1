@@ -17,7 +17,7 @@
 //   2. **상태는 서버가 말한 것만 그린다.** 대기·승인·수정 중을 화면이 다시 계산하면
 //      규칙이 두 곳에 생기고, 어긋나는 날 사용자에게는 「승인이라 적혔는데 안 눌린다」로 보인다.
 //   3. **빈 칸이 있어도 막지 않는다.** 알리고 그 자리로 데려다 줄 뿐이다.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Modal from '../../ui/Modal'
 import { useBuilder } from '../../state/store'
 import { useProjects } from '../../persistence/projects'
@@ -74,6 +74,21 @@ export default function ApprovalCard() {
    */
   const [open, setOpen] = useState(true)
   const [ask, setAsk] = useState<'submit' | 'revise' | 'end' | null>(null)
+  /**
+   * **결재 제출은 두 걸음이다**(2026-09-18 · 사용자 결정 · docs/화면시안_결재제출_확인_v2.2.html).
+   *
+   * 예전에는 한 걸음이었다 — 「제출」을 누르면 그 자리에서 나갔다. 그런데 이 창은
+   * **읽을 것이 많은 창**이다(얼어붙는다·지울 수 없다·빈 칸 셋·전달할 말). 읽을 것이 많은
+   * 창의 마지막 단추는 「다 읽었다」가 아니라 **「이제 그만 보고 싶다」**로 눌린다.
+   *
+   * ② 는 읽을 것을 새로 주지 않는다. **묻기만 한다** — 거기에 「회수할 수 있다」 한 마디만
+   * 얹었다. 그 말은 낸 뒤에 들으면 「그럼 아까 말하지」가 되고, **누르기 직전**에 들어야
+   * 마음이 놓인다.
+   */
+  const [step2, setStep2] = useState(false)
+  /** ① 을 잰 높이 — ② 에 그대로 물린다(아래 `.apc-ask.fix` 참고). */
+  const [fixH, setFixH] = useState(0)
+  const askRef = useRef<HTMLDivElement>(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -125,7 +140,21 @@ export default function ApprovalCard() {
   const shape = shapeOf(chip, mine)
   const gaps: Unfilled[] = unfilled(pages as never[])
   const toMe = countMyTurn(threads, me?.id, mine)
-  const unsaved = status === 'dirty' || status === 'saving' || status === 'error'
+  /**
+   * **「지금 저장 중」은 「아직 저장 안 됨」이 아니다**(2026-09-18).
+   *
+   * 셋을 한 덩어리로 묶어 뒀더니, 제출을 누르는 **모든** 사람에게 노란 경고가 한 번씩
+   * 스쳤다. 제출은 반드시 `flushSave()` 를 거치므로 `status` 가 `saving` 을 **반드시**
+   * 지나기 때문이다(시험 서버에서 20ms 간격으로 재 보니 25ms 동안 떠 있었다).
+   * 다 저장된 자료를 내는 사람에게 「저장 안 된 변경이 있습니다」가 깜빡이는 것은
+   * 거짓말이고, 너무 짧아서 **읽히지도 않는다** — 불안만 남긴다.
+   *
+   * `dirty` 는 **사람이 할 일이 남았다**(아직 안 갔다 · 실패했다),
+   * `saving` 은 **기계가 하는 중**이다. 경고는 앞엣것에만 붙인다.
+   */
+  const dirty = status === 'dirty' || status === 'error'
+  const saving = status === 'saving'
+  const unsaved = dirty || saving
 
   /** 그 칸으로 데려다 준다 — **장을 넘기고, 표를 고르고, 칸을 짚는다.**
    *  셋 다 해야 한다. 장만 넘기면 어느 표인지 모르고, 표만 고르면 어느 칸인지 모른다. */
@@ -136,6 +165,10 @@ export default function ApprovalCard() {
     setSel(u.elId)
     if (u.cell) setTableSel({ elId: u.elId, r0: u.cell.r, c0: u.cell.c, r1: u.cell.r, c1: u.cell.c })
   }
+
+  /** 창을 **아주** 닫는다 — 걸음까지 처음으로. 닫아 놓고 다시 열었더니 ② 가
+   *  떠 있으면, 무엇에 확인을 누르는지 모르는 채로 확인을 누르게 된다. */
+  const closeAsk = () => { setAsk(null); setErr(''); setStep2(false) }
 
   const send = (kind: 'submit' | 'revise' | 'end') => {
     if (busy) return
@@ -148,7 +181,7 @@ export default function ApprovalCard() {
         else if (kind === 'revise') await apiRequestRevision(activeId, msg.trim())
         // **그만두기는 자료가 아니라 「그 요청」에 하는 일**이라 결재 건 id 로 부른다.
         else await apiEndRevision(chip?.approval_id || '')
-        setAsk(null); setMsg('')
+        setAsk(null); setStep2(false); setMsg('')
         // 상태가 바뀌었으니 들고 있던 상세는 옛것이다.
         setDetail(undefined)
         await load()
@@ -180,7 +213,7 @@ export default function ApprovalCard() {
       : (chip && DOC_STATE_LABEL[chip.state]) || '승인됨'
 
   const warn = shape === 'draft' || shape === 'rejected' || shape === 'revising'
-  const brief = !warn ? '' : [unsaved ? '저장 안 됨' : '', toMe ? `의견 ${toMe}` : '',
+  const brief = !warn ? '' : [dirty ? '저장 안 됨' : saving ? '저장 중' : '', toMe ? `의견 ${toMe}` : '',
     gaps.length ? `빈 칸 ${gaps.length}` : ''].filter(Boolean).join(' · ')
 
   return (<>
@@ -217,10 +250,10 @@ export default function ApprovalCard() {
                 {' '}뒤에 고쳐도 결재본은 안 바뀝니다.</div>
             )}
             <div className="apc-chk">
-              <div className={unsaved ? 'no' : 'ok'}>
-                <span className="i">{unsaved ? '!' : '✓'}</span>
-                {unsaved ? '저장 안 된 변경이 있습니다' : '저장됐습니다'}
-                {unsaved ? <span className="go">낼 때 저장합니다</span> : null}
+              <div className={dirty ? 'no' : saving ? 'wait' : 'ok'}>
+                <span className="i">{dirty ? '!' : saving ? '⟳' : '✓'}</span>
+                {dirty ? '저장 안 된 변경이 있습니다' : saving ? '저장 중…' : '저장됐습니다'}
+                {dirty ? <span className="go">낼 때 저장합니다</span> : null}
               </div>
               {toMe > 0 && (
                 <div className="no"><span className="i">!</span>확인 안 한 의견 {toMe}건
@@ -283,47 +316,87 @@ export default function ApprovalCard() {
     )}
 
     {ask && (
-      <Modal title={ask === 'submit' ? '결재 제출' : ask === 'revise' ? '수정 요청' : '수정 그만두기'}
+      <Modal
+        title={ask === 'submit' ? (step2 ? '제출하시겠습니까?' : '결재 제출')
+          : ask === 'revise' ? '수정 요청' : '수정 그만두기'}
         size="sm" busy={busy}
-        onClose={() => { if (!busy) { setAsk(null); setErr('') } }}
-        cancel={{ label: '취소', onClick: () => { setAsk(null); setErr('') } }}
+        onClose={() => { if (!busy) closeAsk() }}
+        cancel={{
+          label: '취소',
+          // **② 의 「취소」는 창을 닫지 않는다 — ① 로 돌아온다.**
+          // 여기서 닫아 버리면 적어 둔 「전달할 말」이 **한 번 망설였다는 이유로** 날아간다.
+          // 뒤로 오는 길이 있어야 ② 에서 마음 놓고 취소를 누를 수 있다.
+          onClick: () => { if (step2) { setStep2(false); setErr('') } else closeAsk() },
+        }}
         footer={
-          <button className="lib-btn dark" disabled={busy} onClick={() => send(ask)}>
+          <button className="lib-btn dark" disabled={busy}
+            onClick={() => {
+              // ① 의 「제출」은 **아직 안 낸다.** 지금 화면 높이를 재 두고 ② 로 넘어간다 —
+              // 재는 자리가 여기인 이유는, **사람이 마지막으로 본 높이**가 이 높이이기 때문이다.
+              if (ask === 'submit' && !step2) {
+                setFixH(askRef.current?.offsetHeight || 0)
+                setStep2(true)
+                return
+              }
+              send(ask)
+            }}>
             {busy ? (ask === 'submit' ? '제출 중…' : ask === 'revise' ? '요청 중…' : '그만두는 중…')
-              : (ask === 'submit' ? '제출' : ask === 'revise' ? '요청' : '그만두기')}
+              : ask === 'submit' ? (step2 ? '확인' : '제출')
+                : ask === 'revise' ? '요청' : '그만두기'}
           </button>
         }>
-        <b>{title || '제목 없음'}</b>
-        {ask === 'submit' ? (<>
-          {' '}을(를) 관리자에게 제출합니다.
-          <br /><br />
-          <b>지금 이 문서가 그대로 얼어붙습니다.</b> 제출한 뒤에 고쳐도 결재본은 바뀌지 않습니다.
-          <br />
-          한 번이라도 제출하면 <b>이 자료는 지울 수 없습니다.</b>
-          {unsaved && <div className="apc-note">저장 안 된 변경이 있습니다 — <b>저장한 뒤에 냅니다.</b></div>}
-          {gaps.length > 0 && (
-            <div className="apc-note">아직 안 쓴 자리가 {gaps.length}군데 있습니다.
-              그대로 내셔도 됩니다.</div>
+        <div ref={askRef} className={'apc-ask' + (step2 ? ' fix' : '')}
+          style={step2 && fixH ? { minHeight: fixH } : undefined}>
+          {ask === 'submit' && step2 ? (
+            // ② — **묻기만 하는 자리.** 새로 읽을 것을 주지 않는다.
+            //
+            // **한 덩어리로 감싼다.** 바깥(`.apc-ask.fix`)이 세로 flex 라, 감싸지 않으면
+            // 「제목」과 「이(가) 관리자에게 갑니다」가 **각각 flex 조각이 되어 줄이 갈린다** —
+            // 실물에서 한 문장이 두 줄로 찢어져 있었다(2026-09-18 · 실측).
+            <div className="apc-ask-in">
+              <b>{title || '제목 없음'}</b> 이(가) 관리자에게 갑니다.
+              <div className="apc-ok">
+                마음이 바뀌면 <b>결재함에서 회수</b>할 수 있습니다 — 관리자가 결정하기 전까지요.
+                <br /><span className="dim">회수해도 <b>이력에는 남습니다.</b></span>
+              </div>
+            </div>
+          ) : (<>
+            <b>{title || '제목 없음'}</b>
+            {ask === 'submit' ? (<>
+              {' '}을(를) 관리자에게 제출합니다.
+              {/* **빨간 칸.** 이 말은 여태 회색 본문에 묻혀 있었고, 창에서 제일 눈에 띄는
+                  것이 「전달할 말」 입력 칸이었다 — 적으라는 칸이 경고보다 셌다. */}
+              <div className="apc-danger">
+                <b>지금 이 문서가 그대로 얼어붙습니다.</b> 뒤에 고쳐도 결재본은 안 바뀝니다.
+                <br />한 번이라도 내면 <b>이 자료는 지울 수 없습니다.</b>
+              </div>
+              {dirty && <div className="apc-note">저장 안 된 변경이 있습니다 — <b>저장한 뒤에 냅니다.</b></div>}
+              {gaps.length > 0 && (
+                <div className="apc-note">아직 안 쓴 자리가 {gaps.length}군데 있습니다.
+                  그대로 내셔도 됩니다.</div>
+              )}
+            </>) : ask === 'revise' ? (<>
+              {' '}을(를) 고칠 수 있게 해 달라고 요청합니다.
+              <br /><br />
+              <b>팀이 보는 화면은 지금 그대로입니다.</b> 허락이 나도 승인본은 안 바뀌고,
+              고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.
+            </>) : (<>
+              의 <b>수정을 그만둡니다</b>.
+              <br /><br />
+              자료는 <b>다시 잠기고</b> 팀은 승인본을 그대로 봅니다.
+              <b>고친 내용은 지워지지 않습니다</b> — 승인본에 반영되지 않을 뿐이고,
+              나중에 다시 수정 요청을 낼 수 있습니다.
+            </>)}
+          </>)}
+          {err && <div style={{ color: '#b4232a', marginTop: 10 }}>{err}</div>}
+          {ask !== 'end' && !step2 && (
+            // 그만두기에는 붙일 말이 없다 — 아무에게도 안 간다.
+            // ② 에도 없다. 확인만 하면 되는 줄 알았는데 또 뭘 적으라면 걸음이 는 값을 못 한다.
+            <input className="lib-mkin" value={msg}
+              placeholder={ask === 'submit' ? '전달할 말 (선택)' : '무엇을 고칠지 (선택)'}
+              onChange={(e) => setMsg(e.target.value)} />
           )}
-        </>) : ask === 'revise' ? (<>
-          {' '}을(를) 고칠 수 있게 해 달라고 요청합니다.
-          <br /><br />
-          <b>팀이 보는 화면은 지금 그대로입니다.</b> 허락이 나도 승인본은 안 바뀌고,
-          고쳐서 <b>다시 승인을 받아야</b> 교체됩니다.
-        </>) : (<>
-          의 <b>수정을 그만둡니다</b>.
-          <br /><br />
-          자료는 <b>다시 잠기고</b> 팀은 승인본을 그대로 봅니다.
-          <b>고친 내용은 지워지지 않습니다</b> — 승인본에 반영되지 않을 뿐이고,
-          나중에 다시 수정 요청을 낼 수 있습니다.
-        </>)}
-        {err && <div style={{ color: '#b4232a', marginTop: 10 }}>{err}</div>}
-        {ask !== 'end' && (
-          // 그만두기에는 붙일 말이 없다 — 아무에게도 안 간다.
-          <input className="lib-mkin" value={msg}
-            placeholder={ask === 'submit' ? '전달할 말 (선택)' : '무엇을 고칠지 (선택)'}
-            onChange={(e) => setMsg(e.target.value)} />
-        )}
+        </div>
       </Modal>
     )}
   </>)
