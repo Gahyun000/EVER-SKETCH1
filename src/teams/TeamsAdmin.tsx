@@ -237,8 +237,8 @@ export default function TeamsAdmin({ onClose, embedded }: { onClose?: () => void
   return (
     <div className={embedded ? 'sh-page tm' : 'es-auth tm'} onClick={embedded ? undefined : onClose}>
       <div className="es-card wide" onClick={(e) => e.stopPropagation()}>
-        <div className="tm-head">
-          <button className="es-mini tm-new" disabled={busy}
+        <div className="adm-head">
+          <button className="es-mini adm-left" disabled={busy}
             onClick={() => { const o = !mkOpen; setMkOpen(o); if (!o) setMkName('') }}>
             <Plus className="h-4 w-4" /> 새 팀
           </button>
@@ -246,7 +246,7 @@ export default function TeamsAdmin({ onClose, embedded }: { onClose?: () => void
           <p className="es-lede">
             팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.
           </p>
-          {!embedded && <button className="es-mini tm-close" onClick={onClose}>닫기</button>}
+          {!embedded && <button className="es-mini adm-right" onClick={onClose}>닫기</button>}
         </div>
 
         {err && phase === 'ready' && <div className="es-msg err">{err}</div>}
@@ -272,24 +272,24 @@ export default function TeamsAdmin({ onClose, embedded }: { onClose?: () => void
           </div>
         )}
 
-        <div className="tm-srch">
-          <span className="tm-qbox">
+        <div className="adm-srch">
+          <span className="adm-qbox">
             <Search className="h-4 w-4" />
             <input value={qIn} placeholder="이름 · 부서 · 팀 이름" aria-label="검색어"
               onChange={(e) => setQIn(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') applySearch() }} />
           </span>
-          <button className="tm-sbtn dark" disabled={phase !== 'ready'} onClick={applySearch}>조회</button>
-          <button className="tm-sbtn" disabled={phase !== 'ready'} onClick={resetSearch}>초기화</button>
+          <button className="adm-sbtn dark" disabled={phase !== 'ready'} onClick={applySearch}>조회</button>
+          <button className="adm-sbtn" disabled={phase !== 'ready'} onClick={resetSearch}>초기화</button>
         </div>
 
-        <div className="tm-pager">
+        <div className="adm-pager">
           <span>
             {phase !== 'ready' ? ' ' : q
               ? <>조회 결과 <b>{result.totalPeople}</b>명 · {result.page}/{result.totalPages} 페이지 · {PAGE_SIZE}명씩</>
               : <>전체 <b>{result.totalPeople}</b>명 · {result.page}/{result.totalPages} 페이지 · {PAGE_SIZE}명씩</>}
           </span>
-          <span className="tm-pg">
+          <span className="adm-pg">
             <button aria-label="이전 쪽" disabled={result.page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
             <button aria-label="다음 쪽" disabled={result.page >= result.totalPages}

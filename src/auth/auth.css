@@ -146,7 +146,9 @@
 .es-linkbtn .es-badge { margin-left: 5px; min-width: 16px; height: 16px; font-size: 10px; padding: 0 4px; }
 
 /* 사용자 관리 표 */
-.es-admin-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+/* `.es-admin-head` 를 걷었다(2026-09-18 · 사용자 결정 「팀관리, 사용자관리 둘 다 가운데」).
+   왼쪽 정렬이던 사용자 관리와 가운데이던 팀 관리가 번갈아 볼 때마다 제목이 좌우로 튀었다.
+   이제 둘 다 `.adm-head` 를 쓴다 — 아래 참고. */
 .es-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
 .es-tab {
   border: 1px solid var(--line); background: #fff; border-radius: 99px; padding: 5px 13px;
@@ -220,11 +222,15 @@
 
 /* 머리 — 제목은 가운데, 「＋ 새 팀」은 왼쪽 위, 「닫기」는 오른쪽 위.
    닫는 버튼은 어느 창에서나 같은 구석에 있어야 손이 기억한다. */
-.tm-head { position: relative; text-align: center; margin-bottom: 14px; padding: 0 84px; min-height: 42px; }
-.tm-head .es-brand { justify-content: center; }
-.tm-head .es-lede { margin: 4px 0 0; }
-.tm-head .tm-new { position: absolute; top: 0; left: 0; }
-.tm-head .tm-close { position: absolute; top: 0; right: 0; }
+/* ── 관리 화면 머리줄 — **사용자 관리와 팀 관리가 같이 쓴다**(2026-09-18) ──
+   이름을 `tm-`(팀 관리) 에서 `adm-`(관리 화면) 으로 옮겼다. 두 화면이 같이 쓰는 것에
+   한쪽 이름을 붙여 두면, 나중에 「팀 관리 것이니 팀 관리만 보고 고치면 되겠지」가 된다. */
+.adm-head { position: relative; text-align: center; margin-bottom: 14px; padding: 0 84px; min-height: 42px; }
+.adm-head .es-brand { justify-content: center; }
+.adm-head .es-lede { margin: 4px 0 0; }
+/* 왼쪽 위·오른쪽 위는 **그 화면에서만 하는 일**이 온다(＋새 팀 · 닫기). 없으면 그냥 빈다. */
+.adm-head .adm-left { position: absolute; top: 0; left: 0; }
+.adm-head .adm-right { position: absolute; top: 0; right: 0; }
 
 /* 새 팀 입력 — 평소에는 화면에 없다. 「＋ 새 팀」을 눌러야 열린다. */
 .tm-mk {
@@ -242,36 +248,36 @@
 
 /* 조회줄 — 날짜 칸은 없다. 이 화면은 「행을 눌러 들어가는 조회 화면」이 아니라
    그 자리에서 고치는 목록 화면이라, 표준 261행(「필요한 검색조건」)을 따른다. */
-.tm-srch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
-.tm-qbox {
+.adm-srch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+.adm-qbox {
   display: flex; align-items: center; gap: 7px; flex: 0 1 300px; min-width: 180px;
   background: #fff; border: 1.4px solid var(--line); border-radius: 10px;
   padding: 0 11px; height: 36px; color: #64748b;
 }
-.tm-qbox input {
+.adm-qbox input {
   border: none; outline: none; flex: 1; min-width: 0; font-size: 13.5px;
   color: var(--ink); background: transparent; font-family: inherit; text-align: center;
 }
-.tm-qbox:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--tint); }
-.tm-sbtn {
+.adm-qbox:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--tint); }
+.adm-sbtn {
   border: 1.4px solid var(--line); background: #fff; color: var(--sub); font-weight: 800;
   font-size: 13px; border-radius: 10px; padding: 0 14px; height: 36px;
   cursor: pointer; font-family: inherit; white-space: nowrap;
 }
-.tm-sbtn.dark { background: var(--navy); border-color: var(--navy); color: #fff; }
-.tm-sbtn:disabled { opacity: .5; cursor: not-allowed; }
+.adm-sbtn.dark { background: var(--navy); border-color: var(--navy); color: #fff; }
+.adm-sbtn:disabled { opacity: .5; cursor: not-allowed; }
 
-.tm-pager {
+.adm-pager {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   margin: 0 0 8px; color: var(--sub); font-size: 12.5px; font-weight: 700;
 }
-.tm-pager b { color: var(--navy); }
-.tm-pager .tm-pg { display: flex; gap: 6px; }
-.tm-pager .tm-pg button {
+.adm-pager b { color: var(--navy); }
+.adm-pager .adm-pg { display: flex; gap: 6px; }
+.adm-pager .adm-pg button {
   border: 1px solid var(--line); background: #fff; border-radius: 7px;
   width: 28px; height: 28px; cursor: pointer; color: var(--sub); font-family: inherit;
 }
-.tm-pager .tm-pg button:disabled { opacity: .4; cursor: not-allowed; }
+.adm-pager .adm-pg button:disabled { opacity: .4; cursor: not-allowed; }
 
 /* 표 — 셋 다 가운데. 칸 폭을 못박아 좁아져도 낱말이 안 끊긴다
    (표준: 「표 셀은 … 의도치 않은 두 줄 깨짐이 없도록 한다」). */

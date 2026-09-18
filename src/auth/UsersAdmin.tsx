@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Search } from 'lucide-react'
 import { ApiError, apiApprove, apiListUsers, apiResetPassword, apiSetName, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
 import { useAuth } from './useAuth'
+import { filterUsers } from './userSearch'
 import Modal from '../ui/Modal'
 
 type Tab = 'pending' | 'active' | 'all'
@@ -33,6 +35,18 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   // 승인 시 부여할 역할. 기본값은 본인이 신청한 역할이지만 관리자가 낮출 수 있다.
   const [grant, setGrant] = useState<Record<string, Role>>({})
+  /**
+   * **검색**(2026-09-18 · 사용자 지시 「사용자도 검색 기능 넣고」).
+   *
+   * 팀 관리와 **같은 손놀림**이다 — 치기만 해서는 안 걸리고 <b>「조회」를 눌러야</b> 걸린다.
+   * 한 화면은 치는 대로 걸리고 다른 화면은 눌러야 걸리면, 손이 매번 다시 배운다.
+   * 그래서 치는 값(`qIn`)과 걸린 값(`q`)을 따로 둔다.
+   *
+   * **서버에 묻지 않고 받아 둔 목록에서 거른다.** 이 화면은 탭 하나에 전부를 받아 온다 —
+   * 굳이 다시 물으면 같은 것을 두 번 받고, 받는 사이에 목록이 비어 깜빡인다.
+   */
+  const [qIn, setQIn] = useState('')
+  const [q, setQ] = useState('')
 
   const load = async () => {
     setLoading(true); setErr('')
@@ -79,18 +93,22 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
   }
 
   const pendingCount = users.filter((u) => u.status === 'pending').length
+  /** 화면에 뜨는 목록. **걸린 값(`q`)으로만** 거른다 — 치는 값으로 거르면
+   *  「조회를 눌러야 걸린다」는 팀 관리와의 약속이 깨진다.
+   *  거르는 셈 자체는 `userSearch.ts` 에 있다 — 여기 적어 두면 지킴이가 돌려 볼 수 없다. */
+  const shown = filterUsers(users, q)
 
   return (
     <div className={embedded ? 'sh-page' : 'es-auth'} onClick={embedded ? undefined : onClose}>
       <div className="es-card wide" onClick={(e) => e.stopPropagation()}>
-        <div className="es-admin-head">
-          <div>
-            <div className="es-brand"><b>사용자 관리</b><span>관리자 전용</span></div>
-            <p className="es-lede" style={{ margin: '4px 0 0' }}>
-              가입 신청을 승인하고 권한을 정합니다. <b>승인해야 실제 권한이 부여됩니다.</b>
-            </p>
-          </div>
-          {!embedded && <button className="es-mini" onClick={onClose}>닫기</button>}
+        {/* **팀 관리와 같은 머리줄**(2026-09-18 · 사용자 결정 「둘 다 가운데」).
+            전에는 여기만 왼쪽 정렬이라, 두 화면을 번갈아 보면 제목이 좌우로 튀었다. */}
+        <div className="adm-head">
+          <div className="es-brand"><b>사용자 관리</b><span>관리자 전용</span></div>
+          <p className="es-lede">
+            가입 신청을 승인하고 권한을 정합니다. <b>승인해야 실제 권한이 부여됩니다.</b>
+          </p>
+          {!embedded && <button className="es-mini adm-right" onClick={onClose}>닫기</button>}
         </div>
 
         <div className="es-tabs">
@@ -101,13 +119,35 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
           ))}
         </div>
 
+        {/* 팀 관리와 **같은 줄, 같은 클래스**다 — 두 화면이 한 벌로 읽혀야 한다. */}
+        <div className="adm-srch">
+          <span className="adm-qbox">
+            <Search className="h-4 w-4" />
+            <input value={qIn} placeholder="아이디 · 이름 · 부서" aria-label="검색어"
+              onChange={(e) => setQIn(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') setQ(qIn) }} />
+          </span>
+          <button className="adm-sbtn dark" disabled={loading} onClick={() => setQ(qIn)}>조회</button>
+          <button className="adm-sbtn" disabled={loading}
+            onClick={() => { setQIn(''); setQ('') }}>초기화</button>
+        </div>
+
         {err && <div className="es-msg err">{err}</div>}
+
+        <div className="adm-pager">
+          <span>{loading ? ' ' : q
+            ? <>조회 결과 <b>{shown.length}</b>명 · 전체 {users.length}명</>
+            : <>전체 <b>{users.length}</b>명</>}</span>
+        </div>
 
         {loading ? (
           <div className="es-empty">불러오는 중…</div>
-        ) : users.length === 0 ? (
+        ) : shown.length === 0 ? (
           <div className="es-empty">
-            {tab === 'pending' ? '승인을 기다리는 신청이 없습니다.' : '표시할 사용자가 없습니다.'}
+            {/* **찾다가 없는 것과 원래 없는 것은 다른 말이다.** 같은 말을 쓰면
+                「승인 대기가 없구나」로 읽고 검색어를 지울 생각을 못 한다. */}
+            {q ? '찾는 사람이 없습니다. 검색어를 지우면 전체가 나옵니다.'
+              : tab === 'pending' ? '승인을 기다리는 신청이 없습니다.' : '표시할 사용자가 없습니다.'}
           </div>
         ) : (
           <table className="es-table">
@@ -118,7 +158,7 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => {
+              {shown.map((u) => {
                 const self = u.id === me?.id
                 const busy = busyId === u.id
                 return (

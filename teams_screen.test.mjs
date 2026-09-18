@@ -25,7 +25,10 @@ check(!/type="date"|type=\{?['"]date/.test(tsx),
   '날짜 칸이 없다 — 표준 267행은 「행 클릭 상세 진입」 조회 화면을 말한다. 이 화면은 그게 아니다')
 check(/>조회</.test(tsx), '「조회」 버튼이 있다 — 치는 대로가 아니라 눌러야 걸린다(「내 이북」과 같은 손놀림)')
 check(/>초기화</.test(tsx), '「초기화」가 있다')
-check(/tm-pager/.test(tsx) && /페이지/.test(tsx) && /명씩/.test(tsx),
+// **이름이 `tm-` 에서 `adm-` 로 옮겨졌다**(2026-09-18). 사용자 관리와 팀 관리가
+// 머리줄·검색줄·건수줄을 **같이 쓰게** 되면서, 한쪽 화면 이름을 붙여 두면 나중에
+// 「팀 관리 것이니 팀 관리만 보고 고치면 되겠지」가 된다. 규칙은 그대로다 — 이름만 옮겼다.
+check(/adm-pager/.test(tsx) && /페이지/.test(tsx) && /명씩/.test(tsx),
   '개수 · 페이지 이동이 있다')
 check(/phase === 'loading'/.test(tsx) && /불러오는 중/.test(tsx), '로딩 상태가 있다')
 check(/phase === 'error'/.test(tsx) && /다시 시도/.test(tsx), '오류 상태와 되돌아갈 길이 있다')
@@ -34,8 +37,19 @@ check(/찾는 결과가 없습니다/.test(tsx) && /조건 초기화/.test(tsx),
   '검색 0건을 빈 데이터와 **구분해서** 말한다 — 같은 문구면 무엇을 해야 할지 모른다')
 
 // ── 확정된 배치 ──
-check(/tm-new[\s\S]{0,200}새 팀/.test(tsx), '「＋ 새 팀」이 머리줄에 있다')
-check(/tm-close[\s\S]{0,80}닫기|닫기[\s\S]{0,80}tm-close/.test(tsx), '「닫기」가 있다')
+check(/adm-left[\s\S]{0,200}새 팀/.test(tsx), '「＋ 새 팀」이 머리줄 왼쪽에 있다')
+check(/adm-right[\s\S]{0,80}닫기|닫기[\s\S]{0,80}adm-right/.test(tsx), '「닫기」가 있다')
+
+// **두 화면이 정말 같은 것을 쓰는지 본다.** 이름만 옮겨 놓고 한쪽이 제 것을 따로
+// 만들면, 이름은 같은데 모양이 갈린다 — 그게 원래 고치려던 병이다.
+{
+  const ua = read('./src/auth/UsersAdmin.tsx')
+  for (const k of ['adm-head', 'adm-srch', 'adm-qbox', 'adm-sbtn']) {
+    check(tsx.includes(k) && ua.includes(k), `팀 관리와 사용자 관리가 **${k}** 를 같이 쓴다`)
+  }
+  check(!/tm-head|tm-srch|tm-qbox|tm-sbtn|tm-new|tm-close/.test(tsx + ua),
+    '옛 이름(tm-)이 남아 있지 않다 — 둘이 섞이면 어느 쪽이 참인지 모른다')
+}
 check(/from 'lucide-react'/.test(tsx) && /Search/.test(tsx) && /Plus/.test(tsx),
   '아이콘은 lucide — 「내 이북」과 같은 것을 쓴다(글자로 때우지 않는다)')
 
