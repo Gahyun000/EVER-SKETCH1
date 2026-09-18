@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useOverlay } from '../ui/overlay'
 
 // 도움말 > 튜토리얼 — public/tutorial.html 시연을 전체 화면으로 재생한다.
 // 시연은 iframe 안에서만 돌기 때문에 편집 중인 문서에는 아무 변화도 남지 않는다.
@@ -23,6 +24,8 @@ export default function TutorialPlayer({ open, onClose }: { open: boolean; onClo
    *
    * 고치는 법은 붙였다 떼지 않는 것이다 — deps 는 `open` 뿐이고, 닫는 함수는 ref 로 본다.
    */
+  // **덮고 있는 동안은 아래(캔버스)가 키를 안 건드리게 한다** — ui/overlay 참고.
+  useOverlay(open)
   const closeRef = useRef(onClose)
   closeRef.current = onClose
   useEffect(() => {

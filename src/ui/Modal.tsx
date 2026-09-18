@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useOverlay } from './overlay'
 import './modal.css'
 
 /**
@@ -85,6 +86,14 @@ export default function Modal({
       if (prev && document.contains(prev)) prev.focus()
     }
   }, [])
+
+  // **떠 있는 동안 아래(캔버스)가 키를 안 건드리게 한다**(2026-09-18 · ui/overlay 참고).
+  // 이 껍데기는 떠 있는 동안만 붙어 있으므로 늘 참이다.
+  //
+  // capture 로 전파를 끊는 것만으로는 모자랐다 — 캔버스의 표 칸 리스너는 **window**
+  // capture 라 document capture 인 이 줄보다 **먼저** 불린다. 표 칸을 골라 둔 채로
+  // 창을 열면 Escape 를 그쪽이 먼저 먹었다.
+  useOverlay(true)
 
   // Esc.
   // **capture 로 잡고 전파를 끊는다.** 캔버스가 window 에서 Escape 를 듣고 있어서

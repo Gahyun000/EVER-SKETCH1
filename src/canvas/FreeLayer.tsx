@@ -9,6 +9,7 @@ import { useCanvasUI } from '../state/canvasUI'
 import { useProjects } from '../persistence/projects'
 import { mkFreeEl, pushSnap, FCOLORS, NO_FILL } from './model'
 import { centerSpot } from './dropSpot'
+import { overlayOpen } from '../ui/overlay'
 import { CLIPPED, SHAPE_RADIUS, dashArray, polyClip, polyPoints } from './shapePaths'
 import NoteBlocks from '../builder/NoteBlocks'
 import { bandRange, coveredSet, dragTrack, growToMerges, mergeCovering, sizeTracks, trackSizes } from './tableOps'
@@ -403,6 +404,8 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   useEffect(() => {
     if (!interactive) return
     const onKey = (e: KeyboardEvent) => {
+      // **위가 덮여 있으면 아래는 키를 안 건드린다**(2026-09-18 · ui/overlay 참고).
+      if (overlayOpen()) return
       if (e.key === 'Escape') { setSel(null); setConnSrc(null); setSelConn(null); endEditing(); setMarquee(null); setTool('select'); return }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const st = connKeyRef.current
@@ -627,6 +630,10 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
   useEffect(() => {
     if (!active || editing != null || tool !== 'select' || !tableSel) return
     const onKey = (e: KeyboardEvent) => {
+      // **여기가 발표 Esc 를 먹던 자리다**(2026-09-18). 이 리스너는 window 의 capture 라
+      // 제일 먼저 불리고, Escape 를 「고른 칸 풀기」로 삼아 stopPropagation 한다.
+      // 위에 전체 화면이 덮여 있으면 그 키는 애초에 내 것이 아니다.
+      if (overlayOpen()) return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
