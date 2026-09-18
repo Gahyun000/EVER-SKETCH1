@@ -89,11 +89,32 @@ const dp = bare(read('./src/builder/DemoPlayer.tsx'))
 check(/\{ label: '▶ 작성자 매뉴얼',[^}]*run: \(\) => emit\('ebook:demo'\)/.test(mb),
   '보기 메뉴에 「▶ 작성자 매뉴얼」이 있고 ebook:demo 를 쏜다')
 
-// ② 등급으로 막지 않는다 — Lv3 도 본다(사용자 결정).
-//    MenuBar 는 `admin`·`publish` 딱지가 붙은 항목만 가린다. 그 항목에 딱지가 없어야 한다.
+// ② **등급으로 막는다**(2026-09-18 · 사용자 결정으로 **뒤집혔다**).
+//
+//    예전 규칙은 「등급으로 막지 않는다 — Lv3 도 본다」였다. 그걸 지우지 않고 고쳐 쓴다 —
+//    왜 안 막았는지가 왜 막는지의 배경이라서다. **뒤집힌 이유**: 열람자는 자료를
+//    만들 수가 없는데 「① 만들기 37걸음」을 그대로 보고 있었다. 관리자 매뉴얼이 생기면서
+//    「누가 무엇을 보나」를 한 번에 정했다.
+//
+//      ▶ 작성자 매뉴얼  publish → 관리자 ○ 작성자 ○ **열람자 ✕**
+//      🛡 관리자 매뉴얼 admin   → 관리자 ○ **작성자 ✕ 열람자 ✕**
+//
+//    **새 장치는 없다.** MenuBar 거르개가 이미 둘을 본다 —
+//    `admin`(isAdmin) 과 `publish`(canPublish = 관리자 + 작성자).
+//    `publish` 가 곧 「열람자에게만 숨김」이다.
 const item = (mb.match(/\{ label: '▶ 작성자 매뉴얼'[^}]*\}/) || [''])[0]
-check(item && !/admin: true|publish: true/.test(item),
-  '등급으로 매뉴얼을 막지 않는다 — Lv3 도 본다')
+check(item && /publish: true/.test(item) && !/admin: true/.test(item),
+  '작성자 매뉴얼은 **열람자에게만** 숨는다(publish) — 관리자·작성자는 본다', item)
+const ai = (mb.match(/\{ label: '🛡 관리자 매뉴얼'[^}]*\}/) || [''])[0]
+check(ai && /admin: true/.test(ai),
+  '관리자 매뉴얼은 **관리자에게만** 보인다(admin)', ai)
+check(/run: \(\) => emit\('ebook:admin-manual'\)/.test(ai),
+  '그 이름이 그 신호를 쏜다 — 따로 재면 이름만 맞고 엉뚱한 신호를 쏘는 것을 못 잡는다')
+// 거르개가 살아 있어야 딱지가 뜻을 가진다. 딱지만 붙이고 거르개가 없으면 아무것도 안 막힌다.
+check(/\(admin \|\| !it\.admin\) && \(pub \|\| !it\.publish\)/.test(mb),
+  '거르개가 두 딱지를 다 본다')
+check(/const admin = isAdmin\(me\)/.test(mb) && /const pub = canPublish\(me\)/.test(mb),
+  '두 딱지가 보는 것이 무엇인지 한 곳에 적혀 있다')
 
 // ③ 그 신호를 **듣는 쪽**이 있다. 여기가 끊기면 눌러도 조용하다.
 check(/window\.addEventListener\('ebook:demo'/.test(cb) && /auxRef\.current\.onDemo\(\)/.test(cb),

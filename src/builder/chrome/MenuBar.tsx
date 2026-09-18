@@ -77,7 +77,15 @@ export default function MenuBar({ onHelp, onTutorial, onNotes, onSettings, onImp
     // 맞는 자리다 — **바로 위 「작성자 매뉴얼」과 같은 성격**(보기만 하는 것)이라,
     // 둘이 나란히 있으면 「배우는 것들」이 한곳에 모인다.
     { label: '보기', items: [
-      { label: '▶ 작성자 매뉴얼', run: () => emit('ebook:demo') },
+      // **등급에 따라 보이는 것이 다르다**(2026-09-18 · 사용자 결정).
+      //   작성자 매뉴얼 — 관리자 ○ 작성자 ○ **열람자 ✕**
+      //   관리자 매뉴얼 — 관리자 ○ **작성자 ✕ 열람자 ✕**
+      //
+      // **새로 만든 장치가 없다.** 아래 거르개가 이미 둘을 본다 — `admin`(관리자만)과
+      // `publish`(= canPublish, 관리자 + 작성자). **`publish` 가 곧 「열람자에게만 숨김」**이다.
+      // 열람자는 만들 수가 없는데 「만들기 37걸음」을 보고 있었다.
+      { label: '▶ 작성자 매뉴얼', publish: true, run: () => emit('ebook:demo') },
+      { label: '🛡 관리자 매뉴얼', admin: true, run: () => emit('ebook:admin-manual') },
       { label: '▶ 튜토리얼 (30초 시연)', run: onTutorial },
       { label: '도움말', run: onHelp },
     ] },

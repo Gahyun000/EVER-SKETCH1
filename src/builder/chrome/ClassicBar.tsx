@@ -32,8 +32,10 @@ type DeckEvent = {
 export type ClassicBarHandle = { openImport: () => void }
 
 // 툴바2: 기존 이북/문서 기능(유지) — 가져오기·미리보기·이북 만들기.
-const ClassicBar = forwardRef<ClassicBarHandle, { onSettings: () => void; onDemo: () => void; onAiCleanup: () => void }>(
-  function ClassicBar({ onSettings, onDemo, onAiCleanup }, ref) {
+const ClassicBar = forwardRef<ClassicBarHandle, {
+  onSettings: () => void; onDemo: () => void; onAiCleanup: () => void; onAdminManual: () => void
+}>(
+  function ClassicBar({ onSettings, onDemo, onAiCleanup, onAdminManual }, ref) {
     const orientation = useBuilder((s) => s.orientation)
     const setOrientation = useBuilder((s) => s.setOrientation)
     const theme = useBuilder((s) => s.theme)
@@ -194,15 +196,25 @@ const ClassicBar = forwardRef<ClassicBarHandle, { onSettings: () => void; onDemo
       window.addEventListener('ebook:export-pptx', hx)
       return () => { window.removeEventListener('ebook:build', h); window.removeEventListener('ebook:export-pdf', hp); window.removeEventListener('ebook:export-pptx', hx) }
     }, [])
-    const auxRef = useRef({ onAiCleanup, onDemo, onSummarize }); auxRef.current = { onAiCleanup, onDemo, onSummarize }
+    const auxRef = useRef({ onAiCleanup, onDemo, onSummarize, onAdminManual })
+    auxRef.current = { onAiCleanup, onDemo, onSummarize, onAdminManual }
     useEffect(() => {
       const c = () => auxRef.current.onAiCleanup()
       const su = () => { void auxRef.current.onSummarize() }
       const d = () => auxRef.current.onDemo()
+      // **관리자 매뉴얼도 같은 길로 온다**(2026-09-18). 메뉴가 이미 등급을 걸러 주므로
+      // 여기서 또 보지 않는다 — 두 곳에서 보면 한쪽만 바뀌는 날이 온다.
+      const am = () => auxRef.current.onAdminManual()
       window.addEventListener('ebook:ai-cleanup', c)
       window.addEventListener('ebook:ai-summary', su)
       window.addEventListener('ebook:demo', d)
-      return () => { window.removeEventListener('ebook:ai-cleanup', c); window.removeEventListener('ebook:ai-summary', su); window.removeEventListener('ebook:demo', d) }
+      window.addEventListener('ebook:admin-manual', am)
+      return () => {
+        window.removeEventListener('ebook:ai-cleanup', c)
+        window.removeEventListener('ebook:ai-summary', su)
+        window.removeEventListener('ebook:demo', d)
+        window.removeEventListener('ebook:admin-manual', am)
+      }
     }, [])
 
     return (

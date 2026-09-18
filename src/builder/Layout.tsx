@@ -24,6 +24,7 @@ import CommentsPanel from '../comments/CommentsPanel'
 import { useComments } from '../comments/store'
 import { applyUiAction } from '../chat/actions'
 import DemoPlayer from './DemoPlayer'
+import AdminManual from './AdminManual'
 import InsertPicker from './InsertPicker'
 import AiCleanup from './AiCleanup'
 import { useRef, useEffect } from 'react'
@@ -105,6 +106,10 @@ export default function Layout() {
    */
   const [side, setSide] = useState<null | 'chat' | 'notes'>(null)
   const [demo, setDemo] = useState(false)
+  /** 관리자 매뉴얼. **저장 가로막기를 안 붙인다**(2026-09-18) — 작성자 매뉴얼의
+   *  `withSaveGuard` 는 「데모가 작업 화면을 임시로 바꾼다」는 옛 튜토리얼 때문이었다.
+   *  이건 그냥 읽는 창이라 화면을 건드리지 않는다. */
+  const [adminMan, setAdminMan] = useState(false)
   const [ai, setAi] = useState(false)
   const [confirmSave, setConfirmSave] = useState<ConfirmSaveRequest | null>(null)
   const classicRef = useRef<ClassicBarHandle>(null)
@@ -215,7 +220,7 @@ export default function Layout() {
     <TitleBar onPresent={() => setPresent(true)} />
     <MenuBar onHelp={() => setHelp(true)} onTutorial={() => setTutorialPlay(true)} onNotes={() => setSide('notes')} onSettings={() => setSettings(true)} onImport={() => withSaveGuard(() => classicRef.current?.openImport(), '새 HTML을 불러오면 현재 작업 화면이 바뀔 수 있습니다.')} onPresent={() => setPresent(true)} />
     <EditToolbar />
-    <ClassicBar ref={classicRef} onSettings={() => setSettings(true)} onDemo={() => withSaveGuard(() => setDemo(true), '데모 실행 중 현재 작업 화면이 임시로 바뀔 수 있습니다.')} onAiCleanup={() => setAi(true)} />
+    <ClassicBar ref={classicRef} onSettings={() => setSettings(true)} onDemo={() => withSaveGuard(() => setDemo(true), '데모 실행 중 현재 작업 화면이 임시로 바뀔 수 있습니다.')} onAiCleanup={() => setAi(true)} onAdminManual={() => setAdminMan(true)} />
 
     <div className="ax-body" ref={bodyRef} style={{ gridTemplateColumns: `${leftOpen ? leftW : 0}px 1fr ${rightOpen ? rightW : 0}px` }}>
       <div className="ax-film" style={{ overflow: 'hidden' }}>
@@ -260,6 +265,7 @@ export default function Layout() {
     <NotesPanel open={side === 'notes'} onClose={() => setSide(null)} onChat={() => setSide('chat')} />
     <CommentsPanel />
     <DemoPlayer open={demo} onClose={() => setDemo(false)} />
+    <AdminManual open={adminMan} onClose={() => setAdminMan(false)} />
     <InsertPicker />
     <AiCleanup open={ai} onClose={() => setAi(false)} />
     {confirmSave ? <ConfirmSaveModal req={confirmSave} onClose={() => setConfirmSave(null)} /> : null}
