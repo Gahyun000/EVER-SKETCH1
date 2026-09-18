@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 결재 제출 확인 v2.1</title>
+<style>
+  :root{
+    --ink:#1a1f2b; --muted:#6b7488; --line:#e2e6ee; --bg:#f4f6fa;
+    --blue:#2462EB; --blue-soft:#eaf0ff; --blue-line:#c9d8ff;
+    --navy:#16234a; --red:#d04a4a; --warn-bg:#fdf6e6; --warn-line:#f0e0b8; --ok:#27794e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:34px 20px 80px}
+  h1{font-size:23px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:17px;font-weight:800;margin:26px 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:12px 15px;font-size:13px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  .note{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:10px;
+    padding:12px 15px;font-size:13px;color:#6b5320;margin:14px 0}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:0 2px 10px rgba(20,25,40,.04);margin-top:14px}
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;
+    background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:3px 10px;margin-bottom:8px}
+  .tag.warn{background:#fdecec;color:var(--red)}
+  code{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:4px;padding:1px 5px}
+
+  .steps{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0;align-items:center}
+  .steps b{background:#f0f2f6;color:#6b7488;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800}
+  .steps b.on{background:var(--blue);color:#fff}
+  .steps i{font-style:normal;color:#c2c9d6}
+  .modes{display:flex;gap:8px;margin:14px 0 0;flex-wrap:wrap}
+  .modes button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;
+    font-size:13px;font-weight:800;color:#3a4150;cursor:pointer;font-family:inherit}
+  .modes button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* 무대 — 창은 늘 같은 자리에서 시작한다(위 정렬). 그래야 높이 변화가 눈에 보인다. */
+  .stage{background:#dfe3ea;border:1px solid var(--line);border-radius:12px;padding:22px 16px 26px;
+    margin-top:12px;min-height:470px;display:flex;align-items:flex-start;justify-content:center;
+    position:relative}
+  .ruler{position:absolute;left:12px;right:12px;height:2px;background:var(--red);opacity:.5;
+    pointer-events:none;transition:top .18s ease}
+  .ruler::after{content:"직전 걸음의 단추 줄";position:absolute;right:4px;top:-16px;
+    font-size:10.5px;font-weight:800;color:var(--red)}
+
+  /* **폭은 셋이 같다.** 실제 앱의 sm 껍데기와 같은 값(min(460px,94vw)). */
+  .dlg{width:min(460px,94vw);background:#fff;border-radius:14px;padding:20px 24px 22px;
+    box-shadow:0 24px 70px rgba(15,27,61,.28);font-size:13px;line-height:1.65;color:#5b6270;
+    display:flex;flex-direction:column}
+  .dlg h3{margin:0 0 12px;font-size:16.5px;font-weight:800;color:var(--navy);line-height:1.35}
+  .dlg b{color:#1c2433}
+  .dlg .body{flex:1}
+  /* **맞춤 모드에서는 남는 자리를 위아래로 나눈다.** 내용을 위에 붙여 두고 아래를 텅 비우면
+     「덜 그려졌나」로 보인다 — 가운데로 모으면 빈자리가 여백으로 읽힌다. */
+  .dlg.fix .body{display:flex;flex-direction:column;justify-content:center}
+  .in{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-top:12px;
+    font-size:12.5px;color:#9aa3b2}
+  .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .btn{border:1.4px solid var(--line);background:#fff;color:#334155;font-weight:800;font-size:13px;
+    border-radius:9px;padding:8px 16px;cursor:pointer;font-family:inherit}
+  .btn.dark{border:none;background:var(--navy);color:#fff}
+  .btn:hover{border-color:var(--blue-line);color:var(--blue)}
+  .btn.dark:hover{background:#0f1a37;color:#fff}
+  .yellow{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:9px;
+    padding:8px 11px;margin-top:11px;font-size:12.2px;color:#6b5320}
+  .danger-box{background:#fdf1f1;border:1px solid #f2cdcd;border-left:3px solid #b4232a;
+    border-radius:0 9px 9px 0;padding:10px 12px;margin-top:12px;font-size:12.6px;color:#6b2020}
+  .danger-box b{color:#8c1a1a}
+  .ok-box{background:#eef7f1;border:1px solid #cfe6d9;border-radius:9px;padding:10px 12px;
+    margin-top:12px;font-size:12.6px;color:#215c3f}
+  .ok-box b{color:#17462f}
+
+  .readout{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;align-items:center}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;
+    font-weight:800;font-size:12px}
+  .pill.bad{background:#fdecec;color:var(--red)}
+  .pill.ok{background:#e6f5ec;color:var(--ok)}
+  b.num{font-variant-numeric:tabular-nums}
+
+  ul.pt{margin:10px 0 0;padding-left:18px;font-size:13px;color:#3a4150}
+  ul.pt li{margin:6px 0}
+  ul.pt b{color:var(--ink)}
+  .good::marker{color:var(--ok)} .bad::marker{color:var(--red)}
+  table.t{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  table.t td{border-bottom:1px solid var(--line);padding:7px 9px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>결재 제출 — 세 걸음 · <b>창 크기를 맞춘다</b></h1>
+  <p class="sub">2026-09-18 · v2.0 에서 「모달 사이즈가 일관되면 좋겠는데」.
+     <b>폭은 제 시안 탓이었습니다</b> — 실제 앱은 같은 껍데기(<code>size="sm"</code>)를 쓰면 폭이 저절로 같아집니다.
+     남는 것은 <b>높이</b>입니다. 아래에서 눌러 보세요.</p>
+
+  <div class="modes">
+    <button data-m="flow" class="on">㉠ 높이는 내용대로</button>
+    <button data-m="fix">㉡ 세 걸음의 높이를 맞춘다</button>
+  </div>
+
+  <div class="steps" id="steps"></div>
+  <div class="stage"><div class="ruler" id="ruler" style="top:-99px"></div><div id="d"></div></div>
+  <div class="readout">
+    <span>직전 걸음 <b class="num" id="r1">–</b></span>
+    <span>지금 <b class="num" id="r2">–</b></span>
+    <span id="r3" class="pill ok">–</span>
+    <span class="hint" style="margin:0" id="tip"></span>
+  </div>
+
+  <div class="card">
+    <span class="tag">두 가지 길</span>
+    <ul class="pt">
+      <li class="good"><b>㉠ 높이는 내용대로</b> — 확인 창이 한 줄이면 한 줄만큼만 뜹니다. 가볍지만 <b>단추 줄이 위아래로 튑니다.</b> 빨간 줄이 직전 자리입니다.</li>
+      <li class="good"><b>㉡ 높이를 맞춘다</b> — 세 걸음이 <b>같은 크기</b>로 뜨고 <b>단추 줄이 한 자리에</b> 고정됩니다. 같은 일의 세 걸음이니 한 창이 세 번 바뀌는 것처럼 보입니다.</li>
+      <li class="bad">㉡ 의 대가는 <b>② 와 ③ 에 빈 자리</b>가 생기는 것입니다. 「왜 이렇게 큰가」로 보일 수 있습니다.</li>
+    </ul>
+    <p class="hint">저는 <b>㉡</b> 을 권합니다. 이 셋은 <b>한 흐름</b>이라, 누를 때마다 창이 커졌다 작아졌다 하면
+      매뉴얼에서 「다음」 단추가 튀던 것과 같은 산만함이 생깁니다. 다만 ③ 은 흐름의 끝이라 ㉠ 으로 두는 절충도 있습니다.</p>
+  </div>
+
+  <div class="card">
+    <span class="tag warn">같이 고칠 것 — 그대로입니다</span>
+    <p class="hint" style="margin-top:6px">누르는 순간 <b>25ms 깜빡이던 노란 경고</b>
+      (<code>unsaved</code> 가 「지금 저장 중」까지 한 덩어리로 묶고 있음). 붙일 때 같이 고칩니다.</p>
+  </div>
+
+</div>
+
+<script>
+const TITLE = 'EVER-SKETCH 기획 · 설계 사상'
+const STEPS = ['① 결재 제출', '② 제출하시겠습니까?', '③ 냈습니다 · 회수']
+const TIPS = [
+  '「제출」을 눌러 보세요.',
+  '「취소」를 누르면 ① 로 돌아옵니다 — 창이 닫히지 않습니다.',
+  '흐름의 끝입니다.',
+]
+
+function view(i) {
+  if (i === 0) return `
+    <h3>결재 제출</h3>
+    <div class="body">
+    <b>${TITLE}</b> 을(를) 관리자에게 제출합니다.
+    <div class="danger-box">
+      <b>지금 이 문서가 그대로 얼어붙습니다.</b> 뒤에 고쳐도 결재본은 안 바뀝니다.<br>
+      한 번이라도 내면 <b>이 자료는 지울 수 없습니다.</b>
+    </div>
+    <div class="yellow">아직 안 쓴 자리가 3군데 있습니다. 그대로 내셔도 됩니다.</div>
+    <div class="in">전달할 말 (선택)</div>
+    </div>
+    <div class="foot">
+      <button class="btn" data-go="0">취소</button>
+      <button class="btn dark" data-go="1">제출</button>
+    </div>`
+  if (i === 1) return `
+    <h3>제출하시겠습니까?</h3>
+    <div class="body"><b>${TITLE}</b> 이(가) 관리자에게 갑니다.</div>
+    <div class="foot">
+      <button class="btn" data-go="0">취소</button>
+      <button class="btn dark" data-go="2">확인</button>
+    </div>`
+  return `
+    <h3>냈습니다</h3>
+    <div class="body">
+    <b>${TITLE}</b> 이(가) 관리자에게 갔습니다. 이제 <b>결재 중</b>입니다.
+    <div class="ok-box">
+      마음이 바뀌면 <b>결재함에서 회수</b>할 수 있습니다 — 관리자가 결정하기 전까지요.<br>
+      <span style="opacity:.85">회수해도 <b>이력에는 남습니다.</b></span>
+    </div>
+    </div>
+    <div class="foot">
+      <button class="btn" data-go="0">닫기</button>
+      <button class="btn dark" data-go="0">결재함으로</button>
+    </div>`
+}
+
+let i = 0, mode = 'flow', lastY = null, tallest = 0
+const host = document.getElementById('d')
+
+// **제일 큰 걸음을 먼저 재 둔다.** ㉡ 은 그 높이에 맞춘다 — 손으로 px 을 적어 두면
+// 글이 한 줄 늘 때마다 어긋난다.
+function measureTallest() {
+  const probe = document.createElement('div')
+  probe.className = 'dlg fix'
+  probe.style.cssText = 'position:absolute;visibility:hidden;left:-9999px'
+  document.body.appendChild(probe)
+  let m = 0
+  for (let k = 0; k < 3; k++) { probe.innerHTML = view(k); m = Math.max(m, probe.offsetHeight) }
+  probe.remove()
+  return m
+}
+
+function paint() {
+  host.className = 'dlg' + (mode === 'fix' ? ' fix' : '')
+  host.innerHTML = view(i)
+  host.style.minHeight = mode === 'fix' ? tallest + 'px' : ''
+  document.getElementById('steps').innerHTML = STEPS
+    .map((t, k) => `<b class="${k === i ? 'on' : ''}">${t}</b>`).join('<i>›</i>')
+  document.getElementById('tip').textContent = TIPS[i]
+  host.querySelectorAll('[data-go]').forEach((b) => b.onclick = () => {
+    const f = host.querySelector('.foot').getBoundingClientRect()
+    lastY = Math.round(f.top - document.querySelector('.stage').getBoundingClientRect().top)
+    i = +b.dataset.go; paint()
+  })
+  requestAnimationFrame(() => {
+    const st = document.querySelector('.stage').getBoundingClientRect()
+    const y = Math.round(host.querySelector('.foot').getBoundingClientRect().top - st.top)
+    const r1 = document.getElementById('r1'), r2 = document.getElementById('r2'), r3 = document.getElementById('r3')
+    r2.textContent = y + 'px'
+    if (lastY === null) { r1.textContent = '–'; r3.className = 'pill ok'; r3.textContent = '움직임 –'; document.getElementById('ruler').style.top = '-99px' }
+    else {
+      r1.textContent = lastY + 'px'
+      const dd = Math.abs(y - lastY)
+      r3.className = 'pill ' + (dd > 2 ? 'bad' : 'ok')
+      r3.textContent = dd > 2 ? `단추 줄이 ${dd}px 움직임` : '단추 줄 그대로'
+      document.getElementById('ruler').style.top = lastY + 'px'
+    }
+  })
+}
+
+document.querySelectorAll('.modes button').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('.modes button').forEach((x) => x.classList.remove('on'))
+  b.classList.add('on'); mode = b.dataset.m; i = 0; lastY = null; paint()
+})
+
+tallest = measureTallest()
+paint()
+</script>
+</body>
+</html>
