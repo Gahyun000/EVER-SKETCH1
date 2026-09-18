@@ -512,38 +512,62 @@ button{font-family:inherit;cursor:pointer}
 .lib-c-ok{border:none;background:#2462EB;color:#fff;font-weight:800;font-size:13px;border-radius:9px;padding:8px 16px;cursor:pointer}
 .lib-c-ok.danger{background:#dc2626}
 
-/* ── 작성자 매뉴얼 모달 ── */
-/* 위와 같다 — 껍데기가 정한다. */
-.ui-modal.demo-modal{width:min(880px,94vw)}
-.demo-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eef0f4}
-.demo-ttl{font-size:14px;font-weight:800;color:#0f172a}
-.demo-x{border:none;background:#eef1f6;color:#334;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:13px}
-.demo-gif{display:block;width:100%;background:#eceef3}
-.demo-foot{padding:11px 16px;font-size:12.5px;color:#64748b;border-top:1px solid #eef0f4}
+/* ── 작성자 매뉴얼 모달 ──
+ * 2026-09-18 · **여기 있던 일곱 줄을 걷어냈다.** 손으로 그리던 시절의 잔해였다
+ * (.demo-head · .demo-ttl · .demo-x · .demo-gif · .demo-foot — 저장소 전체에서 **쓰는 곳 0**).
+ * 그리고 `.ui-modal.demo-modal{width:min(880px,94vw)}` 이 여기 한 번, 아래 한 번 —
+ * **같은 선택자가 두 벌**이라 아래 것이 덮고 있었다. 폭을 고치러 온 사람은 위엣것을 고치고
+ * 「왜 안 바뀌지」 하게 된다. 아래 한 곳만 남긴다. */
 
 /* ── 작성자 매뉴얼 — 열두 편 (2026-09-15) ──
    왼쪽에 목차, 오른쪽에 그 편. **목차를 늘 보이게 둔다** — 열두 편이라
    「지금 몇 번째이고 다음이 뭔지」가 안 보이면 끝까지 못 본다. */
-.ui-modal.demo-modal{width:min(1080px,96vw)}
-.man-wrap{display:grid;grid-template-columns:196px 1fr;gap:0;min-height:0}
+/* ── **틀을 고정한다**(2026-09-18 · 사용자 결정 ㄱ) ─────────────────
+ *
+ * 사용자 말: 「다음 넘길 때 버튼 위치가 달라서 산만한데」. 재 보니 산만한 정도가 아니었다.
+ * 37걸음을 하나씩 넘기며 잰 값(창 1700×1000):
+ *   · 「다음」이 선 높이  **399 ~ 1,982px** — 흔들림 1,583px
+ *   · 그림 높이          **64 ~ 1,654px**
+ * y≈1,982 는 **창 밖**이다. 그 걸음에서는 스크롤을 내려야 다음으로 갈 수 있었고,
+ * 탭 줄과 인쇄 단추도 같이 위로 밀려 사라졌다.
+ *
+ * 까닭은 그림이다. 매뉴얼 그림은 실물 화면 캡처라 비율이 제각각이다 —
+ * 가장 납작한 것이 900×69(0.08), 가장 긴 것이 400×820(2.05). **26.6배** 차이다.
+ * 폭을 100%로 맞춰 그리니 높이가 그만큼 벌어졌다.
+ *
+ * **한글 인쇄 미리보기처럼 그림을 한 칸에 맞춰 넣는 안(ㄴ)은 안 골랐다.** 한글이 그렇게
+ * 되는 건 모든 쪽이 같은 A4 라서다. 우리는 그 전제가 없어서, 한 칸에 맞추면 납작한 것은
+ * 허공만 남고 긴 것은 글씨가 안 읽힌다(시안에 그 숫자가 있다 —
+ * docs/화면시안_매뉴얼_미리보기틀_v1.0.html).
+ *
+ * 그래서 **틀만 고정하고 그림은 그대로 둔다.** 창 높이를 박고, 안에서 스크롤하는 것은
+ * 목록과 무대뿐이다. 탭 줄과 이동 막대는 붙박이라 어느 걸음에서도 같은 자리에 있다. */
+.ui-modal.demo-modal{width:min(1080px,96vw);height:86vh;overflow:hidden}
+.demo-modal .ui-modal-body{display:flex;flex-direction:column;min-height:0}
+.man-wrap{display:grid;grid-template-columns:196px 1fr;gap:0;flex:1;min-height:0}
 @media (max-width:760px){.man-wrap{grid-template-columns:1fr}}
 .man-list{list-style:none;margin:0;padding:8px;border-right:1px solid #eef0f4;background:#fafbfc;
-  max-height:70vh;overflow:auto}
-@media (max-width:760px){.man-list{display:flex;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid #eef0f4;max-height:none}}
+  min-height:0;overflow:auto}
+@media (max-width:760px){.man-list{display:flex;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid #eef0f4;flex:none;max-height:38vh}}
 .man-item{display:flex;align-items:center;gap:8px;width:100%;border:none;background:none;
   padding:7px 9px;border-radius:8px;cursor:pointer;font:inherit;font-size:12.5px;color:#3a4356;text-align:left;
   white-space:nowrap}
 .man-item:hover{background:#eef2fa}
 .man-item.on{background:#2a78d6;color:#fff;font-weight:800}
 .man-no{font-size:10.5px;font-weight:800;opacity:.65;font-variant-numeric:tabular-nums}
-.man-stage{padding:12px 14px 14px;min-width:0}
+.man-stage{padding:12px 14px 14px;min-width:0;display:flex;flex-direction:column;min-height:0}
+/* 걸음의 속살만 구른다. 이동 막대는 이 칸 **밖**에 있어서 안 움직인다. */
+.man-scroll{flex:1;min-height:0;overflow:auto}
 .man-gif{display:block;width:100%;border-radius:9px;background:#eceef3;border:1px solid #e6e9f0}
 .man-line{margin:11px 2px 0;font-size:13px;line-height:1.65;color:#3a4356}
-.man-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+/* **바닥 붙박이.** 위에 무엇이 오든 여기 있다 — 이 줄이 이번 고침의 전부다.
+   구분선을 둔 것은, 구를 수 있는 칸과 안 구르는 칸의 경계를 눈에 보이게 하기 위해서다. */
+.man-nav{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-top:10px;padding-top:10px;border-top:1px solid #eef0f4}
 
 /* ── 매뉴얼 · 두 갈래 탭(2026-09-17) ───────────────────────────────
    「① 만들기」는 손으로 하는 법, 「② 제도」는 결재 흐름이다. */
-.man-tabs{display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid #eef0f4;
+.man-tabs{flex:none;display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid #eef0f4;
   background:#fafbfc}
 .man-tab{border:1px solid #e3e6ee;background:#fff;border-radius:999px;padding:6px 14px;font:inherit;
   font-size:12.5px;font-weight:700;color:#4b566b;cursor:pointer}

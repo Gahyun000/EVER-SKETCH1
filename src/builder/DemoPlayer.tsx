@@ -12,7 +12,7 @@
 // ── 파일 이름을 영문으로 둔 이유 ──────────────────────────────
 // 한글 파일명은 주소로 나갈 때 인코딩을 타고, 서버·CDN 마다 다르게 다룬다.
 // 화면에 보이는 이름은 아래 표가 들고 있으므로 파일명은 안전한 쪽으로 둔다.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Printer } from 'lucide-react'
 import { MAKE_CHAPTERS, MAKE_DIR, MAKE_STEP_COUNT, MM_ROWS, MM_SAMPLE } from './manualMake'
@@ -130,6 +130,15 @@ export default function DemoPlayer({ open, onClose }: { open: boolean; onClose: 
   const [tab, setTab] = useState<'make' | 'flow'>('make')
   /** 「① 만들기」에서 몇째 걸음인가. 장 구분 없이 쭉 이어 센다. */
   const [mi, setMi] = useState(0)
+  /**
+   * **걸음을 넘기면 맨 위부터 보여 준다.**
+   *
+   * 틀을 고정하면서 무대 안쪽만 구르게 됐다(2026-09-18). 그러면 긴 그림을 보려고 내려간
+   * 자리가 다음 걸음에도 그대로 남아, 새 걸음이 **제목도 없이 한복판부터** 뜬다.
+   * 넘긴 사람은 그걸 「덜 그려졌다」로 읽는다.
+   */
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0 }, [mi, i, tab])
   // 창을 다시 열면 처음부터. 지난번에 보던 편이 남아 있으면 「왜 여기서 시작하지」가 된다.
   useEffect(() => { if (open) { setI(0); setMi(0); setTab('make') } }, [open])
   // ← → 로 넘긴다. 열두 편을 훑을 때 마우스로만 하면 손이 아프다.
@@ -186,8 +195,11 @@ export default function DemoPlayer({ open, onClose }: { open: boolean; onClose: 
           ))}
         </ol>
         <div className="man-stage">
-          <img className="man-gif" src={MANUAL_DIR + ep.file} alt={`${ep.no}편 ${ep.title}`} />
-          <p className="man-line">{ep.line}</p>
+          {/* **구르는 칸은 여기까지다.** 이동 막대는 이 칸 밖에 있어서 어느 편에서도 같은 자리에 선다. */}
+          <div className="man-scroll" ref={scrollRef}>
+            <img className="man-gif" src={MANUAL_DIR + ep.file} alt={`${ep.no}편 ${ep.title}`} />
+            <p className="man-line">{ep.line}</p>
+          </div>
           <div className="man-nav">
             <button className="man-btn" disabled={i === 0} onClick={() => setI(i - 1)}>‹ 앞 편</button>
             <span className="man-cnt">{ep.no} / {EPISODES.length}</span>
@@ -220,11 +232,13 @@ export default function DemoPlayer({ open, onClose }: { open: boolean; onClose: 
           ))}
         </ol>
         <div className="man-stage">
-          <div className="man-sh"><span className="man-sn">{st.n}</span>{st.t}</div>
-          <img className="man-gif" src={MAKE_DIR + st.img} alt={`${st.n} ${st.t}`} />
-          <p className="man-line" dangerouslySetInnerHTML={{ __html: st.body }} />
-          {st.tip && <p className="man-tip"><b>알아두면</b> <span dangerouslySetInnerHTML={{ __html: st.tip }} /></p>}
-          {st.warn && <p className="man-tip warn"><b>주의</b> <span dangerouslySetInnerHTML={{ __html: st.warn }} /></p>}
+          <div className="man-scroll" ref={scrollRef}>
+            <div className="man-sh"><span className="man-sn">{st.n}</span>{st.t}</div>
+            <img className="man-gif" src={MAKE_DIR + st.img} alt={`${st.n} ${st.t}`} />
+            <p className="man-line" dangerouslySetInnerHTML={{ __html: st.body }} />
+            {st.tip && <p className="man-tip"><b>알아두면</b> <span dangerouslySetInnerHTML={{ __html: st.tip }} /></p>}
+            {st.warn && <p className="man-tip warn"><b>주의</b> <span dangerouslySetInnerHTML={{ __html: st.warn }} /></p>}
+          </div>
           <div className="man-nav">
             <button className="man-btn" disabled={mi === 0} onClick={() => setMi(mi - 1)}>‹ 앞</button>
             <span className="man-cnt">{mi + 1} / {FLAT.length}</span>

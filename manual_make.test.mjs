@@ -30,7 +30,9 @@ const check = (c, label, extra = '') => {
   else { fail++; console.log('✗ ' + label + (extra ? '  — ' + extra : '')) }
 }
 const read = (p) => readFileSync(p, 'utf8')
-const bare = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+// JSX 주석을 **먼저** 벗긴다. `/* */` 를 먼저 지우면 감싸던 중괄호만 `{}` 로 남아서
+// 「바로 뒤에 붙었나」를 보는 검사가 헛돈다(다른 가드에서 한 번 겪었다).
+const bare = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/^\s*\/\/.*$/gm, '')
 
 const M = await import('./src/builder/manualMake.ts')
@@ -158,6 +160,66 @@ const STEPS = MAKE_CHAPTERS.flatMap((c) => c.steps)
   check(/-->/.test(MM_SAMPLE) && /\{/.test(MM_SAMPLE),
     '보기글에 이음선과 마름모가 다 있다')
   check(/graph TB/.test(MM_SAMPLE), '보기글이 방향으로 시작한다')
+}
+
+// ── 틀이 고정인가 (2026-09-18 · 사용자 결정 ㄱ) ──────────────
+//
+// 사용자 말: 「다음 넘길 때 버튼 위치가 달라서 산만한데」. 재 보니 산만한 정도가 아니었다.
+// 37걸음을 하나씩 넘기며 잰 값(창 1700×1000):
+//   · 「다음」이 선 높이 **399 ~ 1,982px** — 흔들림 1,583px
+//   · 그림 높이         **64 ~ 1,654px**
+// y≈1,982 는 **창 밖**이다. 그 걸음에서는 스크롤을 내려야 다음으로 갈 수 있었고,
+// 탭 줄과 인쇄 단추도 같이 밀려 사라졌다.
+//
+// 까닭은 그림이다 — 실물 캡처라 비율이 900×69(0.08)부터 400×820(2.05)까지 **26.6배** 벌어진다.
+// 한글 인쇄 미리보기처럼 한 칸에 맞추는 안(ㄴ)은 안 골랐다. 한글이 그렇게 되는 건 모든 쪽이
+// 같은 A4 라서다. 우리는 그 전제가 없어서, 맞추면 납작한 것은 허공만 남고 긴 것은 글씨가 안 읽힌다.
+//
+// **그래서 틀만 고정하고 그림은 그대로 둔다.** 이 칸이 지키는 것은 그 「틀」이다.
+{
+  // **CSS 도 주석을 벗기고 잰다.** 안 벗기면 설명에 적어 둔 규칙 이름이 진짜 규칙으로 잡힌다 —
+  // 방금 이 칸이 그래서 헛돌았다(「두 곳」이라고 울었는데 한 곳은 내가 쓴 주석이었다).
+  const css = read('./src/index.css').replace(/\/\*[\s\S]*?\*\//g, '')
+  const dp = bare(read('./src/builder/DemoPlayer.tsx'))
+
+  // ① 창이 내용 따라 자라지 않는다
+  // 규칙이 **한 벌뿐인지**도 같이 본다. 예전에는 같은 선택자가 두 번 있어서 아래 것이
+  // 위엣것을 덮고 있었다 — 폭을 고치러 온 사람이 위를 고치고 「왜 안 바뀌지」 하게 된다.
+  // (이 검사를 처음 썼을 때 실제로 위엣 옛 규칙을 집어 들고 헛돌았다.)
+  const dms = css.match(/\.ui-modal\.demo-modal\{[^}]*\}/g) || []
+  check(dms.length === 1, '창 규칙이 **한 곳**에만 있다', `${dms.length}곳`)
+  const dm = dms.length ? /\{([^}]*)\}/.exec(dms[0])[1] : ''
+  check(/height:86vh/.test(dm) && /overflow:hidden/.test(dm),
+    '**창 높이가 박혀 있다** — 안 박으면 내용 따라 자라고, 그때마다 아래 것이 전부 밀린다', dm)
+
+  // ② 붙박이 둘 — 탭 줄(위) · 이동 막대(아래)
+  const rule = (sel) => (new RegExp('\\' + sel + '\\{([^}]*)\\}').exec(css) || [])[1] || ''
+  check(/flex:none/.test(rule('.man-tabs')), '탭 줄이 붙박이다 — 긴 그림에 밀려 사라지던 자리다')
+  check(/flex:none/.test(rule('.man-nav')),
+    '**이동 막대가 붙박이다** — 이 한 줄이 이번 고침의 전부다')
+
+  // ③ 구르는 곳은 둘뿐 — 목록과 무대 속살
+  check(/flex:1/.test(rule('.man-wrap')) && /min-height:0/.test(rule('.man-wrap')),
+    '가운데가 남은 높이를 다 쓴다')
+  check(/overflow:auto/.test(rule('.man-scroll')) && /min-height:0/.test(rule('.man-scroll')),
+    '걸음의 속살만 구른다')
+  // min-height:0 을 빠뜨리면 **줄지 않는다** — flex 칸의 기본 최소 크기가 내용이라,
+  // 긴 그림이 들어오면 무대가 그대로 부풀어 이동 막대를 밀어낸다. 고정한 보람이 없어진다.
+  check(/min-height:0/.test(rule('.man-stage')),
+    '**무대에 min-height:0 이 있다** — 없으면 flex 칸이 내용만큼 부풀어 붙박이가 도로 밀린다')
+
+  // ④ **이동 막대가 구르는 칸 밖에 있는가.** 여기가 이 고침의 핵심이고, 안에 넣으면
+  //    아무 오류 없이 예전 증상으로 돌아간다 — 그림이 길면 같이 아래로 흘러간다.
+  const outside = (dp.match(/<\/div>\s*<div className="man-nav">/g) || []).length
+  check(outside === 2, '**두 갈래 다** 이동 막대가 구르는 칸 **밖**에 있다', `${outside}곳`)
+  const scrolls = (dp.match(/className="man-scroll"/g) || []).length
+  check(scrolls === 2, '두 갈래 다 구르는 칸이 있다', `${scrolls}곳`)
+
+  // ⑤ 넘기면 맨 위부터
+  check(/scrollRef\.current\.scrollTop = 0/.test(dp),
+    '걸음을 넘기면 **맨 위부터** 보여 준다 — 안 그러면 새 걸음이 제목도 없이 한복판부터 뜬다')
+  check(/\}, \[mi, i, tab\]\)/.test(dp),
+    '걸음·편·갈래가 바뀔 때 **모두** 되돌린다 — 하나만 빼도 그 길에서만 가운데부터 뜬다')
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)

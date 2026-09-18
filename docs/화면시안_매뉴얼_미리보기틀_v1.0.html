@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 작성자 매뉴얼 틀 v1.0</title>
+<style>
+  :root{
+    --ink:#1a1f2b; --muted:#6b7488; --line:#e2e6ee; --bg:#f4f6fa;
+    --blue:#2462EB; --blue-soft:#eaf0ff; --blue-line:#c9d8ff;
+    --red:#d04a4a; --warn-bg:#fdf6e6; --ok:#27794e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 20px 80px}
+  h1{font-size:23px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:17px;font-weight:800;margin:26px 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:12px 15px;font-size:13px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  .note{background:var(--warn-bg);border:1px solid #f0e0b8;border-radius:10px;
+    padding:12px 15px;font-size:13px;color:#6b5320;margin:14px 0}
+  .kbd{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:5px;padding:1px 5px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:0 2px 10px rgba(20,25,40,.04);margin-top:14px}
+
+  /* ── 고르는 줄 ── */
+  .modes{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0}
+  .modes button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;
+    font-size:13px;font-weight:800;color:#3a4150;cursor:pointer;font-family:inherit}
+  .modes button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .modes button:hover:not(.on){border-color:var(--blue-line);background:var(--blue-soft);color:var(--blue)}
+
+  /* ── 모형 틀 ── */
+  .stagewrap{background:#dfe3ea;border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px;
+    position:relative}
+  .ruler{position:absolute;left:0;right:0;height:2px;background:var(--red);opacity:.55;pointer-events:none;
+    transition:top .18s ease}
+  .ruler::after{content:"「다음」 단추가 섰던 자리";position:absolute;right:6px;top:-16px;font-size:10.5px;
+    font-weight:800;color:var(--red)}
+
+  .modal{width:900px;max-width:100%;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;
+    box-shadow:0 18px 50px rgba(10,12,20,.20);display:flex;flex-direction:column}
+  .m-head{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #eef0f4;flex:none}
+  .m-ttl{font-size:14px;font-weight:800}
+  .m-x{margin-left:auto;width:26px;height:26px;border:none;background:#eef1f6;border-radius:8px;
+    color:#334;cursor:pointer}
+  .m-tabs{display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid #eef0f4;
+    background:#fbfcfe;flex:none}
+  .m-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:12.5px;
+    font-weight:800;color:#3a4150;cursor:pointer;font-family:inherit}
+  .m-tab.on{border-color:var(--blue-line);background:var(--blue-soft);color:var(--blue)}
+  .m-tc{font-size:11px;opacity:.75;margin-left:4px}
+  .m-print{margin-left:auto;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:9px;
+    padding:6px 11px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;display:inline-flex;gap:5px}
+  .m-body{display:grid;grid-template-columns:186px 1fr;min-height:0}
+  .m-list{border-right:1px solid #eef0f4;background:#fafbfc;padding:8px;overflow:auto;font-size:12px}
+  .m-li{padding:6px 9px;border-radius:8px;color:#3a4356;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .m-li.on{background:#2a78d6;color:#fff;font-weight:800}
+  .m-stage{padding:12px 14px 14px;min-width:0;display:flex;flex-direction:column}
+  .m-sh{display:flex;align-items:baseline;gap:8px;font-size:13.5px;font-weight:800;color:#16203a;margin-bottom:9px}
+  .m-sn{background:#2a78d6;color:#fff;border-radius:6px;padding:1px 7px;font-size:11px}
+  .shot{border-radius:9px;background:repeating-linear-gradient(45deg,#e9edf3,#e9edf3 9px,#e4e9f1 9px,#e4e9f1 18px);
+    border:1px solid #e6e9f0;display:grid;place-items:center;color:#8a93a5;font-size:11.5px;font-weight:800}
+  .m-line{margin:11px 2px 0;font-size:12.5px;line-height:1.6;color:#3a4356}
+  .m-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex:none}
+  .m-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 13px;font-size:12.5px;
+    font-weight:800;color:#3a4150;cursor:pointer;font-family:inherit}
+  .m-btn:hover{border-color:var(--blue-line);color:var(--blue)}
+  .m-cnt{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+  /* 모드별 차이 — 여기가 이 시안의 전부다 */
+  .modal.fixed{height:560px}
+  .modal.fixed .m-body{flex:1;min-height:0}
+  .modal.fixed .m-list{max-height:none}
+  .modal.fixed .m-stage{overflow:hidden}
+  .modal.fixed .m-scroll{flex:1;min-height:0;overflow:auto}
+  .modal.now{max-height:560px;overflow:auto}
+  .modal.now .m-scroll{overflow:visible}
+  .modal.preview .shot{height:100%;width:100%}
+  .modal.preview .m-scroll{display:grid;place-items:center;background:#eef0f4;border-radius:10px;padding:10px}
+  .modal.preview .shotbox{height:100%;display:grid;place-items:center}
+
+  .readout{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12.5px}
+  .readout b{font-variant-numeric:tabular-nums}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-weight:800;font-size:12px}
+  .pill.bad{background:#fdecec;color:var(--red)}
+  .pill.ok{background:#e6f5ec;color:var(--ok)}
+
+  table.t{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  table.t th,table.t td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left}
+  table.t th{color:var(--muted);font-weight:800;font-size:11.5px}
+  table.t td b{font-variant-numeric:tabular-nums}
+  ul.pt{margin:10px 0 0;padding-left:18px;font-size:13px;color:#3a4150}
+  ul.pt li{margin:5px 0}
+  .good::marker{color:var(--ok)} .bad::marker{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>작성자 매뉴얼 — <b>틀을 고정할까</b>, 그리고 둘 다 PDF</h1>
+  <p class="sub">2026-09-18 · 「다음 넘길 때 버튼 위치가 달라서 산만한데 한글 인쇄 전 미리보기처럼 바꾸는 게 나을지」에서 나온 시안입니다.
+     아래 <b>「다음 ›」을 실제로 눌러 보세요.</b> 빨간 줄이 <b>직전에 그 단추가 섰던 자리</b>입니다.</p>
+
+  <div class="note" id="verdict">재는 중…</div>
+
+  <h2>① 왜 흔들리나 — 재 봤습니다</h2>
+  <div class="card">
+    <p style="margin:0;font-size:13px;color:#3a4150">
+      실측입니다(시험 서버 · 창 1700×1000 · 37걸음을 하나씩 넘기며).</p>
+    <table class="t">
+      <thead><tr><th>재 본 것</th><th>① 만들기 37걸음</th><th>② 제도 12편</th></tr></thead>
+      <tbody>
+        <tr><td>「다음」 단추가 선 높이</td><td><b>399 ~ 1,982px</b> · 흔들림 <b>1,583px</b></td><td>560 ~ 1,079px · 흔들림 <b>519px</b></td></tr>
+        <tr><td>그림 높이</td><td><b>64 ~ 1,654px</b></td><td>174 ~ 838px</td></tr>
+        <tr><td>인쇄 · PDF 단추</td><td>있음</td><td><b>없음</b></td></tr>
+      </tbody>
+    </table>
+    <div class="note" style="margin-top:12px">
+      <b>산만한 정도가 아니었습니다.</b> 어떤 걸음에서는 「다음」이 <b>y≈1,982px</b> — 창 높이가 1,000px 인데
+      단추가 화면 밖에 있습니다. 거기서는 <b>스크롤을 내려야 다음으로 갈 수 있습니다.</b>
+      탭 줄(① 만들기 / ② 제도)과 인쇄 단추도 같이 위로 밀려 사라집니다.
+    </div>
+    <p class="hint"><b>까닭은 그림입니다.</b> 매뉴얼 그림은 실물 화면 캡처라 비율이 제각각입니다 —
+      가장 납작한 것이 <span class="kbd">900×69</span>(세로/가로 0.08), 가장 긴 것이 <span class="kbd">400×820</span>(2.05).
+      <b>26.6배</b> 차이입니다. 폭을 100%로 맞춰 그리니 높이가 64px 에서 1,654px 까지 벌어집니다.</p>
+  </div>
+
+  <h2>② 세 가지를 눌러 보세요</h2>
+  <div class="modes">
+    <button data-m="now" class="on">지금</button>
+    <button data-m="fixed">ㄱ · 틀 고정 + 안쪽만 스크롤</button>
+    <button data-m="preview">ㄴ · 한글 미리보기식(그림을 칸에 맞춤)</button>
+  </div>
+
+  <div class="stagewrap">
+    <div class="ruler" id="ruler" style="top:0"></div>
+    <div class="modal now" id="modal">
+      <div class="m-head"><span class="m-ttl">작성자 매뉴얼</span><button class="m-x">✕</button></div>
+      <div class="m-tabs">
+        <button class="m-tab on">① 만들기 <span class="m-tc">37걸음</span></button>
+        <button class="m-tab">② 제도 <span class="m-tc">12편</span></button>
+        <button class="m-print">🖨 인쇄 · PDF</button>
+      </div>
+      <div class="m-body">
+        <div class="m-list" id="list"></div>
+        <div class="m-stage">
+          <div class="m-scroll" id="scroll">
+            <div class="m-sh"><span class="m-sn" id="sn">1-1</span><span id="stt">새 이북 ▸ 표준 양식</span></div>
+            <div class="shotbox"><div class="shot" id="shot">그림</div></div>
+            <p class="m-line" id="line"></p>
+          </div>
+          <div class="m-nav" id="nav">
+            <button class="m-btn" id="prev">‹ 앞</button>
+            <span class="m-cnt" id="cnt">1 / 8</span>
+            <button class="m-btn" id="next">다음 ›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="readout">
+      <span>직전 걸음에서 「다음」이 선 높이 <b id="r1">–</b></span>
+      <span>지금 <b id="r2">–</b></span>
+      <span id="r3" class="pill ok">움직임 0px</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <ul class="pt" id="pros"></ul>
+  </div>
+
+  <h2>③ 둘 다 PDF</h2>
+  <div class="card">
+    <p style="margin:0;font-size:13px;color:#3a4150">
+      지금은 <b>① 만들기에만</b> 인쇄 단추가 있고, 인쇄용 판(<span class="kbd">.man-print</span>)도
+      ① 만들기 한 벌만 그립니다. ② 제도는 단추조차 없습니다.</p>
+    <table class="t">
+      <thead><tr><th></th><th>지금</th><th>바꾸면</th></tr></thead>
+      <tbody>
+        <tr><td>① 만들기</td><td>인쇄 단추 있음 · 37걸음 한 벌</td><td>그대로</td></tr>
+        <tr><td>② 제도</td><td><b>없음</b></td><td>12편 한 벌 — 그림 + 한 줄 설명</td></tr>
+        <tr><td>단추 자리</td><td>① 에서만 보임</td><td><b>늘 보임</b> · 누르면 <b>지금 보는 갈래</b>를 냄</td></tr>
+        <tr><td>둘 다 한 벌로</td><td>못 함</td><td>단추 옆 <b>▾</b> 에서 「① · ② · 둘 다」</td></tr>
+      </tbody>
+    </table>
+    <p class="hint"><b>PDF 는 브라우저가 만듭니다.</b> 지금처럼 <span class="kbd">window.print()</span> 를 부르고
+      저장할 곳에서 「PDF로 저장」을 고르는 방식 그대로입니다 — 별도 라이브러리를 들이지 않습니다.
+      인쇄용 판은 화면과 달리 <b>전부 펼쳐서</b> 냅니다(한 걸음씩이 아니라 한 벌).</p>
+    <div class="note"><b>제도 쪽은 그림이 커서 12쪽쯤 나옵니다.</b> 만들기는 지금도 30쪽 안팎입니다.
+      「둘 다」를 고르면 40쪽이 넘으니, 기본은 <b>지금 보는 갈래만</b>으로 두는 편이 낫다고 봅니다.</div>
+  </div>
+
+</div>
+
+<script>
+// 실제 그림 비율에서 골랐다 — 손으로 지어내면 「이 정도면 괜찮네」가 된다.
+// (public/manual/make 의 실측값: 최소 0.077 · 최대 2.05)
+const STEPS = [
+  { n:'1-1', t:'새 이북 ▸ 표준 양식', r:0.678, line:'두 갈래가 나옵니다. 표준 양식은 세 구획이 이미 놓인 정본 1장입니다.' },
+  { n:'2-2', t:'채우기 — 위 줄 색은 약속입니다', r:0.309, line:'칸을 고르고 색을 고릅니다. 위 줄 색은 회차 취합이 읽습니다.' },
+  { n:'3-2', t:'칸 폭은 경계를 끌어서', r:0.078, line:'표를 고르면 줄과 열의 경계마다 작은 손잡이가 생깁니다.' },
+  { n:'4-2', t:'특정 달에 세우기', r:2.05,  line:'오른쪽 패널에서 달을 고르면 TODAY 선이 그 달에 섭니다.' },
+  { n:'5-1', t:'칸을 두 번 눌러 씁니다', r:0.918, line:'칸을 두 번 누르면 바로 글자가 들어갑니다.' },
+  { n:'6-1', t:'머메이드로 그리기', r:1.171, line:'입력 형식일 뿐입니다 — 넣고 나면 평범한 도형입니다.' },
+  { n:'7-1', t:'삽입 ▸ 도형', r:0.648, line:'모양을 고르면 슬라이드 한가운데에 곧바로 놓입니다.' },
+  { n:'8-3', t:'제출하면 잠깁니다', r:0.147, line:'내면 지금 문서가 그대로 얼어붙습니다.' },
+]
+
+const modal = document.getElementById('modal')
+const ruler = document.getElementById('ruler')
+const shot = document.getElementById('shot')
+const nav = document.getElementById('nav')
+let mode = 'now', k = 0, lastY = null
+
+const STAGE_W = 660   // 무대 폭(대략). 그림 높이는 이 폭 × 비율.
+const PREVIEW_H = 300 // ㄴ 에서 그림이 들어갈 칸의 높이
+
+document.getElementById('list').innerHTML =
+  STEPS.map((s,i)=>`<div class="m-li${i===k?' on':''}">${s.n} · ${s.t}</div>`).join('')
+
+function paint(){
+  const s = STEPS[k]
+  document.getElementById('sn').textContent = s.n
+  document.getElementById('stt').textContent = s.t
+  document.getElementById('line').textContent = s.line
+  document.getElementById('cnt').textContent = `${k+1} / ${STEPS.length}`
+  const natural = Math.round(STAGE_W * s.r)
+  if (mode === 'preview'){
+    // **칸에 맞춰 넣는다.** 세로가 늘 같아지는 대신, 긴 그림은 작아진다.
+    document.querySelector('.m-scroll').style.height = PREVIEW_H + 'px'
+    const h = Math.min(PREVIEW_H - 20, natural)
+    shot.style.height = h + 'px'
+    shot.style.width = Math.round(h / s.r) + 'px'
+    shot.textContent = `그림 ${Math.round(h/s.r)}×${h} (원래 ${STAGE_W}×${natural})`
+  } else {
+    document.querySelector('.m-scroll').style.height = ''
+    shot.style.height = natural + 'px'
+    shot.style.width = '100%'
+    shot.textContent = `그림 ${STAGE_W}×${natural}`
+  }
+  document.querySelectorAll('.m-li').forEach((el,i)=>el.classList.toggle('on', i===k))
+  measure()
+}
+
+function measure(){
+  requestAnimationFrame(() => {
+    const wrapTop = document.querySelector('.stagewrap').getBoundingClientRect().top
+    const y = Math.round(nav.getBoundingClientRect().top - wrapTop)
+    const r1 = document.getElementById('r1'), r2 = document.getElementById('r2'), r3 = document.getElementById('r3')
+    r2.textContent = y + 'px'
+    if (lastY === null) { r1.textContent = '–'; r3.className = 'pill ok'; r3.textContent = '움직임 –' }
+    else {
+      r1.textContent = lastY + 'px'
+      const d = Math.abs(y - lastY)
+      r3.className = 'pill ' + (d > 2 ? 'bad' : 'ok')
+      r3.textContent = d > 2 ? `움직임 ${d}px` : '움직임 없음'
+      ruler.style.top = lastY + 'px'
+    }
+  })
+}
+
+document.getElementById('next').onclick = () => {
+  lastY = Math.round(nav.getBoundingClientRect().top - document.querySelector('.stagewrap').getBoundingClientRect().top)
+  k = (k + 1) % STEPS.length; paint()
+}
+document.getElementById('prev').onclick = () => {
+  lastY = Math.round(nav.getBoundingClientRect().top - document.querySelector('.stagewrap').getBoundingClientRect().top)
+  k = (k - 1 + STEPS.length) % STEPS.length; paint()
+}
+
+const PROS = {
+  now: [
+    ['bad','<b>「다음」이 걸음마다 옮겨 다닙니다.</b> 실측 흔들림 1,583px — 어떤 걸음에서는 아예 화면 밖입니다.'],
+    ['bad','탭 줄과 인쇄 단추도 같이 밀려 사라집니다.'],
+    ['good','그림은 원래 크기 그대로 보입니다 — 잃는 것은 없습니다.'],
+  ],
+  fixed: [
+    ['good','<b>「다음」이 늘 같은 자리</b>(바닥 붙박이)입니다. 탭 줄·인쇄 단추도 늘 보입니다.'],
+    ['good','<b>그림은 원래 크기 그대로.</b> 긴 그림은 무대 안에서만 스크롤됩니다 — 잃는 것이 없습니다.'],
+    ['bad','긴 그림(400×820 같은)은 여전히 한눈에 안 들어와 스크롤해야 합니다.'],
+    ['good','고칠 곳이 적습니다 — 틀 하나와 CSS 몇 줄입니다.'],
+  ],
+  preview: [
+    ['good','<b>어느 걸음에서도 화면이 똑같습니다.</b> 한글 인쇄 미리보기와 같은 느낌입니다.'],
+    ['good','스크롤이 아예 없습니다.'],
+    ['bad','<b>납작한 그림이 손해입니다.</b> 900×69 짜리는 칸 한가운데 얇게 뜨고 위아래가 텅 빕니다.'],
+    ['bad','<b>긴 그림은 작아집니다.</b> 400×820 은 300px 칸에 맞추면 절반 이하로 줄어 글씨가 안 읽힙니다 — 「크게 보기」가 따라와야 합니다.'],
+  ],
+}
+function pros(){
+  document.getElementById('pros').innerHTML =
+    PROS[mode].map(([c,t])=>`<li class="${c}">${t}</li>`).join('')
+}
+
+document.querySelectorAll('.modes button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.modes button').forEach(x=>x.classList.remove('on'))
+  b.classList.add('on')
+  mode = b.dataset.m
+  modal.className = 'modal ' + mode
+  lastY = null; ruler.style.top = '-99px'
+  paint(); pros()
+})
+
+document.getElementById('verdict').innerHTML =
+  '<b>권합니다 — ㄱ(틀 고정).</b> 흔들림을 없애는 값은 그것으로 다 치르고, <b>그림은 하나도 안 줄어듭니다.</b> ' +
+  'ㄴ(미리보기식)은 화면이 가장 얌전하지만 우리 그림이 「종이」가 아니라 <b>비율이 26.6배까지 벌어지는 화면 캡처</b>라, ' +
+  '한 칸에 맞추면 납작한 것은 허공만 남고 긴 것은 글씨가 안 읽힙니다. ' +
+  '눌러 보시고 ㄴ 의 느낌이 더 좋으시면 <b>ㄱ 틀 + 그림 최대 높이만 제한</b>하는 절충도 있습니다.'
+
+paint(); pros()
+</script>
+</body>
+</html>
