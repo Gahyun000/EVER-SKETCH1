@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면시안 — 결재 제출 확인 v2.2</title>
+<style>
+  :root{
+    --ink:#1a1f2b; --muted:#6b7488; --line:#e2e6ee; --bg:#f4f6fa;
+    --blue:#2462EB; --blue-soft:#eaf0ff; --blue-line:#c9d8ff;
+    --navy:#16234a; --red:#d04a4a; --warn-bg:#fdf6e6; --warn-line:#f0e0b8; --ok:#27794e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:34px 20px 80px}
+  h1{font-size:23px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:12px 15px;font-size:13px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:0 2px 10px rgba(20,25,40,.04);margin-top:14px}
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;
+    background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:3px 10px;margin-bottom:8px}
+  .tag.warn{background:#fdecec;color:var(--red)}
+  .tag.grey{background:#f0f2f6;color:#6b7488}
+  code{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:4px;padding:1px 5px}
+
+  .steps{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0;align-items:center}
+  .steps b{background:#f0f2f6;color:#6b7488;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800}
+  .steps b.on{background:var(--blue);color:#fff}
+  .steps i{font-style:normal;color:#c2c9d6}
+  .modes{display:flex;gap:8px;margin:14px 0 0;flex-wrap:wrap}
+  .modes button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;
+    font-size:13px;font-weight:800;color:#3a4150;cursor:pointer;font-family:inherit}
+  .modes button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  .stage{background:#dfe3ea;border:1px solid var(--line);border-radius:12px;padding:22px 16px 26px;
+    margin-top:12px;min-height:470px;display:flex;align-items:flex-start;justify-content:center;
+    position:relative}
+  .ruler{position:absolute;left:12px;right:12px;height:2px;background:var(--red);opacity:.5;
+    pointer-events:none;transition:top .18s ease}
+  .ruler::after{content:"직전 걸음의 단추 줄";position:absolute;right:4px;top:-16px;
+    font-size:10.5px;font-weight:800;color:var(--red)}
+
+  /* 폭은 실제 앱의 sm 껍데기와 같은 값. 셋이 아니라 이제 둘이다. */
+  .dlg{width:min(460px,94vw);background:#fff;border-radius:14px;padding:20px 24px 22px;
+    box-shadow:0 24px 70px rgba(15,27,61,.28);font-size:13px;line-height:1.65;color:#5b6270;
+    display:flex;flex-direction:column}
+  .dlg h3{margin:0 0 12px;font-size:16.5px;font-weight:800;color:var(--navy);line-height:1.35}
+  .dlg b{color:#1c2433}
+  .dlg .body{flex:1}
+  .dlg.fix .body{display:flex;flex-direction:column;justify-content:center}
+  .in{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-top:12px;
+    font-size:12.5px;color:#9aa3b2}
+  .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .btn{border:1.4px solid var(--line);background:#fff;color:#334155;font-weight:800;font-size:13px;
+    border-radius:9px;padding:8px 16px;cursor:pointer;font-family:inherit}
+  .btn.dark{border:none;background:var(--navy);color:#fff}
+  .btn:hover{border-color:var(--blue-line);color:var(--blue)}
+  .btn.dark:hover{background:#0f1a37;color:#fff}
+  .yellow{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:9px;
+    padding:8px 11px;margin-top:11px;font-size:12.2px;color:#6b5320}
+  .danger-box{background:#fdf1f1;border:1px solid #f2cdcd;border-left:3px solid #b4232a;
+    border-radius:0 9px 9px 0;padding:10px 12px;margin-top:12px;font-size:12.6px;color:#6b2020}
+  .danger-box b{color:#8c1a1a}
+  .ok-box{background:#eef7f1;border:1px solid #cfe6d9;border-radius:9px;padding:10px 12px;
+    margin-top:12px;font-size:12.6px;color:#215c3f}
+  .ok-box b{color:#17462f}
+
+  /* 끝난 뒤 — 창이 닫히고 결재 카드가 바뀐다 */
+  .after{width:min(460px,94vw);display:flex;flex-direction:column;gap:10px;align-items:center;
+    padding-top:30px}
+  .apc{width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+    box-shadow:0 6px 18px rgba(20,25,40,.10)}
+  .apc-hd{display:flex;align-items:center;gap:9px;font-size:12.5px}
+  .apc-st{background:#eaf0ff;color:var(--blue);border-radius:999px;padding:3px 10px;font-weight:800;font-size:11.5px}
+  .apc-brief{color:var(--muted)}
+  .apc-ch{margin-left:auto;color:#c2c9d6}
+  .apc-body{margin-top:10px;font-size:12.4px;color:#4b566b;border-top:1px solid #eef1f6;padding-top:10px}
+  .toast{background:#16234a;color:#fff;border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;
+    box-shadow:0 10px 26px rgba(10,12,20,.28)}
+  .arrow{color:#9aa3b2;font-size:18px}
+
+  .readout{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;align-items:center}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;
+    font-weight:800;font-size:12px}
+  .pill.bad{background:#fdecec;color:var(--red)}
+  .pill.ok{background:#e6f5ec;color:var(--ok)}
+  b.num{font-variant-numeric:tabular-nums}
+
+  ul.pt{margin:10px 0 0;padding-left:18px;font-size:13px;color:#3a4150}
+  ul.pt li{margin:6px 0}
+  ul.pt b{color:var(--ink)}
+  .good::marker{color:var(--ok)} .bad::marker{color:var(--red)}
+  table.t{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  table.t td,table.t th{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left}
+  table.t th{color:var(--muted);font-weight:800;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>결재 제출 — <b>두 걸음</b>으로 줄였습니다</h1>
+  <p class="sub">2026-09-18 · 「냈습니다 내용을 제출하시겠습니까? 안에 넣어서 줄이는 게 나을 듯」.
+     회수 안내를 ② 로 옮기니 ③ 이 필요 없어졌고, <b>허전하던 ② 가 채워졌습니다.</b></p>
+
+  <div class="why">
+    <b>낸 뒤보다 내기 전에 말하는 편이 낫습니다.</b> 「회수할 수 있다」는 말은 <b>누르기 직전</b>에 들어야
+    마음이 놓입니다 — 다 누르고 나서 들으면 「그럼 아까 말하지」가 됩니다.
+  </div>
+
+  <div class="modes">
+    <button data-m="fix" class="on">㉡ 두 걸음의 높이를 맞춘다</button>
+    <button data-m="flow">㉠ 높이는 내용대로</button>
+  </div>
+
+  <div class="steps" id="steps"></div>
+  <div class="stage"><div class="ruler" id="ruler" style="top:-99px"></div><div id="d"></div></div>
+  <div class="readout">
+    <span>직전 걸음 <b class="num" id="r1">–</b></span>
+    <span>지금 <b class="num" id="r2">–</b></span>
+    <span id="r3" class="pill ok">–</span>
+    <span class="hint" style="margin:0" id="tip"></span>
+  </div>
+
+  <div class="card">
+    <span class="tag">줄여서 좋아진 것</span>
+    <table class="t">
+      <thead><tr><th></th><th>v2.1 (세 걸음)</th><th>v2.2 (두 걸음)</th></tr></thead>
+      <tbody>
+        <tr><td>걸음</td><td>① 제출 → ② 확인 → ③ 냈습니다</td><td><b>① 제출 → ② 확인</b></td></tr>
+        <tr><td>② 의 높이</td><td>152px (한 줄뿐, 허전)</td><td><b id="h2">–</b> (회수 안내가 들어감)</td></tr>
+        <tr><td>맞췄을 때 빈 자리</td><td>②③ 에 크게 남음</td><td><b>거의 없음</b></td></tr>
+        <tr><td>회수를 아는 시점</td><td>다 내고 <b>난 뒤</b></td><td><b>누르기 직전</b></td></tr>
+      </tbody>
+    </table>
+    <ul class="pt">
+      <li class="good"><b>③ 이 없어도 낸 것은 압니다.</b> 창이 닫히면 결재 카드가 <b>「결재 중」</b>으로 바뀝니다 — 위에서 마지막 걸음을 보세요.</li>
+      <li class="good">짧은 알림 한 줄(<b>토스트</b>)로 「냈습니다」를 남깁니다. 창을 하나 더 띄우지 않고도 「됐구나」가 됩니다.</li>
+      <li class="bad">회수하러 가는 길을 ③ 에서 단추로 주던 것이 없어집니다 — 대신 <b>② 의 안내에 「결재함」이라고 적어</b> 어디로 가면 되는지 말합니다.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <span class="tag warn">같이 고칠 것 — 그대로입니다</span>
+    <p class="hint" style="margin-top:6px">누르는 순간 <b>25ms 깜빡이던 노란 경고</b>
+      (<code>unsaved</code> 가 「지금 저장 중」까지 한 덩어리로 묶고 있음).</p>
+  </div>
+
+</div>
+
+<script>
+const TITLE = 'EVER-SKETCH 기획 · 설계 사상'
+const STEPS = ['① 결재 제출', '② 제출하시겠습니까?', '창이 닫히고 — 결재 중']
+const TIPS = [
+  '「제출」을 눌러 보세요.',
+  '「취소」를 누르면 ① 로 돌아옵니다 — 창이 닫히지 않습니다.',
+  '창은 없습니다. 카드가 바뀌고 짧은 알림만 뜹니다.',
+]
+
+function view(i) {
+  if (i === 0) return `
+    <h3>결재 제출</h3>
+    <div class="body">
+    <b>${TITLE}</b> 을(를) 관리자에게 제출합니다.
+    <div class="danger-box">
+      <b>지금 이 문서가 그대로 얼어붙습니다.</b> 뒤에 고쳐도 결재본은 안 바뀝니다.<br>
+      한 번이라도 내면 <b>이 자료는 지울 수 없습니다.</b>
+    </div>
+    <div class="yellow">아직 안 쓴 자리가 3군데 있습니다. 그대로 내셔도 됩니다.</div>
+    <div class="in">전달할 말 (선택)</div>
+    </div>
+    <div class="foot">
+      <button class="btn" data-go="0">취소</button>
+      <button class="btn dark" data-go="1">제출</button>
+    </div>`
+  return `
+    <h3>제출하시겠습니까?</h3>
+    <div class="body">
+    <b>${TITLE}</b> 이(가) 관리자에게 갑니다.
+    <div class="ok-box">
+      마음이 바뀌면 <b>결재함에서 회수</b>할 수 있습니다 — 관리자가 결정하기 전까지요.<br>
+      <span style="opacity:.85">회수해도 <b>이력에는 남습니다.</b></span>
+    </div>
+    </div>
+    <div class="foot">
+      <button class="btn" data-go="0">취소</button>
+      <button class="btn dark" data-go="2">확인</button>
+    </div>`
+}
+
+function after() {
+  return `<div class="after">
+    <div class="toast">냈습니다 — 결재 중입니다</div>
+    <div class="arrow">↓</div>
+    <div class="apc">
+      <div class="apc-hd"><span class="apc-st">결재 중</span>
+        <span class="apc-brief">1회차 · 오늘 냄</span><span class="apc-ch">▾</span></div>
+      <div class="apc-body">관리자가 보고 있습니다. <b>결재함</b>에서 회수할 수 있습니다.</div>
+    </div>
+    <div style="margin-top:6px"><button class="btn" data-go="0">처음부터 다시</button></div>
+  </div>`
+}
+
+let i = 0, mode = 'fix', lastY = null, tallest = 0
+const host = document.getElementById('d')
+
+function measureTallest() {
+  const probe = document.createElement('div')
+  probe.className = 'dlg fix'   // **재는 것과 쓰는 것을 같은 모양으로** (v2.1 에서 21px 어긋났다)
+  probe.style.cssText = 'position:absolute;visibility:hidden;left:-9999px'
+  document.body.appendChild(probe)
+  let m = 0, h2 = 0
+  for (let k = 0; k < 2; k++) {
+    probe.innerHTML = view(k); m = Math.max(m, probe.offsetHeight)
+    if (k === 1) h2 = probe.offsetHeight
+  }
+  probe.remove()
+  document.getElementById('h2').textContent = h2 + 'px'
+  return m
+}
+
+function paint() {
+  if (i === 2) {
+    host.className = ''
+    host.style.minHeight = ''
+    host.innerHTML = after()
+  } else {
+    host.className = 'dlg' + (mode === 'fix' ? ' fix' : '')
+    host.innerHTML = view(i)
+    host.style.minHeight = mode === 'fix' ? tallest + 'px' : ''
+  }
+  document.getElementById('steps').innerHTML = STEPS
+    .map((t, k) => `<b class="${k === i ? 'on' : ''}">${t}</b>`).join('<i>›</i>')
+  document.getElementById('tip').textContent = TIPS[i]
+  host.querySelectorAll('[data-go]').forEach((b) => b.onclick = () => {
+    const f = host.querySelector('.foot')
+    if (f) lastY = Math.round(f.getBoundingClientRect().top - document.querySelector('.stage').getBoundingClientRect().top)
+    else lastY = null
+    i = +b.dataset.go; paint()
+  })
+  requestAnimationFrame(() => {
+    const st = document.querySelector('.stage').getBoundingClientRect()
+    const f = host.querySelector('.foot')
+    const r1 = document.getElementById('r1'), r2 = document.getElementById('r2'), r3 = document.getElementById('r3')
+    if (!f) { r2.textContent = '–'; r3.className = 'pill ok'; r3.textContent = '창 없음'; document.getElementById('ruler').style.top = '-99px'; return }
+    const y = Math.round(f.getBoundingClientRect().top - st.top)
+    r2.textContent = y + 'px'
+    if (lastY === null) { r1.textContent = '–'; r3.className = 'pill ok'; r3.textContent = '움직임 –'; document.getElementById('ruler').style.top = '-99px' }
+    else {
+      r1.textContent = lastY + 'px'
+      const dd = Math.abs(y - lastY)
+      r3.className = 'pill ' + (dd > 2 ? 'bad' : 'ok')
+      r3.textContent = dd > 2 ? `단추 줄이 ${dd}px 움직임` : '단추 줄 그대로'
+      document.getElementById('ruler').style.top = lastY + 'px'
+    }
+  })
+}
+
+document.querySelectorAll('.modes button').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('.modes button').forEach((x) => x.classList.remove('on'))
+  b.classList.add('on'); mode = b.dataset.m; i = 0; lastY = null; paint()
+})
+
+tallest = measureTallest()
+paint()
+</script>
+</body>
+</html>
