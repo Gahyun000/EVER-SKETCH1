@@ -5,13 +5,14 @@
 #   1) 전달받은 ever-sketch-db_*.db 파일을 이 폴더(저장소 루트)에 넣는다.
 #   2) install.command 더블클릭.   (파일을 직접 지정: ./install.command 경로/파일.db)
 #
-# 기존 DB 가 있으면 지우지 않고 server/ebook_html.db.backup_날짜 로 옮겨 둔다.
+# 기존 DB 가 있으면 지우지 않고 server/_db_backup/ 에 옮겨 둔다(gitignore).
 # 설치 후 로그인은 보낸 사람 PC 와 같은 아이디·비밀번호로 한다.
 set -e
 cd "$(dirname "$0")"
 
 DEST="${EVER_SKETCH_DB:-${EBOOK_HTML_DB:-server/ebook_html.db}}"
-PORT="${PORT:-8820}"
+# 포트 정본은 ports.json — run.command 와 같은 값을 본다.
+PORT="${PORT:-$(node -p "require('./ports.json').backend" 2>/dev/null || echo 8808)}"
 
 # 1) 설치할 파일 고르기 — 인자로 받거나, 이 폴더에서 가장 최근 것
 SRC="$1"
@@ -50,7 +51,9 @@ PY
 # 4) 기존 DB 백업 후 교체
 mkdir -p "$(dirname "$DEST")"
 if [ -f "$DEST" ]; then
-  BAK="${DEST}.backup_$(date +%Y%m%d_%H%M%S)"
+  BAK_DIR="$(dirname "$DEST")/_db_backup"
+  mkdir -p "$BAK_DIR"
+  BAK="$BAK_DIR/$(basename "$DEST").before_install_$(date +%Y%m%d_%H%M%S)"
   mv "$DEST" "$BAK"
   echo "· 기존 DB 백업: $BAK"
 fi
