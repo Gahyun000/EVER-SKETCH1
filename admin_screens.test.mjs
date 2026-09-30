@@ -65,7 +65,8 @@ const ICSS = readFileSync('./src/index.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g
   // 왼쪽 위·오른쪽 위는 그 화면에서만 하는 일이 온다. 없으면 그냥 빈다.
   check(/\.adm-head \.adm-left/.test(ACSS) && /\.adm-head \.adm-right/.test(ACSS),
     '양 끝 자리가 이름으로 정해져 있다(＋새 팀 · 닫기)')
-  check(/adm-left[\s\S]{0,200}새 팀/.test(TA), '팀 관리의 ＋새 팀은 왼쪽 끝이다')
+  // 2026-09-21 마스터·디테일: 「＋ 새 팀」은 머리 구석을 떠나 **왼쪽 팀 목록 맨 위 입력칸**이 됐다.
+  check(!/adm-left/.test(TA) && /className="tm-add"/.test(TA), '팀 관리의 새 팀은 머리 구석이 아니라 팀 목록 맨 위 입력칸이다')
   check(!/adm-left/.test(UA), '사용자 관리에는 왼쪽 끝에 놓을 것이 없다 — 빈 자리를 억지로 채우지 않는다')
 }
 
@@ -85,9 +86,10 @@ const ICSS = readFileSync('./src/index.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g
     'Enter 로도 걸린다')
   check(/onClick=\{\(\) => setQ\(qIn\)\}/.test(S), '「조회」를 눌러야 걸린다')
   const FIL = cut(UA, 'const shown =', '\n')
-  check(/filterUsers\(users, q\)/.test(FIL),
+  // 2026-09-21 마스터·디테일: 상태 칩으로 먼저 거른 목록(inTab)을 다시 검색어로 거른다.
+  check(/filterUsers\(inTab, q\)/.test(FIL),
     '**걸린 값(q)으로만** 거른다 — 치는 값으로 거르면 「눌러야 걸린다」가 거짓말이 된다', FIL)
-  check(/\{shown\.map\(/.test(UA), '표가 걸러진 목록을 그린다')
+  check(/\{ shown\.map\(|\) : shown\.map\(/.test(UA), '목록이 걸러진 것을 그린다')
   check(!/\{users\.map\(/.test(UA), '표가 원본을 그리지 않는다 — 한 곳만 고치면 검색이 안 먹는다')
   // 찾다가 없는 것과 원래 없는 것은 다른 말이다.
   check(/q \? '찾는 사람이 없습니다/.test(UA),
@@ -118,5 +120,24 @@ const ICSS = readFileSync('./src/index.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g
     '팀 관리와 같은 규칙으로 다듬는다(공백 털고 소문자)')
 }
 
+// ── ⑤ 사용자 관리 마스터·디테일 (2026-09-21 · 시안 docs/화면시안_사용자관리_마스터디테일_v1.0.html 안 ㄴ) ──
+{
+  let p2 = 0, f2 = 0
+  const c2 = (cond, label) => { if (cond) { p2++; console.log('✓ ' + label) } else { f2++; console.log('✗ ' + label) } }
+  c2(/md-screen/.test(UA) && /className="ap-body md-body"/.test(UA) && /className="md-grip"/.test(UA),
+    '결재함·팀 공유·팀 관리와 같은 뼈대(md-screen · ap-body · md-grip)')
+  c2(/masterWidth\('um'\)/.test(UA) && /rememberMasterWidth\('um'/.test(UA), '목록 폭은 제 이름(um)으로 기억한다')
+  c2(/keepOrFirst\(shown\.map/.test(UA), '고른 사람이 목록에서 빠지면 맨 위로 — 승인하면 다음 대기자가 골라진다')
+  c2(!/<table className="es-table">/.test(UA), '여섯 칸 표는 걷었다 — 줄 끝 단추 셋이 오른쪽으로 풀렸다')
+  c2(/<h4>권한<\/h4>/.test(UA) && /<h4>계정<\/h4>/.test(UA), '오른쪽은 「권한」·「계정」 두 덩어리')
+  c2(/'pending', 'active', 'disabled', 'all'/.test(UA), '상태 칩 넷 — 승인 대기 · 사용 중 · 중지 · 전체')
+  c2(/apiListUsers\(\)/.test(UA), '한 번에 다 받아 칩마다 숫자를 센다(상태별로 네 번 묻지 않는다)')
+  c2(/created_at/.test(UA) && /last_login_at/.test(UA), '가입 신청 · 승인 · 마지막 로그인을 보여 준다')
+  const routes = readFileSync('./server/routes_auth.py', 'utf8')
+  c2(/"created_at": u\.get\("created_at"\)/.test(routes) && /"last_login_at"/.test(routes), '서버가 그 세 시각을 내려보낸다')
+  pass += p2; fail += f2
+}
+
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)
+

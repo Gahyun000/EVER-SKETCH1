@@ -234,8 +234,17 @@ function LlmSettingsCard() {
           <input
             value={form.model}
             onChange={(e) => setForm({ ...form, model: e.target.value })}
-            placeholder="model-name"
+            placeholder="general"
           />
+          {/* **앨리어스를 권한다**(2026-09-21). 게이트웨이 표준 호출규약 §4 의 권고이자,
+              여기 모델명을 직접 적으면 관리자가 모델을 바꿀 때마다 이 칸도 같이 고쳐야
+              하기 때문이다 — 젬마3→젬마4 처럼. 앨리어스로 적어 두면 그쪽에서 바꾸고
+              끝난다. 예전 placeholder 가 `model-name` 이라 모델명을 적으라는 말로 읽혔다. */}
+          <small className="settings-help">
+            <code>general</code>(일반) · <code>coder</code>(코딩) · <code>ocr</code>(이미지) 처럼
+            <b>앨리어스</b>를 넣으세요 — 실제 모델은 게이트웨이가 정합니다.
+            모델명을 직접 적으면 그쪽에서 모델을 바꿀 때 이 칸도 같이 고쳐야 합니다.
+          </small>
         </label>
         <label>
           <span>Timeout (초)</span>

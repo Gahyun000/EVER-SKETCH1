@@ -48,7 +48,7 @@ export const EPISODES: Ep[] = [
   { no: 4, title: '자료의 일생', file: '04_lifecycle.png',
     line: '초안 → 결재 중 → 승인 · 반려 → 수정 요청 중 → 수정 중. 이 흐름이 이 도구의 뼈대입니다.' },
   { no: 5, title: '제출하면 잠긴다', file: '05_submit.png',
-    line: '제출하는 순간 문서가 그대로 얼어붙습니다. 뒤에 고쳐도 결재본은 안 바뀝니다.' },
+    line: '제출하는 순간 수정 불가. 반려 시 수정 가능(승인되면 반려 요청 해야함).' },
   { no: 6, title: '세 갈래', file: '06_decide.png',
     line: '승인 · 반려는 관리자가, 회수는 낸 사람이 합니다. 관리자가 대신 회수하면 반려와 구분이 안 됩니다.' },
   { no: 7, title: '승인 뒤 고치기', file: '07_revise.png',

@@ -28,7 +28,7 @@ await p.goto(URL, { waitUntil: 'networkidle' })
 
 // 라이브러리 → 편집 화면
 await p.waitForSelector('text=임원회의', { timeout: 15000 })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 
 // 로드맵 표(SLOT-A) 의 칸을 좌표로 짚는다.
@@ -216,35 +216,17 @@ ok('손잡이를 끌면 표가 따라 움직인다', Math.abs(after.x - before.x
    `x ${Math.round(before.x)} → ${Math.round(after.x)}`)
 
 
-// ── 9) 상단 헤더: 겹치지 않고, 신원 표시는 하나뿐이다 ──
-// 예전에는 사용자 칩이 position:fixed 전역 오버레이라 툴바 버튼과 같은 자리를 두고
-// 겹쳤고, 툴바에는 글자가 '가' 로 박힌 초록 원이 따로 있었다(로그인한 사람과 무관).
-{
-  const bars = await p.locator('.es-userbar').count()
-  ok('사용자 표시는 화면에 하나뿐이다', bars === 1, `${bars}개`)
-  // **`.inline` 수식자는 이제 없다**(2026-09-04 P3 회귀 수정).
-  // 예전에는 전역 오버레이(`position:fixed`)와 툴바 안(`inline`) 두 모드가 있었고,
-  // 겹침 사고가 나서 **오버레이 자체를 없앴다** — 모드가 하나뿐이니 수식자도 없다.
-  // 지켜야 할 것은 클래스 이름이 아니라 **툴바 안에 들어가 있다**는 사실이다.
-  ok('편집 화면에서는 툴바 안에 들어간다',
-     await p.locator('.ax-title .es-userbar').count() === 1)
-  ok('옛 하드코딩 아바타가 사라졌다', await p.locator('.ax-title .av').count() === 0)
-
-  const initial = (await p.locator('.es-av').first().innerText()).trim()
-  ok('아바타가 로그인한 사람의 이름 첫 글자다', initial === '홍', `표시: ${initial}`)
-
-  // 겹침은 눈으로 못 보고 지나간다 — 사각형이 실제로 겹치는지 재서 확인한다.
-  const overlap = await p.evaluate(() => {
-    const bar = document.querySelector('.ax-title .es-userbar')
-    const others = [...document.querySelectorAll('.ax-title .rbtn, .ax-title .folio-chip')]
-    const a = bar.getBoundingClientRect()
-    return others.filter((o) => {
-      const b = o.getBoundingClientRect()
-      return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
-    }).map((o) => o.textContent.trim().slice(0, 12))
-  })
-  ok('툴바의 다른 버튼과 겹치지 않는다', overlap.length === 0, overlap.join(', '))
-}
+// ── 9) 상단 헤더 — **이사 갔다**(2026-09-21).
+//
+// 여기서 사용자 표시(UserBar)를 지키고 있던 것은 **우연**이었다. 같은 화면에 떠
+// 있으니 김에 본 것뿐이고, 표 병합과는 아무 상관이 없다. 2026-09-10 에 셸이 들어오면서
+// UserBar 가 편집 툴바(.ax-title)에서 **사이드바 맨 아래**로 옮겨졌는데, 이 칸이 옛 자리를
+// 그대로 찾고 있어서 **표를 고치던 사람이 셸 때문에 멈췄다**(실제로 그랬다).
+//
+// 그래서 `shell_header_smoke.mjs` 로 옮겼다. 표가 깨지면 표 문제, 셸이 깨지면 셸 문제다.
+// 옮기면서 「겹치지 않는다」는 **「오버레이로 되돌아가지 않는다」로 바꿔 적었다** —
+// 겹침의 원인이 position:fixed 전역 오버레이였고, 지금은 사이드바의 평범한 흐름
+// 자식이라 겹칠 방법이 없다. 그대로 옮겨 적으면 **절대 안 깨지는 초록 검사**가 된다.
 
 // ── 10) 작성자에게는 쓸 수 없는 메뉴가 보이지 않는다 ──
 // 눌러도 403 인 버튼을 띄워두면 사용자는 '고장 났다' 고 이해한다.
@@ -254,8 +236,13 @@ ok('손잡이를 끌면 표가 따라 움직인다', Math.abs(after.x - before.x
   const items = await p.locator('.ax-mdrop .ax-mitem').allInnerTexts()
   ok('작성자에게 환경설정이 보이지 않는다', !items.some((t) => t.includes('환경설정')),
      items.join(' | ').slice(0, 90))
-  ok('작성자에게 이북 만들기(발행)가 보이지 않는다',
-     !items.some((t) => t.includes('이북(웹) 만들기')))
+  // **2026-09-16 에 정책이 바뀌었고, 이 줄만 옛 정책에 남아 있었다.**
+  // `server/permissions.py:101` — 「PUBLISH 는 여기서 나갔다 — 작성자도 제 자료는 발행한다」.
+  // 관리자 매뉴얼(`src/builder/manualAdmin.ts`)도 「못 하는 것은 열람자뿐」이라고 적는다.
+  // 서버와 화면이 같은 말을 하므로 **눌러도 403 인 버튼이 아니다** — 이 칸이 막으려던 것과 다르다.
+  // 앞선 ⑨ 에서 스위트가 예외로 중단되는 바람에 여기까지 오지 못해 5일 동안 안 보였다.
+  ok('작성자에게 이북 만들기(발행)는 보인다 (열람자에게만 숨긴다)',
+     items.some((t) => t.includes('이북(웹) 만들기')))
   ok('작성자가 쓸 수 있는 항목은 그대로다', items.some((t) => t.includes('저장')))
   await p.keyboard.press('Escape')
   await p.locator('.ax-title').click({ position: { x: 4, y: 4 } })

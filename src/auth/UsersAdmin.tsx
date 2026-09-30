@@ -1,15 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { ApiError, apiApprove, apiListUsers, apiResetPassword, apiSetName, apiSetStatus, ROLE_LABEL, ROLE_ORDER, type Me, type Role } from './authApi'
 import { useAuth } from './useAuth'
 import { filterUsers } from './userSearch'
 import Modal from '../ui/Modal'
+import { apiListTeams } from '../teams/teamsApi'
+import { teamOfUser, type Team } from '../teams/teamModel'
+import { clampMaster, keepOrFirst } from '../ui/masterSplit'
+import { masterWidth, rememberMasterWidth } from '../persistence/prefs'
 
-type Tab = 'pending' | 'active' | 'all'
+type Tab = 'pending' | 'active' | 'disabled' | 'all'
 
-const TAB_LABEL: Record<Tab, string> = { pending: '승인 대기', active: '사용 중', all: '전체' }
+const TAB_LABEL: Record<Tab, string> = { pending: '승인 대기', active: '사용 중', disabled: '중지', all: '전체' }
+const ST_LABEL: Record<Me['status'], string> = { active: '사용 중', pending: '대기', disabled: '중지' }
 
-/** L3 사용자 관리 — 가입 승인, 레벨 변경, 비활성화. */
+/** 시각(밀리초) → 「2026. 09. 21. 14:18」. 없으면 null — 화면이 「—」로 적는다. */
+function fmtTime(ms: number | null | undefined): string | null {
+  if (!ms) return null
+  const d = new Date(ms)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}. ${p(d.getMonth() + 1)}. ${p(d.getDate())}. ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+/** L3 사용자 관리 — 가입 승인, 레벨 변경, 비활성화.
+ *
+ *  **마스터·디테일로 바꿨다**(2026-09-21 · 시안 `docs/화면시안_사용자관리_마스터디테일_v1.0.html` 안 ㄴ).
+ *  예전에는 여섯 칸 표 한 줄 끝에 단추 셋(승인/변경 · 중지/재사용 · 비밀번호 초기화)이 붙어
+ *  칸이 좁았고, 「신청: 작성자」는 권한 칸 밑에 작게 끼어 있었다. 이 화면은 **한 사람에게 여러
+ *  일**을 하는 곳이라, 왼쪽에서 사람을 고르고 오른쪽 넓은 자리에서 「권한」·「계정」 두 덩어리로
+ *  일을 한다. 뼈대는 결재함·팀 공유·팀 관리와 같다(md-screen · ap-body · md-grip · ap-item). */
 /** `embedded` — **덮개가 아니라 화면으로** 그린다(셸, 2026-09-10).
  *  덮개일 때는 뒤를 어둡게 하고 가운데 카드를 띄웠다. 셸 안에서는 뒤에 가릴 것이 없다 —
  *  자기가 그 화면이다. 그래서 스크림도, 「닫기」도 없다. 닫을 데가 없으니까. */
@@ -17,6 +36,25 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
   const me = useAuth((s) => s.me)
   const [tab, setTab] = useState<Tab>('pending')
   const [users, setUsers] = useState<Me[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
+  const [sel, setSel] = useState<string | null>(null)
+  const [note, setNote] = useState('')
+  // 목록 칸 폭 — 결재함·팀 공유·팀 관리와 같은 손잡이, 같은 기억 방식(키만 다르다).
+  const [mw, setMw] = useState(() => masterWidth('um'))
+  const [dragging, setDragging] = useState(false)
+  const gripRef = useRef(0)
+  const onGrip = (e: React.PointerEvent) => {
+    e.preventDefault()
+    setDragging(true)
+    const startX = e.clientX, startW = mw
+    gripRef.current = startW
+    const move = (ev: PointerEvent) => { const w = clampMaster(startW + (ev.clientX - startX)); gripRef.current = w; setMw(w) }
+    const up = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up)
+      setDragging(false); rememberMasterWidth('um', gripRef.current)
+    }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up)
+  }
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [busyId, setBusyId] = useState('')
@@ -48,11 +86,14 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
   const [qIn, setQIn] = useState('')
   const [q, setQ] = useState('')
 
+  // **전부 한 번에 받는다**(마스터·디테일). 왼쪽 칩마다 숫자를 적으려면 상태별로 따로 물으면
+  // 네 번 묻게 된다. 걸러 보이는 일은 화면이 한다. 소속 팀은 팀 목록에서 찾아 붙인다 —
+  // 못 받아도 사용자 관리는 돌아야 하므로 실패는 조용히 넘긴다(팀 칸만 「—」).
   const load = async () => {
     setLoading(true); setErr('')
     try {
-      const list = await apiListUsers(tab === 'all' ? undefined : tab)
-      setUsers(list)
+      const [list, tl] = await Promise.all([apiListUsers(), apiListTeams().catch(() => [] as Team[])])
+      setUsers(list); setTeams(tl)
       setGrant((g) => {
         const next = { ...g }
         for (const u of list) if (!next[u.id]) next[u.id] = u.requested_role || 'writer' 
@@ -65,7 +106,7 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
     }
   }
 
-  useEffect(() => { void load() }, [tab])   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load() }, [])   // eslint-disable-line react-hooks/exhaustive-deps
 
   const act = async (fn: () => Promise<unknown>, uid: string) => {
     setBusyId(uid); setErr('')
@@ -94,16 +135,27 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
   }
 
   const pendingCount = users.filter((u) => u.status === 'pending').length
+  const countOf = (t: Tab) => (t === 'all' ? users.length : users.filter((u) => u.status === t).length)
+  const inTab = useMemo(() => (tab === 'all' ? users : users.filter((u) => u.status === tab)), [users, tab])
+  const teamOf = useMemo(() => teamOfUser(teams), [teams])
   /** 화면에 뜨는 목록. **걸린 값(`q`)으로만** 거른다 — 치는 값으로 거르면
    *  「조회를 눌러야 걸린다」는 팀 관리와의 약속이 깨진다.
    *  거르는 셈 자체는 `userSearch.ts` 에 있다 — 여기 적어 두면 지킴이가 돌려 볼 수 없다. */
-  const shown = filterUsers(users, q)
+  const shown = filterUsers(inTab, q)
+  // **고른 사람이 목록에서 빠지면 맨 위로**(결재함과 같은 규칙 · keepOrFirst). 승인 대기에서
+  // 한 사람을 승인하면 그 사람이 빠지고 **다음 대기자가 저절로 골라진다** — 손이 그 자리에 머문다.
+  const cur = keepOrFirst(shown.map((u) => u.id), sel)
+  const u = shown.find((x) => x.id === cur) || null
 
-  return (
-    <div className={embedded ? 'sh-page' : 'es-auth'} onClick={embedded ? undefined : onClose}>
-      <div className="es-card wide" onClick={(e) => e.stopPropagation()}>
-        {/* **팀 관리와 같은 머리줄**(2026-09-18 · 사용자 결정 「둘 다 가운데」).
-            전에는 여기만 왼쪽 정렬이라, 두 화면을 번갈아 보면 제목이 좌우로 튀었다. */}
+  const self = !!u && u.id === me?.id
+  const busy = !!u && busyId === u.id
+  const pickTab = (t: Tab) => { setTab(t); setSel(null); setRenaming(null); setNote('') }
+
+  const screen = (
+    <div className={(embedded ? 'sh-page' : 'es-card wide um-card') + ' um md-screen' + (dragging ? ' md-drag' : '')}
+      onClick={embedded ? undefined : (e) => e.stopPropagation()}>
+      <div className="md-top">
+        {/* **팀 관리와 같은 머리줄**(2026-09-18 · 사용자 결정 「둘 다 가운데」). */}
         <div className="adm-head">
           <div className="es-brand"><b>사용자 관리</b><span>관리자 전용</span></div>
           <p className="es-lede">
@@ -111,135 +163,172 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
           </p>
           {!embedded && <button className="es-mini adm-right" onClick={onClose}>닫기</button>}
         </div>
+        {err && <div className="es-msg err">{err}</div>}
+        {note && !err && <div className="es-msg">{note}</div>}
+      </div>
 
-        <div className="es-tabs">
-          {(['pending', 'active', 'all'] as Tab[]).map((t) => (
-            <button key={t} className={`es-tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
-              {TAB_LABEL[t]}{t === 'pending' && pendingCount > 0 && tab === 'pending' ? ` ${pendingCount}` : ''}
+      <div className="ap-body md-body" style={{ gridTemplateColumns: mw + 'px auto 1fr' }}>
+        {/* ── 왼쪽: 사람 목록. 위에 상태 칩 · 검색 ── */}
+        <div className="ap-list um-side">
+          <div className="um-chips">
+            {(['pending', 'active', 'disabled', 'all'] as Tab[]).map((t) => (
+              <button key={t} className={'um-chip' + (tab === t ? ' on' : '') + (t === 'pending' && pendingCount > 0 ? ' hot' : '')}
+                onClick={() => pickTab(t)}>
+                {TAB_LABEL[t]}<span className="n">{countOf(t)}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* 팀 관리와 **같은 줄, 같은 클래스**다 — 두 화면이 한 벌로 읽혀야 한다. */}
+          <div className="adm-srch">
+            <span className="adm-qbox">
+              <Search className="h-4 w-4" />
+              <input value={qIn} placeholder="아이디 · 이름 · 부서" aria-label="검색어"
+                onChange={(e) => setQIn(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') setQ(qIn) }} />
+            </span>
+            <button className="adm-sbtn dark" disabled={loading} onClick={() => setQ(qIn)}>조회</button>
+            <button className="adm-sbtn" disabled={loading}
+              onClick={() => { setQIn(''); setQ('') }}>초기화</button>
+          </div>
+
+          <div className="adm-pager">
+            <span>{loading ? ' ' : q
+              ? <>조회 결과 <b>{shown.length}</b>명 · {TAB_LABEL[tab]} {inTab.length}명</>
+              : <>{TAB_LABEL[tab]} <b>{inTab.length}</b>명</>}</span>
+          </div>
+
+          {loading ? (
+            <div className="es-empty">불러오는 중…</div>
+          ) : shown.length === 0 ? (
+            <div className="es-empty">
+              {/* **찾다가 없는 것과 원래 없는 것은 다른 말이다.** */}
+              {q ? '찾는 사람이 없습니다. 검색어를 지우면 전체가 나옵니다.'
+                : tab === 'pending' ? '승인을 기다리는 신청이 없습니다.' : '표시할 사용자가 없습니다.'}
+            </div>
+          ) : shown.map((x) => (
+            <button key={x.id} className={'ap-item um-item' + (x.id === cur ? ' on' : '')}
+              onClick={() => { setSel(x.id); setRenaming(null) }}>
+              <span className="ap-item-top">
+                <span className="ap-item-name">{x.name}{x.id === me?.id && <span className="um-me"> (나)</span>}</span>
+                <span className={`es-st ${x.status}`}>{ST_LABEL[x.status]}</span>
+              </span>
+              <span className="ap-item-sub">
+                {x.login_id}{x.dept ? ` · ${x.dept}` : ''} · {x.status === 'pending'
+                  ? `신청 ${ROLE_LABEL[x.requested_role]}` : (x.role ? ROLE_LABEL[x.role] : '미부여')}
+              </span>
             </button>
           ))}
         </div>
 
-        {/* 팀 관리와 **같은 줄, 같은 클래스**다 — 두 화면이 한 벌로 읽혀야 한다. */}
-        <div className="adm-srch">
-          <span className="adm-qbox">
-            <Search className="h-4 w-4" />
-            <input value={qIn} placeholder="아이디 · 이름 · 부서" aria-label="검색어"
-              onChange={(e) => setQIn(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') setQ(qIn) }} />
-          </span>
-          <button className="adm-sbtn dark" disabled={loading} onClick={() => setQ(qIn)}>조회</button>
-          <button className="adm-sbtn" disabled={loading}
-            onClick={() => { setQIn(''); setQ('') }}>초기화</button>
+        <div className="md-grip" onPointerDown={onGrip}
+          title="끌어서 목록 칸 폭을 바꿉니다" aria-hidden="true" />
+
+        {/* ── 오른쪽: 고른 한 사람 ── */}
+        <div className="ap-detail um-detail">
+          {!u ? (
+            <div className="es-empty">{loading ? '불러오는 중…' : '볼 사람이 없습니다.'}</div>
+          ) : (
+            <div className="um-card-in">
+              <div className="um-d-head">
+                {renaming && renaming.id === u.id ? (
+                  <input className="es-rename" autoFocus value={renaming.value} maxLength={40}
+                    aria-label="이름" disabled={busy}
+                    onChange={(e) => setRenaming({ id: u.id, value: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && renaming.value.trim()) {
+                        void act(() => apiSetName(u.id, renaming.value.trim()), u.id)
+                        setRenaming(null)
+                      }
+                      if (e.key === 'Escape') setRenaming(null)
+                    }}
+                    onBlur={() => setRenaming(null)} />
+                ) : (
+                  <>
+                    <b className="um-d-name">{u.name}</b>
+                    {/* **고치는 자리를 이름 옆에 둔다.** */}
+                    <button className="es-rename-b" title="이름 바꾸기" disabled={busy}
+                      onClick={() => setRenaming({ id: u.id, value: u.name || '' })}>✎</button>
+                  </>
+                )}
+                <span className="um-d-id">{u.login_id}{self && ' (나)'}</span>
+                <span className={`es-st ${u.status}`}>{ST_LABEL[u.status]}</span>
+              </div>
+
+              <dl className="um-dl">
+                <dt>부서</dt><dd>{u.dept || <span className="um-dim">—</span>}</dd>
+                <dt>현재 권한</dt><dd>{u.role ? ROLE_LABEL[u.role] : <span className="um-dim">미부여</span>}</dd>
+                {u.status === 'pending' && <><dt>신청한 권한</dt><dd>{ROLE_LABEL[u.requested_role]}</dd></>}
+                <dt>소속 팀</dt>
+                <dd>{teamOf[u.id]?.name || <span className="um-dim">없음</span>}
+                  <span className="um-dim um-small"> · 팀 관리에서 바꿉니다</span></dd>
+                <dt>가입 신청</dt><dd>{fmtTime(u.created_at) || <span className="um-dim">—</span>}</dd>
+                {u.approved_at ? <><dt>승인</dt><dd>{fmtTime(u.approved_at)}</dd></> : null}
+                <dt>마지막 로그인</dt><dd>{fmtTime(u.last_login_at) || <span className="um-dim">아직 없음</span>}</dd>
+              </dl>
+
+              <div className="um-sec">
+                <h4>권한</h4>
+                <div className="um-row">
+                  <select value={grant[u.id] ?? u.requested_role ?? 'writer'} disabled={self || busy}
+                    aria-label="부여할 권한"
+                    onChange={(e) => setGrant({ ...grant, [u.id]: e.target.value as Role })}>
+                    {ROLE_ORDER.map((r) => (
+                      <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                    ))}
+                  </select>
+                  <button className="es-mini primary" disabled={self || busy}
+                    title={self ? '자기 자신의 권한은 바꿀 수 없습니다' : ''}
+                    onClick={() => {
+                      const r = grant[u.id] ?? u.requested_role ?? 'writer'
+                      // 관리자 부여는 되돌리기 어려운 권한 상승이다 — 확인을 받는다.
+                      if (r === 'admin') { setConfirm({ kind: 'grantAdmin', user: u }); return }
+                      const was = u.status
+                      void act(async () => {
+                        await apiApprove(u.id, r)
+                        setNote(`${u.name} 님을 ${was === 'pending' ? '승인했습니다' : '변경했습니다'} — ${ROLE_LABEL[r]}.`)
+                      }, u.id)
+                    }}>
+                    {u.status === 'pending' ? '승인' : '변경'}
+                  </button>
+                </div>
+                <p className="um-hint">{u.status === 'pending'
+                  ? '승인해야 실제 권한이 부여됩니다. 신청한 권한보다 낮춰 승인할 수 있습니다.'
+                  : '바꾸면 그 사람의 로그인이 즉시 끊기고, 다시 로그인하면 새 권한이 적용됩니다.'}</p>
+              </div>
+
+              <div className="um-sec">
+                <h4>계정</h4>
+                <div className="um-row">
+                  {u.status === 'disabled' ? (
+                    <button className="es-mini" disabled={self || busy}
+                      onClick={() => void act(() => apiSetStatus(u.id, 'active'), u.id)}>재사용</button>
+                  ) : (
+                    <button className="es-mini danger" disabled={self || busy}
+                      title={self ? '자기 자신은 중지할 수 없습니다' : ''}
+                      onClick={() => setConfirm({ kind: 'disable', user: u })}>계정 중지</button>
+                  )}
+                  {/* 이 제품에는 비밀번호 찾기가 없다 — 잊으면 관리자만 풀어줄 수 있다.
+                      **본인은 제외한다.** 2026-09-18 에 한 번 열었다가 같은 날 닫았다:
+                      열어 보니 같은 자리를 푸는 길이 둘이 됐고, 사용자가 골랐다
+                      (「2번보다 3만 있으면 되겠다」). 본인은 「비밀번호 변경」을 쓴다 —
+                      잊었으면 그 창의 「지금 비밀번호가 기억나지 않습니다」로
+                      **새 값을 직접 정한다.** 초기화보다 걸음이 하나 짧고 놓칠 글자도 없다. */}
+                  <button className="es-mini" disabled={self || busy || u.status === 'pending'}
+                    title={self ? '본인은 「비밀번호 변경」을 쓰세요 — 잊었다면 그 창의 「지금 비밀번호가 기억나지 않습니다」'
+                      : u.status === 'pending' ? '가입을 먼저 승인해 주세요' : ''}
+                    onClick={() => setConfirm({ kind: 'resetPw', user: u })}>비밀번호 초기화</button>
+                </div>
+              </div>
+
+              <div className="es-msg info" style={{ marginTop: 18, marginBottom: 0 }}>
+                권한을 바꾸거나 계정을 중지하면 <b>그 사람의 로그인이 즉시 끊깁니다.</b> 다시 로그인해야 새 권한이 적용됩니다.
+                <br />관리자가 한 명도 남지 않으면 아무도 승인할 수 없게 되므로, 마지막 관리자는 중지할 수 없습니다.
+              </div>
+            </div>
+          )}
         </div>
-
-        {err && <div className="es-msg err">{err}</div>}
-
-        <div className="adm-pager">
-          <span>{loading ? ' ' : q
-            ? <>조회 결과 <b>{shown.length}</b>명 · 전체 {users.length}명</>
-            : <>전체 <b>{users.length}</b>명</>}</span>
-        </div>
-
-        {loading ? (
-          <div className="es-empty">불러오는 중…</div>
-        ) : shown.length === 0 ? (
-          <div className="es-empty">
-            {/* **찾다가 없는 것과 원래 없는 것은 다른 말이다.** 같은 말을 쓰면
-                「승인 대기가 없구나」로 읽고 검색어를 지울 생각을 못 한다. */}
-            {q ? '찾는 사람이 없습니다. 검색어를 지우면 전체가 나옵니다.'
-              : tab === 'pending' ? '승인을 기다리는 신청이 없습니다.' : '표시할 사용자가 없습니다.'}
-          </div>
-        ) : (
-          <table className="es-table">
-            <thead>
-              <tr>
-                <th>아이디</th><th>이름 · 부서</th><th>상태</th><th>현재 권한</th>
-                <th style={{ width: 150 }}>부여할 권한</th><th style={{ width: 170 }}>작업</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((u) => {
-                const self = u.id === me?.id
-                const busy = busyId === u.id
-                return (
-                  <tr key={u.id}>
-                    <td><b>{u.login_id}</b>{self && <span style={{ color: '#98a1b2' }}> (나)</span>}</td>
-                    <td>
-                      {renaming && renaming.id === u.id ? (
-                        <input className="es-rename" autoFocus value={renaming.value} maxLength={40}
-                          aria-label="이름" disabled={busy}
-                          onChange={(e) => setRenaming({ id: u.id, value: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && renaming.value.trim()) {
-                              void act(() => apiSetName(u.id, renaming.value.trim()), u.id)
-                              setRenaming(null)
-                            }
-                            if (e.key === 'Escape') setRenaming(null)
-                          }}
-                          onBlur={() => setRenaming(null)} />
-                      ) : (
-                        <>
-                          {u.name}{u.dept ? ` · ${u.dept}` : ''}
-                          {/* **고치는 자리를 이름 옆에 둔다.** 따로 단추 칸을 만들면
-                              「무엇의 이름인지」가 한 칸 멀어진다. */}
-                          <button className="es-rename-b" title="이름 바꾸기" disabled={busy}
-                            onClick={() => setRenaming({ id: u.id, value: u.name || '' })}>✎</button>
-                        </>
-                      )}
-                    </td>
-                    <td><span className={`es-st ${u.status}`}>{
-                      u.status === 'active' ? '사용 중' : u.status === 'pending' ? '대기' : '중지'
-                    }</span></td>
-                    <td>{u.role ? ROLE_LABEL[u.role] : <span style={{ color: '#98a1b2' }}>미부여</span>}
-                      {u.status === 'pending' && (
-                        <div style={{ fontSize: 11, color: '#98a1b2' }}>신청: {ROLE_LABEL[u.requested_role]}</div>
-                      )}
-                    </td>
-                    <td>
-                      <select value={grant[u.id] ?? u.requested_role ?? 'writer'} disabled={self || busy}
-                        onChange={(e) => setGrant({ ...grant, [u.id]: e.target.value as Role })}>
-                        {ROLE_ORDER.map((r) => (
-                          <option key={r} value={r}>{ROLE_LABEL[r]}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td style={{ display: 'flex', gap: 6 }}>
-                      <button className="es-mini primary" disabled={self || busy}
-                        title={self ? '자기 자신의 권한은 바꿀 수 없습니다' : ''}
-                        onClick={() => {
-                          const r = grant[u.id] ?? u.requested_role ?? 'writer'
-                          // 관리자 부여는 되돌리기 어려운 권한 상승이다 — 확인을 받는다.
-                          if (r === 'admin') { setConfirm({ kind: 'grantAdmin', user: u }); return }
-                          void act(() => apiApprove(u.id, r), u.id)
-                        }}>
-                        {u.status === 'pending' ? '승인' : '변경'}
-                      </button>
-                      {u.status === 'disabled' ? (
-                        <button className="es-mini" disabled={self || busy}
-                          onClick={() => void act(() => apiSetStatus(u.id, 'active'), u.id)}>재사용</button>
-                      ) : (
-                        <button className="es-mini danger" disabled={self || busy}
-                          title={self ? '자기 자신은 중지할 수 없습니다' : ''}
-                          onClick={() => setConfirm({ kind: 'disable', user: u })}>중지</button>
-                      )}
-                      {/* 이 제품에는 비밀번호 찾기가 없다 — 잊으면 관리자만 풀어줄 수 있다.
-                          **본인은 제외한다.** 2026-09-18 에 한 번 열었다가 같은 날 닫았다:
-                          열어 보니 같은 자리를 푸는 길이 둘이 됐고, 사용자가 골랐다
-                          (「2번보다 3만 있으면 되겠다」). 본인은 「비밀번호 변경」을 쓴다 —
-                          잊었으면 그 창의 「지금 비밀번호가 기억나지 않습니다」로
-                          **새 값을 직접 정한다.** 초기화보다 걸음이 하나 짧고 놓칠 글자도 없다. */}
-                      <button className="es-mini" disabled={self || busy || u.status === 'pending'}
-                        title={self ? '본인은 「비밀번호 변경」을 쓰세요 — 잊었다면 그 창의 「지금 비밀번호가 기억나지 않습니다」'
-                          : u.status === 'pending' ? '가입을 먼저 승인해 주세요' : ''}
-                        onClick={() => setConfirm({ kind: 'resetPw', user: u })}>비밀번호 초기화</button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
+      </div>
 
         {confirm && (
           <Modal
@@ -319,12 +408,8 @@ export default function UsersAdmin({ onClose, embedded }: { onClose?: () => void
             }}>{issued.password}</div>
           </Modal>
         )}
-
-        <div className="es-msg info" style={{ marginTop: 18, marginBottom: 0 }}>
-          권한을 바꾸거나 계정을 중지하면 <b>그 사람의 로그인이 즉시 끊깁니다.</b> 다시 로그인해야 새 권한이 적용됩니다.
-          <br />관리자가 한 명도 남지 않으면 아무도 승인할 수 없게 되므로, 마지막 관리자는 중지할 수 없습니다.
-        </div>
-      </div>
     </div>
   )
+
+  return embedded ? screen : <div className="es-auth um" onClick={onClose}>{screen}</div>
 }

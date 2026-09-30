@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { selectWordInField } from '../lib/wordSelect'
 import { newBlock } from '../state/store'
 import type { Block, BlockType } from '../state/store'
 import { useKey } from '../ui/keyLabel'
@@ -135,6 +136,7 @@ export default function NoteBlocks({ blocks, onChange, compact }: { blocks: Bloc
           onChange={(e) => { onChangeText(ti, ci, b, e.target.value); const t = e.target; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }}
           onKeyDown={(e) => onKey(e, ti, ci, b)}
           onFocus={() => setActiveId(b.id)}
+          onDoubleClick={(e) => { selectWordInField(e.currentTarget) }}   // 띄어쓰기 기준 낱말(lib/wordSelect)
         />
         {!compact ? <div className="be-tools">
           <button className={'be-tool' + (b.bold ? ' on' : '')} title={`굵게 (${K('mod+B')})`} onClick={() => updateAt(ti, ci, { bold: !b.bold })}>B</button>

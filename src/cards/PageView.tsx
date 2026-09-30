@@ -1,5 +1,6 @@
 import { useRef, useLayoutEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { selectWordOrCaretAtPoint } from '../lib/wordSelect'
 import type { Page, Orientation, SizePreset } from '../state/store'
 import { useBuilder } from '../state/store'
 import { useCanvasUI } from '../state/canvasUI'
@@ -94,6 +95,7 @@ function Ef({ ctx, k, ph, style }: { ctx: EfCtx; k: string; ph?: string; style?:
     <span className="cardedit" data-ph={ph || '내용 입력'} style={style}
       contentEditable suppressContentEditableWarning
       onFocus={ctx.selectAllOnFocus}
+      onDoubleClick={(e) => { selectWordOrCaretAtPoint(e.currentTarget, e.clientX, e.clientY) }}
       onPointerDown={(e) => { e.stopPropagation(); ctx.startDetachDrag(e, e.currentTarget, e.currentTarget, k, e.currentTarget.textContent || '') }}
       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
       onBlur={(e) => { const t = e.currentTarget.textContent || ''; if (t !== (ctx.f[k] || '')) ctx.updateField(ctx.page.id, k, t) }}
@@ -119,6 +121,7 @@ function EfIn({ ctx, k, ph, style }: { ctx: EfCtx; k: string; ph?: string; style
     <span className="cardedit" data-ph={ph || '내용 입력'} style={style}
       contentEditable suppressContentEditableWarning
       onFocus={ctx.selectAllOnFocus}
+      onDoubleClick={(e) => { selectWordOrCaretAtPoint(e.currentTarget, e.clientX, e.clientY) }}
       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
       onBlur={(e) => { const t = e.currentTarget.textContent || ''; if (t !== (ctx.f[k] || '')) ctx.updateField(ctx.page.id, k, t) }}
     >{v}</span>
@@ -136,6 +139,7 @@ function EfPair({ ctx, k, sep, lph, rph, lStyle, rStyle, noStop }: { ctx: EfCtx;
   const cell = (val: string, ph: string, st: CSSProperties | undefined, done: (t: string) => void): ReactNode => (
     <span className="cardedit" data-ph={ph} style={st} contentEditable suppressContentEditableWarning
       onFocus={ctx.selectAllOnFocus}
+      onDoubleClick={(e) => { selectWordOrCaretAtPoint(e.currentTarget, e.clientX, e.clientY) }}
       onPointerDown={noStop ? undefined : (e) => e.stopPropagation()}
       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLElement).blur() } }}
       onBlur={(e) => done(e.currentTarget.textContent || '')}>{val}</span>

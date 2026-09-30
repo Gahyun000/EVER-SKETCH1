@@ -36,8 +36,18 @@ check(/아직 팀도 편성할 사람도 없습니다/.test(tsx), '빈 데이터
 check(/찾는 결과가 없습니다/.test(tsx) && /조건 초기화/.test(tsx),
   '검색 0건을 빈 데이터와 **구분해서** 말한다 — 같은 문구면 무엇을 해야 할지 모른다')
 
-// ── 확정된 배치 ──
-check(/adm-left[\s\S]{0,200}새 팀/.test(tsx), '「＋ 새 팀」이 머리줄 왼쪽에 있다')
+// ── 확정된 배치 — 마스터·디테일 (2026-09-21 · 시안 docs/화면시안_팀관리_마스터디테일_v1.0.html) ──
+// 왼쪽 팀 목록 · 오른쪽 고른 팀의 팀원 표. 뼈대는 결재함·팀 공유와 **같은 것**을 쓴다.
+check(/md-screen/.test(tsx) && /className="ap-body md-body"/.test(tsx) && /className="md-grip"/.test(tsx),
+  '결재함·팀 공유와 같은 마스터·디테일 뼈대(md-screen · ap-body · md-grip)')
+check(/masterWidth\('tm'\)/.test(tsx) && /rememberMasterWidth\('tm'/.test(tsx), '목록 폭은 제 이름(tm)으로 따로 기억한다')
+check(!/adm-left/.test(tsx) && !/mkOpen/.test(tsx), '「＋ 새 팀」 단추를 눌러 여는 방식은 걷었다')
+check(/className="tm-add"[\s\S]{0,400}placeholder="새 팀 이름/.test(tsx), '새 팀 입력칸이 팀 목록 맨 위에 **늘 열려** 있다')
+check(/setSel\(t\.id\)/.test(tsx), '만든 팀이 곧바로 골라진다 — 다음 할 일(팀원 넣기)이 바로 보인다')
+check(/t\.some\(\(x\) => x\.id === s\)/.test(tsx),
+  '없어진 팀을 고르고 있으면 「전체」로 — **받아 온 목록으로** 판단한다(방금 만든 팀을 튕기지 않게)')
+check(/＋ 팀원 넣기/.test(tsx) && /addCandidates/.test(tsx), '오른쪽 머리에 「＋ 팀원 넣기」가 있다')
+check(/className="tm-d-act"[\s\S]{0,2400}이름 변경[\s\S]{0,800}팀 삭제/.test(tsx), '이름 변경·팀 삭제는 오른쪽 머리로 올라갔다')
 check(/adm-right[\s\S]{0,80}닫기|닫기[\s\S]{0,80}adm-right/.test(tsx), '「닫기」가 있다')
 
 // **두 화면이 정말 같은 것을 쓰는지 본다.** 이름만 옮겨 놓고 한쪽이 제 것을 따로
@@ -53,34 +63,28 @@ check(/adm-right[\s\S]{0,80}닫기|닫기[\s\S]{0,80}adm-right/.test(tsx), '「�
 check(/from 'lucide-react'/.test(tsx) && /Search/.test(tsx) && /Plus/.test(tsx),
   '아이콘은 lucide — 「내 이북」과 같은 것을 쓴다(글자로 때우지 않는다)')
 
-// ── 조작 두 칸 : 사람 줄과 팀 줄이 같은 칸을 쓴다 ──
-check((tsx.match(/className="tm-assign"/g) || []).length >= 2,
-  '사람 줄과 팀 줄이 **같은 조작 상자**를 쓴다')
-check((tsx.match(/className="tm-a"/g) || []).length >= 2 &&
-      (tsx.match(/className="tm-b"/g) || []).length >= 2,
-  'A칸·B칸이 양쪽에 다 있다 — 그래야 세로줄이 맞는다')
+// ── 조작 두 칸 : 사람 줄의 A칸 · B칸 ──
+// 팀 줄은 표에서 빠졌다(마스터·디테일) — 표에는 사람 줄만 있어 세로줄이 절로 맞는다.
+check(/className="tm-assign"/.test(tsx) && /className="tm-a"/.test(tsx) && /className="tm-b"/.test(tsx),
+  '사람 줄은 A칸(팀 고르기) · B칸(넣기/옮기기/빼기)')
+check(!/tm-grp/.test(tsx), '표에 팀 줄(묶음 줄)이 섞이지 않는다 — 팀 인원이 권한 칸에 걸쳐 열이 어긋나던 원인')
 check(/--tm-a:\s*96px/.test(css) && /--tm-b:\s*84px/.test(css), 'A칸 96 · B칸 84 (확정값)')
 check(/\.tm-a select[\s\S]{0,200}text-align:\s*center/.test(css), '「팀 선택」 글자는 가운데')
 
-// ── 「팀원이 없습니다」는 권한 칸 ──
-check(/<td \/>\s*<td><span className="tm-empty">팀원이 없습니다<\/span><\/td>\s*<td \/>/.test(tsx),
-  '「팀원이 없습니다」가 가운데(권한) 칸에 앉는다 — 빈 팀이 여럿이어도 같은 자리')
-
-// ── 묶음 줄 : 색 + 위쪽 굵은 선 (v2.3 ㉰) ──
-check(/\.tm-grp td[\s\S]{0,160}border-top:\s*2px/.test(css), '묶음 줄에 위쪽 굵은 선')
-check(/\.tm-grp td[\s\S]{0,160}background:\s*#eef3fc/.test(css), '팀 묶음은 남색')
-check(/\.tm-grp\.tm-none td[\s\S]{0,120}background:\s*#fff4e3/.test(css), '미배정 묶음은 주황')
-check(/아직 팀이 없는 사람/.test(read('./src/teams/teamModel.ts')),
-  '색만으로 말하지 않는다 — 묶음 이름이 **글자**로 먼저 말한다')
+// ── 빈 팀 · 미배정 ──
+check(/아직 팀원이 없습니다/.test(tsx) && /팀원 넣기/.test(tsx),
+  '빈 팀은 「팀원이 없습니다」로 끝내지 않고 **다음 할 일**(＋ 팀원 넣기)을 말한다')
+check(/SEL_NONE && s\.count > 0 \? ' warn'/.test(tsx) && /\.es-badge\.tm-n\.warn \{[^}]*var\(--amber\)/.test(css),
+  '미배정이 1명 이상이면 주황 배지 — 글자 「팀 미배정」이 먼저 말하고 색은 거든다')
+check(/'팀 미배정'/.test(read('./src/teams/teamModel.ts')), '색만으로 말하지 않는다 — 목록 이름이 **글자**로 먼저 말한다')
 
 // ── 개수 배지 버그 (「사람 1」로 읽히던 것) ──
 check(/^\.es-badge \{/m.test(css),
   '.es-badge 가 홀로 선다 — 예전엔 .es-linkbtn 안에서만 배지가 됐다')
-check(/\.tm-cnt[\s\S]{0,140}position:\s*absolute/.test(css),
-  '개수 배지는 칸 오른쪽 끝에 고정 — 이름 옆에 붙이면 묶음 이름이 왼쪽으로 밀린다')
+check(/className=\{'es-badge tm-n'/.test(tsx), '팀 인원 배지는 왼쪽 목록 항목 오른쪽 끝(ap-item-top) — 표 칸에 걸치지 않는다')
 
 // ── 두 줄 깨짐 방지 (표준 공통 UI 기준) ──
-for (const k of ['tm-who', 'tm-dept', 'tm-lv', 'tm-empty']) {
+for (const k of ['tm-who', 'tm-dept', 'tm-lv']) {
   check(new RegExp(`\\.${k}[\\s\\S]{0,220}white-space:\\s*nowrap`).test(css),
     `.${k} 는 낱말이 안 끊긴다`)
 }

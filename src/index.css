@@ -475,7 +475,8 @@ button{font-family:inherit;cursor:pointer}
    사이드바·폴더 칸이 생기면서 남는 자리가 그때그때 달라지는데 목록만 그 값에서 멈춰 서,
    1910 창에서는 작업 영역의 48% 가 빈 자리였다. 이제 남는 자리를 다 쓰되 1400px 에서
    멈춘다 — 그보다 길어지면 한 줄을 눈으로 따라가기 어렵다. */
-.lib-screen{flex:1;min-height:0;background:#f5f6f8;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:22px 20px 60px;--lib-w:min(1400px,100%)}
+.lib-screen{flex:1;min-height:0;background:#f5f6f8;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:22px 20px 0;--lib-w:min(1400px,100%)}
+/* 아래 여백(60px)을 걷었다 — 쪽 막대가 그 자리에서 화면 바닥에 붙는다(2026-09-21). */
 /* **머리줄은 이제 검색 줄 하나를 담는 그릇일 뿐이다**(2026-09-15 ②ㄴ).
    여기에 로고·이름표·「팀 공유」·「결재함」이 함께 있던 시절의 `display:flex` +
    `justify-content:space-between` 이 남아 있었다. 자식이 하나만 남은 뒤로 그 규칙은
@@ -497,7 +498,10 @@ button{font-family:inherit;cursor:pointer}
 .lib-btn.dark{background:#0F1B3D;border-color:#0F1B3D;color:#fff}
 .lib-btn:hover{filter:brightness(.97)}
 .lib-pager{width:var(--lib-w);display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px;color:#64748b;font-size:12.5px;font-weight:700}
-.lib-list{width:var(--lib-w);display:flex;flex-direction:column;gap:10px}
+.lib-pager b{color:#0F1B3D}
+.lib-pager .lib-count{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-list{width:var(--lib-w);display:flex;flex-direction:column;gap:10px;flex:1 0 auto}
+/* flex:1 — 목록이 짧아도 남은 높이를 채워 쪽 막대를 **바닥으로 민다**. 쪽마다 줄 수가 달라도 막대 자리가 안 변한다. */
 .lib-empty{white-space:pre-line;text-align:center;color:#94a3b8;font-size:14px;line-height:1.7;padding:56px 20px;background:#fff;border:1.4px dashed #e5e7eb;border-radius:14px}
 .lib-card{display:flex;align-items:center;gap:8px;background:#fff;border:1.4px solid #e9ebf0;border-radius:14px;padding:12px 14px;transition:box-shadow .12s,border-color .12s}
 .lib-card:hover{border-color:#c9d6f5;box-shadow:0 4px 16px rgba(36,98,235,.08)}
@@ -781,8 +785,12 @@ button{font-family:inherit;cursor:pointer}
    살아 있다 — 이제 경로 줄(`.lib-crumb`)과 사이드바에 켜진 폴더가 그 말을 한다. */
 
 /* 쪽 번호 — **이어진 다섯 칸**(D25). 목록 아래에 둔다. */
-.lib-pagebar{width:var(--lib-w);display:flex;justify-content:center;align-items:center;
-  gap:4px;margin:14px 0 4px}
+/* **쪽 막대 — 늘 화면 맨 아래**(2026-09-21 · 시안 ㄱㄱㄱㄱ). 목록이 길어 창을 넘치면 목록만 넘어가고
+   막대는 sticky 로 바닥에 남는다. 막대에는 쪽 번호만 — 개수는 목록 위 `.lib-pager`(개수줄 ㄴ). */
+.lib-pagebar{width:var(--lib-w);display:flex;justify-content:center;align-items:center;gap:12px;
+  position:sticky;bottom:0;z-index:3;margin-top:14px;padding:10px 0 14px;
+  background:#f5f6f8;border-top:1px solid #E6E8EE}
+.lib-pagebar .lib-pages{display:flex;gap:4px;align-items:center}
 .lib-pg{min-width:32px;height:32px;padding:0 8px;border:1.4px solid #e5e7eb;background:#fff;
   border-radius:9px;font-size:13px;font-weight:700;color:#64748b;cursor:pointer;font-family:inherit;
   display:inline-flex;align-items:center;justify-content:center}

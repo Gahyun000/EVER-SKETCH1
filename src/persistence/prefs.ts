@@ -174,7 +174,7 @@ export function rememberShellTreeCol(v: boolean): void {
 // 한 값으로 묶으면 한쪽에서 맞춘 폭이 다른 쪽에 조용히 덮인다 — 편집기 접힘을
 // 목록과 갈라 둔 것과 같은 이유다.
 
-const MASTER_KEY = { ap: 'es_ap_master', tl: 'es_tl_master' } as const
+const MASTER_KEY = { ap: 'es_ap_master', tl: 'es_tl_master', tm: 'es_tm_master', um: 'es_um_master' } as const
 export type MasterKey = keyof typeof MASTER_KEY
 
 /** 목록 칸의 최소·최대·기본 폭.

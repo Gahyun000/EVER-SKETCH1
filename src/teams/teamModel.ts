@@ -149,6 +149,10 @@ export interface GroupsResult {
 /**
  * 화면에 그릴 묶음을 만든다.
  *
+ * **2026-09-21 부터 화면은 이것을 쓰지 않는다** — 마스터·디테일로 바뀌며 표에 묶음 줄이
+ * 없어졌다(아래 `teamView`). 규칙 ①(미배정 먼저)·④(사람 기준 쪽 나누기)는 `teamView` 가
+ * 그대로 잇는다. 검사(teams.test.mjs)가 규칙의 기록으로 남아 있어 함께 둔다.
+ *
  * 확정된 규칙(시안 v2.3):
  *   ① **미배정이 맨 위.** 0명이면 그 묶음은 아예 없다 — 할 일이 없는데 자리를 차지하면
  *      다음에 진짜 생겼을 때 눈에 안 띈다.
@@ -204,4 +208,96 @@ export function buildGroups(
       || (g.kind === 'team' && g.total === 0 && pageOfEmpty.get(g.id) === cur))
 
   return { groups, totalPeople, totalPages, page: cur }
+}
+
+// ══════════════════════════════════════════════════════════
+// 마스터·디테일 (2026-09-21 · 시안 docs/화면시안_팀관리_마스터디테일_v1.0.html)
+// ══════════════════════════════════════════════════════════
+//
+// 왼쪽은 **팀 목록**, 오른쪽은 **고른 팀 하나의 팀원**이다. 예전에는 한 표에 팀 줄과
+// 사람 줄을 섞어 그렸다 — 팀 줄의 인원 배지가 권한 칸에 걸쳐 앉아 열이 어긋났고,
+// 「새 팀」은 표 밖 머리 구석에서 만들었는데 결과는 표 안 어딘가에 생겼다.
+// 이제 팀은 왼쪽에서 만들고 고르고, 오른쪽 표에는 **사람 줄만** 있다.
+
+/** 왼쪽에서 고를 수 있는 것. 팀은 그 팀 id. */
+export const SEL_ALL = '__all'
+export const SEL_NONE = '__none'
+export type TeamSel = string
+
+export interface SideItem { key: TeamSel; name: string; count: number }
+
+/**
+ * 왼쪽 목록 — 「전체」 → 팀들(가나다) → 「팀 미배정」.
+ * 미배정은 **0명이어도 자리를 지킨다.** 표에서는 0명이면 묶음을 지웠지만(할 일이 없으면
+ * 자리를 차지하지 않는다), 목록은 고르는 자리라 항목이 나타났다 사라지면 손이 헛짚는다.
+ * 대신 1명 이상이면 화면이 주황 배지로 알린다(글자 「팀 미배정」이 먼저 말한다).
+ */
+export function sideList(users: TeamUser[], teams: Team[]): {
+  all: SideItem; none: SideItem; teams: SideItem[]
+} {
+  const pool = assignable(users)
+  const none = unassigned(users, teams)
+  return {
+    all: { key: SEL_ALL, name: '전체', count: pool.length },
+    none: { key: SEL_NONE, name: '팀 미배정', count: none.length },
+    teams: teams.slice()
+      .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      .map((t) => ({ key: t.id, name: t.name, count: t.members.length })),
+  }
+}
+
+export interface TeamRow { user: TeamUser; team: { id: string; name: string } | null }
+
+export interface TeamViewResult {
+  rows: TeamRow[]
+  /** 고른 것의 **실제** 인원(검색 전). 머리의 「팀원 N명」, 팀 삭제 가드가 쓴다. */
+  count: number
+  /** 조건에 걸린 사람 수(쪽 나누기 전). */
+  total: number
+  totalPages: number
+  page: number
+}
+
+/**
+ * 오른쪽 표에 그릴 사람.
+ *   · 「전체」는 **미배정이 먼저** — 편성이 빠진 사람을 먼저 보게(표 시절 규칙 ①을 그대로 잇는다).
+ *     그다음 팀 가나다순, 팀 안에서는 역할·이름순.
+ *   · 검색은 이름·부서로 걸리고, 「전체」에서는 **팀 이름**으로도 걸린다(그 팀 사람 전원).
+ *   · 없는 팀을 고르고 있으면(다른 창에서 지웠다) 빈 결과다 — 무엇을 고를지는 화면이 정한다.
+ */
+export function teamView(
+  users: TeamUser[], teams: Team[], sel: TeamSel, query = '', page = 1, pageSize = PAGE_SIZE,
+): TeamViewResult {
+  const q = normalizeQuery(query)
+  const pool = assignable(users)
+  const byId = new Map(pool.map((u) => [u.id, u]))
+  const rank = (u: TeamUser) => (ROLE_RANK[u.role] ?? 9)
+  const order = (a: TeamUser, b: TeamUser) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'ko')
+  const membersOf = (t: Team) => t.members.map((m) => byId.get(m.id) || m).slice().sort(order)
+
+  let base: TeamRow[]
+  if (sel === SEL_ALL) {
+    base = [
+      ...unassigned(users, teams).map((u) => ({ user: u, team: null })),
+      ...teams.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+        .flatMap((t) => membersOf(t).map((u) => ({ user: u, team: { id: t.id, name: t.name } }))),
+    ]
+  } else if (sel === SEL_NONE) {
+    base = unassigned(users, teams).map((u) => ({ user: u, team: null }))
+  } else {
+    const t = teams.find((x) => x.id === sel)
+    base = t ? membersOf(t).map((u) => ({ user: u, team: { id: t.id, name: t.name } })) : []
+  }
+
+  const hit = base.filter((r) => matchPerson(r.user, q) || (sel === SEL_ALL && !!r.team && matchTeam(r.team, q)))
+  const total = hit.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const cur = Math.min(Math.max(1, page), totalPages)
+  return { rows: hit.slice((cur - 1) * pageSize, cur * pageSize), count: base.length, total, totalPages, page: cur }
+}
+
+/** 「＋ 팀원 넣기」에 띄울 사람 — 이 팀에 **없는** 편성 대상. 지금 팀을 옆에 적어 옮겨짐을 미리 말한다. */
+export function addCandidates(users: TeamUser[], teams: Team[], teamId: string): TeamRow[] {
+  const of = teamOfUser(teams)
+  return assignable(users).filter((u) => of[u.id]?.id !== teamId).map((u) => ({ user: u, team: of[u.id] || null }))
 }

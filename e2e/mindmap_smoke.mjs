@@ -27,7 +27,7 @@ p.on('pageerror', (e) => errs.push(String(e.message)))
 
 await p.goto(URL, { waitUntil: 'networkidle' })
 await p.waitForSelector('text=임원회의', { timeout: 15000 })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 await p.waitForTimeout(700)
 
@@ -36,7 +36,20 @@ await p.waitForTimeout(400)
 const pick = p.locator('button', { hasText: '마인드맵' }).first()
 ok('(사전) 새 페이지 목록에 마인드맵이 있다', await pick.count() === 1)
 await pick.click()
-await p.waitForTimeout(700)
+await p.waitForTimeout(300)
+
+// **2026-09-14 부터 마인드맵은 넣기 전에 가지 수(3~8)를 한 번 더 묻는다**(8c7c812, 사용자 결정 ㄱ).
+// 이 스위트는 그 전에 쓰여서 「마인드맵」을 누르자마자 요소를 셌고, 화면은 아직 숫자를
+// 고르라고 기다리는 중이라 **0개**가 나왔다 — 기능은 멀쩡했고 검사가 한 걸음을 빼먹었다.
+// (e2e 가 돌지 않던 동안 쌓인 것이라 2026-09-21 맥 전체 실행에서야 드러났다.)
+// 기본값(.def)을 누른다: 기본이 3 이어야 아래 「중심 + 가지 셋 = 4개」가 성립한다.
+{
+  const def = p.locator('.cpk-br.def').first()
+  const n = (await def.count()) ? (await def.innerText()).trim() : ''
+  ok('(사전) 넣기 전에 가지 수를 묻는다 — 기본은 3', n === '3', `기본값: ${n || '없음'}`)
+  await def.click()
+  await p.waitForTimeout(700)
+}
 
 const rounds = p.locator('.stage .fel.round')
 ok('중심 + 가지가 **각각의 요소**로 들어온다 (예전엔 그림 한 덩어리였다)',
@@ -81,7 +94,8 @@ ok('고르면 크기 손잡이가 나온다', await p.locator('.stage .rs-h').co
 {
   await br.dblclick()
   await p.waitForTimeout(300)
-  await p.keyboard.press('Control+a')
+  // 맥에서 Ctrl+A 는 「전체 선택」이 아니라 「줄 앞으로」다(이맥스 키). 리눅스에서만 통과하던 까닭.
+  await p.keyboard.press('ControlOrMeta+a')
   await p.keyboard.type('품질')
   await p.waitForTimeout(200)
   const lb = await p.locator('.stage .freelayer').first().boundingBox()

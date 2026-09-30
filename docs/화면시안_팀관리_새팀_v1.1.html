@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>시안 — 팀 관리 「새 팀」 v1.1</title>
+<style>
+  :root{--ink:#1a1f2b;--muted:#6b7488;--line:#e2e6ee;--bg:#f4f6fa;--blue:#2462EB;--blue-soft:#EAF1FE;--navy:#0F1B3D;--red:#d04a4a;--ok:#27794e;--shline:#E6E8EE}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 20px 90px}
+  h1{font-size:24px;font-weight:800;margin:0 0 6px}
+  h2{font-size:18px;font-weight:800;margin:34px 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.2px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  .tag{display:inline-block;font-size:11px;font-weight:800;background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:3px 10px}
+  .tag.gray{background:#eef0f4;color:#5B6270}.tag.ok{background:#e6f5ec;color:var(--ok)}
+  code{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:4px;padding:1px 5px}
+  .sec{margin-top:22px}
+  .sec-h{display:flex;align-items:center;gap:10px;margin-bottom:8px}.sec-h b{font-size:15px}
+  .row2{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .reset{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font:800 12px/1 inherit;font-family:inherit;color:#3a4150;cursor:pointer}
+  .hint{font-size:12px;color:var(--muted)}
+
+  /* ── 팀 관리 모형(실제 화면 값에 맞춤) ── */
+  .adm{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;position:relative;box-shadow:0 6px 20px rgba(20,25,40,.06)}
+  .head{text-align:center;position:relative;margin-bottom:14px}
+  .head .brand{font-size:17px;font-weight:800}.head .brand span{font-size:11.5px;color:var(--muted);font-weight:600;margin-left:6px}
+  .head p{margin:4px 0 0;font-size:12.5px;color:#3a4150}
+  .mini{border:1px solid #d9dee8;background:#fff;border-radius:7px;padding:5px 10px;font:700 12px/1 inherit;font-family:inherit;color:#1a1f2b;cursor:pointer;display:inline-flex;gap:4px;align-items:center}
+  .mini.primary{background:#9db7f6;border-color:#9db7f6;color:#fff}.mini.primary.on{background:var(--blue);border-color:var(--blue)}
+  .mini:disabled{opacity:.6;cursor:not-allowed}
+  .left{position:absolute;left:0;top:0}
+  .mkcard{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;justify-content:center;gap:6px;margin-bottom:12px}
+  .mkcard input,.inrow input{width:260px;height:32px;border:1.5px solid var(--blue);border-radius:8px;padding:0 10px;font:13px inherit;font-family:inherit;text-align:center;outline:none}
+  .srch{display:flex;justify-content:center;gap:8px;margin-bottom:10px}
+  .q{width:300px;height:34px;border:1px solid var(--line);border-radius:9px;display:flex;align-items:center;padding:0 10px;color:#9aa2b1;font-size:12.5px;gap:6px}
+  .sb{height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:#fff;font:800 12.5px/1 inherit;font-family:inherit;color:#1a1f2b}
+  .sb.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+  .sb.new{background:var(--blue);border-color:var(--blue);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 8px rgba(36,98,235,.3)}
+  .cnt{display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#3a4150;margin:4px 0 6px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{font-size:11px;color:#3a4150;font-weight:800;padding:8px;border-bottom:1px solid var(--line)}
+  td{padding:8px;border-bottom:1px solid #eef0f4;text-align:center}
+  tr.team td{background:#eef3fc;font-weight:800}
+  tr.team.fresh td{animation:flash 1.6s ease}
+  @keyframes flash{0%{background:#c9f0d8}100%{background:#eef3fc}}
+  .n{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:999px;background:#dbe6ff;color:var(--blue);font-size:10.5px;font-weight:800}
+  td .sub2{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  .empty td{color:var(--muted);font-weight:600}
+  .inrow td{background:#fbfdff;border-bottom:1.5px dashed #b9cdfa}
+  .inrow .box{display:flex;justify-content:center;align-items:center;gap:6px}
+  .inrow input{border:1.5px dashed #9db7f6;background:#fff;color:#1a1f2b}
+  .inrow input:focus{border-style:solid;border-color:var(--blue)}
+  .plus{font-weight:900;color:var(--blue);font-size:15px}
+  .err{color:var(--red);font-size:11.5px;font-weight:700}
+  .note{margin-top:12px;border:1px solid #c9d9fb;background:#f5f8ff;border-radius:10px;padding:9px 12px;font-size:11.5px;color:#2d5bd2}
+  .ptr{position:absolute;font:800 10.5px/1 -apple-system,sans-serif;background:var(--red);color:#fff;border-radius:999px;padding:4px 8px;white-space:nowrap}
+  .ptr.g{background:var(--ok)}
+
+  table.t{width:100%;border-collapse:collapse;font-size:12.8px;margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  table.t td,table.t th{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
+  table.t th{color:var(--muted);font-weight:800;font-size:11.5px;background:#fbfcfe}
+  table.t tr:last-child td{border-bottom:none}
+  .rec{color:var(--blue);font-weight:800}
+  .pick{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .pick .b{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:800;color:#3a4150}
+  .pick .b.rec2{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* v1.1 — 만들기 줄을 검색 줄 위로, 표와 같은 열 */
+  .cols{--c1:38%;--c2:22%;--c3:40%}
+  .mk{display:grid;grid-template-columns:var(--c1) var(--c2) var(--c3);align-items:center;border:1.5px dashed #b9cdfa;background:#fbfdff;border-radius:10px;margin-bottom:12px;min-height:48px}
+  .mk.solid{border-style:solid;border-color:#c9d9fb}
+  .mk>div{padding:8px;display:flex;justify-content:center;align-items:center;gap:6px}
+  .mk input{width:100%;max-width:230px;height:32px;border:1.5px dashed #9db7f6;border-radius:8px;padding:0 10px;font:13px inherit;font-family:inherit;text-align:center;outline:none;background:#fff}
+  .mk input:focus{border-style:solid;border-color:var(--blue)}
+  .mk .ph{font-size:11.5px;color:var(--muted);font-weight:700}
+  .mk .n0{opacity:.55}
+  .mk .lbl{position:absolute;margin-top:-58px;font-size:10.5px;font-weight:800;color:var(--blue)}
+  .mkwrap{position:relative}
+  .errline{text-align:center;min-height:16px;margin:-8px 0 6px}
+  .guides .mk>div:nth-child(2),.guides td:nth-child(2),.guides th:nth-child(2){background-image:linear-gradient(rgba(36,98,235,.07),rgba(36,98,235,.07))}
+  .guides .mk>div:nth-child(1),.guides .mk>div:nth-child(3){outline:1px dashed rgba(36,98,235,.35);outline-offset:-1px}
+  .guides td,.guides th{box-shadow:inset 1px 0 0 rgba(36,98,235,.25)}
+  .gtoggle{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;font-weight:700;color:#3a4150;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+  .newbtn{background:var(--blue);border:1px solid var(--blue);color:#fff;border-radius:8px;height:32px;padding:0 14px;font:800 12.5px/1 inherit;font-family:inherit;cursor:pointer;box-shadow:0 2px 8px rgba(36,98,235,.3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>시안 — 팀 관리: 만들기 줄을 위로, 표와 같은 열로</h1>
+  <p class="sub">v1.1 · 2026-09-21 · <b>검토 요청</b> — 두 화면 모두 직접 팀을 만들어 볼 수 있습니다(이름을 치고 Enter)</p>
+
+  <div class="why">
+    <b>v1.0에서 바꾼 것 둘.</b><br>
+    ① <b>위아래 맞바꿈</b> — 「새 팀」 만들기 줄이 맨 위, 그 아래에 검색·조회 줄, 그 아래 개수 줄과 표.<br>
+    ② <b>열 맞춤</b> — 만들기 줄을 표와 같은 세 칸으로 나눴습니다: <b>이름·부서 칸</b>에 팀 이름 입력, <b>권한 칸</b>에 인원(새 팀은 0), <b>팀 배정 칸</b>에 만들기(·취소).
+    만들면 표에 생기는 팀 줄(팀 이름 │ 인원 │ 이름 변경·팀 삭제)과 칸 자리가 같습니다. 아래 「열 맞춤 보기」를 켜면 칸 경계가 보입니다.
+  </div>
+  <label class="gtoggle"><input type="checkbox" id="g"> 열 맞춤 보기</label>
+
+  <div class="sec">
+    <div class="sec-h"><span class="tag">안 ㄱ</span><b>눈에 띄는 파란 단추 → 누르면 그 자리에서 만들기 줄로 펼쳐짐</b></div>
+    <div class="adm cols" id="a"></div>
+    <div class="row2"><button class="reset" data-reset="a">처음으로</button><span class="hint">「＋ 새 팀」을 눌러 보세요 · Esc 또는 취소로 접힘</span></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="tag ok">안 ㄴ</span><b>버튼 없이 — 맨 위에 늘 열려 있는 만들기 줄</b></div>
+    <div class="adm cols" id="b"></div>
+    <div class="row2"><button class="reset" data-reset="b">처음으로</button><span class="hint">점선 칸에 바로 이름을 치고 Enter · 만든 뒤에도 줄은 그대로 열려 있음</span></div>
+  </div>
+
+  <h2>비교</h2>
+  <table class="t">
+    <tr><th style="width:22%"></th><th>안 ㄱ 파란 단추</th><th>안 ㄴ 늘 열린 줄</th></tr>
+    <tr><td><b>눈에 띄나</b></td><td>맨 위 파란 단추</td><td class="rec">맨 위 입력칸 — 설명 없이 보임</td></tr>
+    <tr><td><b>만들기까지</b></td><td>단추 → 입력 → Enter</td><td class="rec">입력 → Enter</td></tr>
+    <tr><td><b>자리</b></td><td class="rec">닫혀 있으면 단추 한 줄만</td><td>늘 한 줄(약 48px)</td></tr>
+    <tr><td><b>검색칸과 헷갈림</b></td><td class="rec">없음(누른 사람만 봄)</td><td>위아래로 바로 붙어 있어 조금 있음 → 점선·「＋」·세 칸 모양으로 구분</td></tr>
+  </table>
+  <div class="why">
+    <b>제 의견.</b> 만들기 줄이 검색 줄 바로 위에 붙게 되어, 늘 열어 두면(ㄴ) 입력칸 두 개가 위아래로 겹쳐 보일 수 있습니다.
+    그래서 이 배치에서는 <b>ㄱ</b>(평소엔 파란 단추, 누르면 세 칸 줄로 펼침)이 더 깔끔하다고 봅니다. 팀을 자주 만드는 화면이라면 ㄴ이 한 걸음 빠릅니다.
+  </div>
+  <div class="pick"><span class="b rec2">ㄱ 파란 단추 → 펼침</span><span class="b">ㄴ 늘 열린 줄</span></div>
+</div>
+
+<script>
+const START = () => [
+  { name: '11', members: [] },
+  { name: 'SI개발팀', members: [['김가현', 'SI개발본부', 'Lv2 작성자'], ['홍길동', 'SI개발본부', 'Lv3 열람자'], ['곽두섭', '청결청소부', 'Lv2 작성자']] },
+]
+const S = { a: { teams: START(), open: false, fresh: null }, b: { teams: START(), fresh: null } }
+const head = `<div class="head"><div class="brand">팀 관리<span>관리자 전용</span></div><p>팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.</p></div>`
+const srch = `<div class="srch"><div class="q">⌕ 이름 · 부서 · 팀 이름</div><button class="sb dark">조회</button><button class="sb">초기화</button></div>`
+const count = (s) => `<div class="cnt"><span>전체 <b>${s.teams.reduce((n, t) => n + t.members.length, 0)}</b>명 · 1/1 페이지 · 20명씩</span><span class="hint">‹ ›</span></div>`
+const colg = `<colgroup><col style="width:var(--c1)"><col style="width:var(--c2)"><col style="width:var(--c3)"></colgroup>`
+const thead = `<tr><th>이름 · 부서</th><th>권한</th><th>팀 배정</th></tr>`
+const teamRows = (s) => s.teams.map((t) => `
+  <tr class="team ${s.fresh === t.name ? 'fresh' : ''}"><td>${t.name}</td><td><span class="n">${t.members.length}</span></td><td><button class="mini">이름 변경</button> <button class="mini" ${t.members.length ? 'disabled' : ''}>팀 삭제</button></td></tr>
+  ${t.members.length ? t.members.map((m) => `<tr><td>${m[0]}<span class="sub2">${m[1]}</span></td><td>${m[2]}</td><td><button class="mini">팀 선택 ▾</button> <button class="mini" disabled>옮기기</button></td></tr>`).join('')
+    : `<tr class="empty"><td colspan="3">팀원이 없습니다</td></tr>`}`).join('')
+const note = `<div class="note">팀을 바꿔도 <b>로그인은 끊기지 않습니다</b> — 다음 요청부터 바로 새 팀이 적용됩니다.<br>한 사람은 <b>한 팀</b>에만 속합니다.</div>`
+const mkRow = (id, withCancel) => `<div class="mk ${id === 'a' ? 'solid' : ''}">
+  <div><span class="plus">＋</span><input data-in="${id}" maxlength="30" placeholder="새 팀 이름 (예: 영업1팀)"></div>
+  <div><span class="n n0">0</span><span class="ph">명</span></div>
+  <div><button class="mini primary" data-mk="${id}" disabled>만들기</button>${withCancel ? `<button class="mini" data-x="${id}">취소</button>` : ''}</div>
+</div><div class="errline"><span class="err" data-err="${id}"></span></div>`
+const closedA = `<div class="mk solid" style="border-color:transparent;background:none"><div><button class="newbtn" data-open="a">＋ 새 팀</button></div><div></div><div></div></div>`
+
+function render(id) {
+  const s = S[id], el = document.getElementById(id)
+  const top = id === 'a' ? (s.open ? mkRow('a', true) : closedA) : mkRow('b', false)
+  el.innerHTML = `${head}${top}${srch}${count(s)}<table>${colg}${thead}${teamRows(s)}</table>${note}`
+  const inp = el.querySelector('[data-in]')
+  if (inp && (id === 'a' || s.focus)) { inp.focus(); s.focus = false }
+}
+function create(id) {
+  const s = S[id], v = document.querySelector(`[data-in="${id}"]`).value.trim()
+  if (!v || s.teams.some((t) => t.name === v)) return
+  s.teams.unshift({ name: v, members: [] }); s.fresh = v
+  if (id === 'a') s.open = false; else s.focus = true
+  render(id)
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-open],[data-mk],[data-x],[data-reset]'); if (!t) return
+  if (t.dataset.open) { S.a.open = true; render('a') }
+  if (t.dataset.mk) create(t.dataset.mk)
+  if (t.dataset.x) { S[t.dataset.x].open = false; render(t.dataset.x) }
+  if (t.dataset.reset) { const k = t.dataset.reset; S[k] = { teams: START(), open: false, fresh: null }; render(k) }
+})
+document.addEventListener('input', (e) => {
+  const id = e.target.dataset && e.target.dataset.in; if (!id) return
+  const v = e.target.value.trim(), dup = S[id].teams.some((t) => t.name === v)
+  const mk = document.querySelector(`[data-mk="${id}"]`); mk.disabled = !v || dup; mk.classList.toggle('on', !!v && !dup)
+  document.querySelector(`[data-err="${id}"]`).textContent = dup ? '이미 있는 팀 이름입니다.' : ''
+})
+document.addEventListener('keydown', (e) => {
+  const id = e.target.dataset && e.target.dataset.in; if (!id) return
+  if (e.key === 'Enter') create(id)
+  if (e.key === 'Escape') { if (id === 'b') { e.target.value = ''; e.target.dispatchEvent(new Event('input', { bubbles: true })) } else { S.a.open = false; render('a') } }
+})
+document.getElementById('g').addEventListener('change', (e) => document.querySelectorAll('.adm').forEach((a) => a.classList.toggle('guides', e.target.checked)))
+render('a'); render('b')
+</script>
+</body>
+</html>

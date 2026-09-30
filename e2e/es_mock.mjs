@@ -65,6 +65,41 @@ const WRITERS = [
     must_change_pw: false, role: 'writer', requested_role: 'writer', grade: 2,
     requested_grade: 2, role_label: '작성자', requested_role_label: '작성자' },
 ]
+// TEAMS=1 — 팀 관리(마스터·디테일) 스모크용 명부와 팀. 열람자 한 명을 더 두고,
+// 「11」(빈 팀) · 「SI개발팀」(2명) · 미배정 1명(이순신)으로 시작한다.
+const TEAM_USERS = [...WRITERS,
+  { id: 'u_kwak', login_id: 'kwak', name: '곽두섭', dept: '청결청소부', status: 'active',
+    must_change_pw: false, role: 'viewer', requested_role: 'viewer', grade: 3,
+    requested_grade: 3, role_label: '열람자', requested_role_label: '열람자' }]
+const teamsStart = () => [
+  { id: 't_11', name: '11', members: [] },
+  { id: 't_si', name: 'SI개발팀', members: [TEAM_USERS[0], TEAM_USERS[2]] },
+]
+let TEAMS = teamsStart()
+let teamSeq = 0
+// USERS=1 — 사용자 관리(마스터·디테일) 스모크용 명부. 나(관리자) · 사용 중 2 · 대기 2 · 중지 1.
+const T0 = 1789900000000
+const mkU = (id, login_id, name, dept, status, role, requested_role, created, approved, last) => ({
+  id, login_id, name, dept, status, must_change_pw: false, role, requested_role,
+  grade: null, requested_grade: null, role_label: '', requested_role_label: '',
+  created_at: T0 + created * 3600e3, approved_at: approved == null ? null : T0 + approved * 3600e3,
+  last_login_at: last == null ? null : T0 + last * 3600e3 })
+const usersStart = () => [
+  mkU('u_admin', 'admin', '김가현', 'AI팀', 'active', 'admin', 'admin', 0, 0, 40),
+  mkU('u_test', 'hong', '홍길동', 'SI개발본부', 'active', 'writer', 'writer', 2, 3, 30),
+  mkU('u_kwak', 'kwak', '곽두섭', '청결청소부', 'active', 'viewer', 'viewer', 4, 5, null),
+  mkU('u_lee', 'lee', '이순신', '제2본부', 'pending', '', 'writer', 20, null, null),
+  mkU('u_park', 'park', '박영희', '영업본부', 'pending', '', 'viewer', 21, null, null),
+  mkU('u_choi', 'choi', '최민수', '재무팀', 'disabled', 'writer', 'writer', 1, 1, 10),
+]
+let USERS = usersStart()
+
+const readJson = (req) => new Promise((ok) => {
+  let body = ''
+  req.on('data', (c) => { body += c })
+  req.on('end', () => { try { ok(JSON.parse(body || '{}')) } catch { ok({}) } })
+})
+
 // 마지막으로 들어온 앵커 이동 요청. 테스트가 `/__lastShift` 로 되읽어
 // **화면이 무엇을 보냈는지**를 확인한다(눈으로는 못 보는 부분이다).
 let lastShift = null
@@ -121,7 +156,15 @@ const server = http.createServer(async (req, res) => {
     req.on('end', () => json(res, { user: ME }))
     return
   }
-  if (url === '/api/projects' && req.method === 'GET') return json(res, { projects: [META] })
+  // LIST=N 이면 자료를 N건으로 불린다(첫 건은 늘 p_test). 쪽 나누기·쪽 막대 자리를 보려면
+  // 한 쪽을 넘는 목록이 있어야 한다(lib_pager_smoke). 없으면 예전처럼 한 건.
+  if (url === '/api/projects' && req.method === 'GET') {
+    const n = Math.max(1, Number(process.env.LIST || 1))
+    const extra = Array.from({ length: n - 1 }, (_, i) => ({
+      ...META, id: 'p_x' + (i + 1), name: `목록 채우기 ${i + 1}`, updated_at: META.updated_at - (i + 1) * 60000,
+    }))
+    return json(res, { projects: [META, ...extra] })
+  }
   if (url === '/api/projects/p_test' && req.method === 'GET') return json(res, { ...META, state, access: ACCESS })
   if (url.startsWith('/api/projects/p_test') && (req.method === 'PUT' || req.method === 'PATCH')) {
     // 남의 자료면 서버가 실제로 막는다. 모의 서버가 순순히 200 을 주면,
@@ -132,7 +175,56 @@ const server = http.createServer(async (req, res) => {
     req.on('end', () => json(res, { ...META, state }))
     return
   }
-  if (url === '/api/auth/users') return json(res, { users: WRITERS })
+  if (process.env.USERS) {
+    if (url === '/__users/reset') { USERS = usersStart(); return json(res, { ok: true }) }
+    if (url === '/api/auth/users' && req.method === 'GET') {
+      const st = new globalThis.URL(req.url, 'http://x').searchParams.get('status')
+      return json(res, { users: st ? USERS.filter((u) => u.status === st) : USERS })
+    }
+    const m = url.match(/^\/api\/auth\/users\/([^/]+)\/(approve|status|name|reset-pw)$/)
+    if (m && req.method === 'POST') {
+      const u = USERS.find((x) => x.id === m[1]); if (!u) return json(res, { detail: '없는 사용자' }, 404)
+      const b = await readJson(req)
+      if (m[2] === 'approve') { u.role = b.role; u.status = 'active'; if (!u.approved_at) u.approved_at = Date.now() }
+      if (m[2] === 'status') u.status = b.status
+      if (m[2] === 'name') u.name = b.name
+      if (m[2] === 'reset-pw') return json(res, { ok: true, password: 'Tmp-7Kq2-xW9p' })
+      return json(res, { ok: true, user: u })
+    }
+    if (url === '/api/teams' && req.method === 'GET') return json(res, { teams: [{ id: 't_si', name: 'SI개발팀', members: [USERS[1], USERS[2]] }] })
+  }
+  if (url === '/api/auth/users') return json(res, { users: process.env.TEAMS ? TEAM_USERS : WRITERS })
+  // ── 팀 관리 (TEAMS=1) ──
+  if (url === '/__teams/reset') { TEAMS = teamsStart(); return json(res, { ok: true }) }
+  if (url === '/api/teams' && req.method === 'GET') return json(res, { teams: TEAMS })
+  if (url === '/api/teams' && req.method === 'POST') {
+    const { name } = await readJson(req)
+    if (TEAMS.some((t) => t.name === name)) return json(res, { detail: '이미 있는 팀 이름입니다.' }, 409)
+    const t = { id: 't_n' + (++teamSeq), name, members: [] }
+    TEAMS.push(t)
+    return json(res, { ok: true, team: { id: t.id, name } })
+  }
+  {
+    const m = url.match(/^\/api\/teams\/([^/]+)(\/members(?:\/([^/]+))?)?$/)
+    if (m) {
+      const t = TEAMS.find((x) => x.id === m[1])
+      if (!t) return json(res, { detail: '없는 팀입니다.' }, 404)
+      if (!m[2] && req.method === 'PATCH') { t.name = (await readJson(req)).name; return json(res, { ok: true }) }
+      if (!m[2] && req.method === 'DELETE') {
+        if (t.members.length) return json(res, { detail: '팀원이 남아 있습니다.' }, 400)
+        TEAMS = TEAMS.filter((x) => x !== t); return json(res, { ok: true })
+      }
+      if (m[2] && !m[3] && req.method === 'POST') {
+        const { user_id } = await readJson(req)
+        const u = TEAM_USERS.find((x) => x.id === user_id)
+        const from = TEAMS.filter((x) => x.members.some((y) => y.id === user_id))
+        for (const x of from) x.members = x.members.filter((y) => y.id !== user_id)
+        t.members.push(u)
+        return json(res, { ok: true, moved_from: from.map((x) => ({ id: x.id, name: x.name })) })
+      }
+      if (m[3] && req.method === 'DELETE') { t.members = t.members.filter((y) => y.id !== m[3]); return json(res, { ok: true }) }
+    }
+  }
 
   // ── 검토 의견 ──
   if (url === '/api/projects/p_test/comments' && req.method === 'GET') {
@@ -250,7 +342,15 @@ const server = http.createServer(async (req, res) => {
   // `folders` 가 undefined 로 화면까지 흘러 들어가 **자료 목록이 하얗게 뜬다** —
   // 실제로 그렇게 됐고(2026-09-04 P8), 그때 테스트는 「임원회의 글자가 없다」고만
   // 말해서 원인을 찾는 데 한참 걸렸다. 부수 호출일수록 모양을 지켜 줘야 한다.
-  if (url === '/api/folders') return json(res, { folders: [], path: [], max_depth: 3 })
+  // FOLDERS=K 이면 뿌리에 빈 폴더 K개. `?all=true`(나무 전체)도 같은 답을 준다.
+  if (url === '/api/folders' || url.startsWith('/api/folders?')) {
+    const k = Number(process.env.FOLDERS || 0)
+    const folders = Array.from({ length: k }, (_, i) => ({
+      id: 'f' + (i + 1), name: `${9 - i}월`, parent_id: null, owner_id: ME.id,
+      created_at: Date.now(), updated_at: Date.now() - i * 1000, folder_count: 0, project_count: 0,
+    }))
+    return json(res, { folders, path: [], max_depth: 3 })
+  }
   if (url === '/api/approvals/status-map') return json(res, { status_map: {} })
 
   // 제출 — **서버처럼 답한다.** 두 번째는 400 이다(server/approvals.py 의 `이미 결재 대기 중입니다`).

@@ -215,6 +215,8 @@
    화면 전체가 **가운데 정렬**이다. 조작 칸은 사람 줄과 팀 줄이 **똑같은 두 칸**을 쓰고,
    안에 든 것이 무엇이든 칸 폭에 꽉 채운다 — 그래야 글자 수가 달라도
    왼쪽 끝·가운데 경계·오른쪽 끝이 세 군데 다 맞는다. */
+/* 셸 안(.sh-page)에서는 `.es-auth` 의 색 토큰이 안 내려온다 — 관리 화면 둘이 쓰는 것만 다시 둔다. */
+.tm, .um { --sub: #5b6270; --red: #b4232a; --tint: #EAF1FE; --card: #f6f8fc; --amber: #D98A2A; }
 .tm {
   /* A칸: 팀 선택 / 이름 변경   ·   B칸: 넣기·옮기기 / 팀 삭제 */
   --tm-a: 96px; --tm-b: 84px; --tm-gap: 6px;
@@ -232,19 +234,47 @@
 .adm-head .adm-left { position: absolute; top: 0; left: 0; }
 .adm-head .adm-right { position: absolute; top: 0; right: 0; }
 
-/* 새 팀 입력 — 평소에는 화면에 없다. 「＋ 새 팀」을 눌러야 열린다. */
-.tm-mk {
-  display: flex; gap: 7px; align-items: center; flex-wrap: wrap; justify-content: center;
-  background: var(--card); border: 1px solid var(--line); border-radius: 9px;
-  padding: 10px; margin-bottom: 12px;
-}
-.tm-mk input {
-  flex: 0 1 260px; min-width: 0; height: 34px; padding: 0 11px;
-  border: 1px solid var(--line); border-radius: 7px; font-size: 13px;
-  font-family: inherit; background: #fff; outline: none; text-align: center;
-}
-.tm-mk input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--tint); }
-.tm-mk .tm-mkerr { width: 100%; text-align: center; font-size: 11.5px; color: var(--red); font-weight: 600; }
+/* ── 마스터·디테일(2026-09-21) — 왼쪽 팀 목록 · 오른쪽 팀원 표 ──
+   뼈대(md-screen · ap-body · ap-list · ap-detail · md-grip · ap-item)는 결재함·팀 공유 것을
+   그대로 쓴다. 여기는 팀 관리에만 있는 것 — 새 팀 입력칸, 인원 배지, 오른쪽 머리 — 만 더한다. */
+.tm-side-h { display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12px; font-weight: 800; color: var(--navy); margin: 2px 2px 8px; }
+.tm-side-h span { color: var(--muted); font-weight: 700; }
+/* 새 팀 입력 — **늘 열려 있다.** 목록 맨 위라 검색칸과 헷갈리지 않는다(검색은 오른쪽). */
+.tm-add { display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px;
+  border: 1.5px dashed #9db7f6; border-radius: 9px; background: #fff; color: var(--blue); }
+.tm-add:focus-within { border-style: solid; border-color: var(--blue); box-shadow: 0 0 0 3px var(--tint); }
+.tm-add input { flex: 1; min-width: 0; height: 30px; border: 0; outline: none; background: none;
+  font-size: 13px; font-family: inherit; color: var(--ink); }
+.tm-add .es-mini { flex: 0 0 auto; }
+.tm-mkerr { min-height: 18px; padding: 3px 2px 4px; font-size: 11.5px; color: var(--red); font-weight: 600; }
+.tm-sep { height: 1px; background: var(--line); margin: 4px 6px 11px; }
+.tm-item .ap-item-name { font-weight: 800; }
+.tm-item.tm-sys .ap-item-name { color: var(--sub); }
+/* 인원 배지 — 기본은 차분한 남색. **미배정이 1명 이상일 때만 주황** — 「여기 할 일이 있다」.
+   글자 「팀 미배정」이 먼저 말하고 색은 거든다(표준). */
+.es-badge.tm-n { background: #e4e9f2; color: var(--navy); }
+.tm-item.on .es-badge.tm-n { background: #d3e1fd; color: #1a4fc4; }
+.es-badge.tm-n.warn { background: var(--amber); color: #fff; }
+/* 방금 만든 팀 — 한 번 반짝여 「여기 생겼다」를 알린다. */
+.tm-item.tm-fresh { animation: tm-fresh 1.6s ease; }
+@keyframes tm-fresh { 0% { background: #c9f0d8; border-color: #8fd3aa; } }
+
+/* 오른쪽 머리 — 팀 이름 · 인원 · 팀 일(팀원 넣기 · 이름 변경 · 팀 삭제). */
+.tm-d-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 34px; margin-bottom: 12px; }
+.tm-d-name { font-size: 16px; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+.tm-d-meta { font-size: 12px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.tm-d-act { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.tm-rename { height: 32px; width: 220px; padding: 0 10px; border: 1.5px solid var(--blue); border-radius: 7px;
+  font-size: 14px; font-weight: 800; font-family: inherit; color: var(--navy); outline: none; }
+.tm-addm { height: 31px; border: 1px solid var(--line); border-radius: 6px; background: #fff;
+  font-size: 12.5px; font-family: inherit; padding: 0 6px; color: var(--ink); max-width: 180px; }
+.tm-detail .adm-srch { justify-content: flex-start; }
+.tm-empty-team { border: 1.5px dashed var(--line); border-radius: 12px; line-height: 1.8; }
+.tm-empty-team b { color: var(--ink); }
+/* 덮개로 띄울 때(부르는 데는 지금 없다) — 카드가 높이를 가져야 두 칸이 구른다. */
+.tm-card.md-screen { display: flex; flex-direction: column; height: min(86vh, 900px); max-width: 1180px; overflow: hidden; }
+.tm-card.md-screen > .md-top { flex: 0 0 auto; }
 
 /* 조회줄 — 날짜 칸은 없다. 이 화면은 「행을 눌러 들어가는 조회 화면」이 아니라
    그 자리에서 고치는 목록 화면이라, 표준 261행(「필요한 검색조건」)을 따른다. */
@@ -291,8 +321,6 @@
 .tm-who { display: block; color: var(--ink); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tm-dept { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tm-lv { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tm-empty { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
-.tm-state { color: var(--muted); font-size: 13px; padding: 34px 0; line-height: 1.7; }
 .tm-mark { background: #fff1c2; color: inherit; border-radius: 3px; padding: 0 1px; }
 
 /* 조작 두 칸 */
@@ -305,23 +333,6 @@
   font-size: 12.5px; font-family: inherit; padding: 0 4px; background: #fff; text-align: center;
 }
 .tm-a .es-mini, .tm-b .es-mini { justify-content: center; overflow: hidden; text-overflow: ellipsis; }
-
-/* 묶음 줄 — 색 + 위쪽 굵은 선(시안 v2.3 ㉰).
-   미배정은 주황(「여기 할 일이 있다」), 팀은 남색(「여기서 새 묶음이 시작된다」).
-   **색만으로 말하지 않는다**(표준) — 두 줄 다 글자가 먼저 무엇인지 말한다. */
-.tm-grp td { background: #eef3fc; padding: 8px; text-align: center; border-top: 2px solid #c9d8f2; }
-.tm-grp.tm-none td { background: #fff4e3; border-top-color: #f0cf9e; }
-.tm-table tbody tr:first-child.tm-grp td { border-top: 0; }
-.tm-grp td.tm-namecell { position: relative; }
-.tm-grpname { font-size: 13px; font-weight: 800; color: var(--navy); white-space: nowrap; }
-.tm-grp.tm-none .tm-grpname { color: #8a5a10; }
-/* 개수 배지는 칸의 **오른쪽 끝에 고정**한다. 이름 옆에 붙이면 배지 폭만큼
-   묶음 이름이 왼쪽으로 밀려 아래 사람 이름과 세로 중심이 어긋난다. */
-.tm-cnt {
-  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-  background: #d7e3f8; color: #1a4fc4;
-}
-.tm-grp.tm-none .tm-cnt { background: var(--amber); color: #fff; }
 
 .tm-spin {
   display: inline-block; width: 14px; height: 14px; border: 2px solid #dfe3ea;
@@ -651,3 +662,41 @@ tr:hover .es-rename-b, .es-rename-b:focus-visible { opacity: 1; }
 .es-rename { width: 100%; max-width: 200px; height: 28px; padding: 0 9px;
   border: 1.4px solid var(--blue); border-radius: 7px; font: inherit; font-size: 13px;
   color: #0f172a; outline: none; background: #fff; }
+
+/* ══════════════════════════════════════════════════════════
+   사용자 관리 — 마스터·디테일 (2026-09-21 · 시안 docs/화면시안_사용자관리_마스터디테일_v1.0.html 안 ㄴ)
+   ══════════════════════════════════════════════════════════
+   뼈대는 결재함·팀 공유·팀 관리 것(md-screen · ap-body · ap-item · md-grip)을 그대로 쓴다.
+   왼쪽은 상태 칩 · 검색 · 사람 목록, 오른쪽은 고른 한 사람. */
+.um-side .adm-srch { justify-content: stretch; flex-wrap: nowrap; }
+.um-side .adm-qbox { flex: 1; min-width: 0; width: auto; }
+.um-side .adm-pager { margin-top: 2px; }
+.um-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.um-chip { border: 1px solid var(--line); background: #fff; border-radius: 99px; padding: 5px 11px;
+  font-size: 12px; font-weight: 800; color: var(--sub); cursor: pointer; font-family: inherit; }
+.um-chip .n { margin-left: 5px; opacity: .8; }
+.um-chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+/* 승인 대기가 있으면 숫자를 주황으로 — 글자 「승인 대기」가 먼저 말하고 색은 거든다. */
+.um-chip.hot:not(.on) .n { color: var(--amber); opacity: 1; }
+.um-me { color: var(--muted); font-weight: 600; }
+.um-item .ap-item-sub { display: block; }
+
+.um-card-in { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+.um-d-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.um-d-name { font-size: 18px; color: var(--navy); }
+.um-d-head .es-rename-b { opacity: 1; margin-left: -4px; }
+.um-d-id { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.um-dl { display: grid; grid-template-columns: 110px 1fr; gap: 9px 12px; margin: 16px 0 0; font-size: 13px; }
+.um-dl dt { color: var(--muted); font-weight: 700; }
+.um-dl dd { margin: 0; color: var(--ink); }
+.um-dim { color: var(--muted); }
+.um-small { font-size: 11.5px; }
+.um-sec { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.um-sec h4 { margin: 0 0 8px; font-size: 12.5px; color: var(--navy); }
+.um-row { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.um-row select { height: 31px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px;
+  font-family: inherit; padding: 0 6px; background: #fff; }
+.um-hint { margin: 6px 0 0; font-size: 11.5px; color: var(--muted); }
+/* 덮개로 띄울 때(부르는 데는 지금 없다) — 카드가 높이를 가져야 두 칸이 구른다. */
+.um-card.md-screen { display: flex; flex-direction: column; height: min(86vh, 900px); max-width: 1180px; overflow: hidden; }
+.um-card.md-screen > .md-top { flex: 0 0 auto; }

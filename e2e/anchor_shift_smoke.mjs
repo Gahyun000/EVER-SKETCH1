@@ -39,7 +39,7 @@ const anchorOf = async () => {
 }
 
 await p.goto(URL, { waitUntil: 'networkidle' })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 await p.waitForTimeout(600)
 
@@ -68,11 +68,17 @@ ok('브라우저 기본 창이 아니다', native === 0)
 const dlg = await p.locator('.cy-modal').innerText()
 ok('몇 건인지 제목에 있다', dlg.includes('1건'), dlg.split('\n')[0])
 ok('어느 지적인지 보여준다', dlg.includes('5월 진행 구간'), dlg.replace(/\n/g, ' ').slice(0, 100))
-const btns = await p.locator('.cy-modal-btns .cy-btn').allInnerTexts()
+const btns = await p.locator('.cy-modal-btns button').allInnerTexts()
 ok('선택지가 셋이다', btns.length === 3, btns.join(' | '))
+// **나가는 길은 껍데기가 그린다**(2026-09-08, 65f4df2). 「그대로 두기」는 이제 창의 `.cy-btn` 이
+// 아니라 공용 Modal 의 `.ui-modal-cancel` 이다. 이 스위트가 `.cy-btn` 만 세고 있어서 선택지가
+// **둘로 보였고**, 「그대로 두기」를 못 찾아 30초 뒤 멈췄다 — 창은 멀쩡히 셋을 내고 있었다.
+// (2026-09-21 맥 전체 실행에서 드러남.) 셋을 세는 것에 더해, 그 셋째가 **껍데기의 나가는 길**인지 본다.
+ok('나가는 길(그대로 두기)은 공용 껍데기가 그린다',
+   (await p.locator('.cy-modal-btns .ui-modal-cancel', { hasText: '그대로 두기' }).count()) === 1)
 
 // ── 3) 「그대로 두기」 ──
-await p.locator('.cy-modal-btns .cy-btn', { hasText: '그대로 두기' }).click()
+await p.locator('.cy-modal-btns button', { hasText: '그대로 두기' }).click()
 await p.waitForTimeout(400)
 ok('그만두면 창이 닫힌다', await p.locator('.ui-scrim').count() === 0)
 ok('그만두면 앵커도 그대로다', (await anchorOf()).cell === '4_5')
@@ -84,7 +90,7 @@ await cell(4, 2).click()
 await p.waitForTimeout(250)
 await delRow.click()
 await p.waitForTimeout(500)
-await p.locator('.cy-modal-btns .cy-btn', { hasText: '의견은 남기고' }).click()
+await p.locator('.cy-modal-btns button', { hasText: '의견은 남기고' }).click()
 await p.waitForTimeout(800)
 
 const after = await anchorOf()

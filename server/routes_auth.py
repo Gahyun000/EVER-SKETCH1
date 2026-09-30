@@ -31,6 +31,10 @@ def _public(u: dict) -> dict:
         "grade": perm.grade_of(role), "requested_grade": perm.grade_of(req),
         "role_label": perm.role_label(role),
         "requested_role_label": perm.role_label(req),
+        # 사용자 관리 오른쪽 상세(2026-09-21 · 시안 ㄴ)가 보여 준다. DB 에는 처음부터 있었고
+        # 여기서 내보내지 않았을 뿐이다. 시각(유닉스 밀리초 · auth._now)이고 아직 없으면 None.
+        "created_at": u.get("created_at"), "approved_at": u.get("approved_at"),
+        "last_login_at": u.get("last_login_at"),
     }
 
 

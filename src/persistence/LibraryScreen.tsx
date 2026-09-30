@@ -19,7 +19,7 @@ import {
   scopedProjects, type Crumb, type FolderNode,
 } from './folderNav'
 import {
-  LIB_COLS, LIB_SORT_DEFAULT, LIB_STATE_LABEL, folderRowsOf, nextSort, sortRows, wantsTable,
+  LIB_COLS, LIB_PAGE_SIZE, LIB_SORT_DEFAULT, LIB_STATE_LABEL, nextSort, pageRows, sortFolders, sortRows, wantsTable,
   type LibSort,
 } from './libTable'
 import { FOLIO_URL, FOLIO_HOST, folioBookUrl } from '../ports'
@@ -27,7 +27,7 @@ import { FOLIO_URL, FOLIO_HOST, folioBookUrl } from '../ports'
 // **표·패널은 overflow 가 걸려 있어 말풍선이 잘린다** — 그래서 quiet.
 import SiblingLink from '../siblingLink'
 
-const PAGE_SIZE = 12
+const PAGE_SIZE = LIB_PAGE_SIZE   // 폴더·자료 합쳐 10줄 — libTable 한 곳에서 정한다
 
 // KST 24시간 표기(표준: 한국 표준시·24h).
 function fmtKst(ts?: number): string {
@@ -263,13 +263,17 @@ export default function LibraryScreen() {
   const subFolders = useMemo(() => childrenOf(folders, here), [folders, here])
   const searching = !!q.trim() || !!from || !!to
 
-  const total = filtered.length
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const cur = Math.min(page, pages)
+  const docTotal = filtered.length
   // **줄 세운 뒤에 쪽을 나눈다.** 거꾸로 하면 1쪽 안에서만 줄이 서서,
   // 「제목순」으로 세워도 2쪽 첫 줄이 1쪽 마지막 줄보다 앞에 온다.
   const ordered = useMemo(() => sortRows(filtered, chips, sort), [filtered, chips, sort])
-  const shown = ordered.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE)
+  // **폴더·자료를 한 줄로 세운 뒤 자른다**(libTable.pageRows). 폴더는 늘 앞, 검색 중엔 빠진다.
+  const folderOrder = useMemo(() => sortFolders(subFolders, sort), [subFolders, sort])
+  const pg = useMemo(() => pageRows(folderOrder, ordered, searching, page, PAGE_SIZE),
+    [folderOrder, ordered, searching, page])
+  const { total, pages, cur } = pg
+  const shown = pg.docs
+  const fRows = pg.folders
   /** 표를 그릴 만한가. 아직 안 쟀으면(0) 표로 본다 — 깜빡임을 피하려고 낙관한다. */
   const asTable = listW === 0 || wantsTable(listW)
 
@@ -360,7 +364,6 @@ export default function LibraryScreen() {
 
   /** 목록 맨 위에 붙는 폴더 줄(①ㄴ). 규칙은 libTable 이 정한다 —
    *  표 모양과 줄 모양이 **같은 답**을 써야 한다. */
-  const fRows = useMemo(() => folderRowsOf(subFolders, searching, cur), [subFolders, searching, cur])
 
   /** 폴더 이름 칸 — 고치는 중이면 입력칸이 된다. 자료의 `nameCell` 과 짝이다. */
   const fNameCell = (f: FolderNode) =>
@@ -531,15 +534,16 @@ export default function LibraryScreen() {
           덜 믿게 된다. 이제 폴더는 **목록의 첫 줄들**로 내려가 자료와 한 목록이 된다
           (아래 `fRows`). 카드에만 있던 이름 바꾸기·삭제는 줄 끝 그 자리로 따라갔다. */}
 
-      {/* 개수 (표준: 전체개수·현재/총 페이지·페이지크기). 쪽 이동은 **목록 아래**에 둔다 —
-          목록을 다 보고 나서 넘기는 것이 순서다. */}
+      {/* 개수 줄은 **목록 위, 원래 자리**(2026-09-21 · 시안 개수줄 ㄴ). 한때 아래 쪽 막대로 내렸다가
+          되돌렸다 — 팀 관리·사용자 관리가 모두 개수를 표 위에 두고 「페이지」라고 쓰는데 이 화면만
+          아래에 「쪽」이라고 적으니 화면마다 찾는 자리와 말이 갈렸다. 튀던 것은 쪽 번호였고,
+          그것은 번호만 바닥에 붙여 풀었다. */}
       <div className="lib-pager">
         <span className="lib-count">
-          {/* 폴더 수는 **자료 건수와 따로** 적는다. 쪽 나누기는 자료만 대상이라,
-              둘을 더해 「전체 5개」라고 적으면 12개씩 나누는 셈과 안 맞는다 —
-              「전체 5개 · 1/1 페이지」인데 실제로 쪽에 실린 것은 3개가 된다. */}
-          {fRows.length ? `폴더 ${fRows.length}개 · ` : ''}
-          {searching ? '조회 결과' : '전체'} {total}개 · {cur}/{pages} 페이지 · {PAGE_SIZE}개씩
+          {searching
+            ? <>조회 결과 <b>{total}</b>개</>
+            : <>{subFolders.length ? `폴더 ${subFolders.length}개 · ` : ''}자료 {docTotal}개 · 전체 <b>{total}</b>개</>}
+          {` · ${cur}/${pages} 페이지 · ${PAGE_SIZE}개씩`}
         </span>
       </div>
 
@@ -572,7 +576,7 @@ export default function LibraryScreen() {
               <button className="lib-btn dark" onClick={() => void loadList()}>다시 시도</button>
             </div>
           </div>
-        ) : total === 0 && fRows.length === 0 ? (
+        ) : total === 0 ? (
           <div className="lib-empty">{emptyMsg}</div>
         ) : asTable ? (
           /* ── 표 (⑤) ── 열 머리를 눌러 줄을 세운다. 서버는 안 건드린다 —
@@ -674,7 +678,7 @@ export default function LibraryScreen() {
               })}
               {/* 폴더는 있는데 자료가 없을 때. 목록이 통째로 비는 것이 아니므로
                   큰 빈 화면 대신 **줄 하나**로 말한다. */}
-              {total === 0 && (
+              {docTotal === 0 && cur === pages && (
                 <tr className="lib-trempty">
                   <td colSpan={LIB_COLS.length + 1}>{emptyMsg}</td>
                 </tr>
@@ -735,16 +739,22 @@ export default function LibraryScreen() {
               {actionsFor(p)}
             </div>
           ))}
-          {total === 0 && <div className="lib-empty">{emptyMsg}</div>}
+          {docTotal === 0 && cur === pages && <div className="lib-empty">{emptyMsg}</div>}
           </>
         )}
       </div>
 
-      {/* 쪽 번호 — **이어진 다섯 칸**(D25). 「1 … 7 8 9 … 20」을 쓰지 않는다:
-          「…」은 눌러도 어디로 가는지 모르는 자리이고, 쪽이 늘수록 그 모르는 자리가
-          화면 한가운데를 차지한다. 창을 고정하면 끊길 자리 자체가 없다. */}
-      {pages > 1 && (
-        <div className="lib-pagebar">
+      {/* 쪽 막대 — **늘 화면 맨 아래, 늘 같은 자리**(2026-09-21 · ②ㄱ ③ㄱ).
+          전에는 목록 바로 밑에 흘러가며 놓여서 쪽마다 높이가 달랐고(1쪽 13줄 → 2쪽 1줄이면
+          번호가 360px 위로 튀었다), 1쪽뿐이면 아예 사라졌다. 이제 목록 칸이 남은 높이를 채우고
+          막대는 그 아래 바닥에 붙는다(.lib-list flex · .lib-pagebar sticky). 1쪽뿐이어도 「1」과
+          흐린 ‹ › 가 남는다 — 자리가 변하지 않는 것이 이 막대의 일이다. 막대에는 **번호만** 있다 —
+          개수는 목록 위 개수 줄이 말한다(개수줄 ㄴ).
+
+          쪽 번호는 **이어진 다섯 칸**(D25). 「1 … 7 8 9 … 20」을 쓰지 않는다:
+          「…」은 눌러도 어디로 가는지 모르는 자리다. */}
+      <div className="lib-pagebar">
+        <span className="lib-pages">
           <button className="lib-pg" disabled={cur <= 1} onClick={() => setPage(cur - 1)}
             aria-label="이전 페이지"><ChevronLeft className="h-4 w-4" /></button>
           {pageWindow(cur, pages).map((n) => (
@@ -754,8 +764,8 @@ export default function LibraryScreen() {
           ))}
           <button className="lib-pg" disabled={cur >= pages} onClick={() => setPage(cur + 1)}
             aria-label="다음 페이지"><ChevronRight className="h-4 w-4" /></button>
-        </div>
-      )}
+        </span>
+      </div>
 
       {/* 폴더 삭제 — **빈 폴더만**(D20). 서버가 막지만 화면이 먼저 말해 준다. */}
       {fPendingDel && (

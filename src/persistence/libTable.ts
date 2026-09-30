@@ -125,22 +125,45 @@ function tie(a: LibRow, b: LibRow): number {
   return (b.updated_at || 0) - (a.updated_at || 0)
 }
 
+/** 한 쪽에 담는 줄 수 — **폴더와 자료를 합쳐서** 센다(2026-09-21 · 사용자 결정 ㄱㄱㄱㄱ).
+ *  팀 공유도 이 값을 그대로 쓴다(teamLibraryModel) — 두 목록이 같은 눈금이라는 약속. */
+export const LIB_PAGE_SIZE = 10
+
 /**
- * 목록 맨 위에 붙일 폴더 줄 (①ㄴ · 2026-09-15).
- *
- * **폴더 카드를 걷어 목록 안으로 들였다.** 사이드바 나무가 생긴 뒤로 카드가 하는 일
- * (폴더로 들어가기)을 나무가 똑같이 하고 있었다 — 같은 것이 한 화면에 두 번 있었다.
- * 카드를 그냥 지울 수는 없었다: **이름 바꾸기·삭제가 카드에만 있었다.** 그래서
- * 없애는 대신 자료와 같은 줄 모양으로 내려보낸다. 도구는 줄 끝 그 자리에 그대로 온다.
- *
- * **검색 중에는 안 보인다.** 검색은 자료를 찾는 일이라, 결과 위에 폴더가 얹히면
- * 무엇이 걸린 것인지 헷갈린다 — 카드 시절부터의 규칙을 그대로 옮겨 왔다.
- *
- * **첫 쪽에서만 보인다.** 폴더는 이제 목록의 일부지 목록 위에 붙은 머리글이 아니다.
- * 쪽마다 되풀이되면 「2쪽에도 폴더가 있네」가 아니라 「쪽을 넘겼는데 안 넘어갔나」가 된다.
+ * 폴더끼리의 순서. **폴더는 늘 자료보다 앞**이고(①ㄱ), 그 안에서 표 머리의 정렬을 따른다 —
+ * 폴더가 가진 값(이름·수정일)으로만. 상태·결재자·낸 날·발행은 폴더에 없는 값이라 이름순으로 둔다.
  */
-export function folderRowsOf<T>(folders: readonly T[], searching: boolean, page: number): T[] {
-  if (searching) return []
-  if (page !== 1) return []
-  return folders.slice()
+export function sortFolders<F extends { name: string; updated_at?: number | null }>(folders: readonly F[], sort: LibSort): F[] {
+  const sign = sort.dir === 'asc' ? 1 : -1
+  const byName = (a: F, b: F) => a.name.localeCompare(b.name, 'ko')
+  if (sort.key === 'name') return folders.slice().sort((a, b) => sign * byName(a, b))
+  if (sort.key === 'updated') return folders.slice().sort((a, b) => sign * (((a.updated_at ?? 0) - (b.updated_at ?? 0))) || byName(a, b))
+  return folders.slice().sort(byName)
+}
+
+/**
+ * **폴더와 자료를 한 줄로 세운 뒤 쪽을 자른다**(2026-09-21 · 시안
+ * `docs/화면시안_목록쪽나누기_하단고정_v1.0.html` ㄱㄱㄱㄱ).
+ *
+ * 그전에는 쪽 크기(12)가 **자료만** 세고 폴더는 1쪽 위에 **덤으로** 얹혔다. 그래서 1쪽은
+ * 13줄, 2쪽은 1줄처럼 들쭉날쭉했고, 쪽 번호가 목록 밑을 따라다니며 위아래로 튀었다(화면 기록 11.04).
+ * 이제 폴더가 앞자리부터 줄을 채우고, 폴더가 많으면 **2쪽까지 이어진다.**
+ *
+ * **검색 중에는 폴더를 섞지 않는다**(④ㄱ). 검색은 하위 전부를 뒤지는 일이라, 결과에 폴더가
+ * 섞이면 어느 폴더의 무엇이 걸린 것인지 헷갈린다 — 폴더 카드 시절부터의 규칙이다.
+ */
+export function pageRows<F, D>(
+  folders: readonly F[], docs: readonly D[], searching: boolean, page: number, size = LIB_PAGE_SIZE,
+): { folders: F[]; docs: D[]; total: number; pages: number; cur: number; from: number; to: number } {
+  const fs = searching ? [] : folders
+  const total = fs.length + docs.length
+  const pages = Math.max(1, Math.ceil(total / size))
+  const cur = Math.min(Math.max(1, page), pages)
+  const a = (cur - 1) * size
+  const b = Math.min(total, a + size)
+  return {
+    folders: fs.slice(Math.min(a, fs.length), Math.min(b, fs.length)),
+    docs: docs.slice(Math.max(0, a - fs.length), Math.max(0, b - fs.length)),
+    total, pages, cur, from: total ? a + 1 : 0, to: b,
+  }
 }

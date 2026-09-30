@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>시안 — 목록 개수 줄의 자리 v1.0</title>
+<style>
+  :root{--ink:#1a1f2b;--muted:#6b7488;--line:#e2e6ee;--bg:#f4f6fa;--blue:#2462EB;--blue-soft:#EAF1FE;--navy:#0F1B3D;--red:#d04a4a;--ok:#27794e;--shline:#E6E8EE}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 20px 90px}
+  h1{font-size:24px;font-weight:800;margin:0 0 6px}
+  h2{font-size:18px;font-weight:800;margin:34px 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.2px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)} .why.warn{border-left-color:var(--red)}
+  .tag{display:inline-block;font-size:11px;font-weight:800;background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:3px 10px}
+  .tag.gray{background:#eef0f4;color:#5B6270}.tag.ok{background:#e6f5ec;color:var(--ok)}.tag.warn{background:#fdecec;color:var(--red)}
+  code{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:4px;padding:1px 5px}
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:12px}
+  @media(max-width:980px){.three{grid-template-columns:1fr}}
+  .col h3{margin:8px 0 8px;font-size:14px}
+  .app{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f4f6fa;height:430px;display:flex;flex-direction:column;box-shadow:0 6px 20px rgba(20,25,40,.07)}
+  .top{padding:10px 12px 0}
+  .srch{height:24px;border:1px solid var(--line);border-radius:7px;background:#fff;margin-bottom:8px}
+  .cnt{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#64748b;font-weight:700;margin:0 12px 6px;min-height:22px}
+  .cnt b{color:var(--ink)}
+  .list{background:#fff;border:1px solid var(--shline);border-radius:9px;margin:0 12px;overflow:hidden}
+  .r{height:25px;border-bottom:1px solid #f0f2f6;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:700;gap:6px}
+  .r:last-child{border-bottom:none} .r.f{background:#fffcf3}
+  .ic{width:12px;height:12px;border-radius:3px;background:#E4ECFD}.r.f .ic{background:#FDE7B5}
+  .fill{flex:1}
+  .bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;border-top:1px solid var(--shline);background:#fff;padding:8px 12px;font-size:10.5px;color:#64748b;font-weight:700}
+  .bar.center{grid-template-columns:1fr auto 1fr}
+  .pg{display:flex;gap:4px}.pg span{min-width:20px;height:20px;border:1px solid #e5e7eb;border-radius:5px;display:grid;place-items:center;font-size:10px;background:#fff;color:#3a4150}
+  .pg span.on{background:var(--navy);border-color:var(--navy);color:#fff}.pg span.off{opacity:.4}
+  .flow-pg{display:flex;justify-content:center;padding:8px 0}
+  .hl{outline:2px dashed var(--red);outline-offset:2px;border-radius:6px}
+  .hl.g{outline-color:var(--ok)}
+  .cap{font-size:11px;color:var(--muted);margin-top:6px}
+  table.t{width:100%;border-collapse:collapse;font-size:12.8px;margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  table.t td,table.t th{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
+  table.t th{color:var(--muted);font-weight:800;font-size:11.5px;background:#fbfcfe}
+  table.t tr:last-child td{border-bottom:none}
+  .rec{color:var(--blue);font-weight:800}
+  .adm{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:12px}
+  .adm .cnt{margin:0 0 6px}
+  .pick{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .pick .b{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:800;color:#3a4150}
+  .pick .b.rec2{background:var(--blue);border-color:var(--blue);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>시안 — 목록 개수 줄의 자리: 제가 이해한 「기존 상단 위치」</h1>
+  <p class="sub">v1.0 · 2026-09-21 · <b>확인 요청</b> — 세 그림 중 「기존」이 기억하시는 모습과 같은지, 그리고 개수 줄을 어디 둘지</p>
+
+  <div class="why">
+    <b>제가 이해한 것.</b> 내 자료의 개수 줄 <code>폴더 1개 · 전체 13개 · 1/2 페이지 · 12개씩</code> 은 원래 <b>검색 줄 아래 · 목록 위</b>(상단)에 있었습니다.
+    쪽 번호는 목록 밑을 따라다녔고요. 지난번 결정(③ㄱ)에서 이 줄을 <b>아래 쪽 막대 안</b>으로 옮기면서 문구도
+    <code>폴더 1 · 자료 13 — 전체 14개 · 1–10 · 1/2쪽</code> + 오른쪽 <code>10개씩</code> 으로 바꿨습니다 — 보내 주신 두 조각이 그것입니다.
+  </div>
+  <div class="why warn">
+    <b>옮기고 보니 어긋난 점 둘.</b><br>
+    ① <b>관리 화면들과 자리가 다릅니다.</b> 팀 관리·사용자 관리는 개수 줄이 <b>표 위 왼쪽</b>(<code>전체 3명 · 1/1 페이지 · 20명씩</code>), 화살표가 <b>표 위 오른쪽</b>입니다. 내 자료만 아래로 가면 화면마다 찾는 자리가 달라집니다.<br>
+    ② <b>말이 달라졌습니다.</b> 관리 화면은 「<b>페이지</b>」, 제가 새로 쓴 문구는 「<b>쪽</b>」 — 같은 앱 안에서 두 말을 섞었습니다. 「—」「1–10」 같은 새 표기도 다른 화면에는 없습니다.
+  </div>
+
+  <h2>세 그림</h2>
+  <div class="three">
+    <div class="col">
+      <span class="tag gray">기존 (9/21 오전까지)</span><h3>개수 위 · 쪽 번호가 목록을 따라다님</h3>
+      <div class="app" id="a1"></div>
+      <div class="cap">빨간 점선 = 쪽마다 자리가 바뀌던 곳</div>
+    </div>
+    <div class="col">
+      <span class="tag warn">지금 (③ㄱ 반영)</span><h3>개수·번호 모두 아래 막대</h3>
+      <div class="app" id="a2"></div>
+      <div class="cap">자리는 고정됐지만 관리 화면들과 위치·말이 다름</div>
+    </div>
+    <div class="col">
+      <span class="tag ok">안 ㄴ · 추천</span><h3>개수는 <b>기존 상단 자리</b>, 번호만 아래 고정</h3>
+      <div class="app" id="a3"></div>
+      <div class="cap">초록 점선 = 기존과 같은 자리 · 같은 말(「페이지」)</div>
+    </div>
+  </div>
+
+  <h2>관리 화면(팀 관리)의 지금 모습 — 비교용</h2>
+  <div class="adm">
+    <div class="cnt"><span>전체 <b>3</b>명 · 1/1 페이지 · 20명씩</span><span class="pg"><span class="off">‹</span><span class="off">›</span></span></div>
+    <div class="list" style="margin:0"><div class="r">SI개발팀 · 3</div><div class="r">김가현 · Lv2 작성자</div><div class="r">홍길동 · Lv3 열람자</div></div>
+  </div>
+
+  <h2>비교</h2>
+  <table class="t">
+    <tr><th style="width:20%"></th><th>기존</th><th>지금 (③ㄱ)</th><th>안 ㄴ (추천)</th></tr>
+    <tr><td><b>개수 줄 자리</b></td><td>목록 위</td><td>아래 막대 왼쪽</td><td class="rec">목록 위 — 기존과 같음, 관리 화면과 같음</td></tr>
+    <tr><td><b>문구</b></td><td>폴더 1개 · 전체 13개 · 1/2 페이지 · 12개씩</td><td>폴더 1 · 자료 13 — 전체 14개 · 1–10 · 1/2쪽 · 10개씩</td><td class="rec">폴더 1개 · 자료 13개 · 전체 14개 · 1/2 페이지 · 10개씩</td></tr>
+    <tr><td><b>쪽 번호</b></td><td>목록 밑 — 쪽마다 튐</td><td>화면 바닥 고정</td><td class="rec">화면 바닥 고정 (그대로)</td></tr>
+    <tr><td><b>1쪽뿐일 때</b></td><td>번호 사라짐</td><td>「1」 남음</td><td>「1」 남음 (그대로)</td></tr>
+  </table>
+
+  <div class="why">
+    <b>제 의견 — ㄴ.</b> 신고하신 문제는 「쪽 번호가 튄다」였고, 그것은 번호를 바닥에 고정한 것으로 풀렸습니다.
+    개수 줄까지 내린 것은 제가 시안에서 권한 덤이었는데, 막상 해 보니 <b>관리 화면들과 자리·말이 갈라졌습니다.</b>
+    개수 줄은 기존 상단 자리·「페이지」 말로 되돌리고, 쪽 번호만 바닥에 두는 것이 앱 전체로 일관됩니다.
+    (관리 화면의 ‹ › 도 바닥으로 내릴지는 따로 정하면 됩니다 — 지금은 1쪽짜리라 튀는 문제가 드러나지 않았습니다.)
+  </div>
+  <div class="pick"><span class="b">ㄱ 지금처럼 모두 아래</span><span class="b rec2">ㄴ 개수는 위(기존 자리), 번호만 아래</span></div>
+</div>
+<script>
+const R = (n, f = 0) => Array.from({ length: n }, (_, i) => `<div class="r ${i < f ? 'f' : ''}"><span class="ic"></span>${i < f ? '9월' : '2026년 9월 임원회의 — 김가현'}</div>`).join('')
+const pg = (on, n = 2) => `<span class="pg"><span class="off">‹</span>${Array.from({ length: n }, (_, i) => `<span class="${i + 1 === on ? 'on' : ''}">${i + 1}</span>`).join('')}<span>›</span></span>`
+document.getElementById('a1').innerHTML = `<div class="top"><div class="srch"></div></div>
+  <div class="cnt"><span>폴더 1개 · 전체 13개 · 1/2 페이지 · 12개씩</span></div>
+  <div class="list">${R(13, 1)}</div><div class="flow-pg"><span class="hl">${pg(1)}</span></div><div class="fill"></div>`
+document.getElementById('a2').innerHTML = `<div class="top"><div class="srch"></div></div>
+  <div class="list">${R(10, 1)}</div><div class="fill"></div>
+  <div class="bar"><span class="hl">폴더 1 · 자료 13 — 전체 14개 · 1–10 · 1/2쪽</span>${pg(1)}<span style="justify-self:end" class="hl">10개씩</span></div>`
+document.getElementById('a3').innerHTML = `<div class="top"><div class="srch"></div></div>
+  <div class="cnt"><span class="hl g">폴더 1개 · 자료 13개 · 전체 <b>14</b>개 · 1/2 페이지 · 10개씩</span></div>
+  <div class="list">${R(10, 1)}</div><div class="fill"></div>
+  <div class="bar"><span></span>${pg(1)}<span></span></div>`
+</script>
+</body>
+</html>

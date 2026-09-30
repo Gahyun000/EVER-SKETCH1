@@ -33,7 +33,7 @@ function asAdminAtWork() {
     activeId: 'p_admin',
     access: { mine: true, can_write: true, can_comment: true },
     list: [
-      { id: 'p_admin', name: '2026년 9월 임원회의 — 시스템 관리자', created_at: 1, updated_at: 1, published_id: null, page_count: 1 },
+      { id: 'p_admin', name: '2026년 9월 임원회의 — 관리자', created_at: 1, updated_at: 1, published_id: null, page_count: 1 },
       { id: 'p_other', name: '2026년 9월 임원회의 — 김가현', created_at: 1, updated_at: 1, published_id: null, page_count: 1 },
     ],
     bootedFor: 'u_admin',

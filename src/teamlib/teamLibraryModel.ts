@@ -13,9 +13,11 @@
  * React 를 모른다 — 노드로 그냥 실행해서 검증한다(`team_library_screen.test.mjs`).
  */
 import type { LibItem, LibTeam, Relation } from './teamLibraryApi'
+import { LIB_PAGE_SIZE } from '../persistence/libTable'
 
-/** 한 쪽에 담는 자료 수. 자료 목록(12)과 같은 눈금을 쓴다. */
-export const PAGE_SIZE = 12
+/** 한 쪽에 담는 자료 수. **자료 목록과 같은 눈금** — 숫자를 여기 따로 적지 않고 가져온다.
+ *  2026-09-21 에 내 자료가 12 → 10 으로 바뀌었을 때 따로 적혀 있었으면 둘이 갈라졌다. */
+export const PAGE_SIZE = LIB_PAGE_SIZE
 
 /** 「현재」·「이전」은 **글자로 붙인다**(D19) — 색으로만 상태를 구분하지 않는다(표준). */
 export const RELATION_LABEL: Record<Relation, string> = {

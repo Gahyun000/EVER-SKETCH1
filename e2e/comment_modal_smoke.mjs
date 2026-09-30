@@ -32,7 +32,7 @@ let native = 0
 p.on('dialog', (d) => { native++; void d.dismiss() })
 
 await p.goto(URL, { waitUntil: 'networkidle' })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 await p.waitForTimeout(500)
 

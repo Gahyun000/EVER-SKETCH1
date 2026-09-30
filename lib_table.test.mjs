@@ -21,7 +21,7 @@ const check = (cond, label, extra = '') => {
 
 const {
   LIB_COLS, LIB_TABLE_MIN, LIB_ACTS_W, wantsTable, nextSort, sortRows,
-  LIB_SORT_DEFAULT, LIB_STATE_LABEL, folderRowsOf,
+  LIB_SORT_DEFAULT, LIB_STATE_LABEL, LIB_PAGE_SIZE, pageRows, sortFolders,
 } = await import('./src/persistence/libTable.ts')
 const { DOC_STATE_LABEL } = await import('./src/approvals/approvalApi.ts')
 
@@ -133,6 +133,7 @@ const C = (state, created_at, approver_name) => ({
   // **숫자로 세던 것을 이름으로 바꿨다**(2026-09-15). 전에는 「9개 이상」으로 셌는데,
   // 안 쓰는 `.lib-search{width:var(--lib-w)}` 가 그 숫자를 채워 주고 있었다 —
   // 죽은 줄 하나가 지킴이를 통과시키고 있었던 셈이다. 이제 **어느 줄인지**를 적는다.
+  // 'lib-pager'(위 개수 줄)는 2026-09-21 에 아래 막대로 합쳐졌다가(③ㄱ) 같은 날 제자리로 돌아왔다(개수줄 ㄴ).
   for (const k of ['lib-head', 'lib-crumb', 'lib-ferr', 'lib-mk', 'lib-pager', 'lib-list', 'lib-pagebar']) {
     check(new RegExp(`\\.${k}\\{[^}]*width:var\\(--lib-w\\)`).test(css),
       `.${k} 가 그 한 폭을 쓴다`)
@@ -170,7 +171,8 @@ const C = (state, created_at, approver_name) => ({
   // **줄 세운 뒤에 쪽을 나눈다.** 거꾸로 하면 1쪽 안에서만 줄이 서서,
   // 「제목순」인데 2쪽 첫 줄이 1쪽 마지막 줄보다 앞에 온다.
   const iSort = lib.indexOf('sortRows(filtered, chips, sort)')
-  const iSlice = lib.indexOf('ordered.slice((cur - 1) * PAGE_SIZE')
+  // 2026-09-21: 자르는 일은 pageRows 가 한다 — 받는 것은 **이미 세운** ordered 다.
+  const iSlice = lib.indexOf('pageRows(folderOrder, ordered')
   check(iSort > 0 && iSlice > iSort, '줄을 세운 **뒤에** 쪽을 나눈다')
   check(!/filtered\.slice\(\(cur - 1\)/.test(lib), '안 세운 목록을 쪽으로 자르지 않는다')
 
@@ -197,35 +199,33 @@ const C = (state, created_at, approver_name) => ({
   check(/\{c\?\.created_at \? fmtKst\(c\.created_at\) : dim\}/.test(lib), '안 낸 자료의 「낸 날」도 「—」')
 }
 
-// ── 폴더가 목록 첫 줄로 (①ㄴ · 2026-09-15) ────────────
+// ── 폴더·자료를 한 줄로, 10줄씩 (2026-09-21 · 시안 ㄱㄱㄱㄱ) ─────────
 //
-// 5열 카드를 걷고 폴더를 목록 안으로 들였다. 카드가 하던 일(폴더로 들어가기)을
-// 사이드바 나무가 똑같이 하고 있어서, 같은 것이 한 화면에 두 번 있었다.
+// 그전(①ㄴ · 09-15)에는 폴더가 1쪽 위에만 덤으로 얹혔고 쪽 크기(12)는 자료만 셌다.
+// 그래서 1쪽 13줄 · 2쪽 1줄처럼 들쭉날쭉했고, 쪽 번호가 위아래로 튀었다(화면 기록 11.04).
+// 지금 규칙: 폴더가 앞자리부터 줄을 채우고, 합쳐서 10줄씩 자른다. 검색 중엔 폴더를 빼고.
 {
-  const F = [{ id: 'f1' }, { id: 'f2' }, { id: 'f3' }]
-  check(folderRowsOf(F, false, 1).length === 3, '첫 쪽에서는 폴더가 다 보인다')
-  check(folderRowsOf(F, false, 1).map((f) => f.id).join(',') === 'f1,f2,f3',
-    '받은 차례 그대로 — 줄 세우기는 자료에만 건다')
-
-  // **검색 중에는 감춘다.** 검색은 자료를 찾는 일이라, 결과 위에 폴더가 얹히면
-  // 무엇이 걸린 것인지 헷갈린다 — 카드 시절부터의 규칙을 그대로 옮겨 왔다.
-  check(folderRowsOf(F, true, 1).length === 0, '검색 중에는 폴더가 안 보인다')
-
-  // **첫 쪽에서만.** 폴더는 목록의 일부지 목록 위에 붙은 머리글이 아니다.
-  // 쪽마다 되풀이되면 「쪽을 넘겼는데 안 넘어갔나」가 된다.
-  check(folderRowsOf(F, false, 2).length === 0, '둘째 쪽에는 폴더가 안 따라온다')
-  check(folderRowsOf(F, false, 9).length === 0, '먼 쪽에도 안 따라온다')
-  check(folderRowsOf(F, true, 3).length === 0, '검색 + 뒷쪽 — 둘 다 걸려도 안 보인다')
-
-  check(folderRowsOf([], false, 1).length === 0, '폴더가 없으면 빈 채로')
-
-  // **원본을 안 건드린다.** 스토어가 들고 있는 배열이라, 화면이 뒤집으면
-  // 다음에 그리는 곳이 뒤집힌 것을 본다(`sortRows` 와 같은 약속이다).
-  const src = [{ id: 'a' }, { id: 'b' }]
-  const out = folderRowsOf(src, false, 1)
-  out.reverse()
-  check(src.map((f) => f.id).join(',') === 'a,b', '받은 배열을 그 자리에서 안 뒤집는다')
-  check(out !== src, '새 배열을 준다')
+  const F = ['f1', 'f2', 'f3'], D = Array.from({ length: 13 }, (_, i) => 'd' + (i + 1))
+  check(LIB_PAGE_SIZE === 10, '한 쪽 10줄')
+  const p1 = pageRows(F, D, false, 1), p2 = pageRows(F, D, false, 2)
+  check(p1.folders.length + p1.docs.length === 10, '1쪽은 폴더 포함 **정확히 10줄**', `${p1.folders.length}+${p1.docs.length}`)
+  check(p1.folders.join(',') === 'f1,f2,f3' && p1.docs[0] === 'd1', '폴더가 **앞**, 이어서 자료')
+  check(p2.folders.length === 0 && p2.docs.join(',') === 'd8,d9,d10,d11,d12,d13', '2쪽은 나머지 자료만 — 빠짐도 겹침도 없다', p2.docs.join(','))
+  check(p1.total === 16 && p1.pages === 2 && p1.from === 1 && p1.to === 10 && p2.from === 11 && p2.to === 16, '「16개 중 1–10 · 1/2쪽」 을 셀 수 있다')
+  const many = Array.from({ length: 12 }, (_, i) => 'F' + i)
+  const q1 = pageRows(many, ['d1', 'd2'], false, 1), q2 = pageRows(many, ['d1', 'd2'], false, 2)
+  check(q1.folders.length === 10 && q1.docs.length === 0, '폴더가 많으면 1쪽을 폴더가 다 채운다')
+  check(q2.folders.join(',') === 'F10,F11' && q2.docs.join(',') === 'd1,d2', '남은 폴더가 2쪽 앞에 오고 자료가 잇는다')
+  const s1 = pageRows(F, D, true, 1)
+  check(s1.folders.length === 0 && s1.docs.length === 10 && s1.total === 13, '④ㄱ 검색 중에는 자료만 10개씩')
+  check(pageRows([], [], false, 1).pages === 1 && pageRows([], [], false, 1).total === 0, '비어 있어도 1쪽 — 막대가 「1」 로 서 있을 수 있다')
+  check(pageRows(F, D, false, 99).cur === 2, '없는 쪽을 달라고 하면 마지막 쪽')
+  const src = ['a', 'b']; const o = pageRows(src, [], false, 1); o.folders.reverse()
+  check(src.join(',') === 'a,b', '받은 배열을 그 자리에서 안 건드린다')
+  const fs = [{ name: '나', updated_at: 1 }, { name: '가', updated_at: 3 }, { name: '다', updated_at: 2 }]
+  check(sortFolders(fs, { key: 'name', dir: 'asc' }).map((f) => f.name).join('') === '가나다', '①ㄱ 제목순이면 폴더도 이름순')
+  check(sortFolders(fs, { key: 'updated', dir: 'desc' }).map((f) => f.name).join('') === '가다나', '①ㄱ 수정일순이면 폴더도 수정일순')
+  check(sortFolders(fs, { key: 'state', dir: 'desc' }).map((f) => f.name).join('') === '가나다', '폴더에 없는 값(상태)으로 세우면 이름순으로 둔다')
 }
 
 // ── 화면이 정말 그 답을 쓰는가 ──────────────────────
@@ -233,17 +233,15 @@ const C = (state, created_at, approver_name) => ({
   const { readFileSync } = await import('node:fs')
   const lib = readFileSync('./src/persistence/LibraryScreen.tsx', 'utf8')
   const css = readFileSync('./src/index.css', 'utf8')
-  check(/folderRowsOf\(subFolders, searching, cur\)/.test(lib),
+  check(/pageRows\(folderOrder, ordered, searching, page, PAGE_SIZE\)/.test(lib) && /const fRows = pg\.folders/.test(lib),
     '폴더 줄을 화면이 제 손으로 고르지 않는다 — libTable 의 답을 쓴다')
-  // 건수는 **자료 기준**이다. 폴더를 더해 「전체 5개 · 1/1 페이지」라고 적으면
-  // 12개씩 나누는 셈과 안 맞는다 — 쪽에 실린 것은 3개인데 5개라고 적힌다.
-  check(/\{searching \? '조회 결과' : '전체'\} \{total\}개/.test(lib),
-    '「전체 N개」는 자료 수 그대로다 (폴더를 더하지 않는다)')
-  check(/폴더 \$\{fRows\.length\}개 · /.test(lib),
-    '폴더 수는 그 앞에 따로 적는다')
-  // 폴더만 있고 자료가 없을 때 목록이 통째로 비면 폴더까지 사라진다.
-  check(/total === 0 && fRows\.length === 0/.test(lib),
-    '폴더가 있으면 빈 화면으로 덮지 않는다')
+  // 건수 — **이제 폴더를 더한다**(2026-09-21). 쪽 크기가 폴더·자료를 함께 세므로
+  // 「전체 N개」도 같이 세야 「N개 중 1–10」 과 맞는다. 폴더·자료 수는 앞에 따로 적는다.
+  // 개수줄 ㄴ(같은 날): 문구를 관리 화면 말투로 — 「폴더 N개 · 자료 M개 · 전체 N+M개」.
+  check(/폴더 \$\{subFolders\.length\}개 · /.test(lib) && /자료 \{docTotal\}개 · 전체 <b>\{total\}<\/b>개/.test(lib),
+    '「폴더 N개 · 자료 M개 · 전체 N+M개」 — 쪽 나누기와 같은 셈')
+  check(/\) : total === 0 \? \(/.test(lib) && /const \{ total, pages, cur \} = pg/.test(lib),
+    '폴더가 있으면 빈 화면으로 덮지 않는다 (total 이 폴더까지 센다)')
   check(/colSpan=\{LIB_COLS\.length \+ 1\}/.test(lib),
     '그때 빈 말은 표 안에 **줄 하나**로 들어간다 (칸 수를 손으로 안 센다)')
 

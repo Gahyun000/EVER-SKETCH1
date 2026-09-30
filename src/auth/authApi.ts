@@ -22,6 +22,10 @@ export interface Me {
   requested_grade: Grade | null
   role_label: string
   requested_role_label: string
+  /** 가입 신청 · 승인 · 마지막 로그인 — 유닉스 밀리초. 없으면 null(2026-09-21 부터 내려온다). */
+  created_at?: number | null
+  approved_at?: number | null
+  last_login_at?: number | null
 }
 
 export const isAdmin = (me: Me | null | undefined): boolean =>

@@ -58,7 +58,8 @@ const team = (authors, extra = {}) => ({
 
 // ══════════ 묶음 머리글은 **자른 뒤에** 끼운다 ══════════
 {
-  // 한 작성자가 25건 — 12건씩 세 쪽으로 갈린다.
+  // 한 작성자가 25건 — PAGE_SIZE 건씩 세 쪽으로 갈린다(10이면 10·10·5).
+  const R = 25 - 2 * PAGE_SIZE
   const many = Array.from({ length: 25 }, (_, i) => item('자료 ' + (i + 1)))
   const t = team([author('u1', '김가현', [{ ym: '2026-09', items: many }])])
   const flat = flatten(t)
@@ -68,7 +69,7 @@ const team = (authors, extra = {}) => ({
   const p3 = pageOf(flat, '', 3)
 
   const items = (p) => p.rows.filter((r) => r.kind === 'item')
-  check(items(p1).length === 12 && items(p2).length === 12 && items(p3).length === 1,
+  check(items(p1).length === PAGE_SIZE && items(p2).length === PAGE_SIZE && items(p3).length === R,
     '**모든 쪽이 꽉 찬다** — 머리글이 쪽 수를 잡아먹지 않는다')
   check(p1.totalPages === 3 && p1.total === 25, '쪽 수와 건수는 **자료 기준**이다(줄 수가 아니다)')
 
@@ -76,7 +77,7 @@ const team = (authors, extra = {}) => ({
     check(p.rows[0].kind === 'author' && p.rows[1].kind === 'month',
       `${i + 1}쪽 첫 줄이 작성자·월 머리글이다 — 3쪽만 열어도 누가 낸 몇 월 자료인지 안다`)
   }
-  check(p3.rows.find((r) => r.kind === 'author').count === 1,
+  check(p3.rows.find((r) => r.kind === 'author').count === R,
     '머리글의 「N건」은 **이 쪽에 보이는 수**다 — 3건이라 적혀 있는데 1건만 보이면 안 된다')
 }
 
@@ -168,7 +169,8 @@ const bare = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/
 const panelCode = bare(panel)
 const readBare = (p) => bare(read(p))
 
-check(PAGE_SIZE === 12, '한 쪽 12건 — 자료 목록과 **같은 눈금**을 쓴다')
+// 2026-09-21: 내 자료가 12 → 10(폴더 포함)으로 바뀌었고, 팀 공유는 **숫자를 따로 적지 않고 가져온다**.
+check(PAGE_SIZE === 10 && /PAGE_SIZE = LIB_PAGE_SIZE/.test(read('./src/teamlib/teamLibraryModel.ts')), '한 쪽 10건 — 자료 목록과 **같은 눈금**을 가져다 쓴다')
 // 「…」은 **쪽 번호 자리에만** 없으면 된다 — 「불러오는 중…」 같은 문구까지 잡으면
 // 테스트가 자기 말을 못 알아듣는다(folder_screen 에서 두 번 겪은 함정).
 const pager = (panelCode.split('tl-pager')[1] || '').slice(0, 500)

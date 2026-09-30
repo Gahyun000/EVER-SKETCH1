@@ -26,7 +26,10 @@ const libCode = bare(lib)
 // ── 확정값 (D24 · D25 · D26 · D28) ──
 check(/PAGE_WINDOW = 5/.test(nav), 'D25 — 쪽 번호 창 5칸')
 check(/PATH_VISIBLE = 4/.test(nav), 'D26 — 경로는 4칸까지 다 보인다')
-check(/const PAGE_SIZE = 12/.test(lib), 'D28 — 자료 한 쪽 12건')
+// **D28 을 고쳐 적었다**(2026-09-21 · 사용자 결정 ㄱㄱㄱㄱ). 「자료 한 쪽 12건」 → 「폴더·자료 합쳐 한 쪽 10줄」.
+// 예전 값은 자료만 셌고 폴더는 1쪽에 덤으로 얹혀서, 1쪽 13줄 · 2쪽 1줄처럼 들쭉날쭉했다.
+check(/export const LIB_PAGE_SIZE = 10/.test(read('./src/persistence/libTable.ts')) && /const PAGE_SIZE = LIB_PAGE_SIZE/.test(lib),
+  'D28 — 한 쪽 10줄, 폴더·자료 합쳐서 (값은 libTable 한 곳)')
 // **뒤집힌 확정값이다**(2026-09-15 ①ㄴ). 원래 여기는 「폴더 한 줄 5개」를 못박았다.
 // 그 값이 틀려서가 아니라 **카드 자체가 없어져서다**: 사이드바 나무가 생긴 뒤로 카드가
 // 하는 일(폴더로 들어가기)을 나무가 똑같이 하고 있었고, 같은 것이 한 화면에 두 번
@@ -34,12 +37,12 @@ check(/const PAGE_SIZE = 12/.test(lib), 'D28 — 자료 한 쪽 12건')
 // 지키려던 것 — 「폴더를 어떻게 늘어놓을지가 한 군데서 정해져 있다」 — 는 그대로다.
 check(!/\.lib-folders\{/.test(css) && !/lib-folder-hit/.test(css),
   '폴더 카드가 되살아나지 않았다 (되살리면 나무와 또 겹친다)')
-check(/export function folderRowsOf/.test(read('./src/persistence/libTable.ts')),
-  '폴더 줄을 보일지 말지는 libTable 이 한 번에 정한다 (표·줄 목록이 같은 답을 쓴다)')
+check(/export function pageRows/.test(read('./src/persistence/libTable.ts')) && /pageRows\(folderOrder, ordered, searching, page, PAGE_SIZE\)/.test(lib),
+  '폴더·자료를 어느 쪽에 얼마나 실을지는 libTable.pageRows 가 한 번에 정한다 (표·줄 목록이 같은 답을 쓴다)')
 check(/fRows\.map/.test(lib) && (lib.match(/fRows\.map/g) || []).length === 2,
   '표와 줄 목록 **둘 다** 폴더 줄을 그린다 — 창 크기를 바꿨다고 폴더가 사라지지 않는다')
-// 폴더는 자료보다 **먼저** 나온다. 줄 세우기(sort)는 자료에만 건다 —
-// 폴더에는 상태도 낸 날도 없어서 같이 세우면 무엇을 눌러도 폴더가 통째로 몰린다.
+// 폴더는 자료보다 **먼저** 나온다(①ㄱ). 자료의 줄 세우기(sortRows)는 폴더에 걸지 않는다 —
+// 폴더는 제 값(이름·수정일)으로만 따로 선다(sortFolders). 섞으면 무엇을 눌러도 폴더가 통째로 몰린다.
 check(lib.indexOf('fRows.map') < lib.indexOf('shown.map'),
   '폴더가 자료보다 먼저 그려진다')
 check(/MAX_DEPTH = 3/.test(read('./server/folders.py')), 'D24 — 폴더 최대 깊이 3')
@@ -49,11 +52,28 @@ check(/max_depth/.test(read('./src/persistence/projects.ts')),
   '깊이는 **서버가 정한 값**을 받아 쓴다 — 화면이 숫자를 따로 들지 않는다')
 check(!/maxDepth = [0-9]/.test(lib), '화면이 깊이 숫자를 제 손으로 박아 두지 않는다')
 
+// ── 쪽 막대는 늘 같은 자리 (2026-09-21 · ②ㄱ ③ㄱ) ──
+check(!/\{pages > 1 && \(\s*<div className="lib-pagebar">/.test(lib),
+  '②ㄱ 1쪽뿐이어도 쪽 막대를 그린다 — 막대가 나타났다 사라지면 자리가 변한다')
+check(/\.lib-pagebar\{[^}]*position:sticky;bottom:0/.test(css) && /\.lib-list\{[^}]*flex:1 0 auto/.test(css),
+  '막대는 바닥에 붙고(sticky), 목록이 남은 높이를 채워 막대를 민다(flex:1)')
+// 2026-09-21 개수줄 ㄴ: 개수는 **목록 위 원래 자리**로 되돌아갔다. 막대에는 번호만.
+{
+  const above = lib.split('className="lib-list"')[0]
+  const bar = (lib.split('className="lib-pagebar"')[1] || '').split('</div>')[0]
+  check(/className="lib-pager"/.test(above) && /className="lib-count"/.test(above),
+    '개수줄 ㄴ 개수 줄은 목록 **위**에 있다 — 팀 관리·사용자 관리와 같은 자리')
+  check(!/lib-count|lib-psize/.test(bar), '개수줄 ㄴ 아래 막대에는 쪽 번호만 있다')
+  check(/페이지 · \$\{PAGE_SIZE\}개씩/.test(lib) && !/\{cur\}\/\$\{pages\}쪽/.test(lib),
+    '말은 「페이지」로 — 관리 화면과 같은 말(「쪽」을 섞지 않는다)')
+}
+
 // ── 「…」을 다루는 두 가지 답 ──
 // **쪽 번호 막대 안만 본다.** 예전에는 `lib-pagebar` 뒤 **전부**를 봤는데,
 // 그 아래에 확인창들이 있어서 「제출 중…」 같은 정상적인 라벨이 걸렸다(2026-09-08).
 // 규칙은 「쪽 번호에 …을 쓰지 않는다」이지 「이 파일 아래쪽에 …을 쓰지 않는다」가 아니다.
-const pagebar = (lib.match(/<div className="lib-pagebar">[\s\S]*?\n {8}<\/div>/) || [''])[0]
+// 2026-09-21: 막대가 조건문 밖으로 나와 **늘 그려지면서** 들여쓰기가 8칸 → 6칸이 됐다.
+const pagebar = (lib.match(/<div className="lib-pagebar">[\s\S]*?\n {6}<\/div>/) || [''])[0]
 check(pagebar.length > 0, '(사전) 쪽 번호 막대를 찾았다 — 못 찾으면 아래 검사가 조용히 통과한다')
 check(/pageWindow\(/.test(lib) && !/…/.test(pagebar),
   'D25 — 쪽 번호에는 「…」이 없다 (창을 고정해 끊길 자리를 없앴다)')

@@ -93,7 +93,7 @@ const fl = strip(raw)
 // ── ④ 표 칸도 같다 ──────────────────────────────────────
 // 여기가 이 파일에서 제일 빠뜨리기 쉬운 자리다. 글상자로만 확인하면 표는 안 보인다.
 {
-  const i = fl.indexOf('if (editingThis) { e.stopPropagation(); return }')
+  const i = fl.indexOf('if (editingThis) {')
   const around = i < 0 ? '' : fl.slice(Math.max(0, i - 220), i + 60)
   check(i > 0, '표 칸의 onPointerDown 이 있다')
   check(/if \(adding\) return/.test(around),

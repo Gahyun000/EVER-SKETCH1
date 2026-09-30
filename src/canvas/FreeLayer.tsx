@@ -1,6 +1,7 @@
 import type React from 'react'
 import { Fragment, useState, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
+import { selectWordOrCaretAtPoint } from '../lib/wordSelect'
 import { intakeImage } from '../builder/imageIntake'
 import type { CSSProperties } from 'react'
 import type { Page, FreeEl } from '../state/store'
@@ -845,7 +846,14 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
     if (adding) return
     e.preventDefault(); e.stopPropagation()
     // 다른 요소를 편집 중이었으면 값을 저장하고 끝낸다(안 그러면 편집 모드가 계속 남아 Delete 가 먹통).
-    if (editRef.current && editRef.current.id !== el.id) endEditing()
+    //
+    // **표는 제 것이어도 끝낸다**(2026-09-21 · 시안 ㄷ 「둘 다 편집 풀기」,
+    // docs/화면시안_표편집중_표옮기기_v1.0.html). 표 칸은 편집 중 누름을 칸에서 멈추므로
+    // 여기까지 오는 것은 **테두리나 ⠿ 손잡이**뿐이다 — 곧 「표를 옮기겠다」는 뜻이다.
+    // 전에는 테두리로 끌면 편집이 남고(커서가 칸에 그대로) ⠿ 로 끌면 풀려서, 같은 「옮기기」가
+    // 잡는 자리에 따라 달랐다. 편집이 남은 줄 모르고 Delete 를 누르면 칸 글자가 지워졌다.
+    // 도형 글자는 이 경로로 오지 않는다(편집 중 누름을 글자에서 멈춘다) — 그래서 표만 적는다.
+    if (editRef.current && (editRef.current.id !== el.id || el.type === 'table')) endEditing()
     // preventDefault 때문에 native 포커스 이동이 없다 → 카드 텍스트칸이 포커스를 계속 쥐고 있으면
     // Hotkeys 의 '입력 중' 가드가 Delete 를 통째로 삼킨다. 여기서 직접 떼어 준다(그 칸의 onBlur 로 값도 저장됨).
     if (editRef.current == null) {
@@ -1198,7 +1206,16 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
             onPointerDown={active ? (e) => onElDown(e, el) : undefined}
             onPointerEnter={active && tool === 'select' ? () => setHoverId(el.id) : undefined}
             onPointerLeave={active && tool === 'select' ? () => setHoverId((h) => (h === el.id ? null : h)) : undefined}
-            onDoubleClick={active ? (e) => { if (isImg) pickImage(el); else startEditing(el.id, { x: e.clientX, y: e.clientY }) } : undefined}>
+            onDoubleClick={active ? (e) => {
+              if (isImg) { pickImage(el); return }
+              // **이미 편집 중인데 글자 칸 바깥(도형 안쪽 여백)을 더블클릭한 경우.** 그대로
+              // startEditing 으로 흘리면 좌표만 적어 두고 아무 일도 안 해서, 브라우저가 고른
+              // 마지막 낱말이 남는다. 글자 칸 안을 누른 것과 같은 규칙(낱말 아니면 커서)으로 맞춘다.
+              if (editing === el.id && editRef.current?.node) {
+                selectWordOrCaretAtPoint(editRef.current.node, e.clientX, e.clientY); return
+              }
+              startEditing(el.id, { x: e.clientX, y: e.clientY })
+            } : undefined}>
             {/* **오려 만든 갈래의 테두리.** 상자에 그릴 수 없으니 그 위에 선을 얹는다.
                 굵기를 두 배로 그리면 바깥 절반이 오리는 규칙에 잘려 **딱 제 굵기**만 남고,
                 선이 모양 안쪽에 정확히 붙는다. (SVG 에는 「안쪽 선」이 따로 없다.) */}
@@ -1283,7 +1300,36 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                               // 표 칸도 마찬가지다. 여기만 빼 두면 「글상자 위에는
                               // 그려지는데 표 위에는 안 되는」 반쪽이 된다.
                               if (adding) return
-                              if (editingThis) { e.stopPropagation(); return }
+                              // **편집 중에 다른 칸을 누르면 거기서 빠져나온다**(2026-09-18 · 사용자 신고).
+                              //
+                              // 사용자: 「표 클릭했을때 밖에 클릭해야 글씨 풀리는 게 불편함 /
+                              // 드래그 하려면 밖에 클릭해야 해서 귀찮음」. 영상을 프레임으로 뜯어 보니
+                              // 편집 중에는 **어느 칸을 눌러도** 이 자리에서 그냥 돌아섰다 —
+                              // 글자 커서만 칸 사이를 옮겨 다니고, 칸 범위 끌기도 표 옮기기도
+                              // 살아나지 않았다. 편집이 **칸이 아니라 표 전체**에 걸려 있어서
+                              // (`editing = el.id`), 푸는 길이 **표 밖을 누르는 것뿐**이었다.
+                              //
+                              // 엑셀·파워포인트와 같게 한다. **같은 칸**을 누른 것은 글자 사이로
+                              // 커서를 옮기는 중이니 브라우저에 맡기고, **다른 칸**을 누르면 값을
+                              // 저장하고 편집을 끈 뒤 그 칸을 고른다 — 그때부터 끌면 범위 선택이고,
+                              // ⠿ 손잡이로 표를 옮길 수도 있다. 표 밖으로 나갈 일이 없어진다.
+                              if (editingThis) {
+                                e.stopPropagation()
+                                const cur = editRef.current
+                                if (cur && cur.node === e.currentTarget) return   // 같은 칸 → 커서 이동은 그대로
+                                // 새 칸에 글자 커서가 꽂히면 안 된다 — 여기서부터는 '칸 고르기'다.
+                                e.preventDefault()
+                                const ae = document.activeElement as HTMLElement | null
+                                endEditing()                      // 값부터 커밋하고 편집을 끈다
+                                // preventDefault 때문에 native 포커스 이동이 없다 → 옛 칸이 포커스를
+                                // 쥔 채 남으면 Hotkeys 의 '입력 중' 가드가 Delete 를 통째로 삼킨다.
+                                if (ae && ae.isContentEditable) ae.blur()
+                                if (!tableActive) setSel(el.id)
+                                if (e.shiftKey && ts) { pickRange(el, ts.r0, ts.c0, r, c); return }
+                                pickRange(el, r, c, r, c)
+                                startCellDrag(el, r, c, e.currentTarget)
+                                return
+                              }
                               // Shift+클릭은 요소 다중 선택에 쓴다 — 표가 아직 안 골라졌으면 흘려보낸다.
                               if (e.shiftKey && !tableActive) return
                               e.stopPropagation()
@@ -1310,12 +1356,19 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                               // 예전엔 표 전체가 편집 모드로 바뀌기만 해서, 글자를 쓰려면
                               // 한 번 더 클릭해야 했다. 더블클릭했는데 아무 일도 안 일어난
                               // 것처럼 보이는 게 문제였다.
-                              if (editingThis) return        // 이미 편집 중이면 기본 동작(단어 선택)에 맡긴다
+                              // 편집 중이면 누른 낱말을 고른다 — 예전에는 브라우저 기본(ICU 낱말)에
+                              // 맡겼는데, 기준이 띄어쓰기가 아니라 「성번02_.」 가 쪼개졌다.
+                              if (editingThis) { e.stopPropagation(); selectWordOrCaretAtPoint(e.currentTarget, e.clientX, e.clientY); return }
                               e.stopPropagation()
                               startEditing(el.id)          // 이전 편집분을 먼저 저장하고 시작
                               if (!cellEditable(el.slot, r, c)) return
                               const node = e.currentTarget
-                              requestAnimationFrame(() => requestAnimationFrame(() => node.focus()))
+                              // 좌표는 **지금** 잡아 둔다 — 두 프레임 뒤에는 이벤트가 이미 재활용된 뒤다.
+                              const x = e.clientX, y = e.clientY
+                              requestAnimationFrame(() => requestAnimationFrame(() => {
+                                node.focus()
+                                selectWordOrCaretAtPoint(node, x, y)   // 켜자마자 누른 낱말까지(빈 곳이면 그 자리 커서)
+                              }))
                             }}
                             onFocus={canEdit ? (e) => {
                               const n = e.currentTarget
@@ -1390,14 +1443,35 @@ export default function FreeLayer({ page, W, H, interactive }: Props) {
                         n.focus()
                       }}
                       onFocus={(e) => { const n = e.currentTarget; requestAnimationFrame(() => {
-                        const sel = window.getSelection(); if (!sel || !sel.isCollapsed) return
+                        const sel = window.getSelection(); if (!sel) return
                         const at = editAtRef.current; editAtRef.current = null
-                        const cr = at && (document as any).caretRangeFromPoint ? (document as any).caretRangeFromPoint(at.x, at.y) as Range | null : null
-                        const r = document.createRange()
-                        if (cr && n.contains(cr.startContainer)) { r.setStart(cr.startContainer, cr.startOffset); r.collapse(true) }
-                        else r.selectNodeContents(n)   // 좌표를 못 얻으면 예전처럼 전체 선택
+                        // **더블클릭으로 켰으면 우리 규칙이 이긴다**(띄어쓰기 기준 낱말, 빈 곳이면 커서).
+                        //
+                        // 전에는 맨 앞에서 「이미 뭔가 골라져 있으면 손대지 않는다」로 빠져나갔다.
+                        // 그런데 두 번째 누름에서 **브라우저가 먼저** 편집 전 글자의 낱말을 골라 두므로
+                        // 거의 늘 여기서 빠져나갔고, 결과는 우리 규칙이 아니라 브라우저 규칙이었다 —
+                        // 글자 위에선 우연히 맞아 보였지만, 글줄 끝 뒤 빈 곳을 누르면 마지막 낱말이
+                        // 골라져 이어 쓰려던 글자가 그 낱말을 지웠다. 브라우저에서 재어 보고 찾았다.
+                        if (at) { selectWordOrCaretAtPoint(n, at.x, at.y); return }
+                        // 좌표 없이 켜진 경우(새 글상자를 놓자마자 등)는 예전처럼 전체 선택 —
+                        // 다른 길이 이미 골라 둔 것이 있으면 존중한다.
+                        if (!sel.isCollapsed) return
+                        const r = document.createRange(); r.selectNodeContents(n)
                         sel.removeAllRanges(); sel.addRange(r)
                       }) }}
+                      // **편집 중인 글자 위의 누름은 글자의 것이다**(2026-09-21).
+                      // 전에는 여기서 멈추지 않아 바깥 `.fel` 의 onElDown 까지 올라갔고, 그쪽이
+                      // preventDefault 하고 **도형 끌기**를 시작했다. 그래서 편집 중에 글자를 끌어
+                      // 고르면 글자 대신 도형이 움직였고, 세 번 눌러 전체 고르기도 먹지 않았다
+                      // (브라우저 기본 동작이 막혀서). 표 칸·메모(note-inner)는 이미 이렇게 막고 있었다.
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onDoubleClick={(e) => {
+                        // 편집 중 더블클릭도 **같은 기준**으로. 브라우저 기본(ICU 낱말)에 맡기면
+                        // 「성번02_.」 가 쪼개진다. 바깥(.fel)의 더블클릭까지 올라가면
+                        // startEditing 이 좌표를 다시 적어 두어, 다음 편집이 엉뚱한 자리를 고른다.
+                        e.stopPropagation()
+                        selectWordOrCaretAtPoint(e.currentTarget, e.clientX, e.clientY)
+                      }}
                       onBlur={() => { endEditing() }}>{el.text}</div>
                   : <div className="feltext" style={txtStyle}>{el.text}</div>)}
             {active && isNote && editingThis ? <div className="note-drag" title="드래그해서 이동">⠿</div> : null}

@@ -30,7 +30,7 @@ p.on('pageerror', (e) => errs.push(String(e.message)))
 
 await p.goto(URL, { waitUntil: 'networkidle' })
 await p.waitForSelector('text=임원회의', { timeout: 15000 })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 await p.waitForTimeout(600)
 
@@ -136,7 +136,7 @@ if (await se.count() === 0) {
 
 await p.reload({ waitUntil: 'networkidle' })     // 크기를 키워 놨으니 처음 상태로 되돌린다
 await p.waitForSelector('text=임원회의', { timeout: 15000 })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 await p.waitForTimeout(700)
 {
@@ -173,7 +173,7 @@ await p.waitForTimeout(700)
 // 합을 그대로 두므로 **표 전체 크기는 안 변한다** — 한쪽이 넓어지면 옆이 좁아진다.
 await p.reload({ waitUntil: 'networkidle' })
 await p.waitForSelector('text=임원회의', { timeout: 15000 })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 await p.waitForTimeout(700)
 {

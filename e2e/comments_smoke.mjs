@@ -25,7 +25,7 @@ const errs = []
 p.on('pageerror', (e) => errs.push(String(e.message)))
 
 await p.goto(URL, { waitUntil: 'networkidle' })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 await p.waitForTimeout(600)
 
@@ -115,7 +115,7 @@ ok('답글을 달아도 스레드는 하나다', await p.locator('.cmt-item').co
 await p.request.post(URL.replace(/\/$/, '') + '/api/comments/cm1/resolve',
                      { data: { resolved: true } })
 await p.reload({ waitUntil: 'networkidle' })
-await p.locator('text=임원회의').first().click()
+await p.locator('text=임원회의').first().dblclick()   // 2026-09-17 이후 목록은 **두 번 눌러야** 연다
 await p.waitForSelector('.freelayer:not(.off)', { timeout: 15000 })
 await p.waitForTimeout(600)
 await p.locator('.cmt-tab').click()

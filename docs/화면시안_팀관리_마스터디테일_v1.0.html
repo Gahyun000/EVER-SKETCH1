@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>시안 — 팀 관리 마스터·디테일 v1.0</title>
+<style>
+  :root{--ink:#1a1f2b;--muted:#6b7488;--line:#e2e6ee;--bg:#f4f6fa;--blue:#2462EB;--blue-soft:#EAF1FE;--navy:#0F1B3D;--red:#d04a4a;--ok:#27794e}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1240px;margin:0 auto;padding:34px 20px 90px}
+  h1{font-size:24px;font-weight:800;margin:0 0 6px}
+  h2{font-size:18px;font-weight:800;margin:34px 0 8px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.2px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  code{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:4px;padding:1px 5px}
+  button{font-family:inherit}
+
+  /* ── 화면 ── */
+  .app{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 20px rgba(20,25,40,.06);overflow:hidden}
+  .head{text-align:center;padding:18px 20px 14px;border-bottom:1px solid var(--line)}
+  .brand{font-size:17px;font-weight:800}.brand span{font-size:11.5px;color:var(--muted);font-weight:600;margin-left:6px}
+  .head p{margin:4px 0 0;font-size:12.5px;color:#3a4150}
+  .md{display:grid;grid-template-columns:280px 1fr;min-height:560px}
+
+  /* 왼쪽: 팀 목록 */
+  .master{border-right:1px solid var(--line);background:#fafbfd;display:flex;flex-direction:column}
+  .m-top{padding:14px 14px 10px}
+  .m-title{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:800;color:#3a4150;margin-bottom:8px}
+  .m-title span{color:var(--muted);font-weight:700}
+  .add{display:flex;gap:6px;align-items:center;border:1.5px dashed #9db7f6;background:#fff;border-radius:9px;padding:4px 4px 4px 10px}
+  .add:focus-within{border-style:solid;border-color:var(--blue)}
+  .add .plus{color:var(--blue);font-weight:900}
+  .add input{flex:1;min-width:0;border:none;outline:none;font:13px inherit;font-family:inherit;height:28px;background:none}
+  .add button{height:28px;border-radius:7px;border:none;background:#9db7f6;color:#fff;font:800 12px/1 inherit;padding:0 10px;cursor:not-allowed}
+  .add button.on{background:var(--blue);cursor:pointer}
+  .err{color:var(--red);font-size:11.5px;font-weight:700;min-height:17px;padding:3px 2px 0}
+  .list{list-style:none;margin:0;padding:0 8px 12px;overflow:auto;flex:1}
+  .list li{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:700;position:relative}
+  .list li:hover{background:#eef2f9}
+  .list li.on{background:var(--blue-soft);color:var(--blue)}
+  .list li.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--blue)}
+  .list li .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list li .c{min-width:22px;height:20px;border-radius:999px;background:#e4e9f2;color:#3a4150;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 6px}
+  .list li.on .c{background:#d3e1fd;color:var(--blue)}
+  .list li.sys{color:#5b6270;font-weight:700}
+  .list .sep{height:1px;background:var(--line);margin:6px 10px}
+  .list li.fresh{animation:flash 1.6s ease}
+  @keyframes flash{0%{background:#c9f0d8}100%{background:var(--blue-soft)}}
+
+  /* 오른쪽: 선택한 팀 */
+  .detail{padding:16px 20px 18px;display:flex;flex-direction:column;min-width:0}
+  .d-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-height:34px}
+  .d-name{font-size:18px;font-weight:800}
+  .d-name input{font:800 17px inherit;font-family:inherit;border:1.5px solid var(--blue);border-radius:8px;padding:2px 8px;width:220px;outline:none}
+  .d-meta{font-size:12px;color:var(--muted);font-weight:700}
+  .d-act{margin-left:auto;display:flex;gap:6px}
+  .mini{border:1px solid #d9dee8;background:#fff;border-radius:7px;height:30px;padding:0 11px;font:700 12px/1 inherit;color:#1a1f2b;cursor:pointer}
+  .mini:disabled{opacity:.5;cursor:not-allowed}
+  .mini.danger:not(:disabled){color:var(--red);border-color:#efc4c4}
+  .mini.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+  select.mini{padding:0 6px}
+  .srch{display:flex;gap:8px;margin-bottom:10px}
+  .q{flex:1;max-width:320px;height:34px;border:1px solid var(--line);border-radius:9px;display:flex;align-items:center;padding:0 10px;gap:6px;color:#9aa2b1}
+  .q input{border:none;outline:none;flex:1;font:13px inherit;font-family:inherit}
+  .sb{height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:#fff;font:800 12.5px/1 inherit;color:#1a1f2b;cursor:pointer}
+  .sb.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+  .cnt{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:700;color:#3a4150;margin:2px 0 6px}
+  .pg{display:flex;gap:4px}.pg span{width:26px;height:26px;border:1px solid var(--line);border-radius:7px;display:grid;place-items:center;color:#b5bccb;font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+  th{font-size:11px;color:#3a4150;font-weight:800;padding:9px 8px;border-bottom:1px solid var(--line);background:#fbfcfe}
+  td{padding:9px 8px;border-bottom:1px solid #eef0f4;text-align:center;vertical-align:middle}
+  td .s2{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  td b{font-weight:800}
+  tr.moved td{animation:flash2 1.4s ease}
+  @keyframes flash2{0%{background:#fff4d6}100%{background:#fff}}
+  .tagteam{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:2px 8px;background:#eef0f4;color:#5b6270}
+  .empty{border:1.5px dashed var(--line);border-radius:12px;padding:30px 16px;text-align:center;color:var(--muted);font-size:13px;margin-top:4px}
+  .empty b{color:var(--ink)}
+  .note{margin-top:auto;border:1px solid #c9d9fb;background:#f5f8ff;border-radius:10px;padding:9px 12px;font-size:11.5px;color:#2d5bd2}
+  .notewrap{margin-top:14px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:10px;padding:9px 16px;font-size:12.5px;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+
+  table.t{width:100%;border-collapse:collapse;font-size:12.8px;background:#fff;border:1px solid var(--line);table-layout:auto}
+  table.t td,table.t th{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top;background:#fff}
+  table.t th{color:var(--muted);font-weight:800;font-size:11.5px;background:#fbfcfe}
+  .rec{color:var(--blue);font-weight:800}
+  .row2{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .reset{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font:800 12px/1 inherit;color:#3a4150;cursor:pointer}
+  .hint{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>시안 — 팀 관리: 마스터·디테일 (왼쪽 팀 · 오른쪽 팀원)</h1>
+  <p class="sub">v1.0 · 2026-09-21 · <b>검토 요청</b> — 아래 화면은 직접 눌러 볼 수 있습니다: 팀 만들기 · 팀 고르기 · 이름 변경 · 팀원 넣기/옮기기 · 빈 팀 삭제</p>
+
+  <div class="why">
+    <b>구상.</b> 왼쪽은 <b>팀 목록</b>이고 맨 위에 <b>「＋ 새 팀」 입력칸이 늘 열려</b> 있습니다(목록 맨 위라 검색칸과 헷갈릴 일이 없음). 치고 Enter → 목록에 생기고 바로 선택됩니다.<br>
+    오른쪽은 보내 주신 화면 내용 그대로 — 검색·조회·초기화, 개수 줄(위), 이름·부서 │ 권한 │ 팀 배정 표, 안내 상자 — 를 <b>고른 팀 하나</b>에 대해 보여 줍니다.
+    팀 이름 변경·팀 삭제는 표 안 팀 줄에서 빠져 <b>오른쪽 머리</b>로 올라갑니다. 그래서 지금 화면에서 팀 줄 인원(<code>0</code>, <code>3</code>)이 권한 칸 왼쪽에 어긋나 있던 문제도 함께 사라집니다.
+  </div>
+
+  <div class="app">
+    <div class="head"><div class="brand">팀 관리<span>관리자 전용</span></div><p>팀이 곧 <b>공유 범위</b>입니다. 승인된 자료는 같은 팀에게만 보입니다.</p></div>
+    <div class="md">
+      <aside class="master">
+        <div class="m-top">
+          <div class="m-title">팀 <span id="tcount"></span></div>
+          <div class="add"><span class="plus">＋</span><input id="newTeam" maxlength="30" placeholder="새 팀 이름 — 치고 Enter"><button id="mk" disabled>만들기</button></div>
+          <div class="err" id="err"></div>
+        </div>
+        <ul class="list" id="list"></ul>
+      </aside>
+      <section class="detail" id="detail"></section>
+    </div>
+  </div>
+  <div class="row2"><button class="reset" id="reset">처음으로</button><span class="hint">왼쪽에서 「11」을 고르면 빈 팀 화면 · 「전체」는 모든 사람</span></div>
+
+  <h2>정해 둔 것</h2>
+  <table class="t">
+    <tr><th style="width:22%">항목</th><th>시안</th></tr>
+    <tr><td><b>왼쪽 목록 순서</b></td><td>전체 → 팀들(가나다순) → 팀 미배정. 인원은 오른쪽 숫자.</td></tr>
+    <tr><td><b>새 팀</b></td><td class="rec">목록 맨 위 입력칸, 늘 열림. Enter/만들기 → 목록에 생기고 곧바로 선택됨 · 같은 이름이면 「이미 있는 팀 이름입니다.」</td></tr>
+    <tr><td><b>오른쪽 머리</b></td><td>팀 이름 · 팀원 N명 · [＋ 팀원 넣기 ▾] [이름 변경] [팀 삭제] — 팀원이 있으면 삭제 막힘(지금과 같음)</td></tr>
+    <tr><td><b>오른쪽 표</b></td><td>지금 화면과 같은 세 칸. 「전체」에서는 팀 배정 칸에 현재 팀 표시가 붙음.</td></tr>
+    <tr><td><b>빈 팀</b></td><td>「팀원이 없습니다」 대신 <b>「＋ 팀원 넣기」로 바로 채우는 안내</b> — 새 팀을 만든 직후 다음 할 일이 보임</td></tr>
+    <tr><td><b>개수 줄</b></td><td>표 위(개수줄 ㄴ 결정과 같은 자리·「페이지」 말)</td></tr>
+    <tr><td><b>좁은 화면</b></td><td>왼쪽 목록이 위로 올라가 한 줄 가로 칩으로 바뀜(구현 때 반영)</td></tr>
+  </table>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PEOPLE0 = () => [
+  { name: '김가현', dept: 'SI개발본부', role: 'Lv2 작성자', team: 'SI개발팀' },
+  { name: '홍길동', dept: 'SI개발본부', role: 'Lv3 열람자', team: 'SI개발팀' },
+  { name: '곽두섭', dept: '청결청소부', role: 'Lv2 작성자', team: 'SI개발팀' },
+]
+let S
+function init() { S = { teams: ['11', 'SI개발팀'], people: PEOPLE0(), sel: 'SI개발팀', q: '', renaming: false, fresh: null, moved: null } }
+init()
+const ALL = '__all', NONE = '__none'
+const $ = (id) => document.getElementById(id)
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const members = (t) => t === ALL ? S.people : S.people.filter((p) => (t === NONE ? !p.team : p.team === t))
+const sorted = () => [...S.teams].sort((a, b) => a.localeCompare(b, 'ko'))
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 1600) }
+
+function renderList() {
+  $('tcount').textContent = `${S.teams.length}개`
+  const li = (key, label, cls = '') => `<li data-sel="${esc(key)}" class="${cls} ${S.sel === key ? 'on' : ''} ${S.fresh === key ? 'fresh' : ''}"><span class="nm">${esc(label)}</span><span class="c">${members(key).length}</span></li>`
+  $('list').innerHTML = li(ALL, '전체', 'sys') + '<div class="sep"></div>' + sorted().map((t) => li(t, t)).join('') + '<div class="sep"></div>' + li(NONE, '팀 미배정', 'sys')
+}
+function teamOpts(cur) { return `<option value="">팀 선택</option>` + sorted().map((t) => `<option ${t === cur ? 'selected' : ''}>${esc(t)}</option>`).join('') }
+function renderDetail() {
+  const t = S.sel, isTeam = t !== ALL && t !== NONE
+  const title = t === ALL ? '전체' : t === NONE ? '팀 미배정' : t
+  const rows = members(t).filter((p) => !S.q || (p.name + p.dept + (p.team || '')).includes(S.q))
+  const n = members(t).length
+  const addable = S.people.filter((p) => p.team !== t)
+  const head = `<div class="d-head">
+    <div class="d-name">${S.renaming && isTeam ? `<input id="rn" value="${esc(t)}" maxlength="30">` : esc(title)}</div>
+    <div class="d-meta">${t === ALL ? '모든 사람' : '팀원'} ${n}명</div>
+    ${isTeam ? `<div class="d-act">
+      <select class="mini" id="addm" ${addable.length ? '' : 'disabled'}><option value="">＋ 팀원 넣기</option>${addable.map((p, i) => `<option value="${esc(p.name)}">${esc(p.name)} · ${p.team ? esc(p.team) : '미배정'}</option>`).join('')}</select>
+      ${S.renaming ? `<button class="mini pri" id="rnok">저장</button><button class="mini" id="rnx">취소</button>` : `<button class="mini" id="rename">이름 변경</button>`}
+      <button class="mini danger" id="del" ${n ? 'disabled title="팀원이 있으면 삭제할 수 없습니다"' : ''}>팀 삭제</button></div>` : ''}
+  </div>`
+  const srch = `<div class="srch"><div class="q">⌕<input id="q" placeholder="이름 · 부서" value="${esc(S.q)}"></div><button class="sb dark" id="go">조회</button><button class="sb" id="clr">초기화</button></div>`
+  const cnt = `<div class="cnt"><span>전체 <b>${rows.length}</b>명 · 1/1 페이지 · 20명씩</span><span class="pg"><span>‹</span><span>›</span></span></div>`
+  let body
+  if (!n && isTeam) body = `<div class="empty"><b>아직 팀원이 없습니다.</b><br>오른쪽 위 <b>「＋ 팀원 넣기」</b>로 사람을 골라 넣으세요. 다른 팀에 있던 사람은 이 팀으로 옮겨집니다.</div>`
+  else if (!rows.length) body = `<div class="empty">${n ? '찾는 사람이 없습니다.' : '팀에 속하지 않은 사람이 없습니다.'}</div>`
+  else body = `<table><colgroup><col style="width:36%"><col style="width:24%"><col style="width:40%"></colgroup>
+    <tr><th>이름 · 부서</th><th>권한</th><th>팀 배정</th></tr>
+    ${rows.map((p) => `<tr class="${S.moved === p.name ? 'moved' : ''}"><td><b>${esc(p.name)}</b><span class="s2">${esc(p.dept)}</span></td><td>${p.role}</td>
+      <td>${t === ALL ? `<span class="tagteam">${p.team ? esc(p.team) : '미배정'}</span> ` : ''}<select class="mini" data-pick="${esc(p.name)}">${teamOpts(p.team)}</select> <button class="mini" data-mv="${esc(p.name)}" disabled>옮기기</button></td></tr>`).join('')}
+  </table>`
+  $('detail').innerHTML = head + srch + cnt + body + `<div class="notewrap"><div class="note">팀을 바꿔도 <b>로그인은 끊기지 않습니다</b> — 다음 요청부터 바로 새 팀이 적용됩니다. (권한 변경과 다릅니다.)<br>한 사람은 <b>한 팀</b>에만 속합니다. 다른 팀에 넣으면 이전 팀에서 빠집니다.</div></div>`
+  if (S.renaming) { const r = $('rn'); r.focus(); r.select() }
+  S.moved = null
+}
+function render() { renderList(); renderDetail(); S.fresh = null }
+
+function create() {
+  const v = $('newTeam').value.trim()
+  if (!v || S.teams.includes(v)) return
+  S.teams.push(v); S.sel = v; S.fresh = v; S.q = ''
+  $('newTeam').value = ''; onType(); render(); toast(`「${v}」 팀을 만들었습니다`)
+}
+function onType() {
+  const v = $('newTeam').value.trim(), dup = S.teams.includes(v)
+  $('mk').disabled = !v || dup; $('mk').classList.toggle('on', !!v && !dup)
+  $('err').textContent = dup ? '이미 있는 팀 이름입니다.' : ''
+}
+function move(name, team) { const p = S.people.find((x) => x.name === name); if (!p || !team || p.team === team) return; const from = p.team; p.team = team; S.moved = name; render(); toast(`${name} → ${team}${from ? ` (「${from}」에서 빠짐)` : ''}`) }
+function saveRename() {
+  const v = $('rn').value.trim(), old = S.sel
+  if (!v || v === old) { S.renaming = false; return render() }
+  if (S.teams.includes(v)) return toast('이미 있는 팀 이름입니다.')
+  S.teams[S.teams.indexOf(old)] = v; S.people.forEach((p) => { if (p.team === old) p.team = v }); S.sel = v; S.renaming = false; render()
+}
+
+$('newTeam').addEventListener('input', onType)
+$('newTeam').addEventListener('keydown', (e) => { if (e.key === 'Enter') create(); if (e.key === 'Escape') { e.target.value = ''; onType() } })
+$('mk').addEventListener('click', create)
+$('reset').addEventListener('click', () => { init(); $('newTeam').value = ''; onType(); render() })
+document.addEventListener('click', (e) => {
+  const li = e.target.closest('[data-sel]'); if (li) { S.sel = li.dataset.sel; S.renaming = false; S.q = ''; return render() }
+  const id = e.target.id
+  if (id === 'rename') { S.renaming = true; renderDetail() }
+  if (id === 'rnx') { S.renaming = false; renderDetail() }
+  if (id === 'rnok') saveRename()
+  if (id === 'del') { const t = S.sel; S.teams = S.teams.filter((x) => x !== t); S.sel = ALL; render(); toast(`「${t}」 팀을 삭제했습니다`) }
+  if (id === 'go') { S.q = $('q').value.trim(); renderDetail() }
+  if (id === 'clr') { S.q = ''; renderDetail() }
+  const mv = e.target.closest('[data-mv]'); if (mv) { const sel = document.querySelector(`[data-pick="${CSS.escape(mv.dataset.mv)}"]`); move(mv.dataset.mv, sel.value) }
+})
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'addm' && e.target.value) move(e.target.value, S.sel)
+  const pick = e.target.dataset && e.target.dataset.pick
+  if (pick) { const p = S.people.find((x) => x.name === pick); document.querySelector(`[data-mv="${CSS.escape(pick)}"]`).disabled = !e.target.value || e.target.value === p.team }
+})
+document.addEventListener('keydown', (e) => {
+  if (e.target.id === 'rn') { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') { S.renaming = false; renderDetail() } }
+  if (e.target.id === 'q' && e.key === 'Enter') { S.q = e.target.value.trim(); renderDetail() }
+})
+render()
+</script>
+</body>
+</html>

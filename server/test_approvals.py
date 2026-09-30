@@ -439,7 +439,7 @@ def test_라우트_제출부터_승인까지():
     r = ad.post("/api/approvals/%s/decide" % aid, json={"action": "approve", "message": "좋습니다"})
     assert r.status_code == 200
     a = r.json()["approval"]
-    assert a["status"] == "approved" and a["approver_name"] == "시스템 관리자"
+    assert a["status"] == "approved" and a["approver_name"] == "관리자"
 
 
 def test_라우트_작성자는_본인이_낸_것만_본다():
@@ -566,7 +566,7 @@ def test_라우트_상태표의_결재자는_결정_뒤에만_있다():
 
     m2 = c.get("/api/approvals/status-map").json()["status_map"]
     assert m2[pid]["approver"], "결정이 나면 결재자 id 가 들어온다"
-    assert m2[pid]["approver_name"] == "시스템 관리자", \
+    assert m2[pid]["approver_name"] == "관리자", \
         "**이름은 서버가 붙인다** — 화면이 id 로 이름을 되묻지 않는다"
     # 저장은 여전히 id 다. 개명 한 번에 「누가 승인했는가」가 흐려지면 안 된다.
     assert m2[pid]["approver"] != m2[pid]["approver_name"]

@@ -1,9 +1,12 @@
+import asyncio
 import base64
+import contextlib
 import json
 import os
 import re
 import subprocess
 import sys
+import threading
 import time
 import pathlib
 import urllib.request
@@ -14,6 +17,7 @@ from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile, File,
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from server.settings_store import (
@@ -40,7 +44,61 @@ GEN_DIR = UNIEVER / "ebook-generator"
 GEN_PY = GEN_DIR / "generator.py"
 EBOOKS = UNIEVER / "ebooks"
 
-app = FastAPI(title="EVER-SKETCH")
+# ───────────────────────── 멈춤 감시 (2026-09-21) ─────────────────────────
+#
+# 사용자: 「폴더가 자주 안 불러와진다」. 보내 준 화면의 개발자도구를 보니 **index.html
+# 조차 (pending)** 이었다 — 폴더 API 하나가 느린 게 아니라 **서버가 통째로 안 받는**
+# 상태다. 그 순간 로그에는 아무 줄도 안 남는다: uvicorn 접근 로그는 요청이 **끝나야**
+# 찍히므로, 멈춰 있는 동안은 조용하다. 그래서 「멈췄다」는 사실 자체를 아무도
+# 기록하지 않았고, 원인은 늘 짐작으로 남았다.
+#
+# 여기서 고치는 것은 없다. **멈춘 사실과 길이를 로그에 남긴다.**
+# 심장 박동은 이벤트 루프 위에서 뛰고, 재는 사람은 바깥 실(thread)이다 —
+# 루프가 막히면 박동이 멈추고, 바깥에서는 그게 보인다. 루프를 막은 그 요청은
+# 풀리는 순간 접근 로그에 찍히므로, 「멈춤」 줄 바로 아래가 범인이다.
+_BEAT = {"t": time.monotonic()}
+_STALL_SEC = float(os.environ.get("SKETCH_STALL_SEC") or "1.0")
+
+
+async def _heartbeat() -> None:
+    while True:
+        _BEAT["t"] = time.monotonic()
+        await asyncio.sleep(0.2)
+
+
+def _stall_watch() -> None:
+    """루프가 `_STALL_SEC` 넘게 안 돌면 시작과 끝을 한 줄씩 적는다.
+
+    **끝날 때만 적으면 안 된다** — 영영 안 풀리는 멈춤이 가장 중요한데 그때는
+    한 줄도 안 남는다. 그래서 시작에서 한 줄, 풀릴 때 길이와 함께 한 줄이다.
+    """
+    said = False
+    while True:
+        time.sleep(0.5)
+        gap = time.monotonic() - _BEAT["t"]
+        if gap >= _STALL_SEC and not said:
+            said = True
+            print("[멈춤] %s · 이벤트 루프가 %.1f초째 안 돕니다 (이 아래 찍히는 요청이 붙잡고 있던 것)"
+                  % (time.strftime("%H:%M:%S"), gap), flush=True)
+        elif gap < _STALL_SEC and said:
+            said = False
+            print("[멈춤풀림] %s" % time.strftime("%H:%M:%S"), flush=True)
+
+
+@contextlib.asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """**`on_event` 를 쓰지 않는다.** 그것은 라우트 목록에 한 줄로 얹혀서,
+    「모든 엔드포인트에 로그인 가드가 있는가」를 세는 검사(test_endpoint_coverage)에
+    엔드포인트인 척 잡힌다 — 가드가 있을 수 없는 것을 놓고 없다고 떨어진다."""
+    beat = asyncio.create_task(_heartbeat())
+    threading.Thread(target=_stall_watch, name="stall-watch", daemon=True).start()
+    try:
+        yield
+    finally:
+        beat.cancel()
+
+
+app = FastAPI(title="EVER-SKETCH", lifespan=_lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
@@ -188,7 +246,20 @@ async def deck(file: UploadFile = File(...), theme: str = Form("light"), summari
             except Exception:
                 return None
     try:
-        res = convert(html, theme, file.filename or "deck.html", summarize_fn=summarize_fn)
+        # **이벤트 루프에서 돌리면 안 된다**(2026-09-21).
+        #
+        # 이 한 줄이 HTML→PPTX→PDF→썸네일을 통째로 하고, 요약을 켜면 그 안에서
+        # LLM 을 최대 90초까지 기다린다. `async def` 안에서 그냥 부르면 그동안
+        # uvicorn 은 **아무 요청도 못 받는다** — 폴더도, 목록도, 심지어 화면을
+        # 새로 고쳤을 때의 index.html 도. 사용자가 보내 준 개발자도구 화면의
+        # 「document (pending)」이 그 모습이었다.
+        #
+        # 스트리밍 쪽(`/api/deck/stream`)은 StreamingResponse 가 동기 제너레이터를
+        # 작업 실로 돌려 주어 이미 안전했다. 이 비스트리밍 길만 맨 루프에 남아
+        # 있었고, 그런데 이 길은 **스트림이 막히면 화면이 되돌아오는 폴백**이다
+        # (ClassicBar). 즉 스트림이 잘 안 될수록 여기로 몰린다.
+        res = await run_in_threadpool(convert, html, theme, file.filename or "deck.html",
+                                      summarize_fn=summarize_fn)
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)}
     tok = res["token"]

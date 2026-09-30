@@ -18,6 +18,8 @@ const SUITES = [
   { name: '로그인 · 비밀번호 보기', file: 'login_password_smoke.mjs', env: { ANON: '1' } },
   { name: '표 셀 드래그 · 병합', file: 'table_merge_smoke.mjs', env: {} },
   { name: '글자 입력(표 칸 · 머리글)', file: 'table_type_smoke.mjs', env: {} },
+  { name: '표 편집 나가기(밖 클릭 없이)', file: 'table_edit_exit_smoke.mjs', env: {} },
+  { name: '더블클릭 낱말 고르기(띄어쓰기 기준)', file: 'word_select_smoke.mjs', env: {} },
   { name: '숫자 칸(글자 크기)', file: 'num_input_smoke.mjs', env: {} },
   { name: '화면 배율(확대·축소)', file: 'zoom_smoke.mjs', env: {} },
   { name: '마인드맵(요소로 펼치기)', file: 'mindmap_smoke.mjs', env: {} },
@@ -28,7 +30,12 @@ const SUITES = [
   { name: '앵커 메모(검토 의견)', file: 'comments_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '의견 쓰기 창(모달)', file: 'comment_modal_smoke.mjs', env: { COMMENTS: '1' } },
   { name: '대화상자 공용 껍데기', file: 'modal_shell_smoke.mjs', env: {} },
+  { name: '셸 신원 표시(사이드바 맨 아래)', file: 'shell_header_smoke.mjs', env: {} },
+  { name: '내 자료 쪽 막대 — 14줄(폴더 1 + 자료 13)', file: 'lib_pager_smoke.mjs', env: { LIST: '13', FOLDERS: '1' } },
+  { name: '내 자료 쪽 막대 — 1쪽뿐', file: 'lib_pager_smoke.mjs', env: {} },
   { name: '앵커 따라가기 · 사라질 때', file: 'anchor_shift_smoke.mjs', env: { COMMENTS: '1' } },
+  { name: '팀 관리 — 마스터·디테일', file: 'team_admin_smoke.mjs', env: { ADMIN: '1', TEAMS: '1' } },
+  { name: '사용자 관리 — 마스터·디테일', file: 'users_admin_smoke.mjs', env: { ADMIN: '1', USERS: '1' } },
 ]
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))

@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>시안 — 표 병합 스위트 ⑨ 상단 헤더 검사 v1.0</title>
+<style>
+  :root{
+    --ink:#1a1f2b; --muted:#6b7488; --line:#e2e6ee; --bg:#f4f6fa;
+    --blue:#2462EB; --blue-soft:#EAF1FE; --navy:#0F1B3D; --red:#d04a4a; --ok:#27794e;
+    --amber:#b5721b; --amber-soft:#fdf2e3; --shline:#E6E8EE;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .wrap{max-width:1160px;margin:0 auto;padding:34px 20px 90px}
+  h1{font-size:24px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:18px;font-weight:800;margin:36px 0 2px}
+  h3{font-size:15px;font-weight:800;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 20px}
+  .why{background:#fff;border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:0 10px 10px 0;padding:13px 16px;font-size:13.2px;color:#3a4150;margin:14px 0}
+  .why b{color:var(--ink)}
+  .why.warn{border-left-color:var(--red)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:0 2px 10px rgba(20,25,40,.04);margin-top:14px}
+  .tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;
+    background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:3px 10px;margin-bottom:8px}
+  .tag.warn{background:#fdecec;color:var(--red)}
+  .tag.ok{background:#e6f5ec;color:var(--ok)}
+  .tag.hold{background:var(--amber-soft);color:var(--amber)}
+  code{font:11.5px ui-monospace,Menlo,monospace;background:#f0f2f6;border-radius:4px;padding:1px 5px}
+  pre{font:11.5px/1.7 ui-monospace,Menlo,monospace;background:#0F1B3D;color:#dfe6f5;
+    border-radius:10px;padding:13px 15px;overflow:auto;margin:10px 0 0}
+  pre .g{color:#7fd6a4} pre .r{color:#ff9d9d} pre .c{color:#8d9ab8}
+  ul.pt{margin:8px 0 0;padding-left:18px;font-size:13px;color:#3a4150}
+  ul.pt li{margin:6px 0} ul.pt b{color:var(--ink)}
+  .good::marker{color:var(--ok)} .bad::marker{color:var(--red)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+  @media(max-width:900px){.two,.three{grid-template-columns:1fr}}
+
+  /* ── 앱 모형 ── */
+  .app{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;
+    box-shadow:0 6px 20px rgba(20,25,40,.07);margin-top:10px}
+  .app .cap{font-size:11px;font-weight:800;color:var(--muted);padding:7px 12px;
+    background:#fbfcfe;border-bottom:1px solid var(--shline)}
+  .shell{display:grid;grid-template-columns:150px 1fr;height:250px}
+  .side{border-right:1px solid var(--shline);padding:9px 7px;font-size:11px;
+    display:flex;flex-direction:column;background:#fff}
+  .side .row{padding:6px 9px;border-radius:8px;color:#5B6270;font-weight:700;margin-bottom:1px}
+  .side .row.on{background:var(--blue-soft);color:var(--blue)}
+  .side .sp{flex:1}
+  .acct{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;
+    font-weight:700;color:#3a4150;font-size:11px}
+  .av{width:19px;height:19px;border-radius:50%;background:#3E9E6E;color:#fff;
+    display:grid;place-items:center;font-size:10px;font-weight:800;flex:0 0 auto}
+  .main{display:flex;flex-direction:column;background:#f4f6fa;min-width:0}
+  .tbar{height:34px;border-bottom:1px solid var(--shline);display:flex;align-items:center;
+    gap:9px;padding:0 11px;font-size:11px;color:#5B6270;font-weight:700;background:#fff;flex:0 0 auto}
+  .tbar .sp{flex:1}
+  .tbar .rbtn{border:1px solid var(--line);border-radius:999px;padding:3px 9px;font-size:10px}
+  .stage{flex:1;display:grid;place-items:center;color:#aeb6c4;font-size:11px;font-weight:700}
+  .hl{outline:2px solid var(--blue);outline-offset:2px;border-radius:9px;position:relative}
+  .hl::after{content:attr(data-sel);position:absolute;top:-9px;right:-2px;transform:translateY(-100%);
+    background:var(--blue);color:#fff;font:10px/1 ui-monospace,Menlo,monospace;
+    padding:3px 6px;border-radius:5px;white-space:nowrap}
+  .hl.ghost{outline-color:var(--red);outline-style:dashed}
+  .hl.ghost::after{background:var(--red)}
+  .empty{opacity:.45}
+  table.t{width:100%;border-collapse:collapse;font-size:12.6px;margin-top:10px}
+  table.t td,table.t th{border-bottom:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}
+  table.t th{color:var(--muted);font-weight:800;font-size:11.5px}
+  .pick{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .pick .b{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;
+    font-size:13px;font-weight:800;color:#3a4150}
+  .pick .b.rec{background:var(--blue);border-color:var(--blue);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>시안 — 표 병합 스위트 ⑨ 「상단 헤더」 검사를 어떻게 할까</h1>
+  <p class="sub">v1.0 · 2026-09-21 · <span class="tag ok" style="margin:0">결정 · 안 ㄴ (2026-09-21)</span> — <code>e2e/shell_header_smoke.mjs</code> 로 이사, 10검사 통과</p>
+
+  <div class="why">
+    <b>왜 지금 이 이야기가 나왔나.</b> 표 편집 회귀를 돌리려고 e2e 스위트를 살려 냈더니,
+    <code>table_merge_smoke.mjs</code> 의 ⑨ 칸만 남아서 떨어집니다. 표와는 아무 상관이 없는 칸입니다 —
+    <b>사용자 표시(UserBar)가 어디에 있는가</b>를 보는 검사인데, 그 자리가 2026-09-10 셸 도입 때 옮겨졌습니다.
+    검사는 <b>옛 자리</b>를 그대로 지키고 있습니다.
+  </div>
+
+  <h2>지금 무엇이 떨어지나</h2>
+  <pre><span class="c">━━ table_merge_smoke.mjs  ⑨ 상단 헤더</span>
+<span class="r">  ✗ 사용자 표시는 화면에 하나뿐이다  — 0개</span>        <span class="c">// .es-userbar</span>
+<span class="r">  ✗ 편집 화면에서는 툴바 안에 들어간다</span>            <span class="c">// .ax-title .es-userbar</span>
+<span class="g">  ✓ 옛 하드코딩 아바타가 사라졌다</span>
+<span class="g">  ✓ 아바타가 로그인한 사람의 이름 첫 글자다  — 표시: 홍</span>
+<span class="r">  TypeError: Cannot read properties of null (reading 'getBoundingClientRect')</span>  <span class="c">// 237행, 여기서 스위트가 통째로 중단</span></pre>
+
+  <h2>자리가 이렇게 바뀌었습니다</h2>
+
+  <div class="two">
+    <div>
+      <div class="app">
+        <div class="cap">검사가 기대하는 자리 — 편집 화면 툴바 안</div>
+        <div class="shell">
+          <div class="side empty">
+            <div class="row on">내 자료</div>
+            <div class="row">결재함</div>
+            <div class="row">팀 공유</div>
+            <div class="sp"></div>
+          </div>
+          <div class="main">
+            <div class="tbar">
+              <span>☰ 파일</span><span>수정</span><span>보기</span>
+              <span class="sp"></span>
+              <span class="rbtn">↗ FOLIO</span>
+              <span class="acct hl ghost" data-sel=".ax-title .es-userbar">
+                <span class="av">홍</span>홍길동 ⌃
+              </span>
+            </div>
+            <div class="stage">슬라이드</div>
+          </div>
+        </div>
+      </div>
+      <ul class="pt"><li class="bad">지금 여기엔 <b>아무것도 없습니다</b> — 그래서 0개.</li></ul>
+    </div>
+
+    <div>
+      <div class="app">
+        <div class="cap">실제 자리 — 사이드바 맨 아래 (셸)</div>
+        <div class="shell">
+          <div class="side">
+            <div class="row on">내 자료</div>
+            <div class="row">결재함</div>
+            <div class="row">팀 공유</div>
+            <div class="sp"></div>
+            <div class="acct hl" data-sel=".sh-acct">
+              <span class="av">홍</span>홍길동 ⌃
+            </div>
+          </div>
+          <div class="main">
+            <div class="tbar">
+              <span>☰ 파일</span><span>수정</span><span>보기</span>
+              <span class="sp"></span>
+              <span class="rbtn">↗ FOLIO</span>
+            </div>
+            <div class="stage">슬라이드</div>
+          </div>
+        </div>
+      </div>
+      <ul class="pt"><li class="good"><code>src/shell/AppShell.tsx</code> 의 <code>&lt;aside&gt;</code> 맨 아래.
+        「계정은 갈 곳 목록이 아니다」라는 주석과 함께 <code>nav</code> 밖에 붙어 있습니다.</li></ul>
+    </div>
+  </div>
+
+  <div class="why warn">
+    <b>한 가지 더 — 검사가 지키려던 사고는 이미 구조적으로 사라졌습니다.</b>
+    원래 겹침 사고의 원인은 사용자 칩이 <code>position:fixed</code> 전역 오버레이였다는 것입니다.
+    지금 <code>.sh-acct</code> 는 사이드바의 <b>평범한 흐름 자식</b>이라, 툴바 단추와 겹치는 일 자체가 일어나지 않습니다.
+    그러니 「겹치지 않는다」를 그대로 옮겨 적으면 <b>절대 안 깨지는 검사</b>가 됩니다 — 초록이지만 아무것도 안 지킵니다.
+    옮겨야 할 진짜 계약은 <b>「오버레이로 되돌아가지 않는다」</b> 쪽입니다.
+  </div>
+
+  <h2>세 가지 안</h2>
+
+  <div class="three">
+    <div class="card">
+      <span class="tag">안 ㄱ</span>
+      <h3>제자리에서 새 자리 기준으로 다시 쓴다</h3>
+      <ul class="pt">
+        <li class="good"><b>지키는 것</b> — 신원 표시는 하나 · 사이드바 안 · <b>오버레이가 아니다</b></li>
+        <li class="bad"><b>잃는 것</b> — 「편집 화면 툴바 안」이라는 옛 계약(지금은 틀린 계약)</li>
+        <li class="bad"><b>남는 문제</b> — 표 스위트가 계속 셸을 지킨다. 셸이 바뀔 때마다 <b>표 테스트가 빨개집니다</b></li>
+        <li><b>고칠 곳</b> — <code>table_merge_smoke.mjs</code> 219~245행</li>
+      </ul>
+      <pre><span class="c">// 자리와 계약을 함께 갱신</span>
+ok('신원 표시는 하나뿐이다',
+   await p.locator('.sh-acct').count() === 1)
+ok('사이드바 안에 있다',
+   await p.locator('aside .sh-acct').count() === 1)
+<span class="c">// 겹침 대신 — 오버레이 부활 감시</span>
+ok('전역 오버레이가 아니다', await p.locator('.sh-acct')
+  .evaluate(n =&gt; getComputedStyle(n).position !== 'fixed'))</pre>
+    </div>
+
+    <div class="card" style="outline:2px solid var(--blue);outline-offset:-2px">
+      <span class="tag ok">안 ㄴ · 권장</span>
+      <h3>표 스위트에서 들어내고 셸 스위트로 옮긴다</h3>
+      <ul class="pt">
+        <li class="good"><b>지키는 것</b> — ㄱ과 같음. <b>게다가 제 집에서</b> 지킵니다</li>
+        <li class="good"><b>얻는 것</b> — 표가 깨지면 표 문제, 셸이 깨지면 셸 문제. 오늘처럼 <b>표를 고치다 셸 때문에 멈추는</b> 일이 없어집니다</li>
+        <li class="bad"><b>드는 품</b> — 옮길 집이 필요(<code>modal_shell_smoke.mjs</code> 또는 새 <code>shell_header_smoke.mjs</code>)</li>
+        <li><b>고칠 곳</b> — 219~245행 삭제 + 셸 스위트에 ㄱ의 세 줄</li>
+      </ul>
+      <div class="why" style="margin:12px 0 0;font-size:12.4px">
+        표 병합 스위트가 헤더를 지키고 있던 건 <b>우연</b>입니다 — 같은 화면에 떠 있어서 김에 봤을 뿐입니다.
+        지금이 그 우연을 정리할 자연스러운 때입니다.
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="tag hold">안 ㄷ</span>
+      <h3>지금은 건너뛴다</h3>
+      <ul class="pt">
+        <li class="good"><b>지키는 것</b> — 없음. 스위트가 초록이 되어 <b>나머지 검사가 다시 돌기</b> 시작합니다</li>
+        <li class="bad"><b>잃는 것</b> — 신원 표시 가드 전부. 까닭을 안 적으면 <b>왜 꺼 뒀는지 아무도 모릅니다</b></li>
+        <li><b>쓸 때</b> — 셸 UI가 아직 더 움직일 예정이라 지금 다시 쓰면 또 고쳐야 할 때</li>
+        <li><b>고칠 곳</b> — 219~245행을 <code>if (0)</code> 가 아니라 <b>까닭을 적은 주석 + 날짜</b>와 함께 주석 처리</li>
+      </ul>
+      <pre><span class="c">// 2026-09-21 잠시 꺼 둔다.
+// UserBar 가 셸로 옮겨졌고(09-10), 셸 머리
+// 배치가 확정되면 shell 스위트에서 다시 쓴다.
+// 되살릴 사람: ____  기한: ____</span></pre>
+    </div>
+  </div>
+
+  <h2>세 안 비교</h2>
+  <table class="t">
+    <tr><th>　</th><th>ㄱ 제자리에서 갱신</th><th>ㄴ 셸 스위트로 이사 <b style="color:var(--blue)">(권장)</b></th><th>ㄷ 건너뛰기</th></tr>
+    <tr><td>표 스위트가 초록이 되나</td><td>예</td><td>예</td><td>예</td></tr>
+    <tr><td>신원 표시 가드가 남나</td><td>남음</td><td>남음</td><td><b style="color:var(--red)">사라짐</b></td></tr>
+    <tr><td>오버레이 부활을 잡나</td><td>잡음</td><td>잡음</td><td>못 잡음</td></tr>
+    <tr><td>셸이 또 바뀌면</td><td><b style="color:var(--red)">표 테스트가 빨개짐</b></td><td>셸 테스트만 빨개짐</td><td>아무 일 없음</td></tr>
+    <tr><td>드는 품</td><td>작음 (한 파일)</td><td>중간 (옮길 집 + 세 줄)</td><td>가장 작음</td></tr>
+  </table>
+
+  <h2>제 의견</h2>
+  <div class="why">
+    <b>ㄴ 을 권합니다.</b> ㄱ 으로 해도 오늘은 초록이 되지만, 셸을 손대는 다음 사람이
+    <b>표 테스트가 왜 깨졌는지</b> 뒤지는 일이 또 생깁니다 — 오늘 제가 그걸 했습니다.
+    다만 「옮길 집을 새로 만들지(<code>shell_header_smoke.mjs</code>), 있는 집에 얹을지(<code>modal_shell_smoke.mjs</code>)」는
+    취향이 갈리는 자리라 정해 주시면 그대로 하겠습니다.
+    <br><br>
+    <b>ㄷ 도 나쁜 선택이 아닙니다</b> — 셸 머리 배치를 곧 또 건드릴 계획이라면, 두 번 고치느니 한 번 꺼 두는 게 낫습니다.
+    그때는 <b>되살릴 사람과 기한을 반드시 적어</b> 주세요. 그게 없으면 영원히 꺼진 채로 남습니다.
+  </div>
+
+  <div class="pick">
+    <span class="b">ㄱ 제자리에서 갱신</span>
+    <span class="b rec">ㄴ 셸 스위트로 이사</span>
+    <span class="b">ㄷ 까닭 적고 건너뛰기</span>
+  </div>
+  <p class="sub" style="margin-top:12px">고르시면 바로 반영하고, 고친 스위트를 다시 돌려 결과를 드리겠습니다.</p>
+
+</div>
+</body>
+</html>
